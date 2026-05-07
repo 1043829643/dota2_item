@@ -30,8 +30,15 @@ header.page-head {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 12px;
   padding: 14px 0 6px;
   margin-bottom: 16px;
+}
+header.page-head .release-date {
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 header.page-head .version {
   color: #c9d1d9;
@@ -43,6 +50,23 @@ header.page-head .version {
   border: 1px solid #30363d;
   padding: 4px 14px;
   border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+header.page-head .version:hover {
+  background: rgba(48, 54, 61, 0.7);
+  border-color: #58a6ff;
+}
+header.page-head .version-chev {
+  font-size: 14px;
+  color: #8b949e;
+  line-height: 1;
+  margin-top: 2px;
+  font-weight: 600;
 }
 
 /* LEGEND */
@@ -288,9 +312,14 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   border: 1px solid rgba(139, 148, 158, 0.3);
 }
 .badge.rework {
-  background: rgba(210, 168, 255, 0.13);
-  color: #d2a8ff;
-  border: 1px solid rgba(210, 168, 255, 0.4);
+  background: rgba(180, 145, 220, 0.07);
+  color: #9988aa;
+  border: 1px solid rgba(180, 145, 220, 0.22);
+}
+.badge.misc {
+  background: rgba(139, 148, 158, 0.10);
+  color: #8b949e;
+  border: 1px solid rgba(139, 148, 158, 0.28);
 }
 .badge.qol {
   background: rgba(121, 192, 255, 0.10);
@@ -527,9 +556,10 @@ img { max-width: 100%; }
   transform: translateY(-1px);
 }
 .legend-tags .badge.filter-btn.active {
-  outline: 1.5px solid currentColor;
+  outline: 2px solid currentColor;
   outline-offset: 2px;
-  filter: brightness(1.25);
+  filter: brightness(1.35);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
 }
 
 /* ENTITY-BLOCK wrapper (used for filtering hide/show) */
@@ -539,57 +569,8 @@ img { max-width: 100%; }
 body.filter-active h2.section { display: none; }
 body.filter-active h4.subgroup { display: none; }
 body.filter-active ul.subnotes { display: none; }
-body.filter-active .filter-banner { display: block; }
-.filter-banner {
-  display: none;
-  background: rgba(121, 192, 255, 0.08);
-  border: 1px solid rgba(121, 192, 255, 0.25);
-  border-radius: 4px;
-  padding: 8px 14px;
-  margin: 0 0 18px;
-  color: #79c0ff;
-  font-size: 13px;
-}
-.filter-banner strong { color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
-.filter-banner .clear-btn {
-  float: right;
-  background: rgba(121, 192, 255, 0.18);
-  border: 1px solid rgba(121, 192, 255, 0.4);
-  color: #c0d8eb;
-  padding: 2px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-  cursor: pointer;
-  font-family: inherit;
-}
-.filter-banner .clear-btn:hover { filter: brightness(1.2); }
-
-/* Hide LIs that don't match the active filter */
-body[data-filter="buff"]   li[data-tag]:not([data-tag~="buff"])   { display: none; }
-body[data-filter="nerf"]   li[data-tag]:not([data-tag~="nerf"])   { display: none; }
-body[data-filter="info"]   li[data-tag]:not([data-tag~="info"])   { display: none; }
-body[data-filter="qol"]    li[data-tag]:not([data-tag~="qol"])    { display: none; }
-body[data-filter="rework"] li[data-tag]:not([data-tag~="rework"]) { display: none; }
-/* Hide LIs without any tag entirely (they're INFO-only / structural) */
-body.filter-active li:not([data-tag]) { display: none; }
-/* Hide ULs that have no matching LIs */
-body[data-filter="buff"]   ul.changes:not(:has(li[data-tag~="buff"]))   { display: none; }
-body[data-filter="nerf"]   ul.changes:not(:has(li[data-tag~="nerf"]))   { display: none; }
-body[data-filter="info"]   ul.changes:not(:has(li[data-tag~="info"]))   { display: none; }
-body[data-filter="qol"]    ul.changes:not(:has(li[data-tag~="qol"]))    { display: none; }
-body[data-filter="rework"] ul.changes:not(:has(li[data-tag~="rework"])) { display: none; }
-/* Hide ability titles whose next UL has no matching LIs */
-body[data-filter="buff"]   h4.ability-title:not(:has(+ ul li[data-tag~="buff"]))   { display: none; }
-body[data-filter="nerf"]   h4.ability-title:not(:has(+ ul li[data-tag~="nerf"]))   { display: none; }
-body[data-filter="info"]   h4.ability-title:not(:has(+ ul li[data-tag~="info"]))   { display: none; }
-body[data-filter="qol"]    h4.ability-title:not(:has(+ ul li[data-tag~="qol"]))    { display: none; }
-body[data-filter="rework"] h4.ability-title:not(:has(+ ul li[data-tag~="rework"])) { display: none; }
-/* Hide entity-blocks where no descendant LI matches */
-body[data-filter="buff"]   .entity-block:not(:has(li[data-tag~="buff"]))   { display: none; }
-body[data-filter="nerf"]   .entity-block:not(:has(li[data-tag~="nerf"]))   { display: none; }
-body[data-filter="info"]   .entity-block:not(:has(li[data-tag~="info"]))   { display: none; }
-body[data-filter="qol"]    .entity-block:not(:has(li[data-tag~="qol"]))    { display: none; }
-body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { display: none; }
+/* Hide filtered elements via .f-hide class set by JS */
+.f-hide { display: none !important; }
 
 /* MOBILE: stack legend label above strip so 10 segments fit */
 @media (max-width: 540px) {
@@ -611,7 +592,8 @@ body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { dis
 <div class="container">
 
 <header class="page-head">
-  <span class="version">7.41c</span>
+  <span class="release-date">06.05.2026</span>
+  <button class="version" type="button" aria-label="Patch version (dropdown coming soon)">7.41c <span class="version-chev">▾</span></button>
 </header>
 
 <div class="legend">
@@ -620,18 +602,13 @@ body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { dis
     <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
     <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
     <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
-    <button class="badge neutral filter-btn" data-filter="info">INFO</button>
+    <button class="badge misc filter-btn" data-filter="misc">MISC</button>
     <button class="badge qol filter-btn" data-filter="qol">QoL</button>
   </div>
   <div class="search-box">
     <input type="text" id="entity-search" placeholder="Search heroes, items, mechanics…" autocomplete="off" spellcheck="false">
     <div class="search-results" id="search-results"></div>
   </div>
-</div>
-
-<div class="filter-banner">
-  Showing only: <strong id="filter-name">all</strong>
-  <button class="clear-btn" onclick="clearFilter()">× clear</button>
 </div>
 
 <h2 class="section">General Updates</h2>
@@ -791,7 +768,7 @@ body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { dis
 </div>
 <ul class="changes">
 <li data-tag="buff">Base Intelligence increased by 1 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="info">Damage at level 1 unchanged at 49-59 <span class="badge neutral" data-tag="info">INFO</span></li>
+<li>Damage at level 1 unchanged at 49-59 </li>
 </ul>
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
@@ -1124,7 +1101,7 @@ body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { dis
 <ul class="changes">
 <li data-tag="buff">Base Damage increased by 3 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
 <li data-tag="nerf">Base Agility decreased from 25 to 22 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-<li data-tag="info">Damage at level 1 unchanged at 47-54 <span class="badge neutral" data-tag="info">INFO</span></li>
+<li>Damage at level 1 unchanged at 47-54 </li>
 </ul>
 <h4 class="subgroup">Abilities</h4>
 <h4 class="ability-title">Sharpshooter</h4>
@@ -1760,7 +1737,7 @@ body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { dis
 <h4 class="subgroup">Abilities</h4>
 <h4 class="ability-title">Deploy Turrets</h4>
 <ul class="changes">
-<li data-tag="info">Updated sound effects <span class="badge neutral" data-tag="info">INFO</span></li>
+<li data-tag="misc">Updated sound effects <span class="badge misc" data-tag="misc">MISC</span></li>
 </ul>
 </div>
 <div class="entity-block">
@@ -1925,31 +1902,46 @@ body[data-filter="rework"] .entity-block:not(:has(li[data-tag~="rework"])) { dis
   }
   window.addEventListener('scroll', updateBtt, { passive: true });
   updateBtt();
-  // ---- TAG FILTERING ----
+  // ---- TAG FILTERING (multi-select, OR semantics) ----
   const buttons = document.querySelectorAll('.filter-btn');
-  const filterName = document.getElementById('filter-name');
-  let active = null;
+  const activeFilters = new Set();
+  function applyFilter() {
+    const isActive = activeFilters.size > 0;
+    document.body.classList.toggle('filter-active', isActive);
+    document.querySelectorAll('.f-hide').forEach(el => el.classList.remove('f-hide'));
+    if (!isActive) return;
+    document.querySelectorAll('ul.changes > li').forEach(li => {
+      const tags = (li.dataset.tag || '').split(' ').filter(Boolean);
+      const matches = tags.some(t => activeFilters.has(t));
+      if (!matches) li.classList.add('f-hide');
+    });
+    document.querySelectorAll('ul.changes').forEach(ul => {
+      const hasVisible = Array.from(ul.children).some(c => !c.classList.contains('f-hide'));
+      if (!hasVisible) ul.classList.add('f-hide');
+    });
+    document.querySelectorAll('h4.ability-title').forEach(h => {
+      let nx = h.nextElementSibling;
+      while (nx && nx.tagName !== 'UL') nx = nx.nextElementSibling;
+      if (!nx || nx.classList.contains('f-hide')) h.classList.add('f-hide');
+    });
+    document.querySelectorAll('.entity-block').forEach(block => {
+      const visible = block.querySelectorAll('ul.changes > li:not(.f-hide)').length;
+      if (!visible) block.classList.add('f-hide');
+    });
+  }
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
       const tag = btn.dataset.filter;
-      if (active === tag) {
-        clearFilter();
+      if (activeFilters.has(tag)) {
+        activeFilters.delete(tag);
+        btn.classList.remove('active');
       } else {
-        active = tag;
-        document.body.classList.add('filter-active');
-        document.body.dataset.filter = tag;
-        buttons.forEach(b => b.classList.toggle('active', b === btn));
-        filterName.textContent = btn.textContent;
-        window.scrollTo({ top: document.querySelector('.legend').offsetTop - 20, behavior: 'smooth' });
+        activeFilters.add(tag);
+        btn.classList.add('active');
       }
+      applyFilter();
     });
   });
-  window.clearFilter = function() {
-    active = null;
-    document.body.classList.remove('filter-active');
-    delete document.body.dataset.filter;
-    buttons.forEach(b => b.classList.remove('active'));
-  };
 
   // ---- FORMULA TABLES (click pill to toggle table) ----
   document.querySelectorAll('.formula-trigger').forEach(trig => {
