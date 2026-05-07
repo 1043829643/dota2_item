@@ -53,14 +53,67 @@ header.page-head .subtitle {
   font-size: 13px;
   color: #8b949e;
 }
-.legend-row {
+.legend-strip {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 6px;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-.legend-row:last-child { margin-bottom: 0; }
+.legend-strip:last-of-type { margin-bottom: 0; }
+.legend-label {
+  flex: 0 0 auto;
+  color: #c9d1d9;
+  font-weight: 600;
+  font-size: 11px;
+  min-width: 110px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.gradient-strip {
+  flex: 1;
+  display: flex;
+  height: 22px;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid #30363d;
+}
+.gradient-strip .seg {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+.gradient-strip .seg.buff1 { background: rgba(46, 160, 67, 0.18);  color: #7cb084; }
+.gradient-strip .seg.buff2 { background: rgba(46, 160, 67, 0.30);  color: #4ade80; }
+.gradient-strip .seg.buff3 { background: rgba(34, 197, 94, 0.42);  color: #22c55e; }
+.gradient-strip .seg.buff4 { background: rgba(0, 230, 118, 0.50);  color: #00e676; }
+.gradient-strip .seg.buff5 { background: rgba(0, 255, 136, 0.60);  color: #00ff88; }
+.gradient-strip .seg.nerf1 { background: rgba(248, 81, 73, 0.18);  color: #b08784; }
+.gradient-strip .seg.nerf2 { background: rgba(248, 81, 73, 0.30);  color: #ff7b72; }
+.gradient-strip .seg.nerf3 { background: rgba(248, 81, 73, 0.42);  color: #f85149; }
+.gradient-strip .seg.nerf4 { background: rgba(255, 70, 70, 0.55);  color: #ff5050; }
+.gradient-strip .seg.nerf5 { background: rgba(255, 23, 68, 0.62);  color: #ff1744; }
+.legend-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #21262d;
+  flex-wrap: wrap;
+}
+.legend-tags strong {
+  color: #c9d1d9;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-right: 4px;
+}
 .legend strong { color: #c9d1d9; }
 
 /* MAJOR SECTION */
@@ -194,6 +247,11 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   color: #d2a8ff;
   border: 1px solid rgba(210, 168, 255, 0.4);
 }
+.badge.qol {
+  background: rgba(121, 192, 255, 0.10);
+  color: #a8c0d8;
+  border: 1px solid rgba(121, 192, 255, 0.32);
+}
 
 /* BUFF GRADIENT (green, 5 tiers) */
 .badge.buff1 { background: rgba(46, 160, 67, 0.08);  color: #7cb084; border: 1px solid rgba(46, 160, 67, 0.22); }
@@ -268,27 +326,31 @@ img { max-width: 100%; }
 </header>
 
 <div class="legend">
-  <div class="legend-row">
-    <strong>Buff intensity:</strong>
-    <span class="badge buff1">+3%</span>
-    <span class="badge buff2">+15%</span>
-    <span class="badge buff3">+35%</span>
-    <span class="badge buff4">+60%</span>
-    <span class="badge buff5">+90%</span>
+  <div class="legend-strip">
+    <span class="legend-label">Buff intensity</span>
+    <div class="gradient-strip">
+      <div class="seg buff1">+3%</div>
+      <div class="seg buff2">+15%</div>
+      <div class="seg buff3">+35%</div>
+      <div class="seg buff4">+60%</div>
+      <div class="seg buff5">+90%</div>
+    </div>
   </div>
-  <div class="legend-row">
-    <strong>Nerf intensity:</strong>
-    <span class="badge nerf1">-3%</span>
-    <span class="badge nerf2">-15%</span>
-    <span class="badge nerf3">-35%</span>
-    <span class="badge nerf4">-60%</span>
-    <span class="badge nerf5">-90%</span>
+  <div class="legend-strip">
+    <span class="legend-label">Nerf intensity</span>
+    <div class="gradient-strip">
+      <div class="seg nerf1">-3%</div>
+      <div class="seg nerf2">-15%</div>
+      <div class="seg nerf3">-35%</div>
+      <div class="seg nerf4">-60%</div>
+      <div class="seg nerf5">-90%</div>
+    </div>
   </div>
-  <div class="legend-row">
-    <strong>Tiers:</strong>
-    <span style="color:#8b949e">0–5% • 6–25% • 26–50% • 51–75% • 76%+</span>
-    <span style="margin-left:12px"><span class="badge rework">REWORK</span></span>
-    <span><span class="badge neutral">INFO</span></span>
+  <div class="legend-tags">
+    <strong>Other:</strong>
+    <span class="badge rework">REWORK</span>
+    <span class="badge neutral">INFO</span>
+    <span class="badge qol">QoL</span>
   </div>
 </div>
 
@@ -543,7 +605,7 @@ img { max-width: 100%; }
 <h4 class="subgroup">Abilities</h4>
 <h4 class="ability-title">Primal Split</h4>
 <ul class="changes">
-<li>Cancel Split now has a 3s initial cooldown <span class="badge nerf2">NERF</span></li>
+<li>Cancel Split now has a 3s initial cooldown <span class="badge qol">QoL</span></li>
 </ul>
 <div class="entity hero-entity">
   <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/bristleback.png" alt="Bristleback" loading="lazy"></div>
@@ -731,7 +793,7 @@ img { max-width: 100%; }
 </ul>
 <h4 class="ability-title">Spirits</h4>
 <ul class="changes">
-<li>Now remembers the radius of the spirits between casts <span class="badge buff2">QoL</span></li>
+<li>Now remembers the radius of the spirits between casts <span class="badge qol">QoL</span></li>
 </ul>
 <div class="entity hero-entity">
   <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/jakiro.png" alt="Jakiro" loading="lazy"></div>
@@ -920,7 +982,7 @@ img { max-width: 100%; }
 <h4 class="subgroup">Abilities</h4>
 <h4 class="ability-title">Waveform</h4>
 <ul class="changes">
-<li>Will now be cast in the desired direction, if the target location is further than the cast range <span class="badge buff2">QoL</span></li>
+<li>Will now be cast in the desired direction, if the target location is further than the cast range <span class="badge qol">QoL</span></li>
 </ul>
 <div class="entity hero-entity">
   <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/muerta.png" alt="Muerta" loading="lazy"></div>
@@ -1266,7 +1328,7 @@ img { max-width: 100%; }
 <h4 class="subgroup">Abilities</h4>
 <h4 class="ability-title">Eyes In The Forest</h4>
 <ul class="changes">
-<li>Added AoE indicator to cast <span class="badge buff2">QoL</span></li>
+<li>Added AoE indicator to cast <span class="badge qol">QoL</span></li>
 </ul>
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
