@@ -380,6 +380,7 @@ def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False):
 # ---------- CSS ----------
 
 CSS = """
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -411,43 +412,47 @@ nav.top-nav {
 }
 .nav-inner {
   width: 100%;
-  padding: 10px 24px;
+  padding: 10px 24px 0;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 20px;
 }
 .nav-tabs {
   display: flex;
-  gap: 2px;
+  gap: 0;
+  align-items: flex-end;
 }
 .nav-tab {
-  padding: 8px 16px;
+  padding: 7px 14px 10px;
   color: #c9d1d9;
-  border-radius: 6px;
+  border-radius: 6px 6px 0 0;
   cursor: pointer;
   text-decoration: none;
   font-weight: 500;
   font-size: 14px;
   background: transparent;
   border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
   font-family: inherit;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, border-color 0.15s;
   display: inline-flex;
   align-items: center;
 }
 .nav-tab:hover {
-  background: rgba(48, 54, 61, 0.5);
+  background: rgba(48, 54, 61, 0.4);
 }
 .nav-tab.active {
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(0, 0, 0, 0.22);
   font-weight: 600;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  border-bottom: 2px solid #58a6ff;
 }
 .nav-context {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 8px;
 }
 
 /* RELEASE INFO + VERSION — одна высота */
@@ -493,9 +498,11 @@ nav.top-nav {
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   cursor: pointer;
   font-family: inherit;
+  line-height: 1;
   transition: background 0.15s;
 }
 .nav-context .version:hover {
@@ -567,7 +574,7 @@ nav.top-nav {
 /* NAV BACK ARROW — отдельная стрелка слева, как back-to-top, только в другую сторону */
 .nav-back-arrow {
   position: fixed;
-  top: 90px;
+  top: 82px;
   left: 22px;
   width: 38px;
   height: 38px;
@@ -606,7 +613,7 @@ nav.top-nav {
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
-  padding-left: 16px;
+  padding-left: 0;
   font-size: 13px;
   color: #8b949e;
 }
@@ -660,15 +667,15 @@ nav.top-nav {
 .cal-year-label:hover {
   background: rgba(48, 54, 61, 0.25);
 }
-.cal-year-label::before {
+.cal-year-label::after {
   content: '▾';
   color: #6e7681;
   font-size: 11px;
   display: inline-block;
-  width: 10px;
+  margin-left: auto;
   transition: transform 0.15s;
 }
-.cal-year-block[data-collapsed="true"] .cal-year-label::before {
+.cal-year-block[data-collapsed="true"] .cal-year-label::after {
   transform: rotate(-90deg);
 }
 .cal-year-block[data-collapsed="true"] .cal-mode-full,
@@ -732,6 +739,10 @@ nav.top-nav {
   line-height: 1.1;
   margin-bottom: 2px;
   white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.30);
 }
 .cal-patch .cal-day {
   font-size: 13px;
@@ -747,24 +758,20 @@ nav.top-nav {
   border-color: rgba(212, 138, 78, 0.32);
 }
 
-/* GLASS STYLE for major-big — тёмный текст на полупрозрачном янтаре */
+/* Major-big compact: solid orange (same vibe as expanded) */
 .cal-patch.major-big {
-  background: linear-gradient(135deg, rgba(255, 188, 110, 0.42) 0%, rgba(225, 138, 70, 0.55) 100%);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-color: rgba(255, 215, 165, 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 235, 205, 0.30),
-    0 0 0 1px rgba(212, 138, 78, 0.30);
+  background: rgba(212, 138, 78, 0.60);
+  border-color: rgba(212, 138, 78, 0.75);
 }
 .cal-patch.major-big .cal-day {
-  color: #2d1408;
-  font-weight: 800;
-  text-shadow: 0 1px 0 rgba(255, 220, 180, 0.35);
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 .cal-patch.major-big .cal-version {
-  color: #5a2a10;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 500;
+  text-decoration-color: rgba(255, 255, 255, 0.40);
 }
 
 /* CURRENT patch — заранее увеличена (compact mode) */
@@ -774,12 +781,16 @@ nav.top-nav {
   z-index: 2;
   box-shadow:
     inset 0 1px 0 rgba(255, 235, 205, 0.35),
-    0 0 0 1px rgba(121, 192, 255, 0.45),
+    0 0 0 2px rgba(121, 192, 255, 0.65),
     0 2px 6px rgba(0, 0, 0, 0.4);
 }
 .cal-patch.current:hover {
   transform: scale(1.18);
   z-index: 4;
+}
+.cal-patch.current .cal-version {
+  color: #79c0ff;
+  text-decoration-color: rgba(121, 192, 255, 0.55);
 }
 
 span.cal-patch {
@@ -795,11 +806,11 @@ span.cal-patch {
   font-variant-numeric: tabular-nums;
 }
 .cal-full-day-header {
-  font-size: 9px;
-  color: #6e7681;
-  text-align: center;
-  padding: 2px 0;
-  font-weight: 500;
+  display: none;
+}
+/* Also hide the empty top-left cell in the header row */
+.cal-full-grid > .cal-full-month-name:first-child {
+  display: none;
 }
 .cal-full-month-name {
   color: #8b949e;
@@ -848,17 +859,12 @@ span.cal-patch {
   color: #fff;
 }
 
-/* GLASS STYLE for major-big — full grid */
+/* Major-big full grid: solid orange */
 .cal-full-day.has-patch.major-big {
-  background: linear-gradient(135deg, rgba(255, 188, 110, 0.55) 0%, rgba(225, 138, 70, 0.72) 100%);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #2d1408;
-  font-weight: 800;
-  text-shadow: 0 1px 0 rgba(255, 220, 180, 0.40);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 235, 205, 0.35),
-    0 0 0 1px rgba(255, 215, 165, 0.55);
+  background: rgba(212, 138, 78, 0.80);
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
 }
 
 /* CURRENT patch — заранее увеличена (full mode) */
@@ -889,13 +895,18 @@ span.cal-full-day.has-patch {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 18px 0 24px;
+  margin: 6px 0 24px;
   padding: 8px 14px;
   background: #161b22;
   border: 1px solid #30363d;
   border-radius: 6px;
   font-size: 13px;
   color: #8b949e;
+}
+.patch-age .age-sep {
+  margin: 0 8px;
+  opacity: 0.45;
+  font-weight: 300;
 }
 .legend-tags {
   display: flex;
@@ -1400,6 +1411,7 @@ body.filter-active ul.subnotes { display: none; }
   .gradient-strip { height: 12px; }
   .gradient-strip .seg { font-size: 8px; }
 }
+
 """
 
 # ---------- CONTENT ----------
@@ -1689,7 +1701,8 @@ def write_head(version, date):
 ''')
 
 
-JS_TEXT = '''(function() {
+JS_TEXT = '''
+(function() {
   // ---- BACK-FROM-CALENDAR ----
   const params = new URLSearchParams(window.location.search);
   if (params.get('from') === 'calendar') {
@@ -1726,6 +1739,28 @@ JS_TEXT = '''(function() {
         dropdownBtn.setAttribute('aria-expanded', 'false');
       }
     });
+  }
+
+  // ---- HIDE ABSENT TAGS from toolbar ----
+  const presentTags = new Set();
+  document.querySelectorAll('[data-tag]').forEach(el => {
+    (el.dataset.tag || '').split(' ').filter(Boolean).forEach(t => presentTags.add(t));
+  });
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    if (!presentTags.has(btn.dataset.filter)) {
+      btn.style.display = 'none';
+    }
+  });
+
+  // ---- BOLD NUMBERS AND VERSION IN PATCH-AGE ----
+  const ageEl = document.querySelector('.patch-age');
+  if (ageEl) {
+    const text = ageEl.textContent;
+    const html = text
+      .replace(/\b(\d+\.\d+[a-z]?)\b/g, '<strong>$1</strong>')   // version like 7.41b
+      .replace(/\b(\d+)\b(?=\s+days?)/g, '<strong>$1</strong>')   // numbers before "days"
+      .replace(/·/g, '<span class="age-sep">·</span>');
+    ageEl.innerHTML = html;
   }
 
   // ---- TAG FILTERING (multi-select, OR semantics) ----
@@ -1895,6 +1930,7 @@ JS_TEXT = '''(function() {
     }
   });
 })();
+
 '''
 
 def write_footer():
