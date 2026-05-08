@@ -12,11 +12,13 @@ to /tmp/p_<version>.py
 import re
 import sys
 
-KV_FILE = '/mnt/user-data/uploads/patchnotes_english.txt'
+import os
+_HERE = os.path.dirname(os.path.abspath(__file__))
+KV_FILE = os.path.join(_HERE, 'data', 'patchnotes_english.txt')
 
 # ---------- LOAD HERO_SLUG ----------
 
-def load_hero_internal_to_display(build_py='/home/claude/build_patch.py'):
+def load_hero_internal_to_display(build_py=None):
     """Comprehensive map: Valve internal name → display name. Includes all
     heroes that exist in any Dota 2 patch from 7.06 through 7.41c."""
     return {
@@ -74,8 +76,10 @@ def load_hero_internal_to_display(build_py='/home/claude/build_patch.py'):
     }
 
 
-def load_item_internal_to_display(build_py='/home/claude/build_patch.py'):
-    src = open(build_py).read()
+def load_item_internal_to_display(build_py=None):
+    if build_py is None:
+        build_py = os.path.join(_HERE, 'build_patch.py')
+    src = open(build_py, encoding='utf-8').read()
     m = re.search(r'ITEM_SLUG\s*=\s*\{(.+?)\}', src, re.DOTALL)
     if not m:
         return {}
@@ -929,7 +933,7 @@ if __name__ == '__main__':
         sys.exit(1)
     version = sys.argv[1]
     code = generate(version)
-    out_file = f'/tmp/p_{version}.py'
+    out_file = os.path.join(_HERE, f'_generated_p_{version}.py')
     with open(out_file, 'w', encoding='utf-8') as f:
         f.write(code + '\n')
     print(f"Generated: {out_file} ({len(code):,} chars)")
