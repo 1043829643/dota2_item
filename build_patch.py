@@ -151,20 +151,23 @@ def b(old, new, l=False):
         keys.append((cls, display))
 
     # Determine overall tag.
-    # Logic: use the LAST non-zero per-level delta (i.e. max ability level).
-    # Reason: in actual play, abilities are usually maxed by the time they
-    # matter, so the final-level value is what determines whether a change
-    # feels like a buff or nerf.
+    # Logic: avg of signed per-level %s; sign decides.
+    # If avg rounds to 0 → fall back to last non-zero level.
     overall = ""
     if signed_pcts:
-        for v in reversed(signed_pcts):
-            if v > 0:
-                overall = "buff"
-                break
-            if v < 0:
-                overall = "nerf"
-                break
-        # If all zeros, overall stays empty (neutral)
+        avg = sum(signed_pcts) / len(signed_pcts)
+        if round(avg) > 0:
+            overall = "buff"
+        elif round(avg) < 0:
+            overall = "nerf"
+        else:
+            for v in reversed(signed_pcts):
+                if v > 0:
+                    overall = "buff"
+                    break
+                if v < 0:
+                    overall = "nerf"
+                    break
 
     # Collapse if every level produced an identical badge
     if len(keys) > 1 and len(set(keys)) == 1:
@@ -2680,7 +2683,7 @@ HANDCRAFTED_7_41C_BODY = '''<h2 class="section">General Updates</h2>
 </ul>
 <h4 class="ability-title">Snakebite</h4>
 <ul class="changes">
-<li data-tag="buff">Damage per second rescaled from 20/25/30/35 to 10/20/30/40 <span class="badge-group" data-overall="buff"><span class="badge nerf8">-50%</span><span class="badge nerf4">-20%</span><span class="badge neutral">0%</span><span class="badge buff3">+14%</span></span></li>
+<li data-tag="nerf">Damage per second rescaled from 20/25/30/35 to 10/20/30/40 <span class="badge-group" data-overall="nerf"><span class="badge nerf8">-50%</span><span class="badge nerf4">-20%</span><span class="badge neutral">0%</span><span class="badge buff3">+14%</span></span></li>
 </ul>
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
