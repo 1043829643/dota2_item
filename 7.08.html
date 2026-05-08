@@ -38,6 +38,7 @@
     <strong>Tags:</strong>
     <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
     <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
+    <button class="badge new filter-btn" data-filter="new">NEW</button>
     <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
     <button class="badge misc filter-btn" data-filter="misc">MISC</button>
     <button class="badge qol filter-btn" data-filter="qol">QoL</button>
@@ -55,9 +56,9 @@
 <li data-tag="rework">Observer Wards and Sentry Wards now require a constant 2 hits to kill <span class="badge rework" data-tag="rework">REWORK</span></li>
 <li data-tag="buff">Tier 1 Tower armor aura increased from 1 to 2 <span class="badge-group" data-overall="buff"><span class="badge buff10">+100%</span></span></li>
 <li data-tag="nerf">Bounty Runes base XP reduced from 25 to 0 <span class="badge-group" data-overall="nerf"><span class="badge nerf10">-100%</span></span></li>
-<li data-tag="buff">Bounty Runes Gold Growth increased from 2/min to 4/min <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="rework">Roshan now has 25% Status Resistance <span class="badge rework" data-tag="rework">REWORK</span></li>
-<li data-tag="buff">All Pick drafting time per hero selection reduced from 30s to 25s <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
+<li data-tag="buff">Bounty Runes Gold Growth increased from <span class="formula-old">2/min</span> to <span class="formula-trigger" data-formula="f8">4/min</span> <span class="badge-group" data-overall="buff"><span class="badge buff10">+100%</span></span><table class="formula-table" id="f8" hidden><thead><tr><th></th><th>m1</th><th>m2</th><th>m3</th><th>m4</th><th>m5</th><th>m6</th><th>m7</th><th>m8</th><th>m9</th><th>m10</th><th class="lvl-jump">m15</th><th>m20</th><th>m25</th><th>m30</th><th>m35</th><th>m40</th><th>m45</th><th>m50</th><th>m55</th><th>m60</th></tr></thead><tbody><tr><th class="row-label-old">old</th><td>2g</td><td>4g</td><td>6g</td><td>8g</td><td>10g</td><td>12g</td><td>14g</td><td>16g</td><td>18g</td><td>20g</td><td class="lvl-jump">30g</td><td>40g</td><td>50g</td><td>60g</td><td>70g</td><td>80g</td><td>90g</td><td>100g</td><td>110g</td><td>120g</td></tr><tr><th class="row-label-new">new</th><td>4g</td><td>8g</td><td>12g</td><td>16g</td><td>20g</td><td>24g</td><td>28g</td><td>32g</td><td>36g</td><td>40g</td><td class="lvl-jump">60g</td><td>80g</td><td>100g</td><td>120g</td><td>140g</td><td>160g</td><td>180g</td><td>200g</td><td>220g</td><td>240g</td></tr><tr><th>Δ %</th><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td class="lvl-jump"><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td><td><span class="badge buff10">+100%</span></td></tr></tbody></table></li>
+<li data-tag="buff new">Roshan now has 25% Status Resistance <span class="badge new" data-tag="new" data-overall="buff">NEW</span></li>
+<li data-tag="nerf">All Pick drafting time per hero selection reduced from 30s to 25s <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-17%</span></span></li>
 </ul>
 </div>
 <h2 class="section">Item Updates</h2>
@@ -72,7 +73,7 @@
 </div>
 <div class="entity-block">
 <div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/battle_fury.png" alt="Battle Fury" loading="lazy"></div>
+  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/bfury.png" alt="Battle Fury" loading="lazy"></div>
   <div class="entity-name">Battle Fury</div>
 </div>
 <ul class="changes">
@@ -91,7 +92,7 @@
 </div>
 <div class="entity-block">
 <div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/blink_dagger.png" alt="Blink Dagger" loading="lazy"></div>
+  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/blink.png" alt="Blink Dagger" loading="lazy"></div>
   <div class="entity-name">Blink Dagger</div>
 </div>
 <ul class="changes">
@@ -174,9 +175,9 @@
 </ul>
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
-<li data-tag="buff">Level 10 Talent increased from -5s Unstable Concoction Cooldown to -8s <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="buff">Level 15 Talent increased from +350 Health to +400 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="buff">Level 20 Talent increased from +360 Unstable Concoction Damage to +400 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
+<li data-tag="buff">Level 10 Talent increased from -5s Unstable Concoction Cooldown to -8s <span class="badge-group" data-overall="buff"><span class="badge buff8">+60%</span></span></li>
+<li data-tag="buff">Level 15 Talent increased from +350 Health to +400 <span class="badge-group" data-overall="buff"><span class="badge buff3">+14%</span></span></li>
+<li data-tag="buff">Level 20 Talent increased from +360 Unstable Concoction Damage to +400 <span class="badge-group" data-overall="buff"><span class="badge buff3">+11%</span></span></li>
 </ul>
 </div>
 <div class="entity-block">
@@ -234,8 +235,9 @@
 </div>
 <ul class="changes">
 <li data-tag="buff">Base intelligence increased by 3 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="misc">Base damage random variance reduced from 18 min/max damage spread to 12 <span class="badge misc" data-tag="misc">MISC</span></li>
+<li data-tag="misc">Base damage random variance reduced from 18 to 12 <span class="badge misc" data-tag="misc">MISC</span></li>
 </ul>
+<ul class="subnotes"><li>Lina's auto-attack damage rolls in a narrower min/max range now (spread 12 instead of 18). Average damage is unchanged — only the swing between hits is smaller, so attacks are more consistent.</li></ul>
 </div>
 <div class="entity-block">
 <div class="entity hero-entity">
@@ -244,7 +246,7 @@
 </div>
 <h4 class="ability-title">Mana Drain</h4>
 <ul class="changes">
-<li data-tag="rework">Now slows the target by 14/16/18/20% <span class="badge rework" data-tag="rework">REWORK</span></li>
+<li data-tag="buff new">Now slows the target by 14/16/18/20% <span class="badge new" data-tag="new" data-overall="buff">NEW</span></li>
 </ul>
 </div>
 <div class="entity-block">
@@ -271,9 +273,9 @@
 </ul>
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
-<li data-tag="buff">Level 10 Talent increased from 12% Evasion to 15% <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="buff">Level 15 Talent increased from +15% Mystic Snake Mana Steal to +20% <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="nerf">Level 20 Talent reduced from +800 Mana to +700 <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
+<li data-tag="buff">Level 10 Talent increased from 12% Evasion to 15% <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
+<li data-tag="buff">Level 15 Talent increased from +15% Mystic Snake Mana Steal to +20% <span class="badge-group" data-overall="buff"><span class="badge buff6">+33%</span></span></li>
+<li data-tag="nerf">Level 20 Talent reduced from +800 Mana to +700 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
 </ul>
 </div>
 <div class="entity-block">
@@ -353,11 +355,12 @@
 </div>
 <h4 class="ability-title">Life Drain</h4>
 <ul class="changes">
-<li data-tag="buff">Damage increased from 150/200/250 to 150/225/300 — Aghanim's Scepter now only removes cooldown (no longer increases damage) <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff3">+12%</span><span class="badge buff4">+20%</span></span></li>
+<li data-tag="buff">Damage increased from 150/200/250 to 150/225/300 <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff3">+12%</span><span class="badge buff4">+20%</span></span></li>
 </ul>
+<ul class="subnotes"><li>Aghanim's Scepter no longer increases Life Drain damage — it now only removes the cooldown</li></ul>
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
-<li data-tag="buff">Level 15 Talent increased from +1 Nether Ward Health to +2 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
+<li data-tag="buff">Level 15 Talent increased from +1 Nether Ward Health to +2 <span class="badge-group" data-overall="buff"><span class="badge buff10">+100%</span></span></li>
 </ul>
 </div>
 <div class="entity-block">
@@ -425,7 +428,7 @@
 <h4 class="subgroup">Talents</h4>
 <ul class="changes">
 <li data-tag="rework">Level 20 Talent changed from +1 Shackleshot Target to +0.5s Shackleshot Duration <span class="badge rework" data-tag="rework">REWORK</span></li>
-<li data-tag="buff">Level 25 Talent increased from +30% Ministun Focus Fire to +35% <span class="badge buff-text" data-tag="buff">BUFF</span></li>
+<li data-tag="buff">Level 25 Talent increased from +30% Ministun Focus Fire to +35% <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
 </ul>
 </div>
 

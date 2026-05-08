@@ -65,6 +65,8 @@ HERO_SLUG = {
 }
 
 ITEM_SLUG = {
+    "Battle Fury": "bfury",
+    "Blink Dagger": "blink",
     "Bloodstone": "bloodstone",
     "Boots of Bearing": "boots_of_bearing",
     "Crella's Crozier": "crellas_crozier",
@@ -208,13 +210,16 @@ def fold(text):
     return f'<span class="formula-old">{text}</span>'
 
 
-def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}"):
+def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
+       level_prefix='L', jump_at=20, headline_level=1):
     """Formula-based change. Returns (trigger_html, badge_html, table_html).
     The trigger wraps formula_text as a clickable pill that toggles the table.
-    Tag is determined by LEVEL 1 (per user spec).
+    Tag is determined by `headline_level` (default L1).
     levels: list of int levels to show; defaults to L1-15 + L20, L25, L30.
             Can also pass an int N → range(1, N+1).
-    value_fmt: format string for level values (e.g. '{:.2f}%' or '{:g}')."""
+    value_fmt: format string for level values (e.g. '{:.2f}%' or '{:g}').
+    level_prefix: prefix shown before each column header (default 'L').
+    jump_at: level value that gets the visual gap class (default 20)."""
     if levels is None:
         levels = list(range(1, 16)) + [20, 25, 30]
     elif isinstance(levels, int):
@@ -223,19 +228,18 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}"):
     _formula_id_counter[0] += 1
     fid = f"f{_formula_id_counter[0]}"
 
-    # Level 1 inline badge
-    cls1, disp1, _, overall1 = _compute_pct(old_fn(1), new_fn(1), l)
+    # Headline-level inline badge (used when row is collapsed)
+    cls1, disp1, _, overall1 = _compute_pct(old_fn(headline_level), new_fn(headline_level), l)
     overall_attr = f' data-overall="{overall1}"' if overall1 else ""
     badge = f'<span class="badge-group"{overall_attr}><span class="badge {cls1}">{disp1}</span></span>'
 
     # Trigger
     trigger = f'<span class="formula-trigger" data-formula="{fid}">{formula_text}</span>'
 
-    # Mark boundary class on first level >= 20 (visual jump from L15 → L20)
     def cls_for(L):
-        return ' class="lvl-jump"' if L == 20 else ''
+        return ' class="lvl-jump"' if L == jump_at else ''
 
-    head_cells = "".join(f'<th{cls_for(L)}>L{L}</th>' for L in levels)
+    head_cells = "".join(f'<th{cls_for(L)}>{level_prefix}{L}</th>' for L in levels)
     old_cells = "".join(f'<td{cls_for(L)}>{value_fmt.format(old_fn(L))}</td>' for L in levels)
     new_cells = "".join(f'<td{cls_for(L)}>{value_fmt.format(new_fn(L))}</td>' for L in levels)
     pct_cells = []
@@ -258,16 +262,20 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}"):
 
 
 def t(tag):
-    """Text-only tag for non-numeric changes."""
+    """Text-only tag for non-numeric changes.
+    NEW (mechanic/property the entity didn't have before) is treated as a buff
+    for filter purposes — data-overall='buff' so the BUFF filter also catches it."""
     cls_map = {
         "BUFF":   ("buff-text", "buff"),
         "NERF":   ("nerf-text", "nerf"),
         "REWORK": ("rework",    "rework"),
         "MISC":   ("misc",      "misc"),
         "QoL":    ("qol",       "qol"),
+        "NEW":    ("new",       "new"),
     }
     color_cls, tag_id = cls_map[tag]
-    return f'<span class="badge {color_cls}" data-tag="{tag_id}">{tag}</span>'
+    extra = ' data-overall="buff"' if tag == "NEW" else ''
+    return f'<span class="badge {color_cls}" data-tag="{tag_id}"{extra}>{tag}</span>'
 
 
 # ---------- HTML BUILDING ----------
@@ -360,7 +368,8 @@ def subnote(text):
     return f'<ul class="subnotes"><li>{text}</li></ul>'
 
 
-def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False):
+def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False,
+               rework_badge=True, **bf_kwargs):
     """Convenience: emit <li> with formula table.
 
     prefix:        text BEFORE 'from' (e.g. 'Max Damage Increase decreased')
@@ -368,12 +377,17 @@ def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False):
     new_formula:   human-readable new-formula string
     old_fn/new_fn: callable(level) → value, used to compute per-level table
     l:             lower-is-buff flag (passed through to bf gradient)
+    rework_badge:  if True (default), prepend a REWORK text-tag to the badge group
+    **bf_kwargs:   forwarded to bf() (e.g. levels, level_prefix, jump_at, value_fmt)
     """
-    trigger, badge, table = bf(old_fn, new_fn, new_formula, l=l)
+    trigger, badge, table = bf(old_fn, new_fn, new_formula, l=l, **bf_kwargs)
     full_text = (f'{prefix} from <span class="formula-old">{old_formula}</span> '
                  f'to {trigger}')
-    full_badge = ('<span class="badge rework" data-tag="rework">REWORK</span>'
-                  + badge)
+    if rework_badge:
+        full_badge = ('<span class="badge rework" data-tag="rework">REWORK</span>'
+                      + badge)
+    else:
+        full_badge = badge
     return li(full_text, full_badge, extra=table)
 
 
@@ -1127,6 +1141,13 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   color: #a8c0d8;
   border: 1px solid rgba(121, 192, 255, 0.32);
 }
+.badge.new {
+  background: rgba(240, 198, 116, 0.14);
+  color: #f0c674;
+  border: 1px solid rgba(240, 198, 116, 0.45);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
 
 /* BUFF GRADIENT (10 tiers, soft-saturated greens) */
 .badge.buff1  { background: rgba(120, 215, 145, 0.10); color: #b2d8b8; border: 1px solid rgba(120, 215, 145, 0.26); }
@@ -1666,6 +1687,7 @@ def write_head(version, date):
     <strong>Tags:</strong>
     <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
     <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
+    <button class="badge new filter-btn" data-filter="new">NEW</button>
     <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
     <button class="badge misc filter-btn" data-filter="misc">MISC</button>
     <button class="badge qol filter-btn" data-filter="qol">QoL</button>
@@ -4214,9 +4236,17 @@ W(ul_open())
 W(li("Observer Wards and Sentry Wards now require a constant 2 hits to kill", t("REWORK")))
 W(li("Tier 1 Tower armor aura increased from 1 to 2", b(1, 2)))
 W(li("Bounty Runes base XP reduced from 25 to 0", b(25, 0)))
-W(li("Bounty Runes Gold Growth increased from 2/min to 4/min", t("BUFF")))
-W(li("Roshan now has 25% Status Resistance", t("REWORK")))
-W(li("All Pick drafting time per hero selection reduced from 30s to 25s", b(30, 25, l=True)))
+W(li_formula(
+    "Bounty Runes Gold Growth increased",
+    "2/min", "4/min",
+    lambda T: 2 * T, lambda T: 4 * T,
+    levels=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60],
+    level_prefix='m', jump_at=15,
+    rework_badge=False,
+    value_fmt="{:g}g",
+))
+W(li("Roshan now has 25% Status Resistance", t("NEW")))
+W(li("All Pick drafting time per hero selection reduced from 30s to 25s", b(30, 25)))
 W(ul_close())
 
 # ===== ITEM UPDATES =====
@@ -4290,9 +4320,9 @@ W(li("Base attack time improved from 1.4/1.2/1.0 to 1.3/1.15/1.0", b([1.4, 1.2, 
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
-W(li("Level 10 Talent increased from -5s Unstable Concoction Cooldown to -8s", t("BUFF")))
-W(li("Level 15 Talent increased from +350 Health to +400", t("BUFF")))
-W(li("Level 20 Talent increased from +360 Unstable Concoction Damage to +400", t("BUFF")))
+W(li("Level 10 Talent increased from -5s Unstable Concoction Cooldown to -8s", b(5, 8)))
+W(li("Level 15 Talent increased from +350 Health to +400", b(350, 400)))
+W(li("Level 20 Talent increased from +360 Unstable Concoction Damage to +400", b(360, 400)))
 W(ul_close())
 
 # Ember Spirit
@@ -4332,14 +4362,15 @@ W(ul_close())
 W(hero_header("Lina"))
 W(ul_open())
 W(li("Base intelligence increased by 3", t("BUFF")))
-W(li("Base damage random variance reduced from 18 min/max damage spread to 12", t("MISC")))
+W(li("Base damage random variance reduced from 18 to 12", t("MISC")))
 W(ul_close())
+W(subnote("Lina's auto-attack damage rolls in a narrower min/max range now (spread 12 instead of 18). Average damage is unchanged — only the swing between hits is smaller, so attacks are more consistent."))
 
 # Lion
 W(hero_header("Lion"))
 W(ability("Mana Drain"))
 W(ul_open())
-W(li("Now slows the target by 14/16/18/20%", t("REWORK")))
+W(li("Now slows the target by 14/16/18/20%", t("NEW")))
 W(ul_close())
 
 # Lycan
@@ -4360,9 +4391,9 @@ W(li("Cast range reduced from 800 to 700", b(800, 700)))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
-W(li("Level 10 Talent increased from 12% Evasion to 15%", t("BUFF")))
-W(li("Level 15 Talent increased from +15% Mystic Snake Mana Steal to +20%", t("BUFF")))
-W(li("Level 20 Talent reduced from +800 Mana to +700", t("NERF")))
+W(li("Level 10 Talent increased from 12% Evasion to 15%", b(12, 15)))
+W(li("Level 15 Talent increased from +15% Mystic Snake Mana Steal to +20%", b(15, 20)))
+W(li("Level 20 Talent reduced from +800 Mana to +700", b(800, 700)))
 W(ul_close())
 
 # Morphling
@@ -4421,11 +4452,12 @@ W(subnote("Effectively a nerf at levels 1–2 (20%, 24%) and a buff only at leve
 W(hero_header("Pugna"))
 W(ability("Life Drain"))
 W(ul_open())
-W(li("Damage increased from 150/200/250 to 150/225/300 — Aghanim's Scepter now only removes cooldown (no longer increases damage)", b([150, 200, 250], [150, 225, 300])))
+W(li("Damage increased from 150/200/250 to 150/225/300", b([150, 200, 250], [150, 225, 300])))
 W(ul_close())
+W(subnote("Aghanim's Scepter no longer increases Life Drain damage — it now only removes the cooldown"))
 W(subgroup("Talents"))
 W(ul_open())
-W(li("Level 15 Talent increased from +1 Nether Ward Health to +2", t("BUFF")))
+W(li("Level 15 Talent increased from +1 Nether Ward Health to +2", b(1, 2)))
 W(ul_close())
 
 # Shadow Fiend
@@ -4475,7 +4507,7 @@ W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 20 Talent changed from +1 Shackleshot Target to +0.5s Shackleshot Duration", t("REWORK")))
-W(li("Level 25 Talent increased from +30% Ministun Focus Fire to +35%", t("BUFF")))
+W(li("Level 25 Talent increased from +30% Ministun Focus Fire to +35%", b(30, 35)))
 W(ul_close())
 
 write_footer()
