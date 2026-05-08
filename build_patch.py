@@ -371,11 +371,24 @@ header.page-head {
   padding: 14px 0 6px;
   margin-bottom: 16px;
 }
+header.page-head .release-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
 header.page-head .release-date {
   color: #8b949e;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.3px;
+}
+header.page-head .patch-age {
+  color: #6e7681;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.15px;
+  font-variant-numeric: tabular-nums;
 }
 header.page-head .version {
   color: #c9d1d9;
@@ -995,6 +1008,53 @@ PATCHES = [
     {"version": "7.41b", "date": "07.04.2026", "filename": "7.41b.html"},
 ]
 
+# Includes patches without HTML (e.g. 7.41a) — used only for "days between" math.
+# When new patches release, append them here in any order; sorted internally.
+RELEASE_HISTORY = [
+    {"version": "7.41c", "date": "06.05.2026"},
+    {"version": "7.41b", "date": "07.04.2026"},
+    {"version": "7.41a", "date": "28.03.2026"},
+]
+
+
+def _parse_date(dmy):
+    """'06.05.2026' → date(2026, 5, 6)."""
+    from datetime import date as _D
+    d, m, y = dmy.split('.')
+    return _D(int(y), int(m), int(d))
+
+
+def _patch_age_line(version):
+    """Build the small subtitle under the release date.
+
+    For latest patch:   "29 days after 7.41b · running for 2 days"
+    For older patches:  "10 days after 7.41a · ran for 29 days"
+    Returns empty string if previous patch unknown.
+    """
+    from datetime import date as _D
+    today = _D.today()
+    sorted_releases = sorted(RELEASE_HISTORY, key=lambda p: _parse_date(p["date"]))
+    for i, p in enumerate(sorted_releases):
+        if p["version"] != version:
+            continue
+        cur_date = _parse_date(p["date"])
+        prev_part = ""
+        if i > 0:
+            prev = sorted_releases[i - 1]
+            n = (cur_date - _parse_date(prev["date"])).days
+            prev_part = f"{n} days after {prev['version']}"
+        if i < len(sorted_releases) - 1:
+            nxt = sorted_releases[i + 1]
+            n = (_parse_date(nxt["date"]) - cur_date).days
+            tail = f"ran for {n} days"
+        else:
+            n = (today - cur_date).days
+            unit = "day" if n == 1 else "days"
+            tail = f"running for {n} {unit}" if n > 0 else "released today"
+        return f"{prev_part} · {tail}" if prev_part else tail
+    return ""
+
+
 def _dropdown_options_html(current_version):
     """Render menu items list for the version dropdown."""
     items = []
@@ -1013,18 +1073,23 @@ def _dropdown_options_html(current_version):
 def write_head(version, date):
     """Render head + opening container + version dropdown + tags."""
     options = _dropdown_options_html(version)
+    age_line = _patch_age_line(version)
+    age_html = f'<span class="patch-age">{age_line}</span>' if age_line else ''
     W(f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Dota Patch Notes - {version}</title>
-<style>{CSS}</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="container">
 
 <header class="page-head">
-  <span class="release-date">{date}</span>
+  <div class="release-info">
+    <span class="release-date">{date}</span>
+    {age_html}
+  </div>
   <div class="version-dropdown">
     <button class="version" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Select patch version">
       {version} <span class="version-chev">▾</span>
@@ -1052,9 +1117,7 @@ def write_head(version, date):
 ''')
 
 
-JS_BLOCK = '''
-<script>
-(function() {
+JS_TEXT = '''(function() {
   // ---- BACK TO TOP visibility ----
   const btt = document.querySelector('.back-to-top');
   function updateBtt() {
@@ -1062,6 +1125,30 @@ JS_BLOCK = '''
   }
   window.addEventListener('scroll', updateBtt, { passive: true });
   updateBtt();
+
+  // ---- VERSION DROPDOWN toggle ----
+  const dropdownBtn = document.querySelector('.version-dropdown .version');
+  const dropdownMenu = document.querySelector('.version-dropdown .version-menu');
+  if (dropdownBtn && dropdownMenu) {
+    dropdownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = dropdownMenu.classList.toggle('open');
+      dropdownBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
+        dropdownMenu.classList.remove('open');
+        dropdownBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        dropdownMenu.classList.remove('open');
+        dropdownBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
   // ---- TAG FILTERING (multi-select, OR semantics) ----
   const buttons = document.querySelectorAll('.filter-btn');
   const activeFilters = new Set();
@@ -1220,15 +1307,24 @@ JS_BLOCK = '''
     }
   });
 })();
-</script>
 '''
 
 def write_footer():
-    """Render close-block + back-to-top button + JS + closing tags."""
+    """Render close-block + back-to-top button + script tag + closing tags."""
     W(_close_block())
     W('<button class="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top:0, behavior:\'smooth\'})">↑</button>')
-    W(JS_BLOCK)
+    W('<script src="scripts.js"></script>')
     W('</div></body></html>')
+
+
+def save_assets():
+    """Write styles.css and scripts.js once. Called before any save_html()."""
+    with open('/home/claude/styles.css', 'w', encoding='utf-8') as f:
+        f.write(CSS)
+    with open('/home/claude/scripts.js', 'w', encoding='utf-8') as f:
+        f.write(JS_TEXT)
+    print(f"  → styles.css: {len(CSS):,} bytes")
+    print(f"  → scripts.js: {len(JS_TEXT):,} bytes")
 
 
 def save_html(filename):
@@ -1245,6 +1341,7 @@ def save_html(filename):
 # ============================================================
 # 7.41c content
 # ============================================================
+save_assets()
 write_head("7.41c", "06.05.2026")
 
 # 7.41c content is HANDCRAFTED — preserves manual corrections, formula tables,
