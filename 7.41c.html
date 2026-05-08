@@ -1,346 +1,9 @@
-#!/usr/bin/env python3
-"""Generate annotated Dota 2 7.41c patch notes HTML."""
-
-# ---------- IMAGE URL HELPERS ----------
-
-HERO_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/"
-ITEM_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/"
-ABIL_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/"
-
-HERO_SLUG = {
-    "Abaddon": "abaddon", "Alchemist": "alchemist",
-    "Ancient Apparition": "ancient_apparition", "Anti-Mage": "antimage",
-    "Arc Warden": "arc_warden", "Bane": "bane", "Batrider": "batrider",
-    "Beastmaster": "beastmaster", "Bounty Hunter": "bounty_hunter",
-    "Brewmaster": "brewmaster", "Bristleback": "bristleback",
-    "Broodmother": "broodmother", "Centaur Warrunner": "centaur",
-    "Chaos Knight": "chaos_knight", "Dark Seer": "dark_seer",
-    "Dark Willow": "dark_willow", "Dawnbreaker": "dawnbreaker",
-    "Doom": "doom_bringer", "Drow Ranger": "drow_ranger",
-    "Earth Spirit": "earth_spirit", "Elder Titan": "elder_titan",
-    "Ember Spirit": "ember_spirit", "Faceless Void": "faceless_void",
-    "Gyrocopter": "gyrocopter", "Hoodwink": "hoodwink", "Huskar": "huskar",
-    "Invoker": "invoker", "Io": "wisp", "Jakiro": "jakiro",
-    "Juggernaut": "juggernaut", "Keeper of the Light": "keeper_of_the_light",
-    "Kunkka": "kunkka", "Largo": "largo", "Lich": "lich", "Lina": "lina",
-    "Lone Druid": "lone_druid", "Lycan": "lycan", "Magnus": "magnataur",
-    "Marci": "marci", "Mars": "mars", "Mirana": "mirana",
-    "Monkey King": "monkey_king", "Morphling": "morphling", "Muerta": "muerta",
-    "Nature's Prophet": "furion", "Ogre Magi": "ogre_magi",
-    "Omniknight": "omniknight", "Outworld Destroyer": "obsidian_destroyer",
-    "Pangolier": "pangolier", "Phantom Assassin": "phantom_assassin",
-    "Phantom Lancer": "phantom_lancer", "Phoenix": "phoenix",
-    "Primal Beast": "primal_beast", "Puck": "puck",
-    "Queen of Pain": "queenofpain", "Razor": "razor", "Rubick": "rubick",
-    "Sand King": "sand_king", "Shadow Fiend": "nevermore",
-    "Skywrath Mage": "skywrath_mage", "Slardar": "slardar",
-    "Snapfire": "snapfire", "Spectre": "spectre", "Storm Spirit": "storm_spirit",
-    "Sven": "sven", "Techies": "techies", "Templar Assassin": "templar_assassin",
-    "Tidehunter": "tidehunter", "Timbersaw": "shredder", "Tinker": "tinker",
-    "Tiny": "tiny", "Treant Protector": "treant", "Troll Warlord": "troll_warlord",
-    "Tusk": "tusk", "Vengeful Spirit": "vengefulspirit", "Venomancer": "venomancer",
-    "Viper": "viper", "Weaver": "weaver", "Windranger": "windrunner",
-    "Winter Wyvern": "winter_wyvern", "Witch Doctor": "witch_doctor",
-}
-
-ITEM_SLUG = {
-    "Bloodstone": "bloodstone",
-    "Boots of Bearing": "boots_of_bearing",
-    "Crella's Crozier": "crellas_crozier",
-    "Disperser": "disperser",
-    "Essence Distiller": "essence_distiller",
-    "Harpoon": "harpoon",
-    "Heart of Tarrasque": "heart",
-    "Mage Slayer": "mage_slayer",
-    "Shiva's Guard": "shivas_guard",
-    "Silver Edge": "silver_edge",
-    "Soul Ring": "soul_ring",
-    "Specialist's Array": "specialists_array",
-}
-
-
-def hero_img(name):
-    slug = HERO_SLUG.get(name, name.lower().replace(" ", "_").replace("'", ""))
-    return f"{HERO_CDN}{slug}.png"
-
-
-def item_img(name):
-    slug = ITEM_SLUG.get(name, name.lower().replace(" ", "_").replace("'", ""))
-    return f"{ITEM_CDN}{slug}.png"
-
-
-# ---------- BADGE HELPERS ----------
-
-def gradient_class(magnitude, is_buff):
-    """10-tier gradient based on absolute %. Covers 0-100%+ smoothly."""
-    prefix = "buff" if is_buff else "nerf"
-    if magnitude == 0:
-        return "neutral"
-    if magnitude <= 5:    return f"{prefix}1"
-    if magnitude <= 10:   return f"{prefix}2"
-    if magnitude <= 15:   return f"{prefix}3"
-    if magnitude <= 20:   return f"{prefix}4"
-    if magnitude <= 25:   return f"{prefix}5"
-    if magnitude <= 33:   return f"{prefix}6"
-    if magnitude <= 45:   return f"{prefix}7"
-    if magnitude <= 60:   return f"{prefix}8"
-    if magnitude <= 80:   return f"{prefix}9"
-    return f"{prefix}10"
-
-
-def b(old, new, l=False):
-    """Generate per-level badges. old/new can be scalar or list.
-    l=True means lower-is-buff (cooldowns, mana costs, penalties).
-    If all per-level badges turn out identical, collapses to a single badge.
-    Determines OVERALL buff/nerf tag for filtering:
-      - avg of signed per-level %s; sign decides
-      - if avg rounds to 0 → use last non-zero level"""
-    if not isinstance(old, (list, tuple)):
-        old = [old]
-    if not isinstance(new, (list, tuple)):
-        new = [new]
-    if len(old) == 1 and len(new) > 1:
-        old = old * len(new)
-    if len(new) == 1 and len(old) > 1:
-        new = new * len(old)
-
-    parts = []
-    keys = []
-    signed_pcts = []
-    for o, n in zip(old, new):
-        if o == 0 or n == o:
-            parts.append('<span class="badge neutral">0%</span>')
-            keys.append(("neutral", "0%"))
-            signed_pcts.append(0)
-            continue
-        raw = (n - o) / o * 100
-        pct = round(raw)
-        if pct == 0:
-            parts.append('<span class="badge neutral">0%</span>')
-            keys.append(("neutral", "0%"))
-            signed_pcts.append(0)
-            continue
-        is_buff = (n < o) if l else (n > o)
-        magnitude = abs(pct)
-        signed_pcts.append(magnitude if is_buff else -magnitude)
-        sign = "+" if is_buff else "-"
-        cls = gradient_class(magnitude, is_buff)
-        display = f"{sign}{magnitude}%"
-        parts.append(f'<span class="badge {cls}">{display}</span>')
-        keys.append((cls, display))
-
-    # Determine overall tag
-    overall = ""
-    if signed_pcts:
-        avg = sum(signed_pcts) / len(signed_pcts)
-        if round(avg) > 0:
-            overall = "buff"
-        elif round(avg) < 0:
-            overall = "nerf"
-        else:
-            # avg ≈ 0 — fall back to last non-zero
-            for v in reversed(signed_pcts):
-                if v > 0:
-                    overall = "buff"
-                    break
-                if v < 0:
-                    overall = "nerf"
-                    break
-
-    # Collapse if every level produced an identical badge
-    if len(keys) > 1 and len(set(keys)) == 1:
-        parts = [parts[0]]
-
-    overall_attr = f' data-overall="{overall}"' if overall else ""
-    return f'<span class="badge-group"{overall_attr}>' + "".join(parts) + "</span>"
-
-
-def br(old_min, old_max, new_min, new_max, l=False):
-    """Damage range (min-max). Computes single % from midpoint average.
-    Use this for 'Damage at level 1: 51-57 to 52-58' style lines."""
-    old_avg = (old_min + old_max) / 2
-    new_avg = (new_min + new_max) / 2
-    return b(old_avg, new_avg, l=l)
-
-
-def _compute_pct(old_v, new_v, l):
-    """Return (cls, display, signed_pct, overall_tag)."""
-    if old_v == 0 or new_v == old_v:
-        return ("neutral", "0%", 0, "")
-    raw = (new_v - old_v) / old_v * 100
-    pct = round(raw)
-    if pct == 0:
-        return ("neutral", "0%", 0, "")
-    is_buff = (new_v < old_v) if l else (new_v > old_v)
-    magnitude = abs(pct)
-    sign = "+" if is_buff else "-"
-    cls = gradient_class(magnitude, is_buff)
-    return (cls, f"{sign}{magnitude}%", magnitude if is_buff else -magnitude,
-            "buff" if is_buff else "nerf")
-
-
-_formula_id_counter = [0]
-
-def fold(text):
-    """Wrap an OLD formula in a span with subtle dotted underline (visual reference only)."""
-    return f'<span class="formula-old">{text}</span>'
-
-
-def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}"):
-    """Formula-based change. Returns (trigger_html, badge_html, table_html).
-    The trigger wraps formula_text as a clickable pill that toggles the table.
-    Tag is determined by LEVEL 1 (per user spec).
-    levels: list of int levels to show; defaults to L1-15 + L20, L25, L30.
-            Can also pass an int N → range(1, N+1).
-    value_fmt: format string for level values (e.g. '{:.2f}%' or '{:g}')."""
-    if levels is None:
-        levels = list(range(1, 16)) + [20, 25, 30]
-    elif isinstance(levels, int):
-        levels = list(range(1, levels + 1))
-
-    _formula_id_counter[0] += 1
-    fid = f"f{_formula_id_counter[0]}"
-
-    # Level 1 inline badge
-    cls1, disp1, _, overall1 = _compute_pct(old_fn(1), new_fn(1), l)
-    overall_attr = f' data-overall="{overall1}"' if overall1 else ""
-    badge = f'<span class="badge-group"{overall_attr}><span class="badge {cls1}">{disp1}</span></span>'
-
-    # Trigger
-    trigger = f'<span class="formula-trigger" data-formula="{fid}">{formula_text}</span>'
-
-    # Mark boundary class on first level >= 20 (visual jump from L15 → L20)
-    def cls_for(L):
-        return ' class="lvl-jump"' if L == 20 else ''
-
-    head_cells = "".join(f'<th{cls_for(L)}>L{L}</th>' for L in levels)
-    old_cells = "".join(f'<td{cls_for(L)}>{value_fmt.format(old_fn(L))}</td>' for L in levels)
-    new_cells = "".join(f'<td{cls_for(L)}>{value_fmt.format(new_fn(L))}</td>' for L in levels)
-    pct_cells = []
-    for L in levels:
-        cls, disp, _, _ = _compute_pct(old_fn(L), new_fn(L), l)
-        pct_cells.append(f'<td{cls_for(L)}><span class="badge {cls}">{disp}</span></td>')
-
-    table = (
-        f'<table class="formula-table" id="{fid}" hidden>'
-        f'<thead><tr><th></th>{head_cells}</tr></thead>'
-        f'<tbody>'
-        f'<tr><th class="row-label-old">old</th>{old_cells}</tr>'
-        f'<tr><th class="row-label-new">new</th>{new_cells}</tr>'
-        f'<tr><th>Δ %</th>{"".join(pct_cells)}</tr>'
-        f'</tbody>'
-        f'</table>'
-    )
-
-    return trigger, badge, table
-
-
-def t(tag):
-    """Text-only tag for non-numeric changes."""
-    cls_map = {
-        "BUFF":   ("buff-text", "buff"),
-        "NERF":   ("nerf-text", "nerf"),
-        "REWORK": ("rework",    "rework"),
-        "MISC":   ("misc",      "misc"),
-        "QoL":    ("qol",       "qol"),
-    }
-    color_cls, tag_id = cls_map[tag]
-    return f'<span class="badge {color_cls}" data-tag="{tag_id}">{tag}</span>'
-
-
-# ---------- HTML BUILDING ----------
-
-class _State:
-    block_open = False
-
-def _open_block():
-    s = ('</div>\n' if _State.block_open else '') + '<div class="entity-block">\n'
-    _State.block_open = True
-    return s
-
-def _close_block():
-    if _State.block_open:
-        _State.block_open = False
-        return '</div>\n'
-    return ''
-
-
-def hero_header(name):
-    return _open_block() + f'''<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="{hero_img(name)}" alt="{name}" loading="lazy"></div>
-  <div class="entity-name">{name}</div>
-</div>'''
-
-
-def unit_header(name, icon_url):
-    """Header for a separate summoned unit (e.g. Spirit Bear) with custom icon URL."""
-    return _open_block() + f'''<div class="entity hero-entity">
-  <div class="entity-icon ability-icon"><img src="{icon_url}" alt="{name}" loading="lazy"></div>
-  <div class="entity-name">{name}</div>
-</div>'''
-
-
-def item_header(name):
-    return _open_block() + f'''<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="{item_img(name)}" alt="{name}" loading="lazy"></div>
-  <div class="entity-name">{name}</div>
-</div>'''
-
-
-def plain_header(name):
-    return _open_block() + f'<div class="entity plain-entity"><div class="entity-name">{name}</div></div>'
-
-
-def section(title):
-    return _close_block() + f'<h2 class="section">{title}</h2>'
-
-
-def subgroup(title):
-    return f'<h4 class="subgroup">{title}</h4>'
-
-
-def ability(title):
-    return f'<h4 class="ability-title">{title}</h4>'
-
-
-def ul_open():
-    return '<ul class="changes">'
-
-
-def ul_close():
-    return '</ul>'
-
-
-import re
-
-def li(text, badge="", extra="", force_tag=None):
-    """Generate <li>. Auto-extracts data-tag from badges for filtering.
-    Priority: force_tag > data-overall > data-tag (text tags) > buff*/nerf* class scan.
-    extra: optional HTML appended inside the li (e.g. correction note)."""
-    if force_tag is not None:
-        tag_str = force_tag
-    else:
-        tags = set()
-        overalls = re.findall(r'data-overall="(\w+)"', badge)
-        for o in overalls:
-            tags.add(o)
-        for tag_id in re.findall(r'data-tag="(\w+)"', badge):
-            tags.add(tag_id)
-        if not overalls:
-            for cls in re.findall(r'badge (buff|nerf)\d+', badge):
-                tags.add(cls)
-        tag_str = " ".join(sorted(tags))
-    attr = f' data-tag="{tag_str}"' if tag_str else ""
-    return f'<li{attr}>{text} {badge}{extra}</li>'
-
-
-def subnote(text):
-    return f'<ul class="subnotes"><li>{text}</li></ul>'
-
-
-# ---------- CSS ----------
-
-CSS = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dota Patch Notes - 7.41c</title>
+<style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -978,59 +641,19 @@ body.filter-active ul.subnotes { display: none; }
   .gradient-strip { height: 12px; }
   .gradient-strip .seg { font-size: 8px; }
 }
-"""
-
-# ---------- CONTENT ----------
-
-H = []
-def W(s): H.append(s)
-
-
-# ============================================================
-# MULTI-PATCH SUPPORT
-# ============================================================
-
-PATCHES = [
-    {"version": "7.41c", "date": "06.05.2026", "filename": "7.41c.html"},
-    {"version": "7.41b", "date": "07.04.2026", "filename": "7.41b.html"},
-]
-
-def _dropdown_options_html(current_version):
-    """Render menu items list for the version dropdown."""
-    items = []
-    for p in PATCHES:
-        cls = "version-item current" if p["version"] == current_version else "version-item"
-        href = "#" if p["version"] == current_version else p["filename"]
-        items.append(
-            f'<a class="{cls}" href="{href}">'
-            f'<span class="vi-name">{p["version"]}</span>'
-            f'<span class="vi-date">{p["date"]}</span>'
-            f'</a>'
-        )
-    return "".join(items)
-
-
-def write_head(version, date):
-    """Render head + opening container + version dropdown + tags."""
-    options = _dropdown_options_html(version)
-    W(f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Dota Patch Notes - {version}</title>
-<style>{CSS}</style>
+</style>
 </head>
 <body>
 <div class="container">
 
 <header class="page-head">
-  <span class="release-date">{date}</span>
+  <span class="release-date">06.05.2026</span>
   <div class="version-dropdown">
     <button class="version" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Select patch version">
-      {version} <span class="version-chev">▾</span>
+      7.41c <span class="version-chev">▾</span>
     </button>
     <div class="version-menu" role="menu">
-      {options}
+      <a class="version-item current" href="#"><span class="vi-name">7.41c</span><span class="vi-date">06.05.2026</span></a><a class="version-item" href="7.41b.html"><span class="vi-name">7.41b</span><span class="vi-date">07.04.2026</span></a>
     </div>
   </div>
 </header>
@@ -1049,207 +672,8 @@ def write_head(version, date):
     <div class="search-results" id="search-results"></div>
   </div>
 </div>
-''')
 
-
-JS_BLOCK = '''
-<script>
-(function() {
-  // ---- BACK TO TOP visibility ----
-  const btt = document.querySelector('.back-to-top');
-  function updateBtt() {
-    btt.classList.toggle('visible', window.scrollY > 400);
-  }
-  window.addEventListener('scroll', updateBtt, { passive: true });
-  updateBtt();
-  // ---- TAG FILTERING (multi-select, OR semantics) ----
-  const buttons = document.querySelectorAll('.filter-btn');
-  const activeFilters = new Set();
-  function applyFilter() {
-    const isActive = activeFilters.size > 0;
-    document.body.classList.toggle('filter-active', isActive);
-    document.querySelectorAll('.f-hide').forEach(el => el.classList.remove('f-hide'));
-    if (!isActive) return;
-    document.querySelectorAll('ul.changes > li').forEach(li => {
-      const tags = (li.dataset.tag || '').split(' ').filter(Boolean);
-      const matches = tags.some(t => activeFilters.has(t));
-      if (!matches) li.classList.add('f-hide');
-    });
-    document.querySelectorAll('ul.changes').forEach(ul => {
-      const hasVisible = Array.from(ul.children).some(c => !c.classList.contains('f-hide'));
-      if (!hasVisible) ul.classList.add('f-hide');
-    });
-    document.querySelectorAll('h4.ability-title').forEach(h => {
-      let nx = h.nextElementSibling;
-      while (nx && nx.tagName !== 'UL') nx = nx.nextElementSibling;
-      if (!nx || nx.classList.contains('f-hide')) h.classList.add('f-hide');
-    });
-    document.querySelectorAll('.entity-block').forEach(block => {
-      const visible = block.querySelectorAll('ul.changes > li:not(.f-hide)').length;
-      if (!visible) block.classList.add('f-hide');
-    });
-  }
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tag = btn.dataset.filter;
-      if (activeFilters.has(tag)) {
-        activeFilters.delete(tag);
-        btn.classList.remove('active');
-      } else {
-        activeFilters.add(tag);
-        btn.classList.add('active');
-      }
-      applyFilter();
-    });
-  });
-
-  // ---- FORMULA TABLES (click pill to toggle table) ----
-  document.querySelectorAll('.formula-trigger').forEach(trig => {
-    trig.addEventListener('click', () => {
-      const id = trig.dataset.formula;
-      const table = document.getElementById(id);
-      if (!table) return;
-      const wasHidden = table.hasAttribute('hidden');
-      if (wasHidden) {
-        table.removeAttribute('hidden');
-        trig.classList.add('active');
-      } else {
-        table.setAttribute('hidden', '');
-        trig.classList.remove('active');
-      }
-    });
-  });
-
-  // ---- ENTITY SEARCH ----
-  const searchInput = document.getElementById('entity-search');
-  const resultsBox = document.getElementById('search-results');
-  const entities = [];
-  document.querySelectorAll('.entity').forEach(entity => {
-    const nameEl = entity.querySelector('.entity-name');
-    const imgEl = entity.querySelector('.entity-icon img');
-    if (!nameEl) return;
-    let kind = 'mechanic';
-    if (entity.classList.contains('hero-entity')) kind = 'hero';
-    else if (entity.classList.contains('item-entity')) kind = 'item';
-    entities.push({
-      name: nameEl.textContent.trim(),
-      element: entity,
-      icon: imgEl ? imgEl.src : null,
-      kind: kind
-    });
-  });
-
-  function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-  function highlight(name, q) {
-    const idx = name.toLowerCase().indexOf(q.toLowerCase());
-    if (idx === -1) return escapeHtml(name);
-    return escapeHtml(name.slice(0, idx)) +
-           '<mark>' + escapeHtml(name.slice(idx, idx + q.length)) + '</mark>' +
-           escapeHtml(name.slice(idx + q.length));
-  }
-
-  let activeIdx = -1;
-
-  function render(query) {
-    if (!query) {
-      resultsBox.classList.remove('show');
-      resultsBox.innerHTML = '';
-      activeIdx = -1;
-      return;
-    }
-    const q = query.toLowerCase();
-    const matches = entities.filter(e => e.name.toLowerCase().includes(q)).slice(0, 12);
-    if (matches.length === 0) {
-      resultsBox.innerHTML = '<div class="empty">no matches</div>';
-      resultsBox.classList.add('show');
-      activeIdx = -1;
-      return;
-    }
-    resultsBox.innerHTML = matches.map((m, i) =>
-      `<div class="result-item" data-idx="${i}">${
-        m.icon ? `<img src="${m.icon}" alt="">` : '<span style="width:32px;display:inline-block"></span>'
-      }<span>${highlight(m.name, query)}</span><span class="kind">${m.kind}</span></div>`
-    ).join('');
-    resultsBox.classList.add('show');
-    activeIdx = -1;
-
-    resultsBox.querySelectorAll('.result-item').forEach((el, i) => {
-      el.addEventListener('mouseenter', () => { setActive(i); });
-      el.addEventListener('click', () => { jumpTo(matches[i]); });
-    });
-    window._currentMatches = matches;
-  }
-
-  function setActive(i) {
-    activeIdx = i;
-    resultsBox.querySelectorAll('.result-item').forEach((el, idx) => {
-      el.classList.toggle('active', idx === i);
-    });
-  }
-
-  function jumpTo(target) {
-    if (!target) return;
-    target.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    target.element.style.transition = 'box-shadow 0.4s';
-    target.element.style.boxShadow = '0 0 0 2px #58a6ff';
-    setTimeout(() => target.element.style.boxShadow = '', 1400);
-    searchInput.value = '';
-    resultsBox.classList.remove('show');
-    resultsBox.innerHTML = '';
-  }
-
-  searchInput.addEventListener('input', () => render(searchInput.value));
-  searchInput.addEventListener('keydown', (e) => {
-    const items = resultsBox.querySelectorAll('.result-item');
-    if (!items.length) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((activeIdx + 1) % items.length); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((activeIdx - 1 + items.length) % items.length); }
-    else if (e.key === 'Enter') {
-      e.preventDefault();
-      const idx = activeIdx >= 0 ? activeIdx : 0;
-      if (window._currentMatches && window._currentMatches[idx]) jumpTo(window._currentMatches[idx]);
-    }
-    else if (e.key === 'Escape') {
-      searchInput.value = '';
-      render('');
-    }
-  });
-  document.addEventListener('click', (e) => {
-    if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
-      resultsBox.classList.remove('show');
-    }
-  });
-})();
-</script>
-'''
-
-def write_footer():
-    """Render close-block + back-to-top button + JS + closing tags."""
-    W(_close_block())
-    W('<button class="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top:0, behavior:\'smooth\'})">↑</button>')
-    W(JS_BLOCK)
-    W('</div></body></html>')
-
-
-def save_html(filename):
-    """Write current accumulator to /home/claude/{filename} and reset state."""
-    out = "\n".join(H)
-    path = f"/home/claude/{filename}"
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(out)
-    print(f"  → {filename}: {len(out):,} bytes")
-    H.clear()
-    _State.block_open = False
-
-
-# ============================================================
-# 7.41c content
-# ============================================================
-write_head("7.41c", "06.05.2026")
-
-# 7.41c content is HANDCRAFTED — preserves manual corrections, formula tables,
-# wrong-line/wrong-word annotations and subnotes that auto-gen can't produce.
-HANDCRAFTED_7_41C_BODY = '''<h2 class="section">General Updates</h2>
+<h2 class="section">General Updates</h2>
 <div class="entity-block">
 <div class="entity plain-entity"><div class="entity-name">Mechanics</div></div>
 <ul class="changes">
@@ -2527,789 +1951,177 @@ HANDCRAFTED_7_41C_BODY = '''<h2 class="section">General Updates</h2>
 <ul class="changes">
 <li data-tag="buff">Radius increased from 500/550/600/650 to 650 <span class="badge-group" data-overall="buff"><span class="badge buff6">+30%</span><span class="badge buff4">+18%</span><span class="badge buff2">+8%</span><span class="badge neutral">0%</span></span></li>
 </ul>
-</div>'''
-W(HANDCRAFTED_7_41C_BODY)
-
-write_footer()
-save_html('7.41c.html')
-
-# ============================================================
-# 7.41b content
-# ============================================================
-write_head("7.41b", "07.04.2026")
-
-# ===== GENERAL UPDATES =====
-W(section("General Updates"))
-
-W(plain_header("Tormentor"))
-W(ul_open())
-W(li("Reflect Damage reflection per minute decreased from 2% to 1.5%", b(2, 1.5)))
-W(ul_close())
-
-# ===== ITEM UPDATES =====
-W(section("Item Updates"))
-
-W(item_header("Black King Bar"))
-W(ul_open())
-W(li("Avatar now has a fixed duration and is not affected by buff duration amplification", t("REWORK")))
-W(ul_close())
-W(item_header("Consecrated Wraps"))
-W(ul_open())
-W(li("All Attributes bonus decreased from +6 to +5", b(6, 5)))
-W(li("Hallowed stacks are now item charges instead of a stack counter on the buff", t("REWORK")))
-W(li("All charges are consumed when the barrier is created", t("MISC")))
-W(li("Charge Restore Time of Hallowed is not affected by effects that reduce or modify cooldowns", t("MISC")))
-W(li("Hallowed now starts with all 3 charges when Consecrated Wraps is purchased or built", t("REWORK")))
-W(li("Gaining max stacks requirement for the speedup buff is removed", t("MISC")))
-W(li("Initial 3 charges don't provide the movement speed buff", t("MISC")))
-W(li("Hallowed charge gain time increased from 3s to 4s", b(3, 4)))
-W(ul_close())
-W(item_header("Gungir"))
-W(ul_open())
-W(li("Eternal Chains radius increased from 275 to 325", b(275, 325)))
-W(li("Effective radius increased from 350 to 400 due to item's built-in Area of Effect bonus", b(350, 400)))
-W(ul_close())
-W(item_header("Heaven's Halberd"))
-W(ul_open())
-W(li("Health Regen bonus increased from +6 to +6.5", b(6, 6.5)))
-W(ul_close())
-W(item_header("Helm of the Overlord"))
-W(ul_open())
-W(li("Dominate cooldown decreased from 45s to 40s", b(45, 40, l=True)))
-W(li("Dominate target unit's max health minimum increased from 1800 to 1900", b(1800, 1900, l=True)))
-W(ul_close())
-W(item_header("Holy Locket"))
-W(ul_open())
-W(li("Energy Charge incoming Heal Amplification increased from 10% to 15%", b(10, 15)))
-W(li("Holy Blessing outgoing Heal Amplification decreased from 15% to 10%", b(15, 10)))
-W(ul_close())
-W(item_header("Mage Slayer"))
-W(ul_open())
-W(li("Health Regen bonus decreased from +6 to +5.5", b(6, 5.5)))
-W(li("Magic Resistance bonus decreased from 20% to 18%", b(20, 18)))
-W(ul_close())
-W(item_header("Sange"))
-W(ul_open())
-W(li("Health Restoration bonus decreased from 16% to 12%", b(16, 12)))
-W(ul_close())
-W(item_header("Abyssal Blade"))
-W(ul_open())
-W(li("Health Restoration bonus decreased from 20% to 16%", b(20, 16)))
-W(ul_close())
-W(item_header("Sange and Yasha"))
-W(ul_open())
-W(li("Health Restoration bonus decreased from 20% to 16%", b(20, 16)))
-W(ul_close())
-W(item_header("Kaya and Sange"))
-W(ul_open())
-W(li("Health Restoration bonus decreased from 20% to 16%", b(20, 16)))
-W(ul_close())
-W(subgroup("Artifact changes"))
-W(item_header("Jidi Pollen Bag"))
-W(ul_open())
-W(li("Pollinate radius increased from 700 to 900", b(700, 900)))
-W(ul_close())
-W(item_header("Conjurer's Catalyst"))
-W(ul_open())
-W(li("Spellover now has a 0.1s internal cooldown ", t("REWORK")))
-W(ul_close())
-W(subnote("Still can proc multiple times from a single instance of high damage"))
-W(ul_open())
-W(li("Spellover damage threshold increased from 100 to 200", b(100, 200)))
-W(li("Spellover damage from hero targets increased from 40 to 80 ", b(40, 80)))
-W(ul_close())
-W(subnote("From 52 to 104 with Dormant Curio"))
-W(ul_open())
-W(li("Spellover damage from creep targets increased from 15 to 30 ", b(15, 30)))
-W(ul_close())
-W(subnote("From 19.5 to 39 with Dormant Curio"))
-W(item_header("Enchanter's Bauble"))
-W(ul_open())
-W(li("Enchant base Neutral Enchantment bonus decreased from 15% to 10%", b(15, 10)))
-W(ul_close())
-W(item_header("Idol of Screeauk"))
-W(ul_open())
-W(li("False Flight duration increased from 5s to 6.5s ", b(5, 6.5)))
-W(ul_close())
-W(subnote("From 6.5s to 8.45s with Dormant Curio"))
-W(item_header("Metamorphic Mandible"))
-W(ul_open())
-W(li("Pupate movement speed bonus increased from 15% to 20%", b(15, 20)))
-W(ul_close())
-W(item_header("Rattlecage"))
-W(ul_open())
-W(li("Reverberate projectile physical damage decreased from 110 to 90 ", b(110, 90)))
-W(ul_close())
-W(subnote("From 143 to 117 with Dormant Curio"))
-W(item_header("Demonicon"))
-W(ul_open())
-W(li("Demonic Warrior no longer has True Sight ability", t("NERF")))
-W(ul_close())
-W(item_header("Minotaur Horn"))
-W(ul_open())
-W(li("Lesser Avatar bonus magic resistance increased from 50% to 60%", b(50, 60)))
-W(ul_close())
-W(item_header("Riftshadow Prism"))
-W(ul_open())
-W(li("Refract cooldown decreased from 30s to 27s", b(30, 27, l=True)))
-W(ul_close())
-W(subgroup("Enchantment changes"))
-W(plain_header("Crude"))
-W(ul_open())
-W(li("Health Restoration bonus decreased from +10/15/20% to +9/12/15%", b([10, 15, 20], [9, 12, 15])))
-W(ul_close())
-W(plain_header("Frostbitten Golem"))
-W(ul_open())
-W(li("Time Warp Aura: Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
-W(ul_close())
-
-# ===== HERO UPDATES =====
-W(section("Hero Updates"))
-
-
-# Alchemist
-W(hero_header("Alchemist"))
-W(ul_open())
-W(li("Base Agility decreased from 22 to 19", b(22, 19)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent +1 Acid Spray Armor Reduction replaced with +1% Corrosive Weaponry Slow / Damage Reduction Per Stack", t("REWORK")))
-W(li("Level 15 Talent +1% Corrosive Weaponry Slow / Damage Reduction Per Stack replaced with +1 Acid Spray Armor Reduction", t("REWORK")))
-W(ul_close())
-
-# Ancient Apparition
-W(hero_header("Ancient Apparition"))
-W(ability("Bone Chill"))
-W(ul_open())
-W(li("Aghanim's Scepter Strength Reduction bonus increased from 0.3 to 0.8", b(0.3, 0.8)))
-W(ul_close())
-
-# Anti-Mage
-W(hero_header("Anti-Mage"))
-W(ability("Mana Break"))
-W(ul_open())
-W(li("Max Mana Burned per hit increased from 1.6/2.4/3.2/4% to 1.8/2.7/3.6/4.5%", b([1.6, 2.4, 3.2, 4], [1.8, 2.7, 3.6, 4.5])))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Blink Cast Range decreased from +150 to +125", b(150, 125)))
-W(ul_close())
-
-# Arc Warden
-W(hero_header("Arc Warden"))
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Magnetic Field Cooldown Reduction decreased from 5s to 4s", b(5, 4, l=True)))
-W(li("Level 20 Talent +200 Spark Wraith Damage replaced with +30s Spark Wraith Duration", t("REWORK")))
-W(li("Level 25 Talent +30s Spark Wraith Duration replaced with +240 Spark Wraith Damage", t("REWORK")))
-W(li("Level 25 Talent Runic Infusion All Attributes Bonus decreased from +1.5 to +1", b(1.5, 1)))
-W(ul_close())
-
-# Batrider
-W(hero_header("Batrider"))
-W(ul_open())
-W(li("Base Armor decreased by 1", t("NERF")))
-W(ul_close())
-W(ability("Firefly"))
-W(ul_open())
-W(li("Cooldown increased from 45/40/35/30s to 48/42/36/30s", b([45, 40, 35, 30], [48, 42, 36, 30], l=True)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 15 Talent Sticky Napalm Movement Slow increased from +0.5% to +0.75%", b(0.5, 0.75)))
-W(ul_close())
-
-# Beastmaster
-W(hero_header("Beastmaster"))
-W(ul_open())
-W(li("Base Attack Speed decreased from 100 to 90", b(100, 90)))
-W(ul_close())
-W(ability("Wild Axes"))
-W(ul_open())
-W(li("Debuff Duration rescaled from 12s to 10/11/12/13s", b(12, [10, 11, 12, 13])))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Armor decreased from +5 to +4", b(5, 4)))
-W(li("Level 10 Talent Wild Axes Damage Amp Per Stack decreased from +2% to +1.5%", b(2, 1.5)))
-W(ul_close())
-
-# Bloodseeker
-W(hero_header("Bloodseeker"))
-W(ability("Rupture"))
-W(ul_open())
-W(li("Mana Cost increased from 100/150/200 to 125/175/225", b([100, 150, 200], [125, 175, 225], l=True)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 25 Talent Max Thirst Move Speed decreased from +18% to +15%", b(18, 15)))
-W(ul_close())
-
-# Broodmother
-W(hero_header("Broodmother"))
-W(ul_open())
-W(li("Base agility increased from 18 to 20", b(18, 20)))
-W(li("Damage at level 1 increased from 45-51 to 47-53", t("BUFF")))
-W(ul_close())
-
-# Chaos Knight
-W(hero_header("Chaos Knight"))
-W(ability("Phantasm"))
-W(ul_open())
-W(li("Cooldown increased from 75s to 85/80/75s", b(75, [85, 80, 75], l=True)))
-W(li("Number of Phantasms increased from 1/2/3 to 3", b([1, 2, 3], 3)))
-W(li("Phantasm Damage decreased from 100% to 50/75/100%", b(100, [50, 75, 100])))
-W(ul_close())
-
-# Chen
-W(hero_header("Chen"))
-W(ability("Holy Persuasion"))
-W(ul_open())
-W(li("Bonus Damage increased from 0/6/12/18% to 5/10/15/20%", b([0, 6, 12, 18], [5, 10, 15, 20])))
-W(ul_close())
-
-# Clinkz
-W(hero_header("Clinkz"))
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Strafe Duration increased from +0.75s to +1s", b(0.75, 1)))
-W(ul_close())
-
-# Crystal Maiden
-W(hero_header("Crystal Maiden"))
-W(ability("Crystal Clone"))
-W(ul_open())
-W(li("Cooldown increased from 10s to 12s", b(10, 12, l=True)))
-W(ul_close())
-
-# Dawnbreaker
-W(hero_header("Dawnbreaker"))
-W(ability("Break of Dawn"))
-W(ul_open())
-W(li("Max Damage Increase decreased from 10% + 1% per level to 8% + 1% per level", t("NERF")))
-W(ul_close())
-
-# Death Prophet
-W(hero_header("Death Prophet"))
-W(ability("Exorcism"))
-W(ul_open())
-W(li("Spirit Damage increased from 64 to 65/68/71 ", b(64, [65, 68, 71])))
-W(li("From 62-67 to 62-68/65-71/68-74", t("MISC")))
-W(ul_close())
-
-# Doom
-W(hero_header("Doom"))
-W(ability("Scorched Earth"))
-W(ul_open())
-W(li("Damage decreased from 20/35/50/65 to 20/30/40/50", b([20, 35, 50, 65], [20, 30, 40, 50])))
-W(ul_close())
-W(ability("Doom"))
-W(ul_open())
-W(li("Damage per second decreased from 25/45/66 to 22/44/66", b([25, 45, 66], [22, 44, 66])))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Devour grants 15% Magic Resistance replaced with +10% Magic Resistance", t("REWORK")))
-W(li("Level 15 Talent +66 Damage replaced with +1.5% Infernal Blade Max HP As Damage", t("REWORK")))
-W(li("Level 20 Talent +2.5% Infernal Blade Max HP As Damage replaced with +66 Damage", t("REWORK")))
-W(ul_close())
-
-# Drow Ranger
-W(hero_header("Drow Ranger"))
-W(ul_open())
-W(li("Base Agility increased from 22 to 24", b(22, 24)))
-W(li("Damage at level 1 increased from 49-56 to 51-58", t("BUFF")))
-W(ul_close())
-W(ability("Marksmanship"))
-W(ul_open())
-W(li("Enemy hero disable range decreased from 325 to 300", b(325, 300)))
-W(ul_close())
-W(ability("Glacier"))
-W(ul_open())
-W(li("While on the glacier, Marksmanship now can be disabled by enemies in the proximity", t("REWORK")))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 25 Talent Multishot Waves increased from +1 to +2", b(1, 2)))
-W(ul_close())
-
-# Elder Titan
-W(hero_header("Elder Titan"))
-W(ability("Momentum"))
-W(ul_open())
-W(li("Bonus Speed to Armor increased from 3.6% + 0.4% per level to 5.0% + 0.5% per level", t("BUFF")))
-W(ul_close())
-
-# Ember Spirit
-W(hero_header("Ember Spirit"))
-W(ul_open())
-W(li("Base Damage decreased by 3", t("NERF")))
-W(li("Damage at level 1 decreased from 55-59 to 52-56", t("NERF")))
-W(ul_close())
-W(ability("Sleight of Fist"))
-W(ul_open())
-W(li("Mana Cost increased from 60/65/70/75 to 75", b([60, 65, 70, 75], 75, l=True)))
-W(ul_close())
-
-# Enigma
-W(hero_header("Enigma"))
-W(ability("Event Horizon"))
-W(ul_open())
-W(li("Movement Slow increased from 4% + 1% per level to 5% + 1% per level", t("BUFF")))
-W(ul_close())
-W(ability("Demonic Conversion"))
-W(ul_open())
-W(li("Fixed Eidolons not having an 8 attack damage spread", t("MISC")))
-W(li("Eidolon Damage increased from 16/27/38/49 to 16/28/40/52", b([16, 27, 38, 49], [16, 28, 40, 52])))
-W(li("As a result, damage changed from 16/27/38/49 to 12-20/24-32/36-44/48-56", b([16, 27, 38, 49], 12)))
-W(ul_close())
-
-# Gyrocopter
-W(hero_header("Gyrocopter"))
-W(ability("Flak Cannon"))
-W(ul_open())
-W(li("Cooldown rescaled from 26/24/22/20s to 25s", b([26, 24, 22, 20], 25, l=True)))
-W(ul_close())
-W(ability("Call Down"))
-W(ul_open())
-W(li("Cooldown decreased from 90/75/60s to 75/65/55s", b([90, 75, 60], [75, 65, 55], l=True)))
-W(ul_close())
-
-# Hoodwink
-W(hero_header("Hoodwink"))
-W(ability("Hunter's Boomerang"))
-W(ul_open())
-W(li("Debuff Duration decreased from 7s to 6s", b(7, 6)))
-W(ul_close())
-
-# Invoker
-W(hero_header("Invoker"))
-W(ability("Invoke"))
-W(ul_open())
-W(li("Now grants Invoker an additional Ability Point at hero levels 6, 12, and 18", t("BUFF")))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent +1 Orb Levels replaced with +50% Forged Spirit Armor Reduction", t("REWORK")))
-W(ul_close())
-
-# Jakiro
-W(hero_header("Jakiro"))
-W(ability("Dual Breath"))
-W(ul_open())
-W(li("Cooldown rescaled from 10s to 12/11/10/9s", b(10, [12, 11, 10, 9], l=True)))
-W(ul_close())
-W(ability("Liquid Fire"))
-W(ul_open())
-W(li("Burn Damage rescaled from 15/25/35/45 to 12/24/36/48", b([15, 25, 35, 45], [12, 24, 36, 48])))
-W(ul_close())
-W(ability("Macropyre"))
-W(ul_open())
-W(li("Mana Cost decreased from 300/400/500 to 250/350/450", b([300, 400, 500], [250, 350, 450], l=True)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Macropyre Damage increased from +20 to +25", b(20, 25)))
-W(ul_close())
-
-# Juggernaut
-W(hero_header("Juggernaut"))
-W(ul_open())
-W(li("Base Movement Speed increased from 300 to 305", b(300, 305)))
-W(ul_close())
-W(ability("Bladeform"))
-W(ul_open())
-W(li("Base Agility per stack increased from 2.5% + 0.05% per level to 2.5% + 0.1% per level", t("BUFF")))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Blade Fury Damage per second increased from +100 to +120", b(100, 120)))
-W(ul_close())
-
-# Keeper of the Light
-W(hero_header("Keeper of the Light"))
-W(ability("Bright Speed"))
-W(ul_open())
-W(li("Intelligence required for 1 movement speed increased from 2.5 to 3", b(2.5, 3, l=True)))
-W(ul_close())
-W(ability("Spirit Form"))
-W(ul_open())
-W(li("Cast Range Bonus decreased from 100/200/300 to 100/175/250", b([100, 200, 300], [100, 175, 250])))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 15 Talent Spirit Form Bright Speed Bonus decreased from +30% to +25%", b(30, 25)))
-W(ul_close())
-
-# Largo
-W(hero_header("Largo"))
-W(ability("Encore"))
-W(ul_open())
-W(li("Bonus Duration increased from 9% + 1% per level to 10% + 1% per level", t("BUFF")))
-W(ul_close())
-W(ability("Croak of Genius"))
-W(ul_open())
-W(li("Mana Cost rescaled from 25/35/45/55 to 40", b([25, 35, 45, 55], 40, l=True)))
-W(li("Duration increased from 12/18/24/30s to 15/20/25/30s", b([12, 18, 24, 30], [15, 20, 25, 30])))
-W(ul_close())
-W(ability("Fight Song"))
-W(ul_open())
-W(li("Aghanim's Scepter Damage per stack decreased from 6/12/18 to 6/10/14", b([6, 12, 18], [6, 10, 14])))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Catchy Lick Damage increased from +170 to +200", b(170, 200)))
-W(ul_close())
-
-# Lycan
-W(hero_header("Lycan"))
-W(ability("Shapeshift"))
-W(ul_open())
-W(li("Cooldown decreased from 110/100/90s to 105/95/85s", b([110, 100, 90], [105, 95, 85], l=True)))
-W(ul_close())
-
-# Magnus
-W(hero_header("Magnus"))
-W(ul_open())
-W(li("Agility gain increased from 2.0 to 2.2", b(2.0, 2.2)))
-W(li("Damage gain per level increased from 3.2 to 3.3", b(3.2, 3.3)))
-W(ul_close())
-
-# Meepo
-W(hero_header("Meepo"))
-W(ul_open())
-W(li("Base Movement Speed decreased from 315 to 310", b(315, 310)))
-W(li("Strength gain decreased from 2.2 to 2.0", b(2.2, 2.0)))
-W(ul_close())
-W(ability("Ransack"))
-W(ul_open())
-W(li("Health Steal (Heroes) decreased from 9/12/15/18 to 7/10/13/16", b([9, 12, 15, 18], [7, 10, 13, 16])))
-W(ul_close())
-W(ability("Divided We Stand"))
-W(ul_open())
-W(li("Max Health and Max Mana bonuses from items are now penalized by the number of Meepos (like other item bonuses)", t("REWORK")))
-W(li("No longer shares cooldowns of Town Portal Scrolls", t("NERF")))
-W(ul_close())
-W(ability("MegaMeepo"))
-W(ul_open())
-W(li("Cooldown increased from 60s to 90s", b(60, 90, l=True)))
-W(li("Duration decreased from 25s to 20s", b(25, 20)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent +40 Poof Damage replaced with -1.5s Earthbind Cooldown", t("REWORK")))
-W(li("Level 15 Talent -2.5s Earthbind Cooldown replaced with +40 Poof Damage", t("REWORK")))
-W(li("Level 20 Talent Ransack Health Steal decreased from +7 to +6", b(7, 6)))
-W(ul_close())
-
-# Monkey King
-W(hero_header("Monkey King"))
-W(ability("Transfiguration"))
-W(ul_open())
-W(li("Cooldown increased from 3s to 5s", b(3, 5, l=True)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Tree Dance Cast Range decreased from +350 to +300", b(350, 300)))
-W(ul_close())
-
-# Naga Siren
-W(hero_header("Naga Siren"))
-W(ul_open())
-W(li("Base Attack Speed decreased from 110 to 100", b(110, 100)))
-W(ul_close())
-W(ability("Eelskin"))
-W(ul_open())
-W(li("Evasion per Naga decreased from 4.9% + 0.1% per level to 4% + 0.1% per level", t("NERF")))
-W(ul_close())
-
-# Nature's Prophet
-W(hero_header("Nature's Prophet"))
-W(ability("Wrath of Nature"))
-W(ul_open())
-W(li("Base Damage increased from 90/130/170 to 100/140/180", b([90, 130, 170], [100, 140, 180])))
-W(ul_close())
-
-# Necrophos
-W(hero_header("Necrophos"))
-W(ability("Death Seeker"))
-W(ul_open())
-W(li("Mana Cost increased from 125 to 160", b(125, 160, l=True)))
-W(ul_close())
-
-# Night Stalker
-W(hero_header("Night Stalker"))
-W(ul_open())
-W(li("Base Health Regen decreased by 1.25", t("NERF")))
-W(ul_close())
-
-# Nyx Assassin
-W(hero_header("Nyx Assassin"))
-W(ability("Vendetta"))
-W(ul_open())
-W(li("Duration decreased from 60s to 45/50/55s", b(60, [45, 50, 55])))
-W(ul_close())
-
-# Omniknight
-W(hero_header("Omniknight"))
-W(ability("Hammer of Purity"))
-W(ul_open())
-W(li("Damage to heal increased from 30% to 35%", b(30, 35)))
-W(ul_close())
-W(ability("Guardian Angel"))
-W(ul_open())
-W(li("Duration increased from 4/4.5/5s to 4/4.75/5.5s", b([4, 4.5, 5], [4, 4.75, 5.5])))
-W(li("Aghanim's Scepter Bonus Health Restoration decreased from 100% to 50%", b(100, 50)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Degen Aura Radius increased from +125 to +150", b(125, 150)))
-W(ul_close())
-
-# Pangolier
-W(hero_header("Pangolier"))
-W(ability("Lucky Shot"))
-W(ul_open())
-W(li("Attack Speed Reduction decreased from 40/80/120/160 to 35/70/105/140", b([40, 80, 120, 160], [35, 70, 105, 140])))
-W(ul_close())
-W(ability("Gyroshell"))
-W(ul_open())
-W(li("Total Attack Damage as Damage decreased from 100% to 80%", b(100, 80)))
-W(ul_close())
-
-# Phantom Assassin
-W(hero_header("Phantom Assassin"))
-W(ul_open())
-W(li("Strength gain increased from 2.0 to 2.2", b(2.0, 2.2)))
-W(ul_close())
-W(ability("Phantom Strike"))
-W(ul_open())
-W(li("Duration increased from 2.5s to 3s", b(2.5, 3)))
-W(li("Bonus Attack Speed rescaled from 100/130/160/190 to 80/120/160/200", b([100, 130, 160, 190], [80, 120, 160, 200])))
-W(ul_close())
-W(ability("Coup de Grace"))
-W(ul_open())
-W(li("Critical Damage increased from 200/300/400% to 200/325/450%", b([200, 300, 400], [200, 325, 450])))
-W(ul_close())
-
-# Phoenix
-W(hero_header("Phoenix"))
-W(ul_open())
-W(li("Base Attack Range decreased from 525 to 500", b(525, 500)))
-W(ul_close())
-W(ability("Sun Ray"))
-W(ul_open())
-W(li("Aghanim's Shard no longer slows affected enemies by 10%", t("NERF")))
-W(ul_close())
-
-# Primal Beast
-W(hero_header("Primal Beast"))
-W(ability("Pulverize"))
-W(ul_open())
-W(li("Cooldown increased from 40/35/30s to 45/40/35s", b([40, 35, 30], [45, 40, 35], l=True)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Damage decreased from +30 to +25", b(30, 25)))
-W(ul_close())
-
-# Pudge
-W(hero_header("Pudge"))
-W(ability("Graft Flesh"))
-W(ul_open())
-W(li("Strength gain per stack increased from 1.6 to 2.0", b(1.6, 2.0)))
-W(ul_close())
-
-# Rubick
-W(hero_header("Rubick"))
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Telekinesis Landing Damage decreased from 325 to 300", b(325, 300)))
-W(ul_close())
-
-# Sand King
-W(hero_header("Sand King"))
-W(ability("Epicenter"))
-W(ul_open())
-W(li("Attack Slow decreased from 50/55/60 to 30/40/50", b([50, 55, 60], [30, 40, 50])))
-W(li("Aghanim's Scepter Stinger damage decreased from 50% to 40%", b(50, 40)))
-W(ul_close())
-
-# Shadow Demon
-W(hero_header("Shadow Demon"))
-W(ability("Disruption"))
-W(ul_open())
-W(li("Illusion Duration decreased from 11/12/13/14s to 8/10/12/14s", b([11, 12, 13, 14], [8, 10, 12, 14])))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 15 Talent Movement Speed decreased from +25 to +20", b(25, 20)))
-W(ul_close())
-
-# Shadow Shaman
-W(hero_header("Shadow Shaman"))
-W(ul_open())
-W(li("Intelligence gain decreased from 3.5 to 3.3", b(3.5, 3.3)))
-W(ul_close())
-
-# Silencer
-W(hero_header("Silencer"))
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 15 Talent Global Silence Cooldown Reduction decreased from 20s to 15s", b(20, 15, l=True)))
-W(ul_close())
-
-# Skywrath Mage
-W(hero_header("Skywrath Mage"))
-W(ul_open())
-W(li("Base Mana Regen increased by 0.25", t("BUFF")))
-W(ul_close())
-
-# Slardar
-W(hero_header("Slardar"))
-W(ability("Sprint"))
-W(ul_open())
-W(li("Cooldown increased from 29/25/21/17s to 33/28/23/18s", b([29, 25, 21, 17], [33, 28, 23, 18], l=True)))
-W(ul_close())
-
-# Slark
-W(hero_header("Slark"))
-W(ability("Essence Shift"))
-W(ul_open())
-W(li("Duration decreased from 12.5s + 2.5s per level to 10s + 2.5s per level", t("NERF")))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Essence Shift Duration decreased from +25s to +20s", b(25, 20)))
-W(ul_close())
-
-# Snapfire
-W(hero_header("Snapfire"))
-W(ability("Scatterblast"))
-W(ul_open())
-W(li("Cooldown decreased from 18/15/12/9s to 17/14/11/8s", b([18, 15, 12, 9], [17, 14, 11, 8], l=True)))
-W(li("Initial radius increased from 225 to 250", b(225, 250)))
-W(ul_close())
-
-# Spectre
-W(hero_header("Spectre"))
-W(ul_open())
-W(li("Strength gain decreased from 2.4 to 2.3", b(2.4, 2.3)))
-W(ul_close())
-W(ability("Dispersion"))
-W(ul_open())
-W(li("Max Radius decreased from 800 to 700", b(800, 700)))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Spectral Dagger Cooldown Reduction decreased from 4s to 3s", b(4, 3, l=True)))
-W(ul_close())
-
-# Techies
-W(hero_header("Techies"))
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 10 Talent Magic Resistance decreased from +20% to +15%", b(20, 15)))
-W(li("Level 15 Talent Blast Off! Damage decreased from +200 to +175", b(200, 175)))
-W(ul_close())
-
-# Terrorblade
-W(hero_header("Terrorblade"))
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 20 Talent Conjure Image Duration decreased from +10s to +8s", b(10, 8)))
-W(ul_close())
-
-# Tidehunter
-W(hero_header("Tidehunter"))
-W(ul_open())
-W(li("Base Strength decreased from 26 to 25", b(26, 25)))
-W(li("Damage at level 1 decreased from 51-57 to 50-56", t("NERF")))
-W(ul_close())
-W(ability("Leviathan's Catch"))
-W(ul_open())
-W(li("Now gains fish on every even level instead of every level", t("REWORK")))
-W(ul_close())
-W(subgroup("Talents"))
-W(ul_open())
-W(li("Level 15 Talent Gush Damage decreased from +100 to +90", b(100, 90)))
-W(li("Level 25 Talent Anchor Smash affects buildings now deals 50% damage to buildings", t("REWORK")))
-W(ul_close())
-
-# Timbersaw
-W(hero_header("Timbersaw"))
-W(ability("Whirling Death"))
-W(ul_open())
-W(li("Damage rescaled from 75/120/165/210 to 60/120/180/240", b([75, 120, 165, 210], [60, 120, 180, 240])))
-W(ul_close())
-W(ability("Timber Chain"))
-W(ul_open())
-W(li("Damage increased from 45/100/155/210 to 45/105/165/225", b([45, 100, 155, 210], [45, 105, 165, 225])))
-W(ul_close())
-W(ability("Chakram"))
-W(ul_open())
-W(li("Pass Damage rescaled from 100/150/200 to 75/150/225", b([100, 150, 200], [75, 150, 225])))
-W(ul_close())
-
-# Tinker
-W(hero_header("Tinker"))
-W(ability("Deploy Turrets"))
-W(ul_open())
-W(li("Missile speed increased from 1200 to 1350", b(1200, 1350)))
-W(li("Base activation time decreased from 0.3s to 0s", b(0.3, 0, l=True)))
-W(li("Aghanim's Scepter no longer makes activation faster", t("NERF")))
-W(ul_close())
-
-# Tiny
-W(hero_header("Tiny"))
-W(ul_open())
-W(li("Intelligence gain increased from 2.2 to 2.4", b(2.2, 2.4)))
-W(ul_close())
-W(ability("Tree Channel"))
-W(ul_open())
-W(li("No longer applies cleave", t("NERF")))
-W(ul_close())
-
-# Treant Protector
-W(hero_header("Treant Protector"))
-W(ability("Nature's Grasp"))
-W(ul_open())
-W(li("Cooldown increased from 20/19/18/17s to 23/21/19/17s", b([20, 19, 18, 17], [23, 21, 19, 17], l=True)))
-W(ul_close())
-
-# Tusk
-W(hero_header("Tusk"))
-W(ability("Bitter Chill"))
-W(ul_open())
-W(li("Attack Slow decreased from 17 + 3 per level to 12 + 3 per level", t("NERF")))
-W(ul_close())
-W(ability("Drinking Buddies"))
-W(ul_open())
-W(li("No longer has an alt-cast", t("NERF")))
-W(li("Bonus Armor decreased from 10 to 7", b(10, 7)))
-W(ul_close())
-
-# Void Spirit
-W(hero_header("Void Spirit"))
-W(ability("Dissimilate"))
-W(ul_open())
-W(li("Damage decreased from 120/200/280/360 to 105/185/265/345", b([120, 200, 280, 360], [105, 185, 265, 345])))
-W(ul_close())
-
-# Windranger
-W(hero_header("Windranger"))
-W(ul_open())
-W(li("Base Health Regen increased by 0.5", t("BUFF")))
-W(ul_close())
-W(ability("Powershot"))
-W(ul_open())
-W(li("Slow increased from 20/25/30/35% to 22/28/34/40%", b([20, 25, 30, 35], [22, 28, 34, 40])))
-W(ul_close())
-W(ability("Gale Force"))
-W(ul_open())
-W(li("Cooldown decreased from 30s to 25s", b(30, 25, l=True)))
-W(ul_close())
-
-write_footer()
-save_html('7.41b.html')
+</div>
+
+<button class="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top:0, behavior:'smooth'})">↑</button>
+
+<script>
+(function() {
+  // ---- BACK TO TOP visibility ----
+  const btt = document.querySelector('.back-to-top');
+  function updateBtt() {
+    btt.classList.toggle('visible', window.scrollY > 400);
+  }
+  window.addEventListener('scroll', updateBtt, { passive: true });
+  updateBtt();
+  // ---- TAG FILTERING (multi-select, OR semantics) ----
+  const buttons = document.querySelectorAll('.filter-btn');
+  const activeFilters = new Set();
+  function applyFilter() {
+    const isActive = activeFilters.size > 0;
+    document.body.classList.toggle('filter-active', isActive);
+    document.querySelectorAll('.f-hide').forEach(el => el.classList.remove('f-hide'));
+    if (!isActive) return;
+    document.querySelectorAll('ul.changes > li').forEach(li => {
+      const tags = (li.dataset.tag || '').split(' ').filter(Boolean);
+      const matches = tags.some(t => activeFilters.has(t));
+      if (!matches) li.classList.add('f-hide');
+    });
+    document.querySelectorAll('ul.changes').forEach(ul => {
+      const hasVisible = Array.from(ul.children).some(c => !c.classList.contains('f-hide'));
+      if (!hasVisible) ul.classList.add('f-hide');
+    });
+    document.querySelectorAll('h4.ability-title').forEach(h => {
+      let nx = h.nextElementSibling;
+      while (nx && nx.tagName !== 'UL') nx = nx.nextElementSibling;
+      if (!nx || nx.classList.contains('f-hide')) h.classList.add('f-hide');
+    });
+    document.querySelectorAll('.entity-block').forEach(block => {
+      const visible = block.querySelectorAll('ul.changes > li:not(.f-hide)').length;
+      if (!visible) block.classList.add('f-hide');
+    });
+  }
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tag = btn.dataset.filter;
+      if (activeFilters.has(tag)) {
+        activeFilters.delete(tag);
+        btn.classList.remove('active');
+      } else {
+        activeFilters.add(tag);
+        btn.classList.add('active');
+      }
+      applyFilter();
+    });
+  });
+
+  // ---- FORMULA TABLES (click pill to toggle table) ----
+  document.querySelectorAll('.formula-trigger').forEach(trig => {
+    trig.addEventListener('click', () => {
+      const id = trig.dataset.formula;
+      const table = document.getElementById(id);
+      if (!table) return;
+      const wasHidden = table.hasAttribute('hidden');
+      if (wasHidden) {
+        table.removeAttribute('hidden');
+        trig.classList.add('active');
+      } else {
+        table.setAttribute('hidden', '');
+        trig.classList.remove('active');
+      }
+    });
+  });
+
+  // ---- ENTITY SEARCH ----
+  const searchInput = document.getElementById('entity-search');
+  const resultsBox = document.getElementById('search-results');
+  const entities = [];
+  document.querySelectorAll('.entity').forEach(entity => {
+    const nameEl = entity.querySelector('.entity-name');
+    const imgEl = entity.querySelector('.entity-icon img');
+    if (!nameEl) return;
+    let kind = 'mechanic';
+    if (entity.classList.contains('hero-entity')) kind = 'hero';
+    else if (entity.classList.contains('item-entity')) kind = 'item';
+    entities.push({
+      name: nameEl.textContent.trim(),
+      element: entity,
+      icon: imgEl ? imgEl.src : null,
+      kind: kind
+    });
+  });
+
+  function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function highlight(name, q) {
+    const idx = name.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return escapeHtml(name);
+    return escapeHtml(name.slice(0, idx)) +
+           '<mark>' + escapeHtml(name.slice(idx, idx + q.length)) + '</mark>' +
+           escapeHtml(name.slice(idx + q.length));
+  }
+
+  let activeIdx = -1;
+
+  function render(query) {
+    if (!query) {
+      resultsBox.classList.remove('show');
+      resultsBox.innerHTML = '';
+      activeIdx = -1;
+      return;
+    }
+    const q = query.toLowerCase();
+    const matches = entities.filter(e => e.name.toLowerCase().includes(q)).slice(0, 12);
+    if (matches.length === 0) {
+      resultsBox.innerHTML = '<div class="empty">no matches</div>';
+      resultsBox.classList.add('show');
+      activeIdx = -1;
+      return;
+    }
+    resultsBox.innerHTML = matches.map((m, i) =>
+      `<div class="result-item" data-idx="${i}">${
+        m.icon ? `<img src="${m.icon}" alt="">` : '<span style="width:32px;display:inline-block"></span>'
+      }<span>${highlight(m.name, query)}</span><span class="kind">${m.kind}</span></div>`
+    ).join('');
+    resultsBox.classList.add('show');
+    activeIdx = -1;
+
+    resultsBox.querySelectorAll('.result-item').forEach((el, i) => {
+      el.addEventListener('mouseenter', () => { setActive(i); });
+      el.addEventListener('click', () => { jumpTo(matches[i]); });
+    });
+    window._currentMatches = matches;
+  }
+
+  function setActive(i) {
+    activeIdx = i;
+    resultsBox.querySelectorAll('.result-item').forEach((el, idx) => {
+      el.classList.toggle('active', idx === i);
+    });
+  }
+
+  function jumpTo(target) {
+    if (!target) return;
+    target.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.element.style.transition = 'box-shadow 0.4s';
+    target.element.style.boxShadow = '0 0 0 2px #58a6ff';
+    setTimeout(() => target.element.style.boxShadow = '', 1400);
+    searchInput.value = '';
+    resultsBox.classList.remove('show');
+    resultsBox.innerHTML = '';
+  }
+
+  searchInput.addEventListener('input', () => render(searchInput.value));
+  searchInput.addEventListener('keydown', (e) => {
+    const items = resultsBox.querySelectorAll('.result-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((activeIdx + 1) % items.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((activeIdx - 1 + items.length) % items.length); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const idx = activeIdx >= 0 ? activeIdx : 0;
+      if (window._currentMatches && window._currentMatches[idx]) jumpTo(window._currentMatches[idx]);
+    }
+    else if (e.key === 'Escape') {
+      searchInput.value = '';
+      render('');
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+      resultsBox.classList.remove('show');
+    }
+  });
+})();
+</script>
+
+</div></body></html>
