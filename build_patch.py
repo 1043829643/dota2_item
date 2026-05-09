@@ -908,13 +908,16 @@ def li(text, badge="", extra="", force_tag=None):
         rest = badge
 
     classes = []
+    marker = ""
     if isinstance(text, str) and text.startswith("Aghanim's Scepter"):
         classes.append("aghanim-scepter")
+        marker = '<span class="aghanim-marker scepter"></span>'
     elif isinstance(text, str) and text.startswith("Aghanim's Shard"):
         classes.append("aghanim-shard")
+        marker = '<span class="aghanim-marker shard"></span>'
     cls_attr = f' class="{" ".join(classes)}"' if classes else ""
     attr = f' data-tag="{tag_str}"' if tag_str else ""
-    return f'<li{attr}{cls_attr}>{left_tag}<span class="row-text">{text}</span>{rest}{extra}</li>'
+    return f'<li{attr}{cls_attr}>{left_tag}<span class="row-text">{text}</span>{rest}{marker}{extra}</li>'
 
 
 def subnote(text):
@@ -2151,30 +2154,32 @@ ul.changes li.aghanim-shard {
   background: linear-gradient(90deg, transparent 0 64px, rgba(121, 192, 255, 0.22) 64px, rgba(121, 192, 255, 0.10) 55%, transparent 100%);
   border-radius: 3px;
 }
-ul.changes li.aghanim-scepter > .row-text,
-ul.changes li.aghanim-shard > .row-text {
-  position: relative;
-}
-ul.changes li.aghanim-scepter > .row-text::before,
-ul.changes li.aghanim-shard > .row-text::before {
-  /* 12×12 icon anchored at left:-12 from .row-text (col 2 starts at 76),
-     so the icon spans 64..76 — exactly inside the gap between tag and text
-     columns, never overlapping the tag. */
-  content: "";
+/* Aghanim marker — small icon pinned to the row's right edge. The <span>
+   takes its own grid cell when present (li becomes a 4-col grid), but the
+   element itself is absolutely positioned so it doesn't shift the badge
+   column or wrap to a second row. */
+.aghanim-marker {
   position: absolute;
-  left: -12px;
-  top: 5px;
-  width: 12px;
-  height: 12px;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
   background-position: center;
   background-size: contain;
   background-repeat: no-repeat;
+  pointer-events: none;
 }
-ul.changes li.aghanim-scepter > .row-text::before {
+.aghanim-marker.scepter {
   background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter_icon.png');
 }
-ul.changes li.aghanim-shard > .row-text::before {
+.aghanim-marker.shard {
   background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_shard_icon.png');
+}
+/* Reserve room on the right so the % badge doesn't crash into the marker. */
+ul.changes li.aghanim-scepter,
+ul.changes li.aghanim-shard {
+  padding-right: 24px;
 }
 
 /* WRONG-WORD HIGHLIGHT — subtle, neutral marker (no strikethrough) */
