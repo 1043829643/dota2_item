@@ -3745,6 +3745,14 @@ W(ul_open())
 W(li("Reflect Damage reflection per minute decreased from 2% to 1.5%", b(2, 1.5)))
 W(ul_close())
 
+# ===== NEUTRAL CREEP UPDATES =====
+W(section("Neutral Creep Updates"))
+W(unit_header("Frostbitten Golem", "https://cdn.steamstatic.com/apps/dota2/images/dota_react/units/npc_dota_neutral_frostbitten_golem.png"))
+W(ability("Time Warp Aura", icon_url="https://www.opendota.com/assets/images/dota2/neutral_abilities/frostbitten_golem_time_warp_aura.png"))
+W(ul_open())
+W(li("Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
+W(ul_close())
+
 # ===== ITEM UPDATES =====
 W(section("Item Updates"))
 
@@ -3803,6 +3811,8 @@ W(item_header("Kaya and Sange"))
 W(ul_open())
 W(li("Health Restoration bonus decreased from 20% to 16%", b(20, 16)))
 W(ul_close())
+# ===== NEUTRAL ITEM UPDATES =====
+W(section("Neutral Item Updates"))
 W(subgroup("Artifact changes"))
 W(item_header("Jidi Pollen Bag"))
 W(ul_open())
@@ -3856,11 +3866,6 @@ W(subgroup("Enchantment changes"))
 W(enchant_header("Crude", "crude"))
 W(ul_open())
 W(li("Health Restoration bonus decreased from +10/15/20% to +9/12/15%", b([10, 15, 20], [9, 12, 15])))
-W(ul_close())
-W(unit_header("Frostbitten Golem", "https://cdn.steamstatic.com/apps/dota2/images/dota_react/units/npc_dota_neutral_frostbitten_golem.png"))
-W(ability("Time Warp Aura"))
-W(ul_open())
-W(li("Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
 W(ul_close())
 
 # ===== HERO UPDATES =====
