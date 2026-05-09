@@ -9,12 +9,190 @@ E.g.: python3 generate_patch_code.py 7.41c
 Reads /mnt/user-data/uploads/patchnotes_english.txt, writes patch code
 to /tmp/p_<version>.py
 """
+import json
 import re
 import sys
 
 import os
 _HERE = os.path.dirname(os.path.abspath(__file__))
 KV_FILE = os.path.join(_HERE, 'data', 'patchnotes_english.txt')
+
+# ---------- STATS DB (for bstat_h/bstat_i auto-badges) ----------
+
+def _load_stats_db():
+    db_h, db_i = {}, {}
+    base = os.path.join(_HERE, 'data', 'stats')
+    if not os.path.isdir(base):
+        return db_h, db_i
+    for ver in os.listdir(base):
+        vdir = os.path.join(base, ver)
+        if not os.path.isdir(vdir):
+            continue
+        for fname, db in (('heroes.json', db_h), ('items.json', db_i)):
+            fp = os.path.join(vdir, fname)
+            if os.path.exists(fp):
+                with open(fp, encoding='utf-8') as f:
+                    db[ver] = json.load(f)
+    return db_h, db_i
+
+_STATS_H, _STATS_I = _load_stats_db()
+
+# Ordered newest→oldest — used to find the previous patch for a given version.
+RELEASE_HISTORY_GEN = [
+    "7.41c","7.41b","7.41a","7.41",
+    "7.40c","7.40b","7.40",
+    "7.39e","7.39d","7.39c","7.39b","7.39",
+    "7.38c","7.38b","7.38",
+    "7.37e","7.37d","7.37c","7.37b","7.37",
+    "7.36c","7.36b","7.36a","7.36",
+    "7.35d","7.35c","7.35b","7.35",
+    "7.34e","7.34d","7.34c","7.34b","7.34",
+    "7.33e","7.33d","7.33c","7.33b","7.33",
+]
+
+def _prev_version(version):
+    """Return the patch version that came just before `version`, or None."""
+    try:
+        i = RELEASE_HISTORY_GEN.index(version)
+        return RELEASE_HISTORY_GEN[i + 1] if i + 1 < len(RELEASE_HISTORY_GEN) else None
+    except ValueError:
+        return None
+
+# Maps lowercased English keyword (regex) → (kv_field, l_flag, is_damage_avg)
+# Ordered most-specific first so longer matches win.
+HERO_STAT_MAP = [
+    (r'base health regen',          'StatusHealthRegen',         False, False),
+    (r'base mana regen',            'StatusManaRegen',           True,  False),
+    (r'base health\b',              'StatusHealth',              False, False),
+    (r'base mana\b',                'StatusMana',                False, False),
+    (r'base armor',                 'ArmorPhysical',             False, False),
+    (r'base strength',              'AttributeBaseStrength',     False, False),
+    (r'base agility',               'AttributeBaseAgility',      False, False),
+    (r'base intelligence',          'AttributeBaseIntelligence', False, False),
+    (r'strength gain',              'AttributeStrengthGain',     False, False),
+    (r'agility gain',               'AttributeAgilityGain',      False, False),
+    (r'intelligence gain',          'AttributeIntelligenceGain', False, False),
+    (r'base attack time',           'AttackRate',                True,  False),
+    (r'movement speed|move speed',  'MovementSpeed',             False, False),
+    (r'attack range',               'AttackRange',               False, False),
+    # Damage: uses average of DamageMin+DamageMax; is_damage_avg=True
+    (r'base damage',                'AttackDamageMin',           False, True),
+]
+
+ITEM_STAT_MAP = [
+    (r'mana cost',   'AbilityManaCost', True,  False),
+    (r'\bcooldown\b','ItemCooldown',    True,  False),
+    (r'\bcost\b',    'ItemCost',        True,  False),
+]
+
+# Matches "increased/decreased/reduced/worsened by N"
+_BY_N_RE = re.compile(
+    r'\b(increased|decreased|reduced|worsened|improved)\s+by\s+(\d+(?:\.\d+)?)',
+    re.I
+)
+
+def _by_n_delta(direction, n, l_flag):
+    """Return numeric delta given direction word, magnitude, and l_flag."""
+    direction = direction.lower()
+    if direction in ('increased', 'improved'):
+        # l=True: improved means value went DOWN (e.g. cooldown reduced)
+        return -n if l_flag else n
+    else:  # decreased, reduced, worsened
+        return n if l_flag else -n
+
+def _try_hero_stat_badge(desc, hero_internal, version):
+    """
+    If desc matches "by N" pattern and stats DB has the value for prev version,
+    return a bstat_h() call string. Otherwise return None.
+    """
+    m = _BY_N_RE.search(desc)
+    if not m:
+        return None
+    direction, n_str = m.group(1), m.group(2)
+    n = float(n_str)
+    if n != int(n):
+        n = float(n_str)
+    else:
+        n = int(n_str)
+
+    desc_low = desc.lower()
+    kv_field = l_flag = is_dmg = None
+    for pattern, field, l, dmg in HERO_STAT_MAP:
+        if re.search(pattern, desc_low):
+            kv_field, l_flag, is_dmg = field, l, dmg
+            break
+    if kv_field is None:
+        return None
+
+    prev_ver = _prev_version(version)
+    if prev_ver is None or prev_ver not in _STATS_H:
+        return None
+
+    npc_key = 'npc_dota_hero_' + hero_internal
+    hero_data = _STATS_H[prev_ver].get(npc_key, {})
+    if not hero_data:
+        return None
+
+    old = hero_data.get(kv_field)
+    if old is None:
+        return None
+
+    if is_dmg:
+        # Use average of DamageMin/DamageMax
+        dmx = hero_data.get('AttackDamageMax', old)
+        old = round((old + dmx) / 2, 1)
+        if old == int(old):
+            old = int(old)
+
+    delta = _by_n_delta(direction, n, l_flag)
+    new = round(old + delta, 4)
+    if new == int(new):
+        new = int(new)
+
+    l_arg = ', l=True' if l_flag else ''
+    return f'bstat_h("{_escape(HERO_MAP.get(hero_internal, hero_internal))}", "{kv_field}", "{prev_ver}", {delta!r}{l_arg})'
+
+
+def _try_item_stat_badge(desc, item_internal, version):
+    """Same as _try_hero_stat_badge but for items."""
+    m = _BY_N_RE.search(desc)
+    if not m:
+        return None
+    direction, n_str = m.group(1), m.group(2)
+    n = float(n_str)
+    if n != int(n):
+        n = float(n_str)
+    else:
+        n = int(n_str)
+
+    desc_low = desc.lower()
+    kv_field = l_flag = None
+    for pattern, field, l, _ in ITEM_STAT_MAP:
+        if re.search(pattern, desc_low):
+            kv_field, l_flag = field, l
+            break
+    if kv_field is None:
+        return None
+
+    prev_ver = _prev_version(version)
+    if prev_ver is None or prev_ver not in _STATS_I:
+        return None
+
+    item_key = 'item_' + item_internal
+    item_data = _STATS_I[prev_ver].get(item_key, {})
+    old = item_data.get(kv_field)
+    if old is None:
+        return None
+
+    delta = _by_n_delta(direction, n, l_flag)
+    l_arg = ', l=True' if l_flag else ''
+    # For items we use b() directly since item display name lookup is trickier
+    new = round(old + delta, 4)
+    if new == int(new):
+        new = int(new)
+    return f'b({old!r}, {new!r}{l_arg})'
+
+
 
 # ---------- LOAD HERO_SLUG ----------
 
@@ -772,6 +950,10 @@ def generate(version):
             else:
                 start_ul()
                 call = parse_value_change(desc)
+                if call.startswith('t("') and version:
+                    stat_call = _try_item_stat_badge(desc, info['entity'], version)
+                    if stat_call:
+                        call = stat_call
                 _emit_li(out, desc, call)
             continue
 
@@ -819,6 +1001,10 @@ def generate(version):
             if t == 'hero_base':
                 start_ul()
                 call = parse_value_change(desc)
+                if call.startswith('t("') and version:
+                    stat_call = _try_hero_stat_badge(desc, info['entity'], version)
+                    if stat_call:
+                        call = stat_call
                 _emit_li(out, desc, call)
             elif t == 'hero_talent':
                 if last_ability != '__talent__':
