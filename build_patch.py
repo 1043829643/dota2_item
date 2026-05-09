@@ -1560,17 +1560,20 @@ ul.changes li {
   color: #c9d1d9;
   position: relative;
 }
-/* Hover ruler: faint dashed line spans the row from text to % so the eye
-   can trace which percentage belongs to which text. Only appears when a
-   badge-group is present (i.e. there's a % to trace to). */
-ul.changes li:has(> .badge-group):hover::after {
-  content: "";
-  position: absolute;
-  left: 76px;
-  right: 0;
-  bottom: 2px;
-  border-bottom: 1px dashed rgba(139, 148, 158, 0.28);
-  pointer-events: none;
+/* Hover ruler: dashed underline under the change-text, leading the eye
+   toward the % badge. Anchored to .row-text so notes/formulas/correction
+   boxes (which span full width on row 2) don't pull the line down. */
+ul.changes li:has(> .badge-group):hover > .row-text {
+  text-decoration: underline dashed rgba(139, 148, 158, 0.32);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+/* For raw-row li (no .row-text wrapper): underline the li's first-line text
+   directly. min-height ensures the underline shows even on short rows. */
+ul.changes li:not(:has(> .row-text)):has(> .badge-group):hover {
+  text-decoration: underline dashed rgba(139, 148, 158, 0.32);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 /* Left column: text-tag goes here. All variants (real .badge, placeholder, raw-row
    ::before) share fixed dimensions so they line up perfectly across rows. */
