@@ -408,6 +408,9 @@ class _State:
     current_hero = None  # internal slug of current hero block (for ability icon derivation)
     ability_icons = set()  # all ability-icon URLs emitted during build (for icon-validator)
     ability_block_open = False  # tracks <div class="ability-block"> wrapper
+    # Auto-categorize hero block contents (Stats / Abilities / Talents subgroups):
+    next_ul_is_hero_stats = False    # set by hero_header(), consumed by ul_open()
+    seen_abilities_subgroup = False  # set when first ability() emits "Abilities" subgroup
 
 def _open_block():
     pre = _close_ability_block()
@@ -432,6 +435,8 @@ def _close_ability_block():
 
 def hero_header(name):
     _State.current_hero = HERO_SLUG.get(name, name.lower().replace(" ", "_").replace("'", "").replace("-", ""))
+    _State.next_ul_is_hero_stats = True
+    _State.seen_abilities_subgroup = False
     return _open_block() + f'''<div class="entity hero-entity">
   <div class="entity-icon hero-icon"><img src="{hero_img(name)}" alt="{name}" loading="lazy"></div>
   <div class="entity-name">{name}</div>
@@ -495,7 +500,6 @@ INNATE_ABILITIES = {
     ("antimage", "Mana Break"),
     ("axe", "One Man Army"),
     ("bristleback", "Prickly"),
-    ("broodmother", "Spinner's Snare"),
     ("bounty_hunter", "Big Game Hunter"),
     ("centaur", "Horsepower"),
     ("chaos_knight", "Fundamental Forging"),
@@ -543,20 +547,19 @@ INNATE_ABILITIES = {
 }
 
 def subgroup(title):
-    """Subgroup heading. For "Talents", wraps in an ability-block with a talent icon."""
+    """Subgroup heading (e.g., 'Stats', 'Abilities', 'Talents', 'Tier 1').
+    For 'Talents', adds a small SVG talents icon next to the label."""
     out = _close_ability_block()
+    _State.next_ul_is_hero_stats = False
     if title.lower() == "talents":
         on_err = (
             "this.onerror=function(){this.style.display='none'};"
             f"this.src='{INNATE_ICON_URL}';"
         )
         icon = (f'<img src="{TALENT_ICON_URL}" alt="" '
-                f'class="ability-icon-img talent-icon" loading="lazy" '
-                f'onerror="{on_err}">')
-        _State.ability_block_open = True
+                f'class="subgroup-icon" loading="lazy" onerror="{on_err}">')
         _State.ability_icons.add(TALENT_ICON_URL)
-        return out + (f'<div class="ability-block talents-block">{icon}'
-                      f'<h4 class="ability-title">{title}</h4>')
+        return out + f'<h4 class="subgroup with-icon">{icon}{title}</h4>'
     return out + f'<h4 class="subgroup">{title}</h4>'
 
 
@@ -651,30 +654,42 @@ def ability(title, slug=None, innate=None):
         slug = f"{prefix}_{ability_part}"
     elif innate is not None:
         is_innate = bool(innate)
+    icon_inner = ''
     if slug:
         # On 404 first try innate-icon fallback, then hide on 2nd failure.
         on_err = (
             "this.onerror=function(){this.style.display='none'};"
             f"this.src='{INNATE_ICON_URL}';"
         )
-        icon_html = (f'<img src="{ABIL_CDN}{slug}.png" alt="" '
-                     f'class="ability-icon-img" loading="lazy" '
-                     f'data-slug="{slug}" '
-                     f'onerror="{on_err}">')
+        icon_inner = (f'<img src="{ABIL_CDN}{slug}.png" alt="" '
+                      f'class="ability-icon-img" loading="lazy" '
+                      f'data-slug="{slug}" '
+                      f'onerror="{on_err}">')
         _State.ability_icons.add(f"{ABIL_CDN}{slug}.png")
-    innate_marker = ''
     if is_innate:
-        innate_marker = (f'<img src="{INNATE_ICON_URL}" alt="Innate" '
-                         f'class="innate-marker" title="Innate ability">')
+        # Innate marker overlays bottom-center of the ability icon.
+        icon_inner += (f'<img src="{INNATE_ICON_URL}" alt="" '
+                       f'class="innate-marker" title="Innate ability">')
+    icon_html = f'<div class="ability-icon-wrap">{icon_inner}</div>' if icon_inner else ''
+
     out = _close_ability_block()
+    # Auto-emit 'Abilities' subgroup before the first ability of the current hero.
+    _State.next_ul_is_hero_stats = False
+    if not _State.seen_abilities_subgroup and _State.current_hero:
+        out += '<h4 class="subgroup">Abilities</h4>'
+        _State.seen_abilities_subgroup = True
     _State.ability_block_open = True
     return out + (f'<div class="ability-block{" is-innate" if is_innate else ""}">'
                   f'{icon_html}'
-                  f'<h4 class="ability-title">{title}{innate_marker}</h4>')
+                  f'<h4 class="ability-title">{title}</h4>')
 
 
 def ul_open():
-    return '<ul class="changes">'
+    out = ''
+    if _State.next_ul_is_hero_stats and _State.current_hero:
+        out += '<h4 class="subgroup">Stats</h4>'
+        _State.next_ul_is_hero_stats = False
+    return out + '<ul class="changes">'
 
 
 def ul_close():
@@ -1464,32 +1479,35 @@ h4.subgroup {
   grid-template-columns: 48px 1fr;
   column-gap: 12px;
   align-items: start;
-  margin: 14px 0 8px 0;
+  margin: 12px 0 8px 0;
 }
-.ability-block > .ability-icon-img {
+.ability-block > .ability-icon-wrap {
   grid-column: 1;
-  grid-row: 1 / span 99;     /* span everything that follows the title */
+  grid-row: 1 / span 99;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  align-self: start;
+}
+.ability-block > .ability-icon-wrap > .ability-icon-img {
   width: 48px;
   height: 48px;
   border-radius: 6px;
-  align-self: start;          /* keep icon at top */
   object-fit: cover;
   box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-.ability-block.talents-block > .ability-icon-img {
-  /* talents SVG icon — translucent box, lighter background */
-  box-shadow: 0 0 0 1px rgba(121, 192, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
-  background: rgba(121, 192, 255, 0.05);
-  padding: 6px;
-}
-/* Innate marker — small icon next to ability title */
-h4.ability-title .innate-marker {
+/* Innate-icon overlay: bottom-center of the ability icon */
+.ability-block > .ability-icon-wrap > .innate-marker {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 22px;
   height: 22px;
-  margin-left: 8px;
-  vertical-align: middle;
-  opacity: 0.85;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  border-radius: 50%;
+  background: #0a0e13;
+  padding: 1px;
+  box-shadow: 0 0 0 1px rgba(220, 175, 95, 0.45);
 }
 .ability-block > .ability-title {
   grid-column: 2;
@@ -1501,19 +1519,24 @@ h4.ability-title .innate-marker {
   line-height: 1.2;
   align-self: start;
 }
-.ability-block.talents-block > .ability-title {
-  color: #79c0ff;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  font-size: 14px;
-  font-weight: 700;
-}
 .ability-block > ul.changes {
   grid-column: 2;
   margin-top: 0;
 }
 .ability-block > ul.subnotes {
   grid-column: 2;
+}
+/* Talents-subgroup icon (next to "Talents" label) */
+h4.subgroup.with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+h4.subgroup .subgroup-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 /* CHANGES LIST — grid layout: [tag] [text] [percentages] */
