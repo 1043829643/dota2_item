@@ -4371,15 +4371,15 @@ W(li_formula("The Shining damage rescaled",
              headline_level=30))
 W(li("Now has 25% Status Resistance", t("NEW")))
 W(li("No longer deals damage to neutral units", t("NERF")))
-W(ul_close())
-
-W(subgroup("Roshan"))
-W(ul_open())
 W(li("Player that got Aghanim's Shard will no longer receive 175 gold", t("NERF")))
 W(ul_close())
 W(subnote(f'Total team gold reward decreased from 875 to 700 {b(875, 700)} (total networth change decreased from 2275 to 2100 {b(2275, 2100)})'))
 W(ul_open())
 W(li("Reward if all players have Aghanim's Shard decreased from 455 gold to 415 gold", b(455, 415)))
+W(ul_close())
+
+W(subgroup("Roshan"))
+W(ul_open())
 W(li("Roshan's pit preference has switched", t("MISC")))
 W(ul_close())
 W(subnote("Now begins in the Top Pit"))
@@ -4388,9 +4388,9 @@ W(subgroup("Wisdom Shrines"))
 W(ul_open())
 W(li("Wisdom Shrines and Lotus Pools now reverse their countdowns if heroes from opposing teams enter the area, instead of pausing the countdown", t("REWORK")))
 W(li_formula("Wisdom Shrine Experience rescaled",
-             "280 per shrine",
+             "280 × shrine #",
              "200 + 300 per subsequent shrine",
-             lambda N: 280,
+             lambda N: 280 * N,
              lambda N: 200 + 300 * (N - 1),
              levels=[1, 2, 3, 4, 5, 6, 7],
              level_fmt=lambda N: f"#{N}",
