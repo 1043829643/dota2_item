@@ -1404,7 +1404,7 @@ h2.section {
   gap: 14px;
   background: linear-gradient(90deg, #1a1f29 0%, #161b22 100%);
   border-radius: 4px;
-  padding: 8px 14px;
+  padding: 8px 14px 8px 0;     /* no left padding — icon left-edge aligns with .entity-block edge (and ability icons below) */
   margin: 20px 0 8px;
 }
 .entity-name {
