@@ -644,6 +644,10 @@ ABILITY_DISPLAY_TO_SLUG = {
     ("pudge", "Graft Flesh"): "innate_graft_flesh",
     # Storm Spirit
     ("storm_spirit", "Galvanized"): "galvanized",
+    # Largo — abilities use 'song_<old_name>' internal slugs; display names were renamed.
+    ("largo", "Bullbelly Blitz"): "song_fight_song",
+    ("largo", "Hotfeet Hustle"): "song_double_time",
+    ("largo", "Island Elixir"): "song_good_vibrations",
 }
 
 
@@ -779,8 +783,14 @@ def li(text, badge="", extra="", force_tag=None):
         left_tag = '<span class="row-tag-empty"></span>'
         rest = badge
 
+    classes = []
+    if isinstance(text, str) and text.startswith("Aghanim's Scepter"):
+        classes.append("aghanim-scepter")
+    elif isinstance(text, str) and text.startswith("Aghanim's Shard"):
+        classes.append("aghanim-shard")
+    cls_attr = f' class="{" ".join(classes)}"' if classes else ""
     attr = f' data-tag="{tag_str}"' if tag_str else ""
-    return f'<li{attr}>{left_tag}<span class="row-text">{text}</span>{rest}{extra}</li>'
+    return f'<li{attr}{cls_attr}>{left_tag}<span class="row-text">{text}</span>{rest}{extra}</li>'
 
 
 def subnote(text):
@@ -1967,6 +1977,33 @@ img { max-width: 100%; }
 }
 .back-to-top.visible {
   display: flex;
+}
+
+/* AGHANIM'S SCEPTER / SHARD ROWS — faint blue stripe + small icon prefix.
+   Mirrors the visual treatment used on Valve's official patch page so these
+   rows read as a sub-category at a glance. */
+ul.changes li.aghanim-scepter,
+ul.changes li.aghanim-shard {
+  background: linear-gradient(90deg, rgba(121, 192, 255, 0.07) 0%, rgba(121, 192, 255, 0.02) 60%, transparent 100%);
+  border-radius: 3px;
+}
+ul.changes li.aghanim-scepter > .row-text::before,
+ul.changes li.aghanim-shard > .row-text::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
+  vertical-align: -2px;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+ul.changes li.aghanim-scepter > .row-text::before {
+  background-image: url('https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/ultimate_scepter.png');
+}
+ul.changes li.aghanim-shard > .row-text::before {
+  background-image: url('https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/aghanims_shard.png');
 }
 
 /* WRONG-WORD HIGHLIGHT — subtle, neutral marker (no strikethrough) */
@@ -4077,8 +4114,8 @@ W(ability("Demonic Conversion"))
 W(ul_open())
 W(li("Fixed Eidolons not having an 8 attack damage spread", t("MISC")))
 W(li("Eidolon Damage increased from 16/27/38/49 to 16/28/40/52", b([16, 27, 38, 49], [16, 28, 40, 52])))
-W(li("As a result, damage changed from 16/27/38/49 to 12-20/24-32/36-44/48-56", b([16, 27, 38, 49], 12)))
 W(ul_close())
+W(subnote("As a result, damage changed from 16/27/38/49 to 12-20/24-32/36-44/48-56"))
 
 # Gyrocopter
 W(hero_header("Gyrocopter"))
@@ -4168,7 +4205,7 @@ W(ul_open())
 W(li("Mana Cost rescaled from 25/35/45/55 to 40", b([25, 35, 45, 55], 40, l=True)))
 W(li("Duration increased from 12/18/24/30s to 15/20/25/30s", b([12, 18, 24, 30], [15, 20, 25, 30])))
 W(ul_close())
-W(ability("Fight Song"))
+W(ability("Bullbelly Blitz"))
 W(ul_open())
 W(li("Aghanim's Scepter Damage per stack decreased from 6/12/18 to 6/10/14", b([6, 12, 18], [6, 10, 14])))
 W(ul_close())
@@ -7145,7 +7182,7 @@ W(ability("Amphibian Rhapsody"))
 W(ul_open())
 W(li("Aghanim's Scepter no longer adds damage to double-strumming", t("NERF")))
 W(ul_close())
-W(ability("Fight Song"))
+W(ability("Bullbelly Blitz"))
 W(ul_open())
 W(li("Now also deals 20/30/40 magical damage by default", t("REWORK")))
 W(li("Now upgraded with Aghanim's Scepter", t("REWORK")))
