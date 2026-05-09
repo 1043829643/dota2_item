@@ -482,9 +482,65 @@ def section(title):
     return _close_block() + f'<h2 class="section">{title}</h2>'
 
 
-# Generic talent-tree icon (falls back to innate_icon on 404 via onerror).
-TALENT_ICON_URL = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/icons/talent_tree.png"
+# Talent icon — Valve's official SVG used in www.dota2.com/patches/.
+TALENT_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/talents.svg"
 INNATE_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png"
+
+# Innate abilities — marked with INNATE_ICON inside the .ability-block.
+# Format: {(hero_internal_slug, ability_display_name), ...}
+# Source: 7.41+ patchnotes that introduced innate slots.
+INNATE_ABILITIES = {
+    ("alchemist", "Greevil's Greed"),
+    ("ancient_apparition", "Bone Chill"),
+    ("antimage", "Mana Break"),
+    ("axe", "One Man Army"),
+    ("bristleback", "Prickly"),
+    ("broodmother", "Spinner's Snare"),
+    ("bounty_hunter", "Big Game Hunter"),
+    ("centaur", "Horsepower"),
+    ("chaos_knight", "Fundamental Forging"),
+    ("dark_seer", "Aggrandize"),
+    ("dark_willow", "Pixie Dust"),
+    ("dawnbreaker", "Break of Dawn"),
+    ("doom_bringer", "Lvl Pain"),
+    ("earthshaker", "Slugger"),
+    ("elder_titan", "Momentum"),
+    ("ember_spirit", "Immolation"),
+    ("enchantress", "Rabblerouser"),
+    ("enigma", "Event Horizon"),
+    ("faceless_void", "Distortion Field"),
+    ("hoodwink", "Mistwood's Wayfarer"),
+    ("jakiro", "Double Trouble"),
+    ("juggernaut", "Bladeform"),
+    ("largo", "Encore"),
+    ("largo", "Fight Song"),
+    ("lina", "Slow Burn"),
+    ("lion", "To Hell and Back"),
+    ("lycan", "Apex Predator"),
+    ("mars", "Dauntless"),
+    ("meepo", "Geomancy"),
+    ("naga_siren", "Eelskin"),
+    ("oracle", "Prognosticate"),
+    ("pangolier", "Rolling Thunder"),
+    ("primal_beast", "Colossal"),
+    ("puck", "Puckish"),
+    ("pugna", "Oblivion Savant"),
+    ("rattletrap", "Armor Power"),
+    ("sand_king", "Epicenter"),
+    ("shredder", "Exposure Therapy"),
+    ("silencer", "Brain Drain"),
+    ("slardar", "Seaborn Sentinel"),
+    ("snapfire", "Boomstick"),
+    ("sniper", "Keen Scope"),
+    ("storm_spirit", "Galvanized"),
+    ("troll_warlord", "Whirling Axes (Melee)"),
+    ("troll_warlord", "Whirling Axes (Ranged)"),
+    ("viper", "Nosedive"),
+    ("viper", "Predator"),
+    ("void_spirit", "Intrinsic Edge"),
+    ("warlock", "Eldritch Summoning"),
+    ("weaver", "Threads of Fate"),
+}
 
 def subgroup(title):
     """Subgroup heading. For "Talents", wraps in an ability-block with a talent icon."""
@@ -565,17 +621,23 @@ HERO_TO_ABIL_PREFIX = {
     "sand_king": "sandking",
 }
 
-def ability(title, slug=None):
+def ability(title, slug=None, innate=None):
     """Ability heading. Adds an icon when we know the CDN slug.
     The slug is derived from the current hero context + ability title:
       - manual override in ABILITY_DISPLAY_TO_SLUG, OR
       - naive: lowercased + spaces→underscores; strips ', -, ., (, ).
-    On 404 the icon swaps to the generic innate-icon (via onerror)."""
+    If innate is None, auto-detects from INNATE_ABILITIES; explicit True/False overrides.
+    On 404 the ability icon swaps to the generic innate-icon (via onerror)."""
     icon_html = ''
+    is_innate = False
     if slug is None and _State.current_hero:
         hero = _State.current_hero
         prefix = HERO_TO_ABIL_PREFIX.get(hero, hero)
         key = (hero, title)
+        if innate is None:
+            is_innate = key in INNATE_ABILITIES
+        else:
+            is_innate = bool(innate)
         if key in ABILITY_DISPLAY_TO_SLUG:
             ability_part = ABILITY_DISPLAY_TO_SLUG[key]
         else:
@@ -587,21 +649,28 @@ def ability(title, slug=None):
                             .replace("(", "")
                             .replace(")", ""))
         slug = f"{prefix}_{ability_part}"
+    elif innate is not None:
+        is_innate = bool(innate)
     if slug:
         # On 404 first try innate-icon fallback, then hide on 2nd failure.
         on_err = (
             "this.onerror=function(){this.style.display='none'};"
-            "this.src='https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png';"
+            f"this.src='{INNATE_ICON_URL}';"
         )
         icon_html = (f'<img src="{ABIL_CDN}{slug}.png" alt="" '
                      f'class="ability-icon-img" loading="lazy" '
                      f'data-slug="{slug}" '
                      f'onerror="{on_err}">')
         _State.ability_icons.add(f"{ABIL_CDN}{slug}.png")
+    innate_marker = ''
+    if is_innate:
+        innate_marker = (f'<img src="{INNATE_ICON_URL}" alt="Innate" '
+                         f'class="innate-marker" title="Innate ability">')
     out = _close_ability_block()
     _State.ability_block_open = True
-    return out + (f'<div class="ability-block">{icon_html}'
-                  f'<h4 class="ability-title">{title}</h4>')
+    return out + (f'<div class="ability-block{" is-innate" if is_innate else ""}">'
+                  f'{icon_html}'
+                  f'<h4 class="ability-title">{title}{innate_marker}</h4>')
 
 
 def ul_open():
@@ -1408,10 +1477,19 @@ h4.subgroup {
   box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 .ability-block.talents-block > .ability-icon-img {
-  /* talents icon — slightly different framing to look "tree-ish" */
+  /* talents SVG icon — translucent box, lighter background */
   box-shadow: 0 0 0 1px rgba(121, 192, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
-  background: rgba(121, 192, 255, 0.04);
-  padding: 4px;
+  background: rgba(121, 192, 255, 0.05);
+  padding: 6px;
+}
+/* Innate marker — small icon next to ability title */
+h4.ability-title .innate-marker {
+  width: 22px;
+  height: 22px;
+  margin-left: 8px;
+  vertical-align: middle;
+  opacity: 0.85;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 .ability-block > .ability-title {
   grid-column: 2;
