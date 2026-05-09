@@ -539,6 +539,9 @@ CSS = """
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Always reserve scrollbar space so content doesn't shift when filtering reduces page height */
+html { scrollbar-gutter: stable; }
+
 body {
   background: #0a0e13;
   background-image:
@@ -4344,9 +4347,10 @@ W(li("All sections of currents now give a max movement speed bonus of 150 ", t("
 W(ul_close())
 W(subnote("Previously was only provided by sections on the base and near it, while other sections provided max bonus of 100"))
 W(plain_header("Map Objectives"))
+
+W(subgroup("Tormentor"))
 W(ul_open())
-W(li("<span class=\\", t("MISC")))
-W(li("Tormentor's spawn preference has switched ", t("MISC")))
+W(li("Tormentor's spawn preference has switched", t("MISC")))
 W(ul_close())
 W(subnote("Now begins in the Bottom Chasm"))
 W(ul_open())
@@ -4355,22 +4359,43 @@ W(li("Unyielding Shield Barrier upgrade per minute increased from 20 to 50", b(2
 W(li("Unyielding Shield Base barrier regen decreased from 40 to 20", b(40, 20)))
 W(li("Unyielding Shield Barrier regen upgrade per minute increased from 3.5 to 5", b(3.5, 5)))
 W(li("Reflect Base damage reflection percentage decreased from 50% to 30%", b(50, 30)))
-W(li("Reflect radius can now be seen by holding ALT key", t("REWORK")))
-W(li("The Shining base damage decreased from 60 to 20", b(60, 20)))
-W(li("The Shining damage now increases by 2 per minute", t("REWORK")))
-W(li("Now has 25% Status Resistance", t("REWORK")))
+W(li("Reflect radius can now be seen by holding ALT key", t("MISC")))
+W(li_formula("The Shining damage rescaled",
+             "60",
+             "20 + 2 per minute",
+             lambda M: 60,
+             lambda M: 20 + 2 * M,
+             levels=[0, 5, 10, 15, 20, 25, 30, 40, 50, 60],
+             level_fmt=lambda M: f"{M}:00",
+             rework_badge=False,
+             headline_level=30))
+W(li("Now has 25% Status Resistance", t("NEW")))
 W(li("No longer deals damage to neutral units", t("NERF")))
-W(li("Player that got Aghanim's Shard will no longer receive 175 gold ", t("NERF")))
 W(ul_close())
-W(subnote("Total team gold reward decreased from 875 to 700 (total networth change decreased from 2275 to 2100)."))
+
+W(subgroup("Roshan"))
 W(ul_open())
-W(li("Reward if all players have Aghanim's Shard decreased from 455 gold to 415 gold", t("NERF")))
-W(li("Roshan's pit preference has switched ", t("MISC")))
+W(li("Player that got Aghanim's Shard will no longer receive 175 gold", t("NERF")))
+W(ul_close())
+W(subnote(f'Total team gold reward decreased from 875 to 700 {b(875, 700)} (total networth change decreased from 2275 to 2100 {b(2275, 2100)})'))
+W(ul_open())
+W(li("Reward if all players have Aghanim's Shard decreased from 455 gold to 415 gold", b(455, 415)))
+W(li("Roshan's pit preference has switched", t("MISC")))
 W(ul_close())
 W(subnote("Now begins in the Top Pit"))
+
+W(subgroup("Wisdom Shrines"))
 W(ul_open())
 W(li("Wisdom Shrines and Lotus Pools now reverse their countdowns if heroes from opposing teams enter the area, instead of pausing the countdown", t("REWORK")))
-W(li("Wisdom Shrine Experience changed from 280 per interval to 200 base and 300 per subsequent shrine (200/500/800 etc)", t("MISC")))
+W(li_formula("Wisdom Shrine Experience rescaled",
+             "280 per shrine",
+             "200 + 300 per subsequent shrine",
+             lambda N: 280,
+             lambda N: 200 + 300 * (N - 1),
+             levels=[1, 2, 3, 4, 5, 6, 7],
+             level_fmt=lambda N: f"#{N}",
+             rework_badge=False,
+             headline_level=2))
 W(ul_close())
 W(plain_header("Terrain Changes"))
 W(ul_open())

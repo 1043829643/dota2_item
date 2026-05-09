@@ -341,9 +341,11 @@ FROM_TO_RE = re.compile(
     r'from\s+'
     r'((?:[+\-]?\d+(?:\.\d+)?)(?:/[+\-]?\d+(?:\.\d+)?)*'
     r'(?:s|%|g)?)'
+    r'(?:\s+(?:gold|seconds?|minutes?|hp|mana))?'   # word-form unit suffix
     r'\s+to\s+'
     r'((?:[+\-]?\d+(?:\.\d+)?)(?:/[+\-]?\d+(?:\.\d+)?)*'
-    r'(?:s|%|g)?)',
+    r'(?:s|%|g)?)'
+    r'(?:\s+(?:gold|seconds?|minutes?|hp|mana))?',
     re.I
 )
 
