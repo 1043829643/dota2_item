@@ -126,7 +126,9 @@ def _prev_change_patch(db: dict, key_with_prefix: str, field: str, before_patch:
         if _at(v) != target:
             return last_with_target
         last_with_target = v
-    return last_with_target
+    # No transition found — value held since the oldest patch in our DB.
+    # Signal this with a "<oldest" marker so the caller can render "before X".
+    return f"<{versions[0]}" if versions else last_with_target
 
 
 def prev_change_patch_h(hero_display: str, field: str, before_patch: str):
@@ -913,9 +915,13 @@ def note_box(text=None, *, hero=None, item=None, field=None, before_patch=None):
         else:
             prev_val = stat_i(item, field, before_patch)
             prev_patch = prev_change_patch_i(item, field, before_patch) or before_patch
+        if isinstance(prev_patch, str) and prev_patch.startswith("<"):
+            tail = f'Last change before <b>{prev_patch[1:]}</b>'
+        else:
+            tail = f'Last change in <b>{prev_patch}</b>'
         return (f'<div class="correction-note">'
                 f'<span class="correction-label">Previously:</span>'
-                f'<b>{_fmt_val(prev_val)}</b>. Last change in <b>{prev_patch}</b>'
+                f'<b>{_fmt_val(prev_val)}</b>. {tail}'
                 f'</div>')
     return (f'<div class="correction-note">'
             f'<span class="correction-label">Note:</span> {text or ""}'
