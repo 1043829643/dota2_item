@@ -100,14 +100,14 @@ def _by_n_delta(direction, n, l_flag):
     else:  # decreased, reduced, worsened
         return n if l_flag else -n
 
-def _try_hero_stat_badge(desc, hero_internal, version):
+def _hero_stat_lookup(desc, hero_internal, version):
     """
     If desc matches "by N" pattern and stats DB has the value for prev version,
-    return a bstat_h() call string. Otherwise return None.
+    return (bstat_h_call_str, old_value, new_value). Otherwise (None, None, None).
     """
     m = _BY_N_RE.search(desc)
     if not m:
-        return None
+        return None, None, None
     direction, n_str = m.group(1), m.group(2)
     n = float(n_str)
     if n == int(n):
@@ -120,20 +120,20 @@ def _try_hero_stat_badge(desc, hero_internal, version):
             kv_field, l_flag, is_dmg = field, l, dmg
             break
     if kv_field is None:
-        return None
+        return None, None, None
 
     prev_ver = _prev_version(version)
     if prev_ver is None or prev_ver not in _STATS_H:
-        return None
+        return None, None, None
 
     npc_key = 'npc_dota_hero_' + hero_internal
     hero_data = _STATS_H[prev_ver].get(npc_key, {})
     if not hero_data:
-        return None
+        return None, None, None
 
     old = hero_data.get(kv_field)
     if old is None:
-        return None
+        return None, None, None
 
     if is_dmg:
         # Use average of DamageMin/DamageMax
@@ -148,14 +148,21 @@ def _try_hero_stat_badge(desc, hero_internal, version):
         new = int(new)
 
     l_arg = ', l=True' if l_flag else ''
-    return f'bstat_h("{_escape(HERO_MAP.get(hero_internal, hero_internal))}", "{kv_field}", "{prev_ver}", {delta!r}{l_arg})'
+    call = f'bstat_h("{_escape(HERO_MAP.get(hero_internal, hero_internal))}", "{kv_field}", "{prev_ver}", {delta!r}{l_arg})'
+    return call, old, new
 
 
-def _try_item_stat_badge(desc, item_internal, version):
-    """Same as _try_hero_stat_badge but for items."""
+def _try_hero_stat_badge(desc, hero_internal, version):
+    """Backward-compat wrapper — returns bstat_h call string or None."""
+    call, _, _ = _hero_stat_lookup(desc, hero_internal, version)
+    return call
+
+
+def _item_stat_lookup(desc, item_internal, version):
+    """Returns (b_call_str, old_value, new_value) or (None, None, None)."""
     m = _BY_N_RE.search(desc)
     if not m:
-        return None
+        return None, None, None
     direction, n_str = m.group(1), m.group(2)
     n = float(n_str)
     if n == int(n):
@@ -168,25 +175,31 @@ def _try_item_stat_badge(desc, item_internal, version):
             kv_field, l_flag = field, l
             break
     if kv_field is None:
-        return None
+        return None, None, None
 
     prev_ver = _prev_version(version)
     if prev_ver is None or prev_ver not in _STATS_I:
-        return None
+        return None, None, None
 
     item_key = 'item_' + item_internal
     item_data = _STATS_I[prev_ver].get(item_key, {})
     old = item_data.get(kv_field)
     if old is None:
-        return None
+        return None, None, None
 
     delta = _by_n_delta(direction, n, l_flag)
-    l_arg = ', l=True' if l_flag else ''
-    # For items we use b() directly since item display name lookup is trickier
     new = round(old + delta, 4)
     if new == int(new):
         new = int(new)
-    return f'b({old!r}, {new!r}{l_arg})'
+    l_arg = ', l=True' if l_flag else ''
+    call = f'b({old!r}, {new!r}{l_arg})'
+    return call, old, new
+
+
+def _try_item_stat_badge(desc, item_internal, version):
+    """Backward-compat wrapper."""
+    call, _, _ = _item_stat_lookup(desc, item_internal, version)
+    return call
 
 
 

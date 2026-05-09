@@ -23,7 +23,7 @@ _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
 from generate_patch_code import (
-    _try_hero_stat_badge, _try_item_stat_badge, HERO_MAP,
+    _hero_stat_lookup, _item_stat_lookup, HERO_MAP,
 )
 
 
@@ -90,6 +90,8 @@ def main():
     skipped_no_match = 0
     skipped_no_data = 0
     examples = []
+    # Накапливаем вставки info-строк и применяем в конце (чтобы не сбить индексы)
+    inserts = {}  # idx → list of lines to insert AFTER lines[idx]
 
     for i, line in enumerate(lines):
         stripped = line.strip()
@@ -132,26 +134,30 @@ def main():
 
         new_call = None
         ctx_label = None
+        old_val = new_val = None
 
         if in_hero_base and current_hero and current_hero in DISPLAY_TO_INTERNAL:
             hero_internal = DISPLAY_TO_INTERNAL[current_hero]
-            stat_call = _try_hero_stat_badge(desc, hero_internal, version)
-            if stat_call:
-                new_call = stat_call
+            call, old_val, new_val = _hero_stat_lookup(desc, hero_internal, version)
+            if call:
+                new_call = call
                 ctx_label = current_hero
         elif in_item_base and current_item and current_item in ITEM_DISPLAY_TO_INTERNAL:
             item_internal = ITEM_DISPLAY_TO_INTERNAL[current_item]
-            stat_call = _try_item_stat_badge(desc, item_internal, version)
-            if stat_call:
-                new_call = stat_call
+            call, old_val, new_val = _item_stat_lookup(desc, item_internal, version)
+            if call:
+                new_call = call
                 ctx_label = current_item
 
         if new_call:
             new_line = f'{indent}W(li("{desc}", {new_call}))'
             lines[i] = new_line
+            # Доп. строка с явными значениями: "From X to Y"
+            info_line = f"{indent}W('''<li>From {old_val} to {new_val}</li>''')"
+            inserts.setdefault(i, []).append(info_line)
             replaced += 1
             if len(examples) < 10:
-                examples.append(f"  [{version}] {ctx_label}: {desc[:60]}")
+                examples.append(f"  [{version}] {ctx_label}: {desc[:60]} -> from {old_val} to {new_val}")
         else:
             # Could it have matched? Track for stats
             if 'by ' in desc.lower():
@@ -167,6 +173,12 @@ def main():
         print(f"\nПримеры замен:")
         for e in examples:
             print(e)
+
+    # Применяем вставки (от конца к началу чтобы индексы не съезжали)
+    if inserts:
+        for idx in sorted(inserts.keys(), reverse=True):
+            for line_to_insert in reversed(inserts[idx]):
+                lines.insert(idx + 1, line_to_insert)
 
     if replaced:
         bp_path.write_text("\n".join(lines), encoding="utf-8")
