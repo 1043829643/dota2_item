@@ -62,7 +62,7 @@ def _prev_version(version):
 # Ordered most-specific first so longer matches win.
 HERO_STAT_MAP = [
     (r'base health regen',          'StatusHealthRegen',         False, False),
-    (r'base mana regen',            'StatusManaRegen',           True,  False),
+    (r'base mana regen',            'StatusManaRegen',           False, False),
     (r'base health\b',              'StatusHealth',              False, False),
     (r'base mana\b',                'StatusMana',                False, False),
     (r'base armor',                 'ArmorPhysical',             False, False),
