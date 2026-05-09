@@ -1666,7 +1666,7 @@ ul.changes li:not(:has(> .row-text)) > .badge.nerf-text {
 
 ul.subnotes {
   list-style: none;
-  margin: -2px 0 4px 76px;
+  margin: -2px 0 4px 0;        /* flush left — aligns with correction-note left edge */
 }
 ul.subnotes li {
   color: #8b949e;
