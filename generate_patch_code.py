@@ -110,10 +110,8 @@ def _try_hero_stat_badge(desc, hero_internal, version):
         return None
     direction, n_str = m.group(1), m.group(2)
     n = float(n_str)
-    if n != int(n):
-        n = float(n_str)
-    else:
-        n = int(n_str)
+    if n == int(n):
+        n = int(n)
 
     desc_low = desc.lower()
     kv_field = l_flag = is_dmg = None
@@ -160,10 +158,8 @@ def _try_item_stat_badge(desc, item_internal, version):
         return None
     direction, n_str = m.group(1), m.group(2)
     n = float(n_str)
-    if n != int(n):
-        n = float(n_str)
-    else:
-        n = int(n_str)
+    if n == int(n):
+        n = int(n)
 
     desc_low = desc.lower()
     kv_field = l_flag = None

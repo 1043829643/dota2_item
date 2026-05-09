@@ -2286,1285 +2286,807 @@ write_head("7.41c", "06.05.2026")
 
 # 7.41c content is HANDCRAFTED — preserves manual corrections, formula tables,
 # wrong-line/wrong-word annotations and subnotes that auto-gen can't produce.
-HANDCRAFTED_7_41C_BODY = '''<h2 class="section">General Updates</h2>
-<div class="entity-block">
-<div class="entity plain-entity"><div class="entity-name">Mechanics</div></div>
-<ul class="changes">
-<li data-tag="nerf">Units with flying vision no longer ignore vision restrictions of Roshan's pits. They can no longer see into them from outside and vice versa <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-<ul class="subnotes"><li>Affects Clockwerk during Jetpack, Drow Ranger's Glacier, Monkey King during Tree Dance, Night Stalker during Dark Ascension, Treant Protector's Eyes in the Forest, and Visage's Familiars</li></ul>
-</div>
-<div class="entity-block">
-<div class="entity plain-entity"><div class="entity-name">Tormentor</div></div>
-<ul class="changes">
-<li data-tag="buff">Alleviation: Max health regen increased from 2% to 2.25% <span class="badge-group" data-overall="buff"><span class="badge buff3">+12%</span></span></li>
-<li data-tag="buff">Alleviation: Duration increased from 10s to 15s <span class="badge-group" data-overall="buff"><span class="badge buff8">+50%</span></span></li>
-</ul>
-</div>
-<h2 class="section">Item Updates</h2>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/bloodstone.png" alt="Bloodstone" loading="lazy"></div>
-  <div class="entity-name">Bloodstone</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf"><span class="wrong-line">Health bonus increased from +600 to +625 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></span> <div class="correction-note"><span class="correction-label">Note</span>— This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div></li>
-<li data-tag="nerf">Bloodpact cooldown increased from 30s to 35s <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-17%</span></span></li>
-<li data-tag="nerf">Spell Weakness Aura damage from spells taken decreased from 12% to 10% <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-17%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/boots_of_bearing.png" alt="Boots of Bearing" loading="lazy"></div>
-  <div class="entity-name">Boots of Bearing</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Swiftness Aura allied movement speed decreased from 20 to 15 <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/crellas_crozier.png" alt="Crella's Crozier" loading="lazy"></div>
-  <div class="entity-name">Crella's Crozier</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Rite of Rumusque movement speed steal increased from 5% to 6% <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/disperser.png" alt="Disperser" loading="lazy"></div>
-  <div class="entity-name">Disperser</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Suppress duration decreased from 5s to 4s <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/essence_distiller.png" alt="Essence Distiller" loading="lazy"></div>
-  <div class="entity-name">Essence Distiller</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Soul Release radius when ground targeted increased from 400 to 450 <span class="badge-group" data-overall="buff"><span class="badge buff3">+12%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/harpoon.png" alt="Harpoon" loading="lazy"></div>
-  <div class="entity-name">Harpoon</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Draw Forth can no longer move the Harpoon caster if they are rooted/leashed/bound <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-<ul class="subnotes"><li>Still affects rooted/leashed/bound targets</li></ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/heart.png" alt="Heart of Tarrasque" loading="lazy"></div>
-  <div class="entity-name">Heart of Tarrasque</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Recipe cost increased from 600 to 700 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-17%</span></span></li>
-<li data-tag="nerf">Total cost increased from 5100g to 5200g <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/mage_slayer.png" alt="Mage Slayer" loading="lazy"></div>
-  <div class="entity-name">Mage Slayer</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Mage Slayer damage per second decreased from 40 to 35 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/silver_edge.png" alt="Silver Edge" loading="lazy"></div>
-  <div class="entity-name">Silver Edge</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Shadow Walk bonus movement speed decreased from 25% to 22% <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-<li data-tag="nerf">Shadow Walk cooldown increased from 20s to 22s <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-10%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/shivas_guard.png" alt="Shiva's Guard" loading="lazy"></div>
-  <div class="entity-name">Shiva's Guard</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Freezing Aura attack speed reduction decreased from 45 to 40 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-11%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/soul_ring.png" alt="Soul Ring" loading="lazy"></div>
-  <div class="entity-name">Soul Ring</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Cooldown increased from 25s to 30s <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity item-entity">
-  <div class="entity-icon item-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/specialists_array.png" alt="Specialist's Array" loading="lazy"></div>
-  <div class="entity-name">Specialist's Array</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Agility bonus increased from +12 to +15 <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<h2 class="section">Neutral Item Updates</h2>
-<div class="entity-block">
-<div class="entity plain-entity"><div class="entity-name">Crude</div></div>
-<ul class="changes">
-<li data-tag="nerf">Intelligence penalty increased from 6% to 9% <span class="badge-group" data-overall="nerf"><span class="badge nerf8">-50%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity plain-entity"><div class="entity-name">Greedy</div></div>
-<ul class="changes">
-<li data-tag="nerf">Mana bonus decreased from 200/250 to 150/200 <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span><span class="badge nerf4">-20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity plain-entity"><div class="entity-name">Tough</div></div>
-<ul class="changes">
-<li data-tag="nerf">Damage bonus decreased from +7/10/13/16 to +6/9/12/15 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-14%</span><span class="badge nerf2">-10%</span><span class="badge nerf2">-8%</span><span class="badge nerf2">-6%</span></span></li>
-</ul>
-</div>
-<h2 class="section">Hero Updates</h2>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/abaddon.png" alt="Abaddon" loading="lazy"></div>
-  <div class="entity-name">Abaddon</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Intelligence increased by 1 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li>Damage at level 1 unchanged at 49-59 </li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 10 — Curse of Avernus DPS increased from +25 to +30 <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/alchemist.png" alt="Alchemist" loading="lazy"></div>
-  <div class="entity-name">Alchemist</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Greevil's Greed</h4>
-<ul class="changes">
-<li data-tag="nerf">Bonus base/max Extra Gold per melted Scepter decreased from +6 to +3 <span class="badge-group" data-overall="nerf"><span class="badge nerf8">-50%</span></span></li>
-</ul>
-<h4 class="ability-title">Acid Spray</h4>
-<ul class="changes">
-<li data-tag="nerf">Cooldown rescaled from 22/21/20/19s to 21s <span class="badge-group" data-overall="nerf"><span class="badge buff1">+5%</span><span class="badge neutral">0%</span><span class="badge nerf1">-5%</span><span class="badge nerf3">-11%</span></span></li>
-</ul>
-<h4 class="ability-title">Chemical Rage</h4>
-<ul class="changes">
-<li data-tag="nerf">Bonus Health Regen decreased from 60/90/120 to 50/85/120 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-17%</span><span class="badge nerf2">-6%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/ancient_apparition.png" alt="Ancient Apparition" loading="lazy"></div>
-  <div class="entity-name">Ancient Apparition</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Ice Blast</h4>
-<ul class="changes">
-<li data-tag="buff">Path Radius increased from 275 to 300 <span class="badge-group" data-overall="buff"><span class="badge buff2">+9%</span></span></li>
-<li data-tag="buff">Base Area of Effect Radius increased from 275 to 300 <span class="badge-group" data-overall="buff"><span class="badge buff2">+9%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 20 — Chilling Touch Damage increased from +80 to +100 <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png" alt="Anti-Mage" loading="lazy"></div>
-  <div class="entity-name">Anti-Mage</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Persecutor</h4>
-<ul class="changes">
-<li data-tag="buff">Minimum mana threshold for slow improved from 50% to 60% <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/arc_warden.png" alt="Arc Warden" loading="lazy"></div>
-  <div class="entity-name">Arc Warden</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Agility increased from 20 to 22 <span class="badge-group" data-overall="buff"><span class="badge buff2">+10%</span></span></li>
-<li data-tag="buff">Damage at level 1 increased from 51-57 to 52-58 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/bane.png" alt="Bane" loading="lazy"></div>
-  <div class="entity-name">Bane</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Brain Sap</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 120/130/140/150 to 105/120/135/150 <span class="badge-group" data-overall="buff"><span class="badge buff3">+12%</span><span class="badge buff2">+8%</span><span class="badge buff1">+4%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/batrider.png" alt="Batrider" loading="lazy"></div>
-  <div class="entity-name">Batrider</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Movement Speed decreased from 320 to 310 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-3%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Sticky Napalm</h4>
-<ul class="changes">
-<li data-tag="nerf">Aghanim's Shard building damage decreased from 25% to 20% <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-<h4 class="ability-title">Firefly</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage per second decreased from 25/50/75/100 to 20/40/60/80 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-<h4 class="ability-title">Flaming Lasso</h4>
-<ul class="changes">
-<li data-tag="nerf">Total Damage decreased from 200/350/500 to 125/250/375 <span class="badge-group" data-overall="nerf"><span class="badge nerf7">-38%</span><span class="badge nerf6">-29%</span><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/beastmaster.png" alt="Beastmaster" loading="lazy"></div>
-  <div class="entity-name">Beastmaster</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Strength decreased from 25 to 24 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></li>
-<li data-tag="nerf">Damage at level 1 decreased from 50-54 to 49-53 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Wild Axes</h4>
-<ul class="changes">
-<li data-tag="nerf">Mana Cost increased from 50/55/60/65 to 65 <span class="badge-group" data-overall="nerf"><span class="badge nerf6">-30%</span><span class="badge nerf4">-18%</span><span class="badge nerf2">-8%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-<h4 class="ability-title">Summon Razorback</h4>
-<ul class="changes">
-<li data-tag="nerf">Boar Attack Damage decreased from 30/45/60/75 to 24/41/58/75 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span><span class="badge nerf2">-9%</span><span class="badge nerf1">-3%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-<h4 class="ability-title">Drums of Slom</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage Radius decreased from 600 to 525 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-<li data-tag="nerf">Drum Hit Damage decreased from 80 to 70 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/bounty_hunter.png" alt="Bounty Hunter" loading="lazy"></div>
-  <div class="entity-name">Bounty Hunter</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Shuriken Toss</h4>
-<ul class="changes">
-<li data-tag="nerf">Mana Cost increased from 75/80/85/90 to 75/85/95/105 <span class="badge-group" data-overall="nerf"><span class="badge neutral">0%</span><span class="badge nerf2">-6%</span><span class="badge nerf3">-12%</span><span class="badge nerf4">-17%</span></span></li>
-</ul>
-<h4 class="ability-title">Shadow Walk</h4>
-<ul class="changes">
-<li data-tag="buff">Bonus Speed increased from 8/12/16/20% to 11/14/17/20% <span class="badge-group" data-overall="buff"><span class="badge buff7">+38%</span><span class="badge buff4">+17%</span><span class="badge buff2">+6%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-<h4 class="ability-title">Track</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 60 to 50 <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/brewmaster.png" alt="Brewmaster" loading="lazy"></div>
-  <div class="entity-name">Brewmaster</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Primal Split</h4>
-<ul class="changes">
-<li data-tag="qol">Cancel Split now has a 3s initial cooldown <span class="badge qol" data-tag="qol">QoL</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/bristleback.png" alt="Bristleback" loading="lazy"></div>
-  <div class="entity-name">Bristleback</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Warpath</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage per stack decreased from 15/20/25 to 12/16/20 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-<h4 class="ability-title">Hairball</h4>
-<ul class="changes">
-<li data-tag="nerf">Cooldown increased from 13s to 15s <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-15%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 25 — Bristleback Damage Threshold Reduction increased from 25 to 30 <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/broodmother.png" alt="Broodmother" loading="lazy"></div>
-  <div class="entity-name">Broodmother</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Insatiable Hunger</h4>
-<ul class="changes">
-<li data-tag="buff">Spiderling Radius increased from 800 to 1200 <span class="badge-group" data-overall="buff"><span class="badge buff8">+50%</span></span></li>
-</ul>
-<h4 class="ability-title">Spinner's Snare</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 100 to 70 <span class="badge-group" data-overall="buff"><span class="badge buff6">+30%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/centaur.png" alt="Centaur Warrunner" loading="lazy"></div>
-  <div class="entity-name">Centaur Warrunner</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Strength increased from 27 to 28 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></li>
-<li data-tag="buff">Damage at level 1 increased from 63-65 to 64-66 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-<li data-tag="buff">Strength gain increased from 4.2 to 4.3 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 25 — Hoof Stomp Duration increased from +0.8s to +1.0s <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/chaos_knight.png" alt="Chaos Knight" loading="lazy"></div>
-  <div class="entity-name">Chaos Knight</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Chaos Strike</h4>
-<ul class="changes">
-<li data-tag="buff">Critical Max increased from 140/180/220/260% to 150/190/230/270% <span class="badge-group" data-overall="buff"><span class="badge buff2">+7%</span><span class="badge buff2">+6%</span><span class="badge buff1">+5%</span><span class="badge buff1">+4%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/dark_seer.png" alt="Dark Seer" loading="lazy"></div>
-  <div class="entity-name">Dark Seer</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Intelligence increased from 22 to 23 <span class="badge-group" data-overall="buff"><span class="badge buff1">+5%</span></span></li>
-<li data-tag="buff">Damage at level 1 increased from 53-59 to 54-60 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/dark_willow.png" alt="Dark Willow" loading="lazy"></div>
-  <div class="entity-name">Dark Willow</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Terrorize</h4>
-<ul class="changes">
-<li data-tag="buff">Radius increased from 400/450/500 to 450/500/550 <span class="badge-group" data-overall="buff"><span class="badge buff3">+12%</span><span class="badge buff3">+11%</span><span class="badge buff2">+10%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/dawnbreaker.png" alt="Dawnbreaker" loading="lazy"></div>
-  <div class="entity-name">Dawnbreaker</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Damage decreased by 1 <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-<li data-tag="nerf">Damage at level 1 decreased from 56-60 to 55-59 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Solar Guardian</h4>
-<ul class="changes">
-<li data-tag="nerf">Landing Stun Duration decreased from 1.4/1.6/1.8s to 1.2/1.4/1.6s <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-14%</span><span class="badge nerf3">-13%</span><span class="badge nerf3">-11%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/doom_bringer.png" alt="Doom" loading="lazy"></div>
-  <div class="entity-name">Doom</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Scorched Earth</h4>
-<ul class="changes">
-<li data-tag="nerf">Bonus HP Regen decreased from 7/8/9/10 to 6.66 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-5%</span><span class="badge nerf4">-17%</span><span class="badge nerf6">-26%</span><span class="badge nerf6">-33%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/drow_ranger.png" alt="Drow Ranger" loading="lazy"></div>
-  <div class="entity-name">Drow Ranger</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Frost Arrows</h4>
-<ul class="changes">
-<li data-tag="buff">Bonus Damage increased from 10/15/20/25 to 12/18/24/30 <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-<h4 class="ability-title">Gust</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 70 to 55 <span class="badge-group" data-overall="buff"><span class="badge buff5">+21%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/earth_spirit.png" alt="Earth Spirit" loading="lazy"></div>
-  <div class="entity-name">Earth Spirit</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Strength increased from 22 to 23 <span class="badge-group" data-overall="buff"><span class="badge buff1">+5%</span></span></li>
-<li data-tag="buff">Damage at level 1 increased from 47-51 to 48-52 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/elder_titan.png" alt="Elder Titan" loading="lazy"></div>
-  <div class="entity-name">Elder Titan</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Echo Stomp</h4>
-<ul class="changes">
-<li data-tag="buff">Damage increased from 60/100/140/180 to 65/110/155/200 <span class="badge-group" data-overall="buff"><span class="badge buff2">+8%</span><span class="badge buff2">+10%</span><span class="badge buff3">+11%</span><span class="badge buff3">+11%</span></span></li>
-<li data-tag="nerf">Aghanim's Shard with alt-cast no longer swaps the position if Elder Titan is rooted <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/ember_spirit.png" alt="Ember Spirit" loading="lazy"></div>
-  <div class="entity-name">Ember Spirit</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Strength decreased from 22 to 21 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-5%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/faceless_void.png" alt="Faceless Void" loading="lazy"></div>
-  <div class="entity-name">Faceless Void</div>
-</div>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="nerf">Level 20 — Time Walk Cooldown Reduction decreased from 1.25s to 1s <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-<li data-tag="nerf">Level 20 — Attack Speed during Chronosphere decreased from +100 to +80 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/gyrocopter.png" alt="Gyrocopter" loading="lazy"></div>
-  <div class="entity-name">Gyrocopter</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Afterburner</h4>
-<ul class="changes">
-<li data-tag="buff">Duration increased from 4s to 5s <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/hoodwink.png" alt="Hoodwink" loading="lazy"></div>
-  <div class="entity-name">Hoodwink</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Damage increased by 3 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="nerf">Base Agility decreased from 25 to 22 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-<li>Damage at level 1 unchanged at 47-54 </li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Sharpshooter</h4>
-<ul class="changes">
-<li data-tag="nerf">Knockback to Hoodwink won't be applied if Hoodwink is rooted <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/huskar.png" alt="Huskar" loading="lazy"></div>
-  <div class="entity-name">Huskar</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Health Regen decreased by 0.25 <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/invoker.png" alt="Invoker" loading="lazy"></div>
-  <div class="entity-name">Invoker</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Movement Speed decreased from 285 to 280 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/wisp.png" alt="Io" loading="lazy"></div>
-  <div class="entity-name">Io</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Tether</h4>
-<ul class="changes">
-<li data-tag="nerf">HP/Mana Transfer decreased from 60/80/100/120% to 55/75/95/115% <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-8%</span><span class="badge nerf2">-6%</span><span class="badge nerf1">-5%</span><span class="badge nerf1">-4%</span></span></li>
-</ul>
-<h4 class="ability-title">Spirits</h4>
-<ul class="changes">
-<li data-tag="qol">Now remembers the radius of the spirits between casts <span class="badge qol" data-tag="qol">QoL</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/jakiro.png" alt="Jakiro" loading="lazy"></div>
-  <div class="entity-name">Jakiro</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Strength gain increased from 2.5 to 2.6 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Macropyre</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 250/350/450 to 225/325/425 <span class="badge-group" data-overall="buff"><span class="badge buff2">+10%</span><span class="badge buff2">+7%</span><span class="badge buff2">+6%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/juggernaut.png" alt="Juggernaut" loading="lazy"></div>
-  <div class="entity-name">Juggernaut</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Blade Fury</h4>
-<ul class="changes">
-<li data-tag="buff">Damage per second increased from 80/110/140/170 to 85/115/145/175 <span class="badge-group" data-overall="buff"><span class="badge buff2">+6%</span><span class="badge buff1">+5%</span><span class="badge buff1">+4%</span><span class="badge buff1">+3%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/keeper_of_the_light.png" alt="Keeper of the Light" loading="lazy"></div>
-  <div class="entity-name">Keeper of the Light</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Movement Speed decreased from 315 to 310 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/kunkka.png" alt="Kunkka" loading="lazy"></div>
-  <div class="entity-name">Kunkka</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Admiral's Rum</h4>
-<ul class="changes">
-<li data-tag="buff">Cooldown decreased from 60.5s − 0.5s per level to 50.5s − 0.5s per level <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/largo.png" alt="Largo" loading="lazy"></div>
-  <div class="entity-name">Largo</div>
-</div>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="rework">Level 20 — +200 Catchy Lick Damage replaced with 2× Catchy Lick Charges <span class="badge rework" data-tag="rework">REWORK</span></li>
-<li data-tag="rework">Level 25 — 2× Catchy Lick Charges replaced with 2× Frogstomp Stomps / Interval <span class="badge rework" data-tag="rework">REWORK</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/lich.png" alt="Lich" loading="lazy"></div>
-  <div class="entity-name">Lich</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Sinister Gaze</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Drain per second increased from 20% to 25% <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/lina.png" alt="Lina" loading="lazy"></div>
-  <div class="entity-name">Lina</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Light Strike Array</h4>
-<ul class="changes">
-<li data-tag="buff">Damage increased from 80/120/160/200 to 80/125/170/215 <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff1">+4%</span><span class="badge buff2">+6%</span><span class="badge buff2">+8%</span></span></li>
-</ul>
-<h4 class="ability-title">Laguna Blade</h4>
-<ul class="changes">
-<li data-tag="buff">Damage increased from 380/565/750 to 400/580/760 <span class="badge-group" data-overall="buff"><span class="badge buff1">+5%</span><span class="badge buff1">+3%</span><span class="badge buff1">+1%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/lone_druid.png" alt="Lone Druid" loading="lazy"></div>
-  <div class="entity-name">Lone Druid</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Summon Spirit Bear</h4>
-<ul class="changes">
-<li data-tag="nerf">Mana Cost increased from 75 to 100 <span class="badge-group" data-overall="nerf"><span class="badge nerf6">-33%</span></span></li>
-</ul>
-<h4 class="ability-title">Spirit Link</h4>
-<ul class="changes">
-<li data-tag="nerf">Shared Lifesteal now follows general lifesteal rules and has a creep penalty of 40% <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-<h4 class="ability-title">Savage Roar</h4>
-<ul class="changes">
-<li data-tag="nerf">Aghanim's Shard buff duration decreased from 5s to 4s <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-<ul class="changes">
-<li data-tag="nerf">Aghanim's Shard bonus movement speed decreased from 15% to 10% <span class="badge-group" data-overall="nerf"><span class="badge nerf6">-33%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="rework">Level 10 — −25s Summon Spirit Bear Cooldown replaced with +5s True Form Duration <span class="badge rework" data-tag="rework">REWORK</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon ability-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/lone_druid_spirit_bear.png" alt="Spirit Bear" loading="lazy"></div>
-  <div class="entity-name">Spirit Bear</div>
-</div>
-<ul class="changes">
-<li data-tag="buff rework">Gold/Experience Bounty changed from <span class="formula-old">175 + 8 per Spirit Bear level</span> up to <span class="formula-trigger" data-formula="f1">165 + 10 per Spirit Bear level</span> <span class="badge rework" data-tag="rework">REWORK</span><span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span><table class="formula-table" id="f1" hidden><thead><tr><th></th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L9</th><th>L10</th><th>L11</th><th>L12</th><th>L13</th><th>L14</th><th>L15</th><th class="lvl-jump">L20</th><th>L25</th><th>L30</th></tr></thead><tbody><tr><th class="row-label-old">old</th><td>183</td><td>191</td><td>199</td><td>207</td><td>215</td><td>223</td><td>231</td><td>239</td><td>247</td><td>255</td><td>263</td><td>271</td><td>279</td><td>287</td><td>295</td><td class="lvl-jump">335</td><td>375</td><td>415</td></tr><tr><th class="row-label-new">new</th><td>175</td><td>185</td><td>195</td><td>205</td><td>215</td><td>225</td><td>235</td><td>245</td><td>255</td><td>265</td><td>275</td><td>285</td><td>295</td><td>305</td><td>315</td><td class="lvl-jump">365</td><td>415</td><td>465</td></tr><tr><th>Δ %</th><td><span class="badge buff1">+4%</span></td><td><span class="badge buff1">+3%</span></td><td><span class="badge buff1">+2%</span></td><td><span class="badge buff1">+1%</span></td><td><span class="badge neutral">0%</span></td><td><span class="badge nerf1">-1%</span></td><td><span class="badge nerf1">-2%</span></td><td><span class="badge nerf1">-3%</span></td><td><span class="badge nerf1">-3%</span></td><td><span class="badge nerf1">-4%</span></td><td><span class="badge nerf1">-5%</span></td><td><span class="badge nerf1">-5%</span></td><td><span class="badge nerf2">-6%</span></td><td><span class="badge nerf2">-6%</span></td><td><span class="badge nerf2">-7%</span></td><td class="lvl-jump"><span class="badge nerf2">-9%</span></td><td><span class="badge nerf3">-11%</span></td><td><span class="badge nerf3">-12%</span></td></tr></tbody></table></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="nerf">Level 25 — Demolish Bonus Building Damage decreased from +20% to +15% <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/lycan.png" alt="Lycan" loading="lazy"></div>
-  <div class="entity-name">Lycan</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Feral Impulse</h4>
-<ul class="changes">
-<li data-tag="buff">Health Regen increased from 1/3/5/7 to 2/4/6/8 <span class="badge-group" data-overall="buff"><span class="badge buff10">+100%</span><span class="badge buff6">+33%</span><span class="badge buff4">+20%</span><span class="badge buff3">+14%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 10 — Wolves Damage increased from +10 to +14 <span class="badge-group" data-overall="buff"><span class="badge buff7">+40%</span></span></li>
-<li data-tag="buff">Level 15 — Summon Wolves Health increased from +350 to +375 <span class="badge-group" data-overall="buff"><span class="badge buff2">+7%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/magnataur.png" alt="Magnus" loading="lazy"></div>
-  <div class="entity-name">Magnus</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Shockwave</h4>
-<ul class="changes">
-<li data-tag="buff">Slow Duration increased from 0.4/0.6/0.8/1.0s to 0.55/0.7/0.85/1.0s <span class="badge-group" data-overall="buff"><span class="badge buff7">+38%</span><span class="badge buff4">+17%</span><span class="badge buff2">+6%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 15 — All Attributes per hero hit with Reverse Polarity increased from +12 to +14 <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/marci.png" alt="Marci" loading="lazy"></div>
-  <div class="entity-name">Marci</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Bodyguard</h4>
-<ul class="changes">
-<li data-tag="buff">Cast Range increased from 500 to 600 <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 15 — Dispose Damage increased from +100 to +115 <span class="badge-group" data-overall="buff"><span class="badge buff3">+15%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/mars.png" alt="Mars" loading="lazy"></div>
-  <div class="entity-name">Mars</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Dauntless</h4>
-<ul class="changes">
-<li data-tag="buff">HP Regen per extra enemy increased from 40% to 50% <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-<h4 class="ability-title">Spear of Mars</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 100/110/120/130 to 90/100/110/120 <span class="badge-group" data-overall="buff"><span class="badge buff2">+10%</span><span class="badge buff2">+9%</span><span class="badge buff2">+8%</span><span class="badge buff2">+8%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/mirana.png" alt="Mirana" loading="lazy"></div>
-  <div class="entity-name">Mirana</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Sacred Arrow</h4>
-<ul class="changes">
-<li data-tag="buff">Damage increased from 60/150/240/330 to 60/160/260/360 <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff2">+7%</span><span class="badge buff2">+8%</span><span class="badge buff2">+9%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 15 — Leap Attack Speed increased from +90 to +100 <span class="badge-group" data-overall="buff"><span class="badge buff3">+11%</span></span></li>
-<li data-tag="buff">Level 20 — Celestial Quiver Damage increased from +40 to +50 <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/monkey_king.png" alt="Monkey King" loading="lazy"></div>
-  <div class="entity-name">Monkey King</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Agility decreased from 24 to 23 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></li>
-<li data-tag="nerf">Damage at level 1 decreased from 53-57 to 52-56 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Primal Spring</h4>
-<ul class="changes">
-<li data-tag="nerf">Movement Slow decreased from 35/50/65/80% to 30/40/50/60% <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-14%</span><span class="badge nerf4">-20%</span><span class="badge nerf5">-23%</span><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/morphling.png" alt="Morphling" loading="lazy"></div>
-  <div class="entity-name">Morphling</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Waveform</h4>
-<ul class="changes">
-<li data-tag="qol">Will now be cast in the desired direction, if the target location is further than the cast range <span class="badge qol" data-tag="qol">QoL</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/muerta.png" alt="Muerta" loading="lazy"></div>
-  <div class="entity-name">Muerta</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Attack Speed decreased from 115 to 110 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Supernatural</h4>
-<ul class="changes">
-<li data-tag="buff">Maximum Stack Count increased from 1 per hero level to 5 + 1 per hero level <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/furion.png" alt="Nature's Prophet" loading="lazy"></div>
-  <div class="entity-name">Nature's Prophet</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Nature's Call</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 100 to 85/90/95/100 <span class="badge-group" data-overall="buff"><span class="badge buff3">+15%</span><span class="badge buff2">+10%</span><span class="badge buff1">+5%</span><span class="badge neutral">0%</span></span></li>
-<li data-tag="buff">Treant Bonus Hero Damage increased from 4/8/12/16 to 6/10/14/18 <span class="badge-group" data-overall="buff"><span class="badge buff8">+50%</span><span class="badge buff5">+25%</span><span class="badge buff4">+17%</span><span class="badge buff3">+12%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 20 — Sprout Damage increased from +170 to +220 <span class="badge-group" data-overall="buff"><span class="badge buff6">+29%</span></span></li>
-<li data-tag="buff">Level 20 — Wrath of Nature Cooldown Reduction increased from 15s to 20s <span class="badge-group" data-overall="buff"><span class="badge buff6">+33%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/ogre_magi.png" alt="Ogre Magi" loading="lazy"></div>
-  <div class="entity-name">Ogre Magi</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Strength gain decreased from 4.2 to 4.0 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-5%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/omniknight.png" alt="Omniknight" loading="lazy"></div>
-  <div class="entity-name">Omniknight</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Repel</h4>
-<ul class="changes">
-<li data-tag="buff">Cooldown decreased from 40/36/32/28s to 40/35/30/25s <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff1">+3%</span><span class="badge buff2">+6%</span><span class="badge buff3">+11%</span></span></li>
-</ul>
-<h4 class="ability-title">Hammer of Purity</h4>
-<ul class="changes">
-<li data-tag="buff">Damage increased from 20/40/60/80 to 25/45/65/85 <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span><span class="badge buff3">+12%</span><span class="badge buff2">+8%</span><span class="badge buff2">+6%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/obsidian_destroyer.png" alt="Outworld Destroyer" loading="lazy"></div>
-  <div class="entity-name">Outworld Destroyer</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Objurgation</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 250 to 175 <span class="badge-group" data-overall="buff"><span class="badge buff6">+30%</span></span></li>
-</ul>
-<h4 class="ability-title">Sanity's Eclipse</h4>
-<ul class="changes">
-<li data-tag="buff">Radius increased from 450/500/550 to 500/525/550 <span class="badge-group" data-overall="buff"><span class="badge buff3">+11%</span><span class="badge buff1">+5%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 20 — Astral Imprisonment Mana Capacity Steal increased from 10% to 12% <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/pangolier.png" alt="Pangolier" loading="lazy"></div>
-  <div class="entity-name">Pangolier</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Health Regen decreased by 1.0 <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Swashbuckle</h4>
-<ul class="changes">
-<li data-tag="nerf">Mana Cost increased from 75/80/85/90 to 85/90/95/100 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-13%</span><span class="badge nerf3">-12%</span><span class="badge nerf3">-12%</span><span class="badge nerf3">-11%</span></span></li>
-</ul>
-<h4 class="ability-title">Roll Up</h4>
-<ul class="changes">
-<li data-tag="nerf">Mana Cost increased from 50 to 75 <span class="badge-group" data-overall="nerf"><span class="badge nerf8">-50%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="nerf">Level 10 — Lucky Shot Armor Reduction decreased from +3 to +2 <span class="badge-group" data-overall="nerf"><span class="badge nerf6">-33%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/phantom_assassin.png" alt="Phantom Assassin" loading="lazy"></div>
-  <div class="entity-name">Phantom Assassin</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Agility increased from 21 to 22 <span class="badge-group" data-overall="buff"><span class="badge buff1">+5%</span></span></li>
-<li data-tag="buff">Damage at level 1 increased from 56-58 to 57-59 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 10 — Phantom Strike Duration increased from +0.6 to +0.8s <span class="badge-group" data-overall="buff"><span class="badge buff6">+33%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/phantom_lancer.png" alt="Phantom Lancer" loading="lazy"></div>
-  <div class="entity-name">Phantom Lancer</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Phantom Rush</h4>
-<ul class="changes">
-<li data-tag="nerf">Aghanim's Scepter bonus max rush distance decreased from +625 to +575 <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-8%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/phoenix.png" alt="Phoenix" loading="lazy"></div>
-  <div class="entity-name">Phoenix</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Dying Light</h4>
-<ul class="changes">
-<li data-tag="nerf">Missing Health as Damage decreased from 4% to 3.5% <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-</ul>
-<h4 class="ability-title">Sun Ray</h4>
-<ul class="changes">
-<li data-tag="nerf">Max Health as Heal per second decreased from 0.5/1/1.5/2% to 0.4/0.8/1.2/1.6% <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-<h4 class="ability-title">Supernova</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage per second decreased from 60/90/120 to 50/80/110 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-17%</span><span class="badge nerf3">-11%</span><span class="badge nerf2">-8%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/primal_beast.png" alt="Primal Beast" loading="lazy"></div>
-  <div class="entity-name">Primal Beast</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Trample</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage AoE decreased from 230 to 200 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-13%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/puck.png" alt="Puck" loading="lazy"></div>
-  <div class="entity-name">Puck</div>
-</div>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="rework">Level 15 — −15s Dream Coil Cooldown replaced with +2% Puckish Health and Mana Restoration <span class="badge rework" data-tag="rework">REWORK</span></li>
-<li data-tag="rework">Level 25 — Dream Coil Pierces Debuff Immunity replaced with −30s Dream Coil Cooldown <span class="badge rework" data-tag="rework">REWORK</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/queenofpain.png" alt="Queen of Pain" loading="lazy"></div>
-  <div class="entity-name">Queen of Pain</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Agility decreased from 22 to 20 <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-9%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Shadow Strike</h4>
-<ul class="changes">
-<li data-tag="nerf">Cooldown rescaled from 13/10/7/4s to 11/9/7/5s <span class="badge-group" data-overall="nerf"><span class="badge buff3">+15%</span><span class="badge buff2">+10%</span><span class="badge neutral">0%</span><span class="badge nerf5">-25%</span></span></li>
-<li data-tag="nerf">Aghanim's Scepter AoE decreased from 375 to 300 <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/razor.png" alt="Razor" loading="lazy"></div>
-  <div class="entity-name">Razor</div>
-</div>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 15 — Static Link Damage Steal increased from +5 to +6 <span class="badge-group" data-overall="buff"><span class="badge buff4">+20%</span></span></li>
-<li data-tag="buff">Level 20 — Storm Surge Slow and Damage increased from +30% to +35% <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/rubick.png" alt="Rubick" loading="lazy"></div>
-  <div class="entity-name">Rubick</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Agility gain decreased from 2.5 to 2.2 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-12%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 15 — Fade Bolt Cooldown Reduction increased from 3s to 4s <span class="badge-group" data-overall="buff"><span class="badge buff6">+33%</span></span></li>
-<li data-tag="nerf">Level 15 — Stolen Spells Mana Cost Reduction decreased from 50% to 40% <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-<li data-tag="nerf">Level 25 — Curiosity Bonuses decreased from 2× to 1.5× <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/sand_king.png" alt="Sand King" loading="lazy"></div>
-  <div class="entity-name">Sand King</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Attack Speed decreased from 110 to 100 <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-9%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Stinger</h4>
-<ul class="changes">
-<li data-tag="nerf">Slow Duration rescaled from 4/5/6/7s to 5s <span class="badge-group" data-overall="nerf"><span class="badge buff5">+25%</span><span class="badge neutral">0%</span><span class="badge nerf4">-17%</span><span class="badge nerf6">-29%</span></span></li>
-</ul>
-<h4 class="ability-title">Epicenter</h4>
-<ul class="changes">
-<li data-tag="nerf">Base Radius decreased from 500 to 450 <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-10%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/nevermore.png" alt="Shadow Fiend" loading="lazy"></div>
-  <div class="entity-name">Shadow Fiend</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Shadowraze</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 80 to 75 <span class="badge-group" data-overall="buff"><span class="badge buff2">+6%</span></span></li>
-</ul>
-<h4 class="ability-title">Presence of the Dark Lord</h4>
-<ul class="changes">
-<li data-tag="buff">Armor Reduction rescaled from 3/4/5/6 to 2.5/4/5.5/7 <span class="badge-group" data-overall="buff"><span class="badge nerf4">-17%</span><span class="badge neutral">0%</span><span class="badge buff2">+10%</span><span class="badge buff4">+17%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/skywrath_mage.png" alt="Skywrath Mage" loading="lazy"></div>
-  <div class="entity-name">Skywrath Mage</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Mystic Flare</h4>
-<ul class="changes">
-<li data-tag="buff">Cooldown decreased from 60/40/20s to 55/35/15s <span class="badge-group" data-overall="buff"><span class="badge buff2">+8%</span><span class="badge buff3">+12%</span><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/slardar.png" alt="Slardar" loading="lazy"></div>
-  <div class="entity-name">Slardar</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Slithereen Crush</h4>
-<ul class="changes">
-<li data-tag="nerf">Cooldown increased from 7s to 8.5/8/7.5/7s <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-21%</span><span class="badge nerf3">-14%</span><span class="badge nerf2">-7%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/snapfire.png" alt="Snapfire" loading="lazy"></div>
-  <div class="entity-name">Snapfire</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Damage increased by 2 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="buff">Damage at level 1 increased from 51-57 to 53-59 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/spectre.png" alt="Spectre" loading="lazy"></div>
-  <div class="entity-name">Spectre</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Agility increased from 26 to 29 <span class="badge-group" data-overall="buff"><span class="badge buff3">+12%</span></span></li>
-<li data-tag="buff">Damage at level 1 increased from 49-53 to 52-56 <span class="badge-group" data-overall="buff"><span class="badge buff2">+6%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Dispersion</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage rescaled from 8/12/16/20% to 9/12/15/18% <span class="badge-group" data-overall="nerf"><span class="badge buff3">+12%</span><span class="badge neutral">0%</span><span class="badge nerf2">-6%</span><span class="badge nerf2">-10%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/storm_spirit.png" alt="Storm Spirit" loading="lazy"></div>
-  <div class="entity-name">Storm Spirit</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Galvanized</h4>
-<ul class="changes">
-<li data-tag="buff new">Now gains a charge every 3 levels <span class="badge new" data-tag="new" data-overall="buff">NEW</span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 10 — Overload Attack/Movement Speed Slow increased from +20/20% to +25/25% <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/sven.png" alt="Sven" loading="lazy"></div>
-  <div class="entity-name">Sven</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Storm Hammer</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 110/115/120/125 to 110 <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff1">+4%</span><span class="badge buff2">+8%</span><span class="badge buff3">+12%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/techies.png" alt="Techies" loading="lazy"></div>
-  <div class="entity-name">Techies</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Mana Regen decreased by 0.5 <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-<li data-tag="nerf">Intelligence gain decreased from 3.0 to 2.7 <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-10%</span></span></li>
-<li data-tag="nerf">Damage gain per level decreased from 3.3 to 3.2 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-3%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">M.A.D.</h4>
-<ul class="changes">
-<li data-tag="buff rework">Mana Pool as Regen rescaled from <span class="formula-old">0.08% + 0.02% per level</span> to <span class="formula-trigger" data-formula="f2">0.1% + 0.01% per level</span> <span class="badge rework" data-tag="rework">REWORK</span><span class="badge-group" data-overall="buff"><span class="badge buff2">+10%</span></span><table class="formula-table" id="f2" hidden><thead><tr><th></th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L9</th><th>L10</th><th>L11</th><th>L12</th><th>L13</th><th>L14</th><th>L15</th><th class="lvl-jump">L20</th><th>L25</th><th>L30</th></tr></thead><tbody><tr><th class="row-label-old">old</th><td>0.10%</td><td>0.12%</td><td>0.14%</td><td>0.16%</td><td>0.18%</td><td>0.20%</td><td>0.22%</td><td>0.24%</td><td>0.26%</td><td>0.28%</td><td>0.30%</td><td>0.32%</td><td>0.34%</td><td>0.36%</td><td>0.38%</td><td class="lvl-jump">0.48%</td><td>0.58%</td><td>0.68%</td></tr><tr><th class="row-label-new">new</th><td>0.11%</td><td>0.12%</td><td>0.13%</td><td>0.14%</td><td>0.15%</td><td>0.16%</td><td>0.17%</td><td>0.18%</td><td>0.19%</td><td>0.20%</td><td>0.21%</td><td>0.22%</td><td>0.23%</td><td>0.24%</td><td>0.25%</td><td class="lvl-jump">0.30%</td><td>0.35%</td><td>0.40%</td></tr><tr><th>Δ %</th><td><span class="badge buff2">+10%</span></td><td><span class="badge neutral">0%</span></td><td><span class="badge nerf2">-7%</span></td><td><span class="badge nerf3">-12%</span></td><td><span class="badge nerf4">-17%</span></td><td><span class="badge nerf4">-20%</span></td><td><span class="badge nerf5">-23%</span></td><td><span class="badge nerf5">-25%</span></td><td><span class="badge nerf6">-27%</span></td><td><span class="badge nerf6">-29%</span></td><td><span class="badge nerf6">-30%</span></td><td><span class="badge nerf6">-31%</span></td><td><span class="badge nerf6">-32%</span></td><td><span class="badge nerf6">-33%</span></td><td><span class="badge nerf7">-34%</span></td><td class="lvl-jump"><span class="badge nerf7">-37%</span></td><td><span class="badge nerf7">-40%</span></td><td><span class="badge nerf7">-41%</span></td></tr></tbody></table></li>
-</ul>
-<h4 class="ability-title">Reactive Tazer</h4>
-<ul class="changes">
-<li data-tag="nerf">Explosion Radius decreased from 450 to 400 <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-11%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/templar_assassin.png" alt="Templar Assassin" loading="lazy"></div>
-  <div class="entity-name">Templar Assassin</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Movement Speed increased from 310 to 315 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/tidehunter.png" alt="Tidehunter" loading="lazy"></div>
-  <div class="entity-name">Tidehunter</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Mana Regen decreased by 0.5 <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/shredder.png" alt="Timbersaw" loading="lazy"></div>
-  <div class="entity-name">Timbersaw</div>
-</div>
-<ul class="changes">
-<li data-tag="buff">Base Damage increased by 2 <span class="badge buff-text" data-tag="buff">BUFF</span></li>
-<li data-tag="buff">Damage at level 1 <span class="wrong-word">decreased</span> from 46-50 to 48-52 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span><div class="correction-note"><span class="correction-label">Note</span>— The patch text says "decreased", but the values actually went up.</div></li>
-<li data-tag="buff">Base Intelligence increased from 23 to 24 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Reactive Armor</h4>
-<ul class="changes">
-<li data-tag="buff">Bonus HP Regen increased from 0.4/0.5/0.6/0.7 to 0.5/0.6/0.7/0.8 <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span><span class="badge buff4">+20%</span><span class="badge buff4">+17%</span><span class="badge buff3">+14%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/tinker.png" alt="Tinker" loading="lazy"></div>
-  <div class="entity-name">Tinker</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Deploy Turrets</h4>
-<ul class="changes">
-<li data-tag="misc">Updated sound effects <span class="badge misc" data-tag="misc">MISC</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/tiny.png" alt="Tiny" loading="lazy"></div>
-  <div class="entity-name">Tiny</div>
-</div>
-<ul class="changes">
-<li data-tag="nerf">Base Attack Speed decreased from 90 to 85 <span class="badge-group" data-overall="nerf"><span class="badge nerf2">-6%</span></span></li>
-</ul>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Grow</h4>
-<ul class="changes">
-<li data-tag="buff">Toss Bonus Damage increased from 50/175/300 to 50/200/350 <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff3">+14%</span><span class="badge buff4">+17%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="rework">Level 10 — +8 Strength replaced with +2 Tree Grab Attacks <span class="badge rework" data-tag="rework">REWORK</span></li>
-<li data-tag="rework">Level 15 — −8% Grow Attack Speed Reduction replaced with +10 Strength <span class="badge rework" data-tag="rework">REWORK</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/treant.png" alt="Treant Protector" loading="lazy"></div>
-  <div class="entity-name">Treant Protector</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Eyes In The Forest</h4>
-<ul class="changes">
-<li data-tag="qol">Added AoE indicator to cast <span class="badge qol" data-tag="qol">QoL</span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="nerf">Level 10 — Living Armor Heal Per Second decreased from +4 to +3 <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/troll_warlord.png" alt="Troll Warlord" loading="lazy"></div>
-  <div class="entity-name">Troll Warlord</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Whirling Axes (Ranged)</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 60 to 50 <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>
-</ul>
-<h4 class="ability-title">Whirling Axes (Melee)</h4>
-<ul class="changes">
-<li data-tag="buff">Damage increased from 50/100/150/200 to 75/120/165/210 <span class="badge-group" data-overall="buff"><span class="badge buff8">+50%</span><span class="badge buff4">+20%</span><span class="badge buff2">+10%</span><span class="badge buff1">+5%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/tusk.png" alt="Tusk" loading="lazy"></div>
-  <div class="entity-name">Tusk</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Drinking Buddies</h4>
-<ul class="changes">
-<li data-tag="nerf">No longer castable while rooted <span class="badge nerf-text" data-tag="nerf">NERF</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/vengefulspirit.png" alt="Vengeful Spirit" loading="lazy"></div>
-  <div class="entity-name">Vengeful Spirit</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Vengeance Aura</h4>
-<ul class="changes">
-<li data-tag="buff">Self Bonus increased from 20% to 25% <span class="badge-group" data-overall="buff"><span class="badge buff5">+25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/venomancer.png" alt="Venomancer" loading="lazy"></div>
-  <div class="entity-name">Venomancer</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Poison Sting</h4>
-<ul class="changes">
-<li data-tag="nerf">Movement Slow decreased from 10% to 8% <span class="badge-group" data-overall="nerf"><span class="badge nerf4">-20%</span></span></li>
-</ul>
-<h4 class="ability-title">Snakebite</h4>
-<ul class="changes">
-<li data-tag="nerf">Damage per second rescaled from 20/25/30/35 to 10/20/30/40 <span class="badge-group" data-overall="nerf"><span class="badge nerf8">-50%</span><span class="badge nerf4">-20%</span><span class="badge neutral">0%</span><span class="badge buff3">+14%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="buff">Level 15 — Poison Sting Slow increased from +7% to +10% <span class="badge-group" data-overall="buff"><span class="badge buff7">+43%</span></span></li>
-<li data-tag="rework">Level 20 — +40% Snakebite Damage replaced with +100 Snakebite Initial Damage <span class="badge rework" data-tag="rework">REWORK</span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/viper.png" alt="Viper" loading="lazy"></div>
-  <div class="entity-name">Viper</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Nosedive</h4>
-<ul class="changes">
-<li data-tag="nerf">Cooldown increased from 20s to 25s <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/weaver.png" alt="Weaver" loading="lazy"></div>
-  <div class="entity-name">Weaver</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">The Swarm</h4>
-<ul class="changes">
-<li data-tag="buff">Mana Cost decreased from 110 to 110/105/100/95 <span class="badge-group" data-overall="buff"><span class="badge neutral">0%</span><span class="badge buff1">+5%</span><span class="badge buff2">+9%</span><span class="badge buff3">+14%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/windrunner.png" alt="Windranger" loading="lazy"></div>
-  <div class="entity-name">Windranger</div>
-</div>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="nerf">Level 25 — Focus Fire Cooldown Advance on Kills decreased from 18s to 16s <span class="badge-group" data-overall="nerf"><span class="badge nerf3">-11%</span></span></li>
-<li data-tag="buff">Level 25 — Powershot Max HP Execution Threshold increased from 15% to 16% <span class="badge-group" data-overall="buff"><span class="badge buff2">+7%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/winter_wyvern.png" alt="Winter Wyvern" loading="lazy"></div>
-  <div class="entity-name">Winter Wyvern</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Splinter Blast</h4>
-<ul class="changes">
-<li data-tag="nerf">Movement Slow decreased from 28/32/36/40% to 27/30/33/36% <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span><span class="badge nerf2">-6%</span><span class="badge nerf2">-8%</span><span class="badge nerf2">-10%</span></span></li>
-</ul>
-<h4 class="subgroup">Talents</h4>
-<ul class="changes">
-<li data-tag="nerf">Level 10 — Cold Embrace Base Heal per Second decreased from +20 to +15 <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>
-</ul>
-</div>
-<div class="entity-block">
-<div class="entity hero-entity">
-  <div class="entity-icon hero-icon"><img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/witch_doctor.png" alt="Witch Doctor" loading="lazy"></div>
-  <div class="entity-name">Witch Doctor</div>
-</div>
-<h4 class="subgroup">Abilities</h4>
-<h4 class="ability-title">Voodoo Restoration</h4>
-<ul class="changes">
-<li data-tag="buff">Radius increased from 500/550/600/650 to 650 <span class="badge-group" data-overall="buff"><span class="badge buff6">+30%</span><span class="badge buff4">+18%</span><span class="badge buff2">+8%</span><span class="badge neutral">0%</span></span></li>
-</ul>
-</div>'''
-W(HANDCRAFTED_7_41C_BODY)
+# 7.41c content was originally raw HTML — converted to W() calls
+# via _convert_handcrafted.py. Special inline HTML preserved as W('''...''').
+W(section("General Updates"))
+W(plain_header("Mechanics"))
+W(ul_open())
+W(li("Units with flying vision no longer ignore vision restrictions of Roshan's pits. They can no longer see into them from outside and vice versa", t("NERF")))
+W(ul_close())
+W(subnote("Affects Clockwerk during Jetpack, Drow Ranger's Glacier, Monkey King during Tree Dance, Night Stalker during Dark Ascension, Treant Protector's Eyes in the Forest, and Visage's Familiars"))
+W(plain_header("Tormentor"))
+W(ul_open())
+W(li("Alleviation: Max health regen increased from 2% to 2.25%", b(2, 2.25)))
+W(li("Alleviation: Duration increased from 10s to 15s", b(10, 15)))
+W(ul_close())
+W(section("Item Updates"))
+W(item_header("Bloodstone"))
+W(ul_open())
+W('''<li data-tag="nerf"><span class="wrong-line">Health bonus increased from +600 to +625 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></span> <div class="correction-note"><span class="correction-label">Note</span>— This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div></li>''')
+W(li("Bloodpact cooldown increased from 30s to 35s", b(30, 35, l=True)))
+W(li("Spell Weakness Aura damage from spells taken decreased from 12% to 10%", b(12, 10)))
+W(ul_close())
+W(item_header("Boots of Bearing"))
+W(ul_open())
+W(li("Swiftness Aura allied movement speed decreased from 20 to 15", b(20, 15)))
+W(ul_close())
+W(item_header("Crella's Crozier"))
+W(ul_open())
+W(li("Rite of Rumusque movement speed steal increased from 5% to 6%", b(5, 6)))
+W(ul_close())
+W(item_header("Disperser"))
+W(ul_open())
+W(li("Suppress duration decreased from 5s to 4s", b(5, 4)))
+W(ul_close())
+W(item_header("Essence Distiller"))
+W(ul_open())
+W(li("Soul Release radius when ground targeted increased from 400 to 450", b(400, 450)))
+W(ul_close())
+W(item_header("Harpoon"))
+W(ul_open())
+W(li("Draw Forth can no longer move the Harpoon caster if they are rooted/leashed/bound", t("NERF")))
+W(ul_close())
+W(subnote("Still affects rooted/leashed/bound targets"))
+W(item_header("Heart of Tarrasque"))
+W(ul_open())
+W(li("Recipe cost increased from 600 to 700", b(600, 700, l=True)))
+W(li("Total cost increased from 5100g to 5200g", b(5100, 5200, l=True)))
+W(ul_close())
+W(item_header("Mage Slayer"))
+W(ul_open())
+W(li("Mage Slayer damage per second decreased from 40 to 35", b(40, 35)))
+W(ul_close())
+W(item_header("Silver Edge"))
+W(ul_open())
+W(li("Shadow Walk bonus movement speed decreased from 25% to 22%", b(25, 22)))
+W(li("Shadow Walk cooldown increased from 20s to 22s", b(20, 22, l=True)))
+W(ul_close())
+W(item_header("Shiva's Guard"))
+W(ul_open())
+W(li("Freezing Aura attack speed reduction decreased from 45 to 40", b(45, 40)))
+W(ul_close())
+W(item_header("Soul Ring"))
+W(ul_open())
+W(li("Cooldown increased from 25s to 30s", b(25, 30, l=True)))
+W(ul_close())
+W(item_header("Specialist's Array"))
+W(ul_open())
+W(li("Agility bonus increased from +12 to +15", b(12, 15)))
+W(ul_close())
+W(section("Neutral Item Updates"))
+W(plain_header("Crude"))
+W(ul_open())
+W(li("Intelligence penalty increased from 6% to 9%", b(6, 9, l=True)))
+W(ul_close())
+W(plain_header("Greedy"))
+W(ul_open())
+W(li("Mana bonus decreased from 200/250 to 150/200", b([200, 250], [150, 200])))
+W(ul_close())
+W(plain_header("Tough"))
+W(ul_open())
+W(li("Damage bonus decreased from +7/10/13/16 to +6/9/12/15", b([7, 10, 13, 16], [6, 9, 12, 15])))
+W(ul_close())
+W(section("Hero Updates"))
+W(hero_header("Abaddon"))
+W(ul_open())
+W(li("Base Intelligence increased by 1", bstat_h("Abaddon", "AttributeBaseIntelligence", "7.41b", 1)))
+W('''<li>Damage at level 1 unchanged at 49-59 </li>''')
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Curse of Avernus DPS increased from +25 to +30", b(25, 30)))
+W(ul_close())
+W(hero_header("Alchemist"))
+W(subgroup("Abilities"))
+W(ability("Greevil's Greed"))
+W(ul_open())
+W(li("Bonus base/max Extra Gold per melted Scepter decreased from +6 to +3", b(6, 3)))
+W(ul_close())
+W(ability("Acid Spray"))
+W(ul_open())
+W(li("Cooldown rescaled from 22/21/20/19s to 21s", b([22, 21, 20, 19], 21, l=True)))
+W(ul_close())
+W(ability("Chemical Rage"))
+W(ul_open())
+W(li("Bonus Health Regen decreased from 60/90/120 to 50/85/120", b([60, 90, 120], [50, 85, 120])))
+W(ul_close())
+W(hero_header("Ancient Apparition"))
+W(subgroup("Abilities"))
+W(ability("Ice Blast"))
+W(ul_open())
+W(li("Path Radius increased from 275 to 300", b(275, 300)))
+W(li("Base Area of Effect Radius increased from 275 to 300", b(275, 300)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 20 — Chilling Touch Damage increased from +80 to +100", b(80, 100)))
+W(ul_close())
+W(hero_header("Anti-Mage"))
+W(subgroup("Abilities"))
+W(ability("Persecutor"))
+W(ul_open())
+W(li("Minimum mana threshold for slow improved from 50% to 60%", b(50, 60)))
+W(ul_close())
+W(hero_header("Arc Warden"))
+W(ul_open())
+W(li("Base Agility increased from 20 to 22", b(20, 22)))
+W('''<li data-tag="buff">Damage at level 1 increased from 51-57 to 52-58 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>''')
+W(ul_close())
+W(hero_header("Bane"))
+W(subgroup("Abilities"))
+W(ability("Brain Sap"))
+W(ul_open())
+W(li("Mana Cost decreased from 120/130/140/150 to 105/120/135/150", b([120, 130, 140, 150], [105, 120, 135, 150], l=True)))
+W(ul_close())
+W(hero_header("Batrider"))
+W(ul_open())
+W(li("Base Movement Speed decreased from 320 to 310", b(320, 310)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Sticky Napalm"))
+W(ul_open())
+W(li("Aghanim's Shard building damage decreased from 25% to 20%", b(25, 20)))
+W(ul_close())
+W(ability("Firefly"))
+W(ul_open())
+W(li("Damage per second decreased from 25/50/75/100 to 20/40/60/80", b([25, 50, 75, 100], [20, 40, 60, 80])))
+W(ul_close())
+W(ability("Flaming Lasso"))
+W(ul_open())
+W(li("Total Damage decreased from 200/350/500 to 125/250/375", b([200, 350, 500], [125, 250, 375])))
+W(ul_close())
+W(hero_header("Beastmaster"))
+W(ul_open())
+W(li("Base Strength decreased from 25 to 24", b(25, 24)))
+W('''<li data-tag="nerf">Damage at level 1 decreased from 50-54 to 49-53 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>''')
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Wild Axes"))
+W(ul_open())
+W(li("Mana Cost increased from 50/55/60/65 to 65", b([50, 55, 60, 65], 65, l=True)))
+W(ul_close())
+W(ability("Summon Razorback"))
+W(ul_open())
+W(li("Boar Attack Damage decreased from 30/45/60/75 to 24/41/58/75", b([30, 45, 60, 75], [24, 41, 58, 75])))
+W(ul_close())
+W(ability("Drums of Slom"))
+W(ul_open())
+W(li("Damage Radius decreased from 600 to 525", b(600, 525)))
+W(li("Drum Hit Damage decreased from 80 to 70", b(80, 70)))
+W(ul_close())
+W(hero_header("Bounty Hunter"))
+W(subgroup("Abilities"))
+W(ability("Shuriken Toss"))
+W(ul_open())
+W(li("Mana Cost increased from 75/80/85/90 to 75/85/95/105", b([75, 80, 85, 90], [75, 85, 95, 105], l=True)))
+W(ul_close())
+W(ability("Shadow Walk"))
+W(ul_open())
+W(li("Bonus Speed increased from 8/12/16/20% to 11/14/17/20%", b([8, 12, 16, 20], [11, 14, 17, 20])))
+W(ul_close())
+W(ability("Track"))
+W(ul_open())
+W(li("Mana Cost decreased from 60 to 50", b(60, 50, l=True)))
+W(ul_close())
+W(hero_header("Brewmaster"))
+W(subgroup("Abilities"))
+W(ability("Primal Split"))
+W(ul_open())
+W('''<li data-tag="qol">Cancel Split now has a 3s initial cooldown <span class="badge qol" data-tag="qol">QoL</span></li>''')
+W(ul_close())
+W(hero_header("Bristleback"))
+W(subgroup("Abilities"))
+W(ability("Warpath"))
+W(ul_open())
+W(li("Damage per stack decreased from 15/20/25 to 12/16/20", b([15, 20, 25], [12, 16, 20])))
+W(ul_close())
+W(ability("Hairball"))
+W(ul_open())
+W(li("Cooldown increased from 13s to 15s", b(13, 15, l=True)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 25 — Bristleback Damage Threshold Reduction increased from 25 to 30", b(25, 30)))
+W(ul_close())
+W(hero_header("Broodmother"))
+W(subgroup("Abilities"))
+W(ability("Insatiable Hunger"))
+W(ul_open())
+W(li("Spiderling Radius increased from 800 to 1200", b(800, 1200)))
+W(ul_close())
+W(ability("Spinner's Snare"))
+W(ul_open())
+W(li("Mana Cost decreased from 100 to 70", b(100, 70, l=True)))
+W(ul_close())
+W(hero_header("Centaur Warrunner"))
+W(ul_open())
+W(li("Base Strength increased from 27 to 28", b(27, 28)))
+W('''<li data-tag="buff">Damage at level 1 increased from 63-65 to 64-66 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>''')
+W(li("Strength gain increased from 4.2 to 4.3", b(4.2, 4.3)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 25 — Hoof Stomp Duration increased from +0.8s to +1.0s", b(0.8, 1)))
+W(ul_close())
+W(hero_header("Chaos Knight"))
+W(subgroup("Abilities"))
+W(ability("Chaos Strike"))
+W(ul_open())
+W(li("Critical Max increased from 140/180/220/260% to 150/190/230/270%", b([140, 180, 220, 260], [150, 190, 230, 270])))
+W(ul_close())
+W(hero_header("Dark Seer"))
+W(ul_open())
+W(li("Base Intelligence increased from 22 to 23", b(22, 23)))
+W('''<li data-tag="buff">Damage at level 1 increased from 53-59 to 54-60 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>''')
+W(ul_close())
+W(hero_header("Dark Willow"))
+W(subgroup("Abilities"))
+W(ability("Terrorize"))
+W(ul_open())
+W(li("Radius increased from 400/450/500 to 450/500/550", b([400, 450, 500], [450, 500, 550])))
+W(ul_close())
+W(hero_header("Dawnbreaker"))
+W(ul_open())
+W(li("Base Damage decreased by 1", bstat_h("Dawnbreaker", "AttackDamageMin", "7.41b", -1)))
+W('''<li data-tag="nerf">Damage at level 1 decreased from 56-60 to 55-59 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>''')
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Solar Guardian"))
+W(ul_open())
+W(li("Landing Stun Duration decreased from 1.4/1.6/1.8s to 1.2/1.4/1.6s", b([1.4, 1.6, 1.8], [1.2, 1.4, 1.6])))
+W(ul_close())
+W(hero_header("Doom"))
+W(subgroup("Abilities"))
+W(ability("Scorched Earth"))
+W(ul_open())
+W(li("Bonus HP Regen decreased from 7/8/9/10 to 6.66", b([7, 8, 9, 10], 6.66)))
+W(ul_close())
+W(hero_header("Drow Ranger"))
+W(subgroup("Abilities"))
+W(ability("Frost Arrows"))
+W(ul_open())
+W(li("Bonus Damage increased from 10/15/20/25 to 12/18/24/30", b([10, 15, 20, 25], [12, 18, 24, 30])))
+W(ul_close())
+W(ability("Gust"))
+W(ul_open())
+W(li("Mana Cost decreased from 70 to 55", b(70, 55, l=True)))
+W(ul_close())
+W(hero_header("Earth Spirit"))
+W(ul_open())
+W(li("Base Strength increased from 22 to 23", b(22, 23)))
+W('''<li data-tag="buff">Damage at level 1 increased from 47-51 to 48-52 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>''')
+W(ul_close())
+W(hero_header("Elder Titan"))
+W(subgroup("Abilities"))
+W(ability("Echo Stomp"))
+W(ul_open())
+W(li("Damage increased from 60/100/140/180 to 65/110/155/200", b([60, 100, 140, 180], [65, 110, 155, 200])))
+W(li("Aghanim's Shard with alt-cast no longer swaps the position if Elder Titan is rooted", t("NERF")))
+W(ul_close())
+W(hero_header("Ember Spirit"))
+W(ul_open())
+W(li("Base Strength decreased from 22 to 21", b(22, 21)))
+W(ul_close())
+W(hero_header("Faceless Void"))
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 20 — Time Walk Cooldown Reduction decreased from 1.25s to 1s", b(1.25, 1)))
+W(li("Level 20 — Attack Speed during Chronosphere decreased from +100 to +80", b(100, 80)))
+W(ul_close())
+W(hero_header("Gyrocopter"))
+W(subgroup("Abilities"))
+W(ability("Afterburner"))
+W(ul_open())
+W(li("Duration increased from 4s to 5s", b(4, 5)))
+W(ul_close())
+W(hero_header("Hoodwink"))
+W(ul_open())
+W(li("Base Damage increased by 3", bstat_h("Hoodwink", "AttackDamageMin", "7.41b", 3)))
+W(li("Base Agility decreased from 25 to 22", b(25, 22)))
+W('''<li>Damage at level 1 unchanged at 47-54 </li>''')
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Sharpshooter"))
+W(ul_open())
+W(li("Knockback to Hoodwink won't be applied if Hoodwink is rooted", t("NERF")))
+W(ul_close())
+W(hero_header("Huskar"))
+W(ul_open())
+W(li("Base Health Regen decreased by 0.25", t("NERF")))
+W(ul_close())
+W(hero_header("Invoker"))
+W(ul_open())
+W(li("Base Movement Speed decreased from 285 to 280", b(285, 280)))
+W(ul_close())
+W(hero_header("Io"))
+W(subgroup("Abilities"))
+W(ability("Tether"))
+W(ul_open())
+W(li("HP/Mana Transfer decreased from 60/80/100/120% to 55/75/95/115%", b([60, 80, 100, 120], [55, 75, 95, 115])))
+W(ul_close())
+W(ability("Spirits"))
+W(ul_open())
+W('''<li data-tag="qol">Now remembers the radius of the spirits between casts <span class="badge qol" data-tag="qol">QoL</span></li>''')
+W(ul_close())
+W(hero_header("Jakiro"))
+W(ul_open())
+W(li("Strength gain increased from 2.5 to 2.6", b(2.5, 2.6)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Macropyre"))
+W(ul_open())
+W(li("Mana Cost decreased from 250/350/450 to 225/325/425", b([250, 350, 450], [225, 325, 425], l=True)))
+W(ul_close())
+W(hero_header("Juggernaut"))
+W(subgroup("Abilities"))
+W(ability("Blade Fury"))
+W(ul_open())
+W(li("Damage per second increased from 80/110/140/170 to 85/115/145/175", b([80, 110, 140, 170], [85, 115, 145, 175])))
+W(ul_close())
+W(hero_header("Keeper of the Light"))
+W(ul_open())
+W(li("Base Movement Speed decreased from 315 to 310", b(315, 310)))
+W(ul_close())
+W(hero_header("Kunkka"))
+W(subgroup("Abilities"))
+W(ability("Admiral's Rum"))
+W(ul_open())
+W('''<li data-tag="buff">Cooldown decreased from 60.5s − 0.5s per level to 50.5s − 0.5s per level <span class="badge-group" data-overall="buff"><span class="badge buff4">+17%</span></span></li>''')
+W(ul_close())
+W(hero_header("Largo"))
+W(subgroup("Talents"))
+W(ul_open())
+W('''<li data-tag="rework">Level 20 — +200 Catchy Lick Damage replaced with 2× Catchy Lick Charges <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W('''<li data-tag="rework">Level 25 — 2× Catchy Lick Charges replaced with 2× Frogstomp Stomps / Interval <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W(ul_close())
+W(hero_header("Lich"))
+W(subgroup("Abilities"))
+W(ability("Sinister Gaze"))
+W(ul_open())
+W(li("Mana Drain per second increased from 20% to 25%", b(20, 25)))
+W(ul_close())
+W(hero_header("Lina"))
+W(subgroup("Abilities"))
+W(ability("Light Strike Array"))
+W(ul_open())
+W(li("Damage increased from 80/120/160/200 to 80/125/170/215", b([80, 120, 160, 200], [80, 125, 170, 215])))
+W(ul_close())
+W(ability("Laguna Blade"))
+W(ul_open())
+W(li("Damage increased from 380/565/750 to 400/580/760", b([380, 565, 750], [400, 580, 760])))
+W(ul_close())
+W(hero_header("Lone Druid"))
+W(subgroup("Abilities"))
+W(ability("Summon Spirit Bear"))
+W(ul_open())
+W(li("Mana Cost increased from 75 to 100", b(75, 100, l=True)))
+W(ul_close())
+W(ability("Spirit Link"))
+W(ul_open())
+W(li("Shared Lifesteal now follows general lifesteal rules and has a creep penalty of 40%", t("NERF")))
+W(ul_close())
+W(ability("Savage Roar"))
+W(ul_open())
+W(li("Aghanim's Shard buff duration decreased from 5s to 4s", b(5, 4)))
+W(ul_close())
+W(ul_open())
+W(li("Aghanim's Shard bonus movement speed decreased from 15% to 10%", b(15, 10)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W('''<li data-tag="rework">Level 10 — −25s Summon Spirit Bear Cooldown replaced with +5s True Form Duration <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W(ul_close())
+W(unit_header("Spirit Bear", "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/lone_druid_spirit_bear.png"))
+W(ul_open())
+W('''<li data-tag="buff rework">Gold/Experience Bounty changed from <span class="formula-old">175 + 8 per Spirit Bear level</span> up to <span class="formula-trigger" data-formula="f1">165 + 10 per Spirit Bear level</span> <span class="badge rework" data-tag="rework">REWORK</span><span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span><table class="formula-table" id="f1" hidden><thead><tr><th></th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L9</th><th>L10</th><th>L11</th><th>L12</th><th>L13</th><th>L14</th><th>L15</th><th class="lvl-jump">L20</th><th>L25</th><th>L30</th></tr></thead><tbody><tr><th class="row-label-old">old</th><td>183</td><td>191</td><td>199</td><td>207</td><td>215</td><td>223</td><td>231</td><td>239</td><td>247</td><td>255</td><td>263</td><td>271</td><td>279</td><td>287</td><td>295</td><td class="lvl-jump">335</td><td>375</td><td>415</td></tr><tr><th class="row-label-new">new</th><td>175</td><td>185</td><td>195</td><td>205</td><td>215</td><td>225</td><td>235</td><td>245</td><td>255</td><td>265</td><td>275</td><td>285</td><td>295</td><td>305</td><td>315</td><td class="lvl-jump">365</td><td>415</td><td>465</td></tr><tr><th>Δ %</th><td><span class="badge buff1">+4%</span></td><td><span class="badge buff1">+3%</span></td><td><span class="badge buff1">+2%</span></td><td><span class="badge buff1">+1%</span></td><td><span class="badge neutral">0%</span></td><td><span class="badge nerf1">-1%</span></td><td><span class="badge nerf1">-2%</span></td><td><span class="badge nerf1">-3%</span></td><td><span class="badge nerf1">-3%</span></td><td><span class="badge nerf1">-4%</span></td><td><span class="badge nerf1">-5%</span></td><td><span class="badge nerf1">-5%</span></td><td><span class="badge nerf2">-6%</span></td><td><span class="badge nerf2">-6%</span></td><td><span class="badge nerf2">-7%</span></td><td class="lvl-jump"><span class="badge nerf2">-9%</span></td><td><span class="badge nerf3">-11%</span></td><td><span class="badge nerf3">-12%</span></td></tr></tbody></table></li>''')
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 25 — Demolish Bonus Building Damage decreased from +20% to +15%", b(20, 15)))
+W(ul_close())
+W(hero_header("Lycan"))
+W(subgroup("Abilities"))
+W(ability("Feral Impulse"))
+W(ul_open())
+W(li("Health Regen increased from 1/3/5/7 to 2/4/6/8", b([1, 3, 5, 7], [2, 4, 6, 8])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Wolves Damage increased from +10 to +14", b(10, 14)))
+W(li("Level 15 — Summon Wolves Health increased from +350 to +375", b(350, 375)))
+W(ul_close())
+W(hero_header("Magnus"))
+W(subgroup("Abilities"))
+W(ability("Shockwave"))
+W(ul_open())
+W(li("Slow Duration increased from 0.4/0.6/0.8/1.0s to 0.55/0.7/0.85/1.0s", b([0.4, 0.6, 0.8, 1], [0.55, 0.7, 0.85, 1])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 15 — All Attributes per hero hit with Reverse Polarity increased from +12 to +14", b(12, 14)))
+W(ul_close())
+W(hero_header("Marci"))
+W(subgroup("Abilities"))
+W(ability("Bodyguard"))
+W(ul_open())
+W(li("Cast Range increased from 500 to 600", b(500, 600)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 15 — Dispose Damage increased from +100 to +115", b(100, 115)))
+W(ul_close())
+W(hero_header("Mars"))
+W(subgroup("Abilities"))
+W(ability("Dauntless"))
+W(ul_open())
+W(li("HP Regen per extra enemy increased from 40% to 50%", b(40, 50)))
+W(ul_close())
+W(ability("Spear of Mars"))
+W(ul_open())
+W(li("Mana Cost decreased from 100/110/120/130 to 90/100/110/120", b([100, 110, 120, 130], [90, 100, 110, 120], l=True)))
+W(ul_close())
+W(hero_header("Mirana"))
+W(subgroup("Abilities"))
+W(ability("Sacred Arrow"))
+W(ul_open())
+W(li("Damage increased from 60/150/240/330 to 60/160/260/360", b([60, 150, 240, 330], [60, 160, 260, 360])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 15 — Leap Attack Speed increased from +90 to +100", b(90, 100)))
+W(li("Level 20 — Celestial Quiver Damage increased from +40 to +50", b(40, 50)))
+W(ul_close())
+W(hero_header("Monkey King"))
+W(ul_open())
+W(li("Base Agility decreased from 24 to 23", b(24, 23)))
+W('''<li data-tag="nerf">Damage at level 1 decreased from 53-57 to 52-56 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span></li>''')
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Primal Spring"))
+W(ul_open())
+W(li("Movement Slow decreased from 35/50/65/80% to 30/40/50/60%", b([35, 50, 65, 80], [30, 40, 50, 60])))
+W(ul_close())
+W(hero_header("Morphling"))
+W(subgroup("Abilities"))
+W(ability("Waveform"))
+W(ul_open())
+W('''<li data-tag="qol">Will now be cast in the desired direction, if the target location is further than the cast range <span class="badge qol" data-tag="qol">QoL</span></li>''')
+W(ul_close())
+W(hero_header("Muerta"))
+W(ul_open())
+W(li("Base Attack Speed decreased from 115 to 110", b(115, 110)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Supernatural"))
+W(ul_open())
+W(li("Maximum Stack Count increased from 1 per hero level to 5 + 1 per hero level", t("BUFF")))
+W(ul_close())
+W(hero_header("Nature's Prophet"))
+W(subgroup("Abilities"))
+W(ability("Nature's Call"))
+W(ul_open())
+W(li("Mana Cost decreased from 100 to 85/90/95/100", b(100, [85, 90, 95, 100], l=True)))
+W(li("Treant Bonus Hero Damage increased from 4/8/12/16 to 6/10/14/18", b([4, 8, 12, 16], [6, 10, 14, 18])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 20 — Sprout Damage increased from +170 to +220", b(170, 220)))
+W(li("Level 20 — Wrath of Nature Cooldown Reduction increased from 15s to 20s", b(15, 20)))
+W(ul_close())
+W(hero_header("Ogre Magi"))
+W(ul_open())
+W(li("Strength gain decreased from 4.2 to 4.0", b(4.2, 4)))
+W(ul_close())
+W(hero_header("Omniknight"))
+W(subgroup("Abilities"))
+W(ability("Repel"))
+W(ul_open())
+W(li("Cooldown decreased from 40/36/32/28s to 40/35/30/25s", b([40, 36, 32, 28], [40, 35, 30, 25], l=True)))
+W(ul_close())
+W(ability("Hammer of Purity"))
+W(ul_open())
+W(li("Damage increased from 20/40/60/80 to 25/45/65/85", b([20, 40, 60, 80], [25, 45, 65, 85])))
+W(ul_close())
+W(hero_header("Outworld Destroyer"))
+W(subgroup("Abilities"))
+W(ability("Objurgation"))
+W(ul_open())
+W(li("Mana Cost decreased from 250 to 175", b(250, 175, l=True)))
+W(ul_close())
+W(ability("Sanity's Eclipse"))
+W(ul_open())
+W(li("Radius increased from 450/500/550 to 500/525/550", b([450, 500, 550], [500, 525, 550])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 20 — Astral Imprisonment Mana Capacity Steal increased from 10% to 12%", b(10, 12)))
+W(ul_close())
+W(hero_header("Pangolier"))
+W(ul_open())
+W(li("Base Health Regen decreased by 1.0", bstat_h("Pangolier", "StatusHealthRegen", "7.41b", -1)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Swashbuckle"))
+W(ul_open())
+W(li("Mana Cost increased from 75/80/85/90 to 85/90/95/100", b([75, 80, 85, 90], [85, 90, 95, 100], l=True)))
+W(ul_close())
+W(ability("Roll Up"))
+W(ul_open())
+W(li("Mana Cost increased from 50 to 75", b(50, 75, l=True)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Lucky Shot Armor Reduction decreased from +3 to +2", b(3, 2)))
+W(ul_close())
+W(hero_header("Phantom Assassin"))
+W(ul_open())
+W(li("Base Agility increased from 21 to 22", b(21, 22)))
+W('''<li data-tag="buff">Damage at level 1 increased from 56-58 to 57-59 <span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span></li>''')
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Phantom Strike Duration increased from +0.6 to +0.8s", b(0.6, 0.8)))
+W(ul_close())
+W(hero_header("Phantom Lancer"))
+W(subgroup("Abilities"))
+W(ability("Phantom Rush"))
+W(ul_open())
+W(li("Aghanim's Scepter bonus max rush distance decreased from +625 to +575", b(625, 575)))
+W(ul_close())
+W(hero_header("Phoenix"))
+W(subgroup("Abilities"))
+W(ability("Dying Light"))
+W(ul_open())
+W(li("Missing Health as Damage decreased from 4% to 3.5%", b(4, 3.5)))
+W(ul_close())
+W(ability("Sun Ray"))
+W(ul_open())
+W(li("Max Health as Heal per second decreased from 0.5/1/1.5/2% to 0.4/0.8/1.2/1.6%", b([0.5, 1, 1.5, 2], [0.4, 0.8, 1.2, 1.6])))
+W(ul_close())
+W(ability("Supernova"))
+W(ul_open())
+W(li("Damage per second decreased from 60/90/120 to 50/80/110", b([60, 90, 120], [50, 80, 110])))
+W(ul_close())
+W(hero_header("Primal Beast"))
+W(subgroup("Abilities"))
+W(ability("Trample"))
+W(ul_open())
+W(li("Damage AoE decreased from 230 to 200", b(230, 200)))
+W(ul_close())
+W(hero_header("Puck"))
+W(subgroup("Talents"))
+W(ul_open())
+W('''<li data-tag="rework">Level 15 — −15s Dream Coil Cooldown replaced with +2% Puckish Health and Mana Restoration <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W('''<li data-tag="rework">Level 25 — Dream Coil Pierces Debuff Immunity replaced with −30s Dream Coil Cooldown <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W(ul_close())
+W(hero_header("Queen of Pain"))
+W(ul_open())
+W(li("Base Agility decreased from 22 to 20", b(22, 20)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Shadow Strike"))
+W(ul_open())
+W(li("Cooldown rescaled from 13/10/7/4s to 11/9/7/5s", b([13, 10, 7, 4], [11, 9, 7, 5], l=True)))
+W(li("Aghanim's Scepter AoE decreased from 375 to 300", b(375, 300)))
+W(ul_close())
+W(hero_header("Razor"))
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 15 — Static Link Damage Steal increased from +5 to +6", b(5, 6)))
+W(li("Level 20 — Storm Surge Slow and Damage increased from +30% to +35%", b(30, 35)))
+W(ul_close())
+W(hero_header("Rubick"))
+W(ul_open())
+W(li("Agility gain decreased from 2.5 to 2.2", b(2.5, 2.2)))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 15 — Fade Bolt Cooldown Reduction increased from 3s to 4s", b(3, 4)))
+W(li("Level 15 — Stolen Spells Mana Cost Reduction decreased from 50% to 40%", b(50, 40)))
+W('''<li data-tag="nerf">Level 25 — Curiosity Bonuses decreased from 2× to 1.5× <span class="badge-group" data-overall="nerf"><span class="badge nerf5">-25%</span></span></li>''')
+W(ul_close())
+W(hero_header("Sand King"))
+W(ul_open())
+W(li("Base Attack Speed decreased from 110 to 100", b(110, 100)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Stinger"))
+W(ul_open())
+W(li("Slow Duration rescaled from 4/5/6/7s to 5s", b([4, 5, 6, 7], 5)))
+W(ul_close())
+W(ability("Epicenter"))
+W(ul_open())
+W(li("Base Radius decreased from 500 to 450", b(500, 450)))
+W(ul_close())
+W(hero_header("Shadow Fiend"))
+W(subgroup("Abilities"))
+W(ability("Shadowraze"))
+W(ul_open())
+W(li("Mana Cost decreased from 80 to 75", b(80, 75, l=True)))
+W(ul_close())
+W(ability("Presence of the Dark Lord"))
+W(ul_open())
+W(li("Armor Reduction rescaled from 3/4/5/6 to 2.5/4/5.5/7", b([3, 4, 5, 6], [2.5, 4, 5.5, 7])))
+W(ul_close())
+W(hero_header("Skywrath Mage"))
+W(subgroup("Abilities"))
+W(ability("Mystic Flare"))
+W(ul_open())
+W(li("Cooldown decreased from 60/40/20s to 55/35/15s", b([60, 40, 20], [55, 35, 15], l=True)))
+W(ul_close())
+W(hero_header("Slardar"))
+W(subgroup("Abilities"))
+W(ability("Slithereen Crush"))
+W(ul_open())
+W(li("Cooldown increased from 7s to 8.5/8/7.5/7s", b(7, [8.5, 8, 7.5, 7], l=True)))
+W(ul_close())
+W(hero_header("Snapfire"))
+W(ul_open())
+W(li("Base Damage increased by 2", bstat_h("Snapfire", "AttackDamageMin", "7.41b", 2)))
+W('''<li data-tag="buff">Damage at level 1 increased from 51-57 to 53-59 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></li>''')
+W(ul_close())
+W(hero_header("Spectre"))
+W(ul_open())
+W(li("Base Agility increased from 26 to 29", b(26, 29)))
+W('''<li data-tag="buff">Damage at level 1 increased from 49-53 to 52-56 <span class="badge-group" data-overall="buff"><span class="badge buff2">+6%</span></span></li>''')
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Dispersion"))
+W(ul_open())
+W(li("Damage rescaled from 8/12/16/20% to 9/12/15/18%", b([8, 12, 16, 20], [9, 12, 15, 18])))
+W(ul_close())
+W(hero_header("Storm Spirit"))
+W(subgroup("Abilities"))
+W(ability("Galvanized"))
+W(ul_open())
+W('''<li data-tag="buff new">Now gains a charge every 3 levels <span class="badge new" data-tag="new" data-overall="buff">NEW</span></li>''')
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Overload Attack/Movement Speed Slow increased from +20/20% to +25/25%", b([20, 20], [25, 25])))
+W(ul_close())
+W(hero_header("Sven"))
+W(subgroup("Abilities"))
+W(ability("Storm Hammer"))
+W(ul_open())
+W(li("Mana Cost decreased from 110/115/120/125 to 110", b([110, 115, 120, 125], 110, l=True)))
+W(ul_close())
+W(hero_header("Techies"))
+W(ul_open())
+W(li("Base Mana Regen decreased by 0.5", bstat_h("Techies", "StatusManaRegen", "7.41b", -0.5)))
+W(li("Intelligence gain decreased from 3.0 to 2.7", b(3, 2.7)))
+W(li("Damage gain per level decreased from 3.3 to 3.2", b(3.3, 3.2)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("M.A.D."))
+W(ul_open())
+W('''<li data-tag="buff rework">Mana Pool as Regen rescaled from <span class="formula-old">0.08% + 0.02% per level</span> to <span class="formula-trigger" data-formula="f2">0.1% + 0.01% per level</span> <span class="badge rework" data-tag="rework">REWORK</span><span class="badge-group" data-overall="buff"><span class="badge buff2">+10%</span></span><table class="formula-table" id="f2" hidden><thead><tr><th></th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L9</th><th>L10</th><th>L11</th><th>L12</th><th>L13</th><th>L14</th><th>L15</th><th class="lvl-jump">L20</th><th>L25</th><th>L30</th></tr></thead><tbody><tr><th class="row-label-old">old</th><td>0.10%</td><td>0.12%</td><td>0.14%</td><td>0.16%</td><td>0.18%</td><td>0.20%</td><td>0.22%</td><td>0.24%</td><td>0.26%</td><td>0.28%</td><td>0.30%</td><td>0.32%</td><td>0.34%</td><td>0.36%</td><td>0.38%</td><td class="lvl-jump">0.48%</td><td>0.58%</td><td>0.68%</td></tr><tr><th class="row-label-new">new</th><td>0.11%</td><td>0.12%</td><td>0.13%</td><td>0.14%</td><td>0.15%</td><td>0.16%</td><td>0.17%</td><td>0.18%</td><td>0.19%</td><td>0.20%</td><td>0.21%</td><td>0.22%</td><td>0.23%</td><td>0.24%</td><td>0.25%</td><td class="lvl-jump">0.30%</td><td>0.35%</td><td>0.40%</td></tr><tr><th>Δ %</th><td><span class="badge buff2">+10%</span></td><td><span class="badge neutral">0%</span></td><td><span class="badge nerf2">-7%</span></td><td><span class="badge nerf3">-12%</span></td><td><span class="badge nerf4">-17%</span></td><td><span class="badge nerf4">-20%</span></td><td><span class="badge nerf5">-23%</span></td><td><span class="badge nerf5">-25%</span></td><td><span class="badge nerf6">-27%</span></td><td><span class="badge nerf6">-29%</span></td><td><span class="badge nerf6">-30%</span></td><td><span class="badge nerf6">-31%</span></td><td><span class="badge nerf6">-32%</span></td><td><span class="badge nerf6">-33%</span></td><td><span class="badge nerf7">-34%</span></td><td class="lvl-jump"><span class="badge nerf7">-37%</span></td><td><span class="badge nerf7">-40%</span></td><td><span class="badge nerf7">-41%</span></td></tr></tbody></table></li>''')
+W(ul_close())
+W(ability("Reactive Tazer"))
+W(ul_open())
+W(li("Explosion Radius decreased from 450 to 400", b(450, 400)))
+W(ul_close())
+W(hero_header("Templar Assassin"))
+W(ul_open())
+W(li("Base Movement Speed increased from 310 to 315", b(310, 315)))
+W(ul_close())
+W(hero_header("Tidehunter"))
+W(ul_open())
+W(li("Base Mana Regen decreased by 0.5", bstat_h("Tidehunter", "StatusManaRegen", "7.41b", -0.5)))
+W(ul_close())
+W(hero_header("Timbersaw"))
+W(ul_open())
+W(li("Base Damage increased by 2", bstat_h("Timbersaw", "AttackDamageMin", "7.41b", 2)))
+W('''<li data-tag="buff">Damage at level 1 <span class="wrong-word">decreased</span> from 46-50 to 48-52 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span><div class="correction-note"><span class="correction-label">Note</span>— The patch text says "decreased", but the values actually went up.</div></li>''')
+W(li("Base Intelligence increased from 23 to 24", b(23, 24)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Reactive Armor"))
+W(ul_open())
+W(li("Bonus HP Regen increased from 0.4/0.5/0.6/0.7 to 0.5/0.6/0.7/0.8", b([0.4, 0.5, 0.6, 0.7], [0.5, 0.6, 0.7, 0.8])))
+W(ul_close())
+W(hero_header("Tinker"))
+W(subgroup("Abilities"))
+W(ability("Deploy Turrets"))
+W(ul_open())
+W('''<li data-tag="misc">Updated sound effects <span class="badge misc" data-tag="misc">MISC</span></li>''')
+W(ul_close())
+W(hero_header("Tiny"))
+W(ul_open())
+W(li("Base Attack Speed decreased from 90 to 85", b(90, 85)))
+W(ul_close())
+W(subgroup("Abilities"))
+W(ability("Grow"))
+W(ul_open())
+W(li("Toss Bonus Damage increased from 50/175/300 to 50/200/350", b([50, 175, 300], [50, 200, 350])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W('''<li data-tag="rework">Level 10 — +8 Strength replaced with +2 Tree Grab Attacks <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W('''<li data-tag="rework">Level 15 — −8% Grow Attack Speed Reduction replaced with +10 Strength <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W(ul_close())
+W(hero_header("Treant Protector"))
+W(subgroup("Abilities"))
+W(ability("Eyes In The Forest"))
+W(ul_open())
+W('''<li data-tag="qol">Added AoE indicator to cast <span class="badge qol" data-tag="qol">QoL</span></li>''')
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Living Armor Heal Per Second decreased from +4 to +3", b(4, 3)))
+W(ul_close())
+W(hero_header("Troll Warlord"))
+W(subgroup("Abilities"))
+W(ability("Whirling Axes (Ranged)"))
+W(ul_open())
+W(li("Mana Cost decreased from 60 to 50", b(60, 50, l=True)))
+W(ul_close())
+W(ability("Whirling Axes (Melee)"))
+W(ul_open())
+W(li("Damage increased from 50/100/150/200 to 75/120/165/210", b([50, 100, 150, 200], [75, 120, 165, 210])))
+W(ul_close())
+W(hero_header("Tusk"))
+W(subgroup("Abilities"))
+W(ability("Drinking Buddies"))
+W(ul_open())
+W(li("No longer castable while rooted", t("NERF")))
+W(ul_close())
+W(hero_header("Vengeful Spirit"))
+W(subgroup("Abilities"))
+W(ability("Vengeance Aura"))
+W(ul_open())
+W(li("Self Bonus increased from 20% to 25%", b(20, 25)))
+W(ul_close())
+W(hero_header("Venomancer"))
+W(subgroup("Abilities"))
+W(ability("Poison Sting"))
+W(ul_open())
+W(li("Movement Slow decreased from 10% to 8%", b(10, 8)))
+W(ul_close())
+W(ability("Snakebite"))
+W(ul_open())
+W(li("Damage per second rescaled from 20/25/30/35 to 10/20/30/40", b([20, 25, 30, 35], [10, 20, 30, 40])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 15 — Poison Sting Slow increased from +7% to +10%", b(7, 10)))
+W('''<li data-tag="rework">Level 20 — +40% Snakebite Damage replaced with +100 Snakebite Initial Damage <span class="badge rework" data-tag="rework">REWORK</span></li>''')
+W(ul_close())
+W(hero_header("Viper"))
+W(subgroup("Abilities"))
+W(ability("Nosedive"))
+W(ul_open())
+W(li("Cooldown increased from 20s to 25s", b(20, 25, l=True)))
+W(ul_close())
+W(hero_header("Weaver"))
+W(subgroup("Abilities"))
+W(ability("The Swarm"))
+W(ul_open())
+W(li("Mana Cost decreased from 110 to 110/105/100/95", b(110, [110, 105, 100, 95], l=True)))
+W(ul_close())
+W(hero_header("Windranger"))
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 25 — Focus Fire Cooldown Advance on Kills decreased from 18s to 16s", b(18, 16)))
+W(li("Level 25 — Powershot Max HP Execution Threshold increased from 15% to 16%", b(15, 16)))
+W(ul_close())
+W(hero_header("Winter Wyvern"))
+W(subgroup("Abilities"))
+W(ability("Splinter Blast"))
+W(ul_open())
+W(li("Movement Slow decreased from 28/32/36/40% to 27/30/33/36%", b([28, 32, 36, 40], [27, 30, 33, 36])))
+W(ul_close())
+W(subgroup("Talents"))
+W(ul_open())
+W(li("Level 10 — Cold Embrace Base Heal per Second decreased from +20 to +15", b(20, 15)))
+W(ul_close())
+W(hero_header("Witch Doctor"))
+W(subgroup("Abilities"))
+W(ability("Voodoo Restoration"))
+W(ul_open())
+W(li("Radius increased from 500/550/600/650 to 650", b([500, 550, 600, 650], 650)))
+W(ul_close())
+
 
 write_footer()
 save_html('patches/7.41c.html')
