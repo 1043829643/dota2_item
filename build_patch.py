@@ -1,6 +1,100 @@
 #!/usr/bin/env python3
 """Generate annotated Dota 2 7.41c patch notes HTML."""
 
+import json as _json
+import os as _os
+
+# ---------- STATS DATABASE ----------
+# Loads data/stats/{version}/heroes.json + items.json into memory at build time.
+# Use stat_h(hero_display, field, version) / stat_i(item_display, field, version)
+# to look up values. Use bstat_h() to auto-generate a badge from a delta.
+
+def _load_stats_db():
+    db_h, db_i = {}, {}
+    base = _os.path.join(_os.path.dirname(__file__), "data", "stats")
+    if not _os.path.isdir(base):
+        return db_h, db_i
+    for ver in _os.listdir(base):
+        vdir = _os.path.join(base, ver)
+        if not _os.path.isdir(vdir):
+            continue
+        hf = _os.path.join(vdir, "heroes.json")
+        if _os.path.exists(hf):
+            with open(hf, encoding="utf-8") as f:
+                db_h[ver] = _json.load(f)
+        itf = _os.path.join(vdir, "items.json")
+        if _os.path.exists(itf):
+            with open(itf, encoding="utf-8") as f:
+                db_i[ver] = _json.load(f)
+    return db_h, db_i
+
+_STATS_H, _STATS_I = _load_stats_db()
+
+
+def stat_h(hero_display: str, field: str, version: str):
+    """
+    Возвращает числовое значение стата героя в указанном патче или None.
+
+    hero_display — отображаемое имя (как в HERO_SLUG), например "Doom"
+    field        — ключ из npc_heroes.txt, например "ArmorPhysical",
+                   "AttackDamageMin", "MovementSpeed", "AttributeBaseStrength"
+    version      — патч, в котором ищем, например "7.41"
+
+    Пример:
+        # Doom Base Armor в патче 7.41 (ДО изменений 7.41a)
+        old = stat_h("Doom", "ArmorPhysical", "7.41")  # → 4
+        W(li("Base Armor decreased by 1", b(old, old - 1)))
+    """
+    # Конвертируем имя → npc slug
+    raw_slug = HERO_SLUG.get(hero_display,
+                              hero_display.lower().replace(" ", "_").replace("'", ""))
+    npc_key = "npc_dota_hero_" + raw_slug
+    return _STATS_H.get(version, {}).get(npc_key, {}).get(field)
+
+
+def stat_i(item_display: str, field: str, version: str):
+    """
+    Возвращает числовое значение стата предмета в указанном патче или None.
+
+    item_display — отображаемое имя (как в ITEM_SLUG), например "Blink Dagger"
+    field        — ключ из items.txt, например "ItemCost", "ItemCooldown"
+    version      — патч, например "7.41"
+    """
+    raw_slug = ITEM_SLUG.get(item_display,
+                              item_display.lower().replace(" ", "_").replace("'", ""))
+    item_key = "item_" + raw_slug
+    return _STATS_I.get(version, {}).get(item_key, {}).get(field)
+
+
+def bstat_h(hero_display: str, field: str, patch_before: str, delta,
+            l: bool = False):
+    """
+    Бейдж для изменения стата героя на delta от патча patch_before.
+
+    Автоматически берёт старое значение из БД и вычисляет новое.
+    delta — число: положительное = увеличение, отрицательное = уменьшение.
+
+    Пример:
+        # "Base Armor decreased by 1" в 7.41a, до этого патча было 7.41
+        W(li("Base Armor decreased by 1", bstat_h("Doom", "ArmorPhysical", "7.41", -1)))
+    """
+    old = stat_h(hero_display, field, patch_before)
+    if old is None:
+        return t("NERF") if delta < 0 else t("BUFF")
+    new = old + delta
+    return b(old, new, l=l)
+
+
+def bstat_i(item_display: str, field: str, patch_before: str, delta,
+            l: bool = False):
+    """Аналог bstat_h для предметов."""
+    old = stat_i(item_display, field, patch_before)
+    if old is None:
+        return t("NERF") if delta < 0 else t("BUFF")
+    new = old + delta
+    return b(old, new, l=l)
+
+
 # ---------- IMAGE URL HELPERS ----------
 
 HERO_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/"
