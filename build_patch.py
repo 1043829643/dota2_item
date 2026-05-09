@@ -606,12 +606,14 @@ HERO_TO_ABIL_PREFIX = {
     "sand_king": "sandking",
 }
 
-def ability(title, slug=None, innate=None):
+def ability(title, slug=None, innate=None, icon_url=None):
     """Ability heading. Adds an icon when we know the CDN slug.
     The slug is derived from the current hero context + ability title:
       - manual override in ABILITY_DISPLAY_TO_SLUG, OR
       - naive: lowercased + spaces→underscores; strips ', -, ., (, ).
     If innate is None, auto-detects from INNATE_ABILITIES; explicit True/False overrides.
+    icon_url overrides the CDN-derived URL entirely (for non-hero abilities like
+    neutral creep skills hosted on Liquipedia/wiki CDNs).
     On 404 the ability icon swaps to the generic innate-icon (via onerror)."""
     icon_html = ''
     is_innate = False
@@ -637,7 +639,8 @@ def ability(title, slug=None, innate=None):
     elif innate is not None:
         is_innate = bool(innate)
     icon_inner = ''
-    if slug:
+    if icon_url or slug:
+        src = icon_url if icon_url else f"{ABIL_CDN}{slug}.png"
         # On 404: hide the innate-marker overlay (would be redundant since main icon
         # becomes the innate fallback), then swap src to innate icon. If THAT also
         # fails, hide the entire image.
@@ -647,11 +650,12 @@ def ability(title, slug=None, innate=None):
             "if(m)m.style.display='none';"
             f"this.src='{INNATE_ICON_URL}';"
         )
-        icon_inner = (f'<img src="{ABIL_CDN}{slug}.png" alt="" '
-                      f'class="ability-icon-img" loading="lazy" '
-                      f'data-slug="{slug}" '
+        slug_attr = f' data-slug="{slug}"' if slug else ''
+        icon_inner = (f'<img src="{src}" alt="" '
+                      f'class="ability-icon-img" loading="lazy"{slug_attr} '
                       f'onerror="{on_err}">')
-        _State.ability_icons.add(f"{ABIL_CDN}{slug}.png")
+        if not icon_url:
+            _State.ability_icons.add(src)
     if is_innate:
         # Innate marker overlays bottom-center of the ability icon.
         icon_inner += (f'<img src="{INNATE_ICON_URL}" alt="" '
@@ -3783,9 +3787,10 @@ W(enchant_header("Crude", "crude"))
 W(ul_open())
 W(li("Health Restoration bonus decreased from +10/15/20% to +9/12/15%", b([10, 15, 20], [9, 12, 15])))
 W(ul_close())
-W(plain_header("Frostbitten Golem"))
+W(unit_header("Frostbitten Golem", "https://liquipedia.net/commons/images/5/5c/Ancient_Frostbitten_Golem_icon_dota2_gameasset.png"))
+W(ability("Time Warp Aura", icon_url="https://liquipedia.net/commons/images/c/cf/Ancient_Frostbitten_Golem_Time_Warp_Aura_abilityicon_dota2_gameasset.png"))
 W(ul_open())
-W(li("Time Warp Aura: Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
+W(li("Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
 W(ul_close())
 
 # ===== HERO UPDATES =====
