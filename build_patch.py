@@ -821,13 +821,18 @@ def ul_close():
 import os
 import re
 
+_TALENT_PREFIX_RE = re.compile(r'^(Level \d+ Talent) (?!:)')
+
 def li(text, badge="", extra="", force_tag=None):
     """Generate <li>. Layout is: [left-tag] [description] [right percentages] [extra].
     The left tag is either:
       - Extracted from `badge` if it contains a text tag (BUFF/NERF/REWORK/MISC/QoL/NEW/DEL)
       - OR derived from data-overall (numeric badges → BUFF or NERF text tag on left)
       - OR an empty placeholder for visual alignment if neither.
-    Auto-extracts data-tag from badges for filtering."""
+    Auto-extracts data-tag from badges for filtering.
+    Auto-inserts colon after 'Level N Talent ' prefix to match Valve's notation."""
+    if isinstance(text, str):
+        text = _TALENT_PREFIX_RE.sub(r'\1: ', text)
     if force_tag is not None:
         tag_str = force_tag
     else:
