@@ -549,17 +549,34 @@ def section(title):
 TALENT_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/talents.svg"
 INNATE_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png"
 # "Other" subgroup icon — neutral inline SVG (three sliders) for stat/misc changes.
-OTHER_ICON_URL = (
-    "data:image/svg+xml;utf8,"
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'>"
-    "<rect x='6' y='11' width='36' height='2' rx='1' fill='%238b949e'/>"
-    "<circle cx='16' cy='12' r='4' fill='%23c9d1d9' stroke='%238b949e' stroke-width='1.5'/>"
-    "<rect x='6' y='23' width='36' height='2' rx='1' fill='%238b949e'/>"
-    "<circle cx='32' cy='24' r='4' fill='%23c9d1d9' stroke='%238b949e' stroke-width='1.5'/>"
-    "<rect x='6' y='35' width='36' height='2' rx='1' fill='%238b949e'/>"
-    "<circle cx='22' cy='36' r='4' fill='%23c9d1d9' stroke='%238b949e' stroke-width='1.5'/>"
-    "</svg>"
-)
+OTHER_ICON_URL = "../icons/other.svg"
+# Stat-specific icons used when an Other-block has exactly one row — in that
+# case the generic "Other" icon is swapped for an icon matching the stat.
+# Files live in /icons/ at the repo root; patches reference ../icons/<file>.
+STAT_ICONS = {
+    "movement_speed": "../icons/move_speed.png",
+    "attack_speed":   "../icons/attack_speed.png",
+    "damage":         "../icons/damage.png",
+    "armor":          "../icons/armor.png",
+    "attack_range":   "../icons/range.png",
+    "strength":       "../icons/str.png",
+    "agility":        "../icons/agi.png",
+    "intelligence":   "../icons/intel.png",
+    "universal":      "../icons/uni.png",
+}
+# Order matters: longer/more-specific keys first to avoid e.g. "damage" matching
+# inside "magic damage" before we get a chance to check more specific phrases.
+STAT_DETECT_RULES = [
+    ("movement_speed", ("movement speed", "move speed")),
+    ("attack_speed",   ("base attack time", "attack speed")),
+    ("attack_range",   ("attack range",)),
+    ("armor",          ("base armor", "armor",)),
+    ("damage",         ("base damage", "damage",)),
+    ("strength",       ("strength",)),
+    ("agility",        ("agility",)),
+    ("intelligence",   ("intelligence",)),
+    ("universal",      ("universal",)),
+]
 
 # Innate abilities — marked with INNATE_ICON inside the .ability-block.
 # Format: {(hero_internal_slug, ability_display_name), ...}
@@ -816,7 +833,12 @@ def ability(title, slug=None, innate=None, icon_url=None):
 def ul_open():
     out = ''
     if _State.next_ul_is_hero_stats and _State.current_hero:
-        on_err = "this.style.display='none'"
+        # On 404: fall back to the generic Other icon (e.g. when the stat
+        # icon hasn't been added to /icons/ yet); if that ALSO fails, hide.
+        on_err = (
+            "this.onerror=function(){this.style.display='none'};"
+            f"this.src='{OTHER_ICON_URL}';"
+        )
         icon = (f'<img src="{OTHER_ICON_URL}" alt="" '
                 f'class="ability-icon-img" loading="lazy" onerror="{on_err}">')
         out += ('<h4 class="subgroup">Other</h4>'
@@ -891,6 +913,27 @@ def subnote(text):
     return f'<ul class="subnotes"><li>{text}</li></ul>'
 
 
+def _days_ago(version):
+    """Return integer days from today since the patch was released, or None
+    if the version is unknown. RELEASE_HISTORY is referenced lazily because
+    it's defined further down the file."""
+    if not version:
+        return None
+    date_str = None
+    for row in globals().get('RELEASE_HISTORY', []):
+        if row.get('version') == version:
+            date_str = row.get('date')
+            break
+    if not date_str:
+        return None
+    from datetime import datetime, date
+    try:
+        d = datetime.strptime(date_str, "%d.%m.%Y").date()
+    except Exception:
+        return None
+    return (date.today() - d).days
+
+
 def _fmt_val(v):
     """Pretty-print a numeric stat value: drop .0 on integers."""
     if v is None:
@@ -916,9 +959,14 @@ def note_box(text=None, *, hero=None, item=None, field=None, before_patch=None):
             prev_val = stat_i(item, field, before_patch)
             prev_patch = prev_change_patch_i(item, field, before_patch) or before_patch
         if isinstance(prev_patch, str) and prev_patch.startswith("<"):
-            tail = f'Last change before <b>{prev_patch[1:]}</b>'
+            ver = prev_patch[1:]
+            ago = _days_ago(ver)
+            ago_str = f' <span class="days-ago">({ago} days ago)</span>' if ago is not None else ''
+            tail = f'Last change before <b>{ver}</b>{ago_str}'
         else:
-            tail = f'Last change in <b>{prev_patch}</b>'
+            ago = _days_ago(prev_patch)
+            ago_str = f' <span class="days-ago">({ago} days ago)</span>' if ago is not None else ''
+            tail = f'Last change in <b>{prev_patch}</b>{ago_str}'
         return (f'<div class="correction-note">'
                 f'<span class="correction-label">Previously:</span>'
                 f'<b>{_fmt_val(prev_val)}</b>. {tail}'
@@ -2021,6 +2069,13 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   font-style: normal;
   font-weight: 700;
 }
+/* "(N days ago)" annotation — fainter so it reads as a side-note. */
+.correction-note .days-ago {
+  font-style: normal;
+  color: #6e7681;
+  font-size: 11.5px;
+  font-weight: 500;
+}
 /* Badge-group inside correction-note: float to the right edge of the note
    so it visually mirrors the row's main % (which sits in the right grid column). */
 .correction-note > .badge-group {
@@ -2850,9 +2905,29 @@ def save_assets():
     print(f"  → scripts.js: {len(JS_TEXT):,} bytes")
 
 
+_OTHER_BLOCK_RE = re.compile(
+    r'(<div class="ability-block other-block">.*?<img\b[^>]*?\bsrc=")([^"]+)(".*?<ul class="changes">)(.*?)(</ul>)',
+    re.S
+)
+def _swap_single_row_other_icons(html):
+    """For each .other-block containing exactly one <li>, swap the generic
+    'Other' icon for a stat-specific one matched against the row's text."""
+    def repl(m):
+        head, src, mid, ul_inner, ul_close = m.groups()
+        if len(re.findall(r'<li\b', ul_inner)) != 1:
+            return m.group(0)
+        text = re.sub(r'<[^>]+>', ' ', ul_inner).lower()
+        for key, phrases in STAT_DETECT_RULES:
+            if any(p in text for p in phrases):
+                return head + STAT_ICONS.get(key, src) + mid + ul_inner + ul_close
+        return m.group(0)
+    return _OTHER_BLOCK_RE.sub(repl, html)
+
+
 def save_html(filename):
     """Write current accumulator to ./{filename} and reset state."""
     out = "\n".join(H)
+    out = _swap_single_row_other_icons(out)
     path = filename
     os.makedirs(os.path.dirname(path), exist_ok=True) if os.path.dirname(path) else None
     with open(path, "w", encoding="utf-8") as f:
