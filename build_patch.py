@@ -641,13 +641,90 @@ ABILITY_DISPLAY_TO_SLUG = {
     ("troll_warlord", "Whirling Axes (Ranged)"): "whirling_axes_ranged",
     ("troll_warlord", "Whirling Axes (Melee)"): "whirling_axes_melee",
     # Pudge
-    ("pudge", "Graft Flesh"): "innate_graft_flesh",
     # Storm Spirit
     ("storm_spirit", "Galvanized"): "galvanized",
     # Largo — abilities use 'song_<old_name>' internal slugs; display names were renamed.
     ("largo", "Bullbelly Blitz"): "song_fight_song",
     ("largo", "Hotfeet Hustle"): "song_double_time",
     ("largo", "Island Elixir"): "song_good_vibrations",
+    # Auto-added by display-name normalization (dotaconstants 2026-05).
+    ('enigma', 'Demonic Summoning'): 'demonic_conversion',
+    ('monkey_king', 'Changing of the Guard'): 'transfiguration',
+    ('pangolier', 'Rolling Thunder'): 'gyroshell',
+    ('pudge', 'Flesh Heap'): 'innate_graft_flesh',
+    ('slardar', 'Guardian Sprint'): 'sprint',
+    ('tiny', 'Tree Volley'): 'tree_channel',
+    ('doom_bringer', 'Lvl ? Pain'): 'lvl_pain',
+    ('kez', "Raven's Veil"): 'ravens_veil',
+    ('legion_commander', 'Outfight Them!'): 'outfight_them',
+    ('muerta', 'Pierce the Veil'): 'pierce_the_veil',
+    ('oracle', "Fortune's End"): 'fortunes_end',
+    ('techies', 'Proximity Mines'): 'land_mines',
+    ('windrunner', 'Focus Fire'): 'focusfire',
+    ('abaddon', 'Mist Coil'): 'death_coil',
+    ('bane', 'Ichor of Nyctasha'): 'ichor_of_nyctasha',
+    ('beastmaster', 'Summon Raptors'): 'summon_raptor',
+    ('broodmother', "Spider's Milk"): 'spiders_milk',
+    ('crystal_maiden', 'Arcane Aura'): 'brilliance_aura',
+    ('dark_seer', 'Quick Wit'): 'aggrandize',
+    ('dazzle', 'Weave'): 'innate_weave',
+    ('dragon_knight', "Wyrm's Wrath"): 'wyrms_wrath',
+    ('drow_ranger', 'Precision Aura'): 'trueshot',
+    ('earth_spirit', 'Stone Remnant'): 'stone_caller',
+    ('elder_titan', 'Astral Spirit'): 'ancestral_spirit',
+    ('enchantress', 'Rabble-Rouser'): 'rabblerouser',
+    ('enchantress', "Nature's Attendants"): 'natures_attendants',
+    ('grimstroke', 'Stroke of Fate'): 'dark_artistry',
+    ('gyrocopter', 'Side Gunner'): 'side_gunner_spawn_ability',
+    ('huskar', "Berserker's Blood"): 'berserkers_blood',
+    ('jakiro', 'Liquid Frost'): 'liquid_ice',
+    ('kez', 'Switch Discipline'): 'switch_weapons',
+    ('largo', 'Hotfeet Hustle'): 'song_double_time',
+    ('legion_commander', 'Moment of Courage'): 'moment_of_courage',
+    ('lich', 'Sacrifice'): 'death_charge',
+    ('lion', 'To Hell and Back'): 'to_hell_and_back',
+    ('lion', 'Finger of Death'): 'finger_of_death',
+    ('marci', 'Rebound'): 'companion_run',
+    ('medusa', "Gorgon's Grasp"): 'gorgon_grasp',
+    ('monkey_king', "Wukong's Command"): 'wukongs_command',
+    ('morphling', 'Ebb and Flow'): 'ebb_and_flow',
+    ('morphling', 'Adaptive Strike'): 'adaptive_strike_agi',
+    ('furion', 'Spirit of the Forest'): 'spirit_of_the_forest',
+    ('night_stalker', 'Hunter in the Night'): 'hunter_in_the_night',
+    ('nyx_assassin', 'Mana Burn'): 'neuro_sting',
+    ('nyx_assassin', 'Mind Flare'): 'jolt',
+    ('oracle', "Diviner's Deck"): 'diviners_deck',
+    ('obsidian_destroyer', 'Essence Flux'): 'equilibrium',
+    ('riki', 'Backstab'): 'innate_backstab',
+    ('riki', 'Tricks of the Trade'): 'tricks_of_the_trade',
+    ('ringmaster', 'Dark Carnival Barker'): 'dark_carnival_souvenirs',
+    ('ringmaster', 'Escape Act'): 'the_box',
+    ('ringmaster', 'Impalement Arts'): 'impalement',
+    ('nevermore', 'Feast of Souls'): 'frenzy',
+    ('nevermore', 'Requiem of Souls'): 'requiem',
+    ('silencer', 'Suffer In Silence'): 'brain_drain',
+    ('silencer', 'Arcane Curse'): 'curse_of_the_silent',
+    ('silencer', 'Glaives of Wisdom'): 'glaives_of_wisdom',
+    ('skywrath_mage', 'Shield of the Scion'): 'shield_of_the_scion',
+    ('spirit_breaker', 'Empowering Haste'): 'bull_rush',
+    ('spirit_breaker', 'Charge of Darkness'): 'charge_of_darkness',
+    ('sven', 'Wrath of God'): 'wrath_of_god',
+    ('techies', 'Blast Off!'): 'suicide',
+    ('tinker', 'March of the Machines'): 'march_of_the_machines',
+    ('tinker', 'Warp Flare'): 'warp_grenade',
+    ('tiny', 'Tree Throw'): 'toss_tree',
+    ('treant', "Nature's Guise"): 'natures_guise',
+    ('treant', 'Eyes In The Forest'): 'eyes_in_the_forest',
+    ('troll_warlord', 'Battle Stance'): 'switch_stance',
+    ('troll_warlord', "Berserker's Rage"): 'berserkers_rage',
+    ('abyssal_underlord', 'Invading Force'): 'raid_boss',
+    ('visage', 'Silent as the Grave'): 'silent_as_the_grave',
+    ('weaver', 'Threads of Fate'): 'threads_of_fate',
+    ('winter_wyvern', "Eldwurm's Edda"): 'eldwurms_edda',
+    ('winter_wyvern', "Winter's Curse"): 'winters_curse',
+    ('zuus', "Thundergod's Wrath"): 'thundergods_wrath',
+    ('zuus', 'Nimbus'): 'cloud',
+    ('morphling', 'Morph'): 'replicate',
 }
 
 
@@ -1979,12 +2056,11 @@ img { max-width: 100%; }
   display: flex;
 }
 
-/* AGHANIM'S SCEPTER / SHARD ROWS — faint blue stripe + small icon prefix.
-   Mirrors the visual treatment used on Valve's official patch page so these
-   rows read as a sub-category at a glance. */
+/* AGHANIM'S SCEPTER / SHARD ROWS — light blue stripe with right-edge fade
+   + small icon prefix. Matches Valve's official patch-page visual. */
 ul.changes li.aghanim-scepter,
 ul.changes li.aghanim-shard {
-  background: linear-gradient(90deg, rgba(121, 192, 255, 0.07) 0%, rgba(121, 192, 255, 0.02) 60%, transparent 100%);
+  background: linear-gradient(90deg, rgba(121, 192, 255, 0.18) 0%, rgba(121, 192, 255, 0.10) 50%, transparent 100%);
   border-radius: 3px;
 }
 ul.changes li.aghanim-scepter > .row-text::before,
@@ -2000,10 +2076,10 @@ ul.changes li.aghanim-shard > .row-text::before {
   background-repeat: no-repeat;
 }
 ul.changes li.aghanim-scepter > .row-text::before {
-  background-image: url('https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/ultimate_scepter.png');
+  background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter_icon.png');
 }
 ul.changes li.aghanim-shard > .row-text::before {
-  background-image: url('https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/aghanims_shard.png');
+  background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_shard_icon.png');
 }
 
 /* WRONG-WORD HIGHLIGHT — subtle, neutral marker (no strikethrough) */
@@ -4110,7 +4186,7 @@ W(ability("Event Horizon"))
 W(ul_open())
 W(li_formula("Movement Slow increased", "4% + 1% per level", "5% + 1% per level", lambda L: 4.0 + 1.0*L, lambda L: 5.0 + 1.0*L))
 W(ul_close())
-W(ability("Demonic Conversion"))
+W(ability("Demonic Summoning"))
 W(ul_open())
 W(li("Fixed Eidolons not having an 8 attack damage spread", t("MISC")))
 W(li("Eidolon Damage increased from 16/27/38/49 to 16/28/40/52", b([16, 27, 38, 49], [16, 28, 40, 52])))
@@ -4257,7 +4333,7 @@ W(ul_close())
 
 # Monkey King
 W(hero_header("Monkey King"))
-W(ability("Transfiguration"))
+W(ability("Changing of the Guard"))
 W(ul_open())
 W(li("Cooldown increased from 3s to 5s", b(3, 5, l=True)))
 W(ul_close())
@@ -4325,7 +4401,7 @@ W(ability("Lucky Shot"))
 W(ul_open())
 W(li("Attack Speed Reduction decreased from 40/80/120/160 to 35/70/105/140", b([40, 80, 120, 160], [35, 70, 105, 140])))
 W(ul_close())
-W(ability("Gyroshell"))
+W(ability("Rolling Thunder"))
 W(ul_open())
 W(li("Total Attack Damage as Damage decreased from 100% to 80%", b(100, 80)))
 W(ul_close())
@@ -4368,7 +4444,7 @@ W(ul_close())
 
 # Pudge
 W(hero_header("Pudge"))
-W(ability("Graft Flesh"))
+W(ability("Flesh Heap"))
 W(ul_open())
 W(li("Strength gain per stack increased from 1.6 to 2.0", b(1.6, 2.0)))
 W(ul_close())
@@ -4420,7 +4496,7 @@ W(ul_close())
 
 # Slardar
 W(hero_header("Slardar"))
-W(ability("Sprint"))
+W(ability("Guardian Sprint"))
 W(ul_open())
 W(li("Cooldown increased from 29/25/21/17s to 33/28/23/18s", b([29, 25, 21, 17], [33, 28, 23, 18], l=True)))
 W(ul_close())
@@ -4486,7 +4562,7 @@ W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 15 Talent Gush Damage decreased from +100 to +90", b(100, 90)))
-W(li("Level 25 Talent Anchor Smash affects buildings now deals 50% damage to buildings", t("NERF")))
+W(li("Level 25 Talent Anchor Smash damage to buildings decreased from 100% to 50%", b(100, 50)))
 W(ul_close())
 
 # Timbersaw
@@ -4518,7 +4594,7 @@ W(hero_header("Tiny"))
 W(ul_open())
 W(li("Intelligence gain increased from 2.2 to 2.4", b(2.2, 2.4)))
 W(ul_close())
-W(ability("Tree Channel"))
+W(ability("Tree Volley"))
 W(ul_open())
 W(li("No longer applies cleave", t("NERF")))
 W(ul_close())
@@ -4676,7 +4752,7 @@ W(hero_header("Doom"))
 W(ul_open())
 W(li("Base Armor decreased by 1", bstat_h("Doom", "ArmorPhysical", "7.41", -1), extra=note_box(hero="Doom", field="ArmorPhysical", before_patch="7.41")))
 W(ul_close())
-W(ability("Lvl Pain"))
+W(ability("Lvl ? Pain"))
 W(ul_open())
 W(li("Curse Damage decreased from 15% to 10%", b(15, 10)))
 W(ul_close())
@@ -4694,7 +4770,7 @@ W(ul_close())
 
 # Io
 W(hero_header("Io"))
-W(ability("Equilibrium"))
+W(ability("Essence Flux"))
 W(ul_open())
 W(li_formula("Max Damage Amp and Max Heal Amplification decreased", "5% + 0.5% per level", "4% + 0.4% per level", lambda L: 5.0 + 0.5*L, lambda L: 4.0 + 0.4*L))
 W(ul_close())
@@ -4720,14 +4796,14 @@ W(ability("Raptor Dance"))
 W(ul_open())
 W(li("Base Damage increased from 30/60/90 to 40/70/100", b([30, 60, 90], [40, 70, 100])))
 W(ul_close())
-W(ability("Ravens Veil"))
+W(ability("Raven's Veil"))
 W(ul_open())
 W(li("Buff Duration increased from 7/8/9s to 8/10/12s", b([7, 8, 9], [8, 10, 12])))
 W(ul_close())
 
 # Legion Commander
 W(hero_header("Legion Commander"))
-W(ability("Outfight Them"))
+W(ability("Outfight Them!"))
 W(ul_open())
 W(li("No longer grants a passive armor bonus before casting abilities", t("NERF")))
 W(ul_close())
@@ -4797,21 +4873,21 @@ W(ability("The Calling"))
 W(ul_open())
 W(li("Cooldown decreased from 30s to 30/28/26/24s", b(30, [30, 28, 26, 24], l=True)))
 W(ul_close())
-W(ability("Pierce The Veil"))
+W(ability("Pierce the Veil"))
 W(ul_open())
 W(li("Base Damage Bonus rescaled from 75% to 70/85/100%", b(75, [70, 85, 100])))
 W(ul_close())
 
 # Oracle
 W(hero_header("Oracle"))
-W(ability("Fortunes End"))
+W(ability("Fortune's End"))
 W(ul_open())
 W(li("Mana Cost decreased from 100 to 80", b(100, 80, l=True)))
 W(ul_close())
 
 # Pangolier
 W(hero_header("Pangolier"))
-W(ability("Gyroshell"))
+W(ability("Rolling Thunder"))
 W(ul_open())
 W(li("Cooldown increased from 90/85/80s to 100/90/80s", b([90, 85, 80], [100, 90, 80], l=True)))
 W(ul_close())
@@ -4874,7 +4950,7 @@ W(ul_close())
 
 # Techies
 W(hero_header("Techies"))
-W(ability("Land Mines"))
+W(ability("Proximity Mines"))
 W(ul_open())
 W(li("Damage decreased from 450/575/750 to 400/550/700", b([450, 575, 750], [400, 550, 700])))
 W(li("Portion of damage dealt on the edge of AoE decreased from 60% to 50%", b(60, 50)))
@@ -4940,7 +5016,7 @@ W(ul_open())
 W(li("Duration increased from 2s to 2.5s", b(2, 2.5)))
 W(li("Aghanim's Scepter bonus is still +1s, so it's increased to 3.5s", t("BUFF")))
 W(ul_close())
-W(ability("Focusfire"))
+W(ability("Focus Fire"))
 W(ul_open())
 W(li("Cooldown decreased from 70/50/30s to 50/40/30s", b([70, 50, 30], [50, 40, 30], l=True)))
 W(ul_close())
@@ -5980,7 +6056,7 @@ W(li("Health Restoration Reduction changed from 35% to 24.5% + 0.5% per level", 
 W(li("Now also modifies incoming healing ", t("REWORK")))
 W(ul_close())
 W(subnote("As a result of Health Restoration changes"))
-W(ability("Death Coil"))
+W(ability("Mist Coil"))
 W(ul_open())
 W(li("Damage/Heal increased from 95/160/225/290 to 95/170/245/320", b([95, 160, 225, 290], [95, 170, 245, 320])))
 W(ul_close())
@@ -6150,7 +6226,7 @@ W(li("Intelligence gain decreased from 2.7 to 2.5", b(2.7, 2.5)))
 W(li("Damage gain per level decreased from 3.6 to 3.4", b(3.6, 3.4)))
 W(li("Attack Range increased from 400 to 425", b(400, 425)))
 W(ul_close())
-W(ability("Ichor Of Nyctasha"))
+W(ability("Ichor of Nyctasha"))
 W(ul_open())
 W(li("Ability reworked", t("MISC")))
 W(li("Every time Bane kills an enemy hero or they die under the effect of any debuff applied by Bane, they receive a Terror for the rest of the game. Each Terror stack decreases the enemy's status resistance to all Bane's debuffs by 5%. Max Terror stacks per hero: 5", t("MISC")))
@@ -6202,7 +6278,7 @@ W(li("Call of the Wild Boar renamed to Summon Razorback", t("MISC")))
 W(li("Boar's armor increased by 1", t("BUFF")))
 W(li("Boar Attack Damage increased from 25/40/55/70 to 30/45/60/75", b([25, 40, 55, 70], [30, 45, 60, 75])))
 W(ul_close())
-W(ability("Summon Raptor"))
+W(ability("Summon Raptors"))
 W(ul_open())
 W(li("Call of the Wild Hawk renamed to Summon Raptors", t("MISC")))
 W(li("Now is a separately leveled ability", t("REWORK")))
@@ -6301,7 +6377,7 @@ W(ul_close())
 
 # Broodmother
 W(hero_header("Broodmother"))
-W(ability("Spiders Milk"))
+W(ability("Spider's Milk"))
 W(ul_open())
 W(li("Hero Health as Heal changed from 2% to 1.9% + 0.1% per level", b(2, 1.9)))
 W(ul_close())
@@ -6449,7 +6525,7 @@ W(li("New innate ability. Passive", t("MISC")))
 W(li("A portion of the mana Crystal Maiden spends on her abilities is converted into a physical barrier for 8s. Barriers stack, but each instance has independent duration", t("MISC")))
 W(li("Mana Spent to Barrier is 30% + 2% per level", t("MISC")))
 W(ul_close())
-W(ability("Brilliance Aura"))
+W(ability("Arcane Aura"))
 W(ul_open())
 W(li("Now also passively provides Crystal Maiden with 20/40/60/80% mana regen amplification", t("REWORK")))
 W(ul_close())
@@ -6460,7 +6536,7 @@ W(ul_close())
 
 # Dark Seer
 W(hero_header("Dark Seer"))
-W(ability("Aggrandize"))
+W(ability("Quick Wit"))
 W(ul_open())
 W(li("Aggrandize renamed to Quick Wit", t("MISC")))
 W(li("Now also provides Dark Seer +1 attack speed from each point of Intelligence", t("REWORK")))
@@ -6513,7 +6589,7 @@ W(ul_close())
 
 # Dazzle
 W(hero_header("Dazzle"))
-W(ability("Innate Weave"))
+W(ability("Weave"))
 W(ul_open())
 W(li("No longer levels with Nothl Projection", t("NERF")))
 W(li("Armor Change per stack rescaled from 0.5/0.75/1/1.25 to 1", b([0.5, 0.75, 1, 1.25], 1)))
@@ -6587,7 +6663,7 @@ W(ul_close())
 
 # Doom
 W(hero_header("Doom"))
-W(ability("Lvl Pain"))
+W(ability("Lvl ? Pain"))
 W(ul_open())
 W(li("Ability slightly reworked", t("MISC")))
 W(li("When Doom attacks enemy heroes, he applies a curse upon them. After 2.5s, the cursed hero bursts with a pillar of fire, damaging itself and all enemy units in a 66 AoE for 15% of the damage taken from Doom (the hero) over this duration, including damage from the attack that applied the curse. If the cursed hero's level is a multiple of 6, the curse damage and radius will be increased by 66%", t("BUFF")))
@@ -6640,7 +6716,7 @@ W(ul_open())
 W(li("No longer has an Elder Dragon specific cast range", t("NERF")))
 W(li("Now has 25 radius AoE by default", t("REWORK")))
 W(ul_close())
-W(ability("Wyrms Wrath"))
+W(ability("Wyrm's Wrath"))
 W(ul_open())
 W(li("Now always grants the 10/20/30/40 bonus magic damage on attack, and 25/50/75/100 Area of Effect bonus", t("REWORK")))
 W(ul_close())
@@ -6680,7 +6756,7 @@ W(ul_open())
 W(li("Base Damage decreased by 2", bstat_h("Drow Ranger", "AttackDamageMin", "7.40c", -2), extra=note_box(hero="Drow Ranger", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage at level 1 decreased from 51–58 to 49–56", t("NERF")))
 W(ul_close())
-W(ability("Trueshot"))
+W(ability("Precision Aura"))
 W(ul_open())
 W(li("No longer levels with Marksmanship", t("NERF")))
 W(li("Agility Base Bonus rescaled from 4/8/12/16% to 10%", b([4, 8, 12, 16], 10)))
@@ -6707,7 +6783,7 @@ W(ul_close())
 
 # Earth Spirit
 W(hero_header("Earth Spirit"))
-W(ability("Stone Caller"))
+W(ability("Stone Remnant"))
 W(ul_open())
 W(li("Max Charges changed from 7 + 1 per 4 level ups to 7 + 1 per 4 levels ", t("MISC")))
 W(ul_close())
@@ -6762,7 +6838,7 @@ W(li("Elder Titan's armor increases by 3.6% + 0.4% per level of his bonus moveme
 W(li("Only counts movement speed that he has above his base (305) value", t("MISC")))
 W(li("This ability can't reduce Elder Titan's armor when he is slowed below the base movement speed value", t("NERF")))
 W(ul_close())
-W(ability("Ancestral Spirit"))
+W(ability("Astral Spirit"))
 W(ul_open())
 W(li("No longer provides armor on return", t("NERF")))
 W(li("Still grants movement speed, which is then used by the innate ability to provide armor", t("MISC")))
@@ -6802,7 +6878,7 @@ W(ul_close())
 
 # Enchantress
 W(hero_header("Enchantress"))
-W(ability("Rabblerouser"))
+W(ability("Rabble-Rouser"))
 W(ul_open())
 W(li("Damage Increase changed from 4% + 4% per level up to 4% per level ", t("MISC")))
 W(ul_close())
@@ -6812,7 +6888,7 @@ W(ul_open())
 W(li("Cast Range increased from 500/550/600/650 to 500/600/700/800", b([500, 550, 600, 650], [500, 600, 700, 800])))
 W(li("Now enchanting enemy heroes increases attack range against them by 50/100/150/200 for Enchantress and units under her control", t("REWORK")))
 W(ul_close())
-W(ability("Natures Attendants"))
+W(ability("Nature's Attendants"))
 W(ul_open())
 W(li("Added a tooltip to display the total max possible heal", t("MISC")))
 W(ul_close())
@@ -6876,7 +6952,7 @@ W(li("Now also applied when an enemy hero is affected by any of Grimstroke's abi
 W(li("Now also applied by attacks from Grimstroke's illusions (including Dark Portrait)", t("REWORK")))
 W(li("Grimstroke now takes 5% + 0.5% per level less damage from enemies affected by Ink Trail", t("REWORK")))
 W(ul_close())
-W(ability("Dark Artistry"))
+W(ability("Stroke of Fate"))
 W(ul_open())
 W(li("Can now be put on alt-cast to send the stroke straight", t("REWORK")))
 W(ul_close())
@@ -6896,7 +6972,7 @@ W(ability("Flak Cannon"))
 W(ul_open())
 W(li("Aghanim's Scepter upgrade moved into a separate ability", t("MISC")))
 W(ul_close())
-W(ability("Side Gunner Spawn Ability"))
+W(ability("Side Gunner"))
 W(ul_open())
 W(li("New ability granted by Aghanim's Scepter, effect is unchanged", t("MISC")))
 W(ul_close())
@@ -6956,7 +7032,7 @@ W(subnote("Huskar can use this ability even if he has less health than the healt
 W(ul_open())
 W(li("Now also burns enemies for 0.5% of their max health", t("REWORK")))
 W(ul_close())
-W(ability("Berserkers Blood"))
+W(ability("Berserker's Blood"))
 W(ul_open())
 W(li("Now upgraded with Aghanim's Shard", t("REWORK")))
 W(li("Can be activated for a health cost. Applies basic dispel to Huskar, then after a delay, heals for the amount of health consumed plus an additional bonus per debuff dispelled. Current HP Cost: 30%. Cooldown: 20s. Cauterize Delay: 3s. Max HP Heal per debuff: 3%", t("MISC")))
@@ -6998,7 +7074,7 @@ W(hero_header("Io"))
 W(ul_open())
 W(li("Removed Wellspring innate ability", t("MISC")))
 W(ul_close())
-W(ability("Equilibrium"))
+W(ability("Essence Flux"))
 W(ul_open())
 W(li("New innate ability", t("MISC")))
 W(li("Io always has bonus Outgoing Damage Amp which linearly scales with its health, reaching a maximum of 5% + 0.5% per level at 100% Health. At the same time, Io has Health Restoration and Healing Amplifications which also linearly scale with its health, but reach a maximum of 5% + 0.5% per level at zero Health", t("MISC")))
@@ -7024,7 +7100,7 @@ W(ul_open())
 W(li("Now has a 20 mana cost", t("REWORK")))
 W(li("Aghanim's Shard now also reduces mana cost to 0", t("REWORK")))
 W(ul_close())
-W(ability("Liquid Ice"))
+W(ability("Liquid Frost"))
 W(ul_open())
 W(li("Now has a 20 mana cost", t("REWORK")))
 W(li("Aghanim's Shard now also reduces mana cost to 0", t("REWORK")))
@@ -7104,7 +7180,7 @@ W(ul_open())
 W(li("Base Movement Speed decreased from 315 to 310", b(315, 310)))
 W(li("Base Attack Speed decreased from 110 to 100", b(110, 100)))
 W(ul_close())
-W(ability("Switch Weapons"))
+W(ability("Switch Discipline"))
 W(ul_open())
 W(li("Cooldown changed from 7.75s - 0.25s per level up to 8s - 0.25s per level ", t("MISC")))
 W(ul_close())
@@ -7188,7 +7264,7 @@ W(li("Now also deals 20/30/40 magical damage by default", t("REWORK")))
 W(li("Now upgraded with Aghanim's Scepter", t("REWORK")))
 W(li("Increases magic damage by 6/12/18 per Groovin' stack when this song is used in double-strumming", t("MISC")))
 W(ul_close())
-W(ability("Song Double Time"))
+W(ability("Hotfeet Hustle"))
 W(ul_open())
 W(li("Move Speed decreased from 16/22/28% to 16/20/24%", b([16, 22, 28], [16, 20, 24])))
 W(li("Slow Resistance decreased from 70/80/90% to 70/75/80%", b([70, 80, 90], [70, 75, 80])))
@@ -7204,7 +7280,7 @@ W(hero_header("Legion Commander"))
 W(ul_open())
 W(li("Base armor decreased by 1", bstat_h("Legion Commander", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Legion Commander", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
-W(ability("Outfight Them"))
+W(ability("Outfight Them!"))
 W(ul_open())
 W(li("Ability reworked", t("MISC")))
 W(li("Passively grants Legion Commander bonus armor, equal to 1 + 0.1 per level. Whenever Legion Commander casts an ability, she gains the same amount as a stacking bonus for 6s. Whenever allies within 1200 range cast an ability, they also gain a 6s buff with 50% of the value. This bonus stacks independently", t("MISC")))
@@ -7221,7 +7297,7 @@ W(li("Multiple instances can now stack independently", t("REWORK")))
 W(li("Now upgraded with Aghanim's Scepter", t("REWORK")))
 W(li("Increases bonus movement speed by 12%. Ability becomes cast-point, affecting all allies within the targeted 500 radius area. Legion Commander is always affected, even when outside of the cast area", t("MISC")))
 W(ul_close())
-W(ability("Moment Of Courage"))
+W(ability("Moment of Courage"))
 W(ul_open())
 W(li("No longer has a 25% proc chance", t("NERF")))
 W(li("Now automatically triggers after taking 7/6/5/4 attacks", t("REWORK")))
@@ -7260,7 +7336,7 @@ W(li("Base Mana Regen decreased from 0.75 to -1", b(0.75, -1)))
 W(li("Intelligence gain decreased from 3.8 to 3.4", b(3.8, 3.4)))
 W(li("Removed Death Charge innate ability", t("MISC")))
 W(ul_close())
-W(ability("Death Charge"))
+W(ability("Sacrifice"))
 W(ul_open())
 W(li("New Innate ability. Active", t("MISC")))
 W(li("Lich can instantly kill an allied creep to gain mana relative to its current health and earn experience bounty for it. Health to Mana: 42% + 3% per level. Experience Bounty: 69% + 6% per level. Cast Range: 700. No Mana Cost. Cooldown: 120s", t("MISC")))
@@ -7354,12 +7430,12 @@ W(ul_close())
 
 # Lion
 W(hero_header("Lion"))
-W(ability("To Hell And Back"))
+W(ability("To Hell and Back"))
 W(ul_open())
 W(li("Ability reworked", t("MISC")))
 W(li("Killing or assisting in a Hero kill provides Lion with 20% debuff duration while that hero is dead. Whenever Lion respawns or resurrects, he gains 20% spell amplification for 90s or until he gets a kill or an assist", t("MISC")))
 W(ul_close())
-W(ability("Finger Of Death"))
+W(ability("Finger of Death"))
 W(ul_open())
 W(li("Cooldown decreased from 120/80/40s to 110/70/30s", b([120, 80, 40], [110, 70, 30], l=True)))
 W(li("Damage per kill decreased from 40 to 30", b(40, 30)))
@@ -7461,7 +7537,7 @@ W(li("When cast on an ally, she provides them with 75% of passive bonuses and a 
 W(li("Cast Range: 500. Mana Cost: 60/65/70/75. Cooldown: 20s. Cast Point: 0.2s", t("MISC")))
 W(li("The effect is dispellable. Dispelling Marci will remove the barrier. Dispelling the target will remove both the barrier and passive bonuses (lifesteal and base attack damage)", t("MISC")))
 W(ul_close())
-W(ability("Companion Run"))
+W(ability("Rebound"))
 W(ul_open())
 W(li("Ability can be set to alt-cast to bring the target ally to the destination. Does not work on rooted or leashed allies", t("MISC")))
 W(ul_close())
@@ -7497,7 +7573,7 @@ W(ul_close())
 
 # Medusa
 W(hero_header("Medusa"))
-W(ability("Gorgon Grasp"))
+W(ability("Gorgon's Grasp"))
 W(ul_open())
 W(li("Cooldown decreased from 30/27/24/21s to 30/26/22/18s", b([30, 27, 24, 21], [30, 26, 22, 18], l=True)))
 W(li("Now always centers the cast cursor around the second grouping, even if the number of volleys is increased", t("REWORK")))
@@ -7595,12 +7671,12 @@ W(li("Leap speed decreased from 700 to 600", b(700, 600)))
 W(li("Leaping between trees can now be interrupted by Roots and Leashes", t("REWORK")))
 W(li("Previously it was only interrupted by Stunned, Hidden, or Hexed statuses", t("MISC")))
 W(ul_close())
-W(ability("Wukongs Command"))
+W(ability("Wukong's Command"))
 W(ul_open())
 W(li("Now has Changing of the Guard sub-ability by default", t("REWORK")))
 W(li("While Wukong's Command is active, Monkey King gains a Changing of the Guard ability which allows him to transform into any one of his soldiers. Upon cast, Monkey King takes the place of the soldier closest to the target location for 1.5s, and leaves another one in his stead. While Transfigured, Monkey King is indistinguishable from other soldiers and invulnerable, but can't issue commands. Cast Point: 0.3s. No Mana Cost. Cooldown: 3s", t("NERF")))
 W(ul_close())
-W(ability("Transfiguration"))
+W(ability("Changing of the Guard"))
 W(ul_open())
 W(li("Ability appears in place of Wukong's Command and starts on a 1s cooldown after casting Wukong's Command. Can't be cast while rooted and can't target soldiers created by Aghanim's Scepter effect. Monkey King disjoints projectiles upon transformation.", t("NERF")))
 W(li("The possessed soldier has a small ring around it which is visible only to Monkey King and his allies. When the effect is over, Monkey King becomes his usual self leaving the overtaken soldier's position empty.", t("MISC")))
@@ -7618,7 +7694,7 @@ W(ul_open())
 W(li("Hero model size now scales on his Agility/Strength ratio", t("REWORK")))
 W(li("Removed Accumulation innate ability", t("MISC")))
 W(ul_close())
-W(ability("Ebb And Flow"))
+W(ability("Ebb and Flow"))
 W(ul_open())
 W(li("New innate ability. Passive", t("MISC")))
 W(li("Strength and Agility provide Morphling with additional bonuses. His cast range and Slow Resistance are increased by a portion of his Strength. His attack range and movement speed are increased by a portion of his Agility. These bonuses are provided even while replicating, except for the extra attack range which is not provided when replicating a melee unit", t("BUFF")))
@@ -7628,7 +7704,7 @@ W(ability("Waveform"))
 W(ul_open())
 W(li("Cast Range decreased from 700/800/900/1000 to 700/775/850/925", b([700, 800, 900, 1000], [700, 775, 850, 925])))
 W(ul_close())
-W(ability("Adaptive Strike Agi"))
+W(ability("Adaptive Strike"))
 W(ul_open())
 W(li("Base Damage increased from 25/50/75/100 to 50/70/90/110", b([25, 50, 75, 100], [50, 70, 90, 110])))
 W(ul_close())
@@ -7641,7 +7717,7 @@ W(li("Ability reworked", t("MISC")))
 W(li("Whenever an enemy hero dies within 925 units of Muerta, she gains a stack of 1% spell amplification up to a maximum equal to her current level. When Muerta dies she loses half the stacks, rounded down", t("MISC")))
 W(li("Passive ethereal bonuses moved to Pierce the Veil", t("MISC")))
 W(ul_close())
-W(ability("Pierce The Veil"))
+W(ability("Pierce the Veil"))
 W(ul_open())
 W(li("No longer provides 70/100/130 bonus damage", t("NERF")))
 W(li("Now grants +75% base damage", t("REWORK")))
@@ -7686,7 +7762,7 @@ W(li("Minimum Base damage increased by 4 ", bstat_h("Nature's Prophet", "AttackD
 W(li("Damage spread decreased from 10 to 6", b(10, 6)))
 W(li("Damage at level 1 increased from 40–50 to 44–50", t("BUFF")))
 W(ul_close())
-W(ability("Spirit Of The Forest"))
+W(ability("Spirit of the Forest"))
 W(ul_open())
 W(li("No longer levels with Wrath of Nature", t("NERF")))
 W(li("Tree Radius rescaled from 300/400/500/600 to 300 + 10 per level", b([300, 400, 500, 600], 300)))
@@ -7734,7 +7810,7 @@ W(hero_header("Night Stalker"))
 W(ul_open())
 W(li("Removed Heart of Darkness innate ability", t("MISC")))
 W(ul_close())
-W(ability("Hunter In The Night"))
+W(ability("Hunter in the Night"))
 W(ul_open())
 W(li("Now an innate ability", t("REWORK")))
 W(li("Move Speed bonus changed from 22/28/34/40% to 24% + 2% per 3 levels", b([22, 28, 34, 40], 24)))
@@ -7772,13 +7848,13 @@ W(hero_header("Nyx Assassin"))
 W(ul_open())
 W(li("Removed Nyxth Sense innate ability", t("MISC")))
 W(ul_close())
-W(ability("Neuro Sting"))
+W(ability("Mana Burn"))
 W(ul_open())
 W(li("New innate ability. Passive", t("MISC")))
 W(li("When Nyx Assassin deals damage with attacks or his abilities, he burns affected unit's mana equal to 12% of damage dealt", t("MISC")))
 W(li("Damage reflected with Spiked Carapace also counts", t("MISC")))
 W(ul_close())
-W(ability("Jolt"))
+W(ability("Mind Flare"))
 W(ul_open())
 W(li("Now burns 9/12/15/18% of the target's Max Mana", t("REWORK")))
 W(ul_close())
@@ -7870,7 +7946,7 @@ W(ability("False Promise"))
 W(ul_open())
 W(li("No longer upgraded with Aghanim's Scepter", t("NERF")))
 W(ul_close())
-W(ability("Diviners Deck"))
+W(ability("Diviner's Deck"))
 W(ul_open())
 W(li("New passive ability granted by Aghanim's Scepter", t("MISC")))
 W(li("Oracle receives a Tarot Card Buff now and every 90 seconds. This buff is undispellable and lasts until the next one replaces it. Oracle knows which buff will be next.", t("REWORK")))
@@ -7893,7 +7969,7 @@ W(li("Base Armor decreased by 1", bstat_h("Outworld Destroyer", "ArmorPhysical",
 W(li("Removed OD innate ", t("MISC")))
 W(li("Aka Ominous Discernment, aka Obstreperous Dissimilator, aka Obnoxious Determinator, aka Obsequious Deliberator, aka Ornery Deconstructor, aka Obnubilated Delineator, aka Omniscient Desiderator", t("MISC")))
 W(ul_close())
-W(ability("Equilibrium"))
+W(ability("Essence Flux"))
 W(ul_open())
 W(li("Now an innate ability", t("REWORK")))
 W(li("Max Mana Restore now depends on the ability it procced on", t("REWORK")))
@@ -7936,7 +8012,7 @@ W(ability("Lucky Shot"))
 W(ul_open())
 W(li("Armor Reduction decreased from 3/5/7/9 to 2/4/6/8", b([3, 5, 7, 9], [2, 4, 6, 8])))
 W(ul_close())
-W(ability("Gyroshell"))
+W(ability("Rolling Thunder"))
 W(ul_open())
 W(li("Stun Duration increased from 0.8/1/1.2s to 1.2s", b([0.8, 1, 1.2], 1.2)))
 W(ul_close())
@@ -8012,7 +8088,7 @@ W(ul_close())
 
 # Pudge
 W(hero_header("Pudge"))
-W(ability("Graft Flesh"))
+W(ability("Flesh Heap"))
 W(ul_open())
 W(li("No longer levels with Dismember", t("NERF")))
 W(li("Permanent Bonus Strength rescaled from 1.1/1.4/1.7/2.0 to 1.6", b([1.1, 1.4, 1.7, 2.0], 1.6)))
@@ -8073,7 +8149,7 @@ W(ul_close())
 
 # Riki
 W(hero_header("Riki"))
-W(ability("Innate Backstab"))
+W(ability("Backstab"))
 W(ul_open())
 W(li("Agility Multiplier changed from 0.6 + 0.05 per level up to 0.55 + 0.05 per level ", t("MISC")))
 W(ul_close())
@@ -8087,23 +8163,23 @@ W(ability("Blink Strike"))
 W(ul_open())
 W(li("Slow Duration increased from 0.5s to 0.75s", b(0.5, 0.75)))
 W(ul_close())
-W(ability("Tricks Of The Trade"))
+W(ability("Tricks of the Trade"))
 W(ul_open())
 W(li("Aghanim's Scepter bonus Cast Range increased from +300 to +500", b(300, 500)))
 W(ul_close())
 
 # Ringmaster
 W(hero_header("Ringmaster"))
-W(ability("Dark Carnival Souvenirs"))
+W(ability("Dark Carnival Barker"))
 W(ul_open())
 W(li("Pool of souvenirs now always consists of Funhouse Mirror, Strongman Tonic, Unicycle and Whoopee Cushion", t("REWORK")))
 W(ul_close())
-W(ability("The Box"))
+W(ability("Escape Act"))
 W(ul_open())
 W(li("Targeted unit is no longer stunned for 0.5 seconds when placed in a box", t("NERF")))
 W(li("Radius and Aghanim's Scepter's Explosion Radius now affected by AoE bonuses", t("REWORK")))
 W(ul_close())
-W(ability("Impalement"))
+W(ability("Impalement Arts"))
 W(ul_open())
 W(li("Charges rescaled from 1/2/3/4 to 3", b([1, 2, 3, 4], 3)))
 W(li("Mana Cost decreased from 80 to 50", b(80, 50, l=True)))
@@ -8211,7 +8287,7 @@ W(li("Damage decreased from 90/160/230/300 to 85/150/215/280", b([90, 160, 230, 
 W(li("Now damage is increased by 3 per Necromastery soul", t("REWORK")))
 W(li("Aghanim's Shard now also applies a stacking 12% slow debuff to enemies hit", t("REWORK")))
 W(ul_close())
-W(ability("Frenzy"))
+W(ability("Feast of Souls"))
 W(ul_open())
 W(li("No longer requires 5 souls to cast", t("NERF")))
 W(li("Instead, Shadow Fiend gains souls from surrounding enemies", t("MISC")))
@@ -8222,7 +8298,7 @@ W(ul_open())
 W(li("Bonus Attack Speed decreased from 40/55/70/85 to 35/50/65/80", b([40, 55, 70, 85], [35, 50, 65, 80])))
 W(li("Bonus Move Speed decreased from 5/7/9/11% to 4/6/8/10%", b([5, 7, 9, 11], [4, 6, 8, 10])))
 W(ul_close())
-W(ability("Requiem"))
+W(ability("Requiem of Souls"))
 W(ul_open())
 W(li("Now can't use more than 20 souls per cast", t("NERF")))
 W(li("Aghanim's Scepter no longer has a damage penalty on the returning Requiem of Souls", t("NERF")))
@@ -8253,17 +8329,17 @@ W(ul_open())
 W(li("Base Movement Speed increased from 290 to 300", b(290, 300)))
 W(li("Reworked Brain Drain ability into a new innate", t("MISC")))
 W(ul_close())
-W(ability("Brain Drain"))
+W(ability("Suffer In Silence"))
 W(ul_open())
 W(li("New innate ability. Passive", t("MISC")))
 W(li("Silencer takes less damage from and deals more damage to silenced targets. Damage modifier is 5% + 0.5% per level for both reduction and amplification", t("MISC")))
 W(li("If an enemy hero dies within 925 range of Silencer or was debuffed by Silencer at the time of death, Silencer permanently steals 1 Intelligence from them. If the victim was silenced, an extra 1 point of Intelligence will be stolen", t("MISC")))
 W(ul_close())
-W(ability("Curse Of The Silent"))
+W(ability("Arcane Curse"))
 W(ul_open())
 W(li("No longer has 1.25x slow and damage multiplier against silenced enemies", t("NERF")))
 W(ul_close())
-W(ability("Glaives Of Wisdom"))
+W(ability("Glaives of Wisdom"))
 W(ul_open())
 W(li("Mana Cost decreased from 14/16/18/20 to 12/14/16/18", b([14, 16, 18, 20], [12, 14, 16, 18], l=True)))
 W(li("Now upgraded with Aghanim's Shard", t("REWORK")))
@@ -8281,7 +8357,7 @@ W(hero_header("Skywrath Mage"))
 W(ul_open())
 W(li("Removed Ruin and Restoration innate ability", t("MISC")))
 W(ul_close())
-W(ability("Shield Of The Scion"))
+W(ability("Shield of the Scion"))
 W(ul_open())
 W(li("New innate ability. Passive", t("MISC")))
 W(li("Whenever Skywrath Mage deals magical damage with his abilities to an enemy hero, he gains a magic damage barrier equal to 13.5 + 1.5 per level for 12s. Each instance stacks independently", t("MISC")))
@@ -8302,7 +8378,7 @@ W(li("Bonus Armor changed from 3/4/5/6 to 1.8 + 0.2 per level", b([3, 4, 5, 6], 
 W(li("Aghanim's Scepter Bonus Armor decreased from +10 to +8", b(10, 8)))
 W(li("Flat 8/16/24/32 bonus damage replaced with 11.4% bonus attack damage + 0.6% per level", t("REWORK")))
 W(ul_close())
-W(ability("Sprint"))
+W(ability("Guardian Sprint"))
 W(ul_open())
 W(li("Slardar now has 100% slow resistance for the first 2.5s of Guardian Sprint. This bonus fades to 0 over the remaining duration", t("REWORK")))
 W(ul_close())
@@ -8405,13 +8481,13 @@ W(hero_header("Spirit Breaker"))
 W(ul_open())
 W(li("Removed Herd Mentality innate ability", t("MISC")))
 W(ul_close())
-W(ability("Bull Rush"))
+W(ability("Empowering Haste"))
 W(ul_open())
 W(li("New innate ability. Passive", t("MISC")))
 W(li("Spirit Breaker gains bonus Movement Speed whenever he stuns an enemy. Effect depends on the unit type: stunning a hero will provide a 8% bonus for 2s, while other units provide 2% for 1s", t("MISC")))
 W(li("Effects from multiple stuns stack and have independent durations. Bull Rush duration is paused during Charge of Darkness, but it can still gain new stacks. This effect allows Spirit Breaker to go over the max movement speed limit", t("MISC")))
 W(ul_close())
-W(ability("Charge Of Darkness"))
+W(ability("Charge of Darkness"))
 W(ul_open())
 W(li("No longer upgraded with Aghanim's Shard", t("NERF")))
 W(ul_close())
@@ -8455,7 +8531,7 @@ W(li("Base strength increased from 23 to 24", b(23, 24)))
 W(li("Damage at level 1 increased from 60–62 to 61–63", t("BUFF")))
 W(li("Removed Vanquisher innate ability", t("MISC")))
 W(ul_close())
-W(ability("Wrath Of God"))
+W(ability("Wrath of God"))
 W(ul_open())
 W(li("New innate ability", t("MISC")))
 W(li("Increases attack damage Sven gains per point of Strength by 0.08 + 0.02 per level. Disabled by Break", t("MISC")))
@@ -8490,12 +8566,12 @@ W(li("Can now always be cast on allies", t("REWORK")))
 W(li("Cast Range increased from 500 to 600", b(500, 600)))
 W(li("No longer upgraded with Aghanim's Shard", t("NERF")))
 W(ul_close())
-W(ability("Suicide"))
+W(ability("Blast Off!"))
 W(ul_open())
 W(li("Now deals its self damage before damaging enemies", t("REWORK")))
 W(li("Techies are now rooted and disarmed instead of self-stunned during Blast Off's leap animation", t("REWORK")))
 W(ul_close())
-W(ability("Land Mines"))
+W(ability("Proximity Mines"))
 W(ul_open())
 W(li("Damage source changed from Proximity Mines to the caster", t("MISC")))
 W(ul_close())
@@ -8606,7 +8682,7 @@ W(ability("Laser"))
 W(ul_open())
 W(li("Aghanim's Scepter no longer adds bounces", t("NERF")))
 W(ul_close())
-W(ability("March Of The Machines"))
+W(ability("March of the Machines"))
 W(ul_open())
 W(li("Now upgraded with Aghanim's Scepter", t("REWORK")))
 W(li("Robots apply a non-stacking heal over time of 35 health per second to allies they come through. Heal duration: 4 seconds", t("MISC")))
@@ -8629,7 +8705,7 @@ W(ability("Rearm"))
 W(ul_open())
 W(li("Cooldown decreased from 7/6/5s to 5.5/5/4.5s", b([7, 6, 5], [5.5, 5, 4.5], l=True)))
 W(ul_close())
-W(ability("Warp Grenade"))
+W(ability("Warp Flare"))
 W(ul_open())
 W(li("Teleport distance now depends on Warp Flare cast range and scales with distance from Tinker, so that nearby enemies are teleported further than far enemies", t("REWORK")))
 W(li("Max teleportation distance is 60% of Warp Flare's cast range which decreases down to 0 at the max cast range (700 by default)", t("MISC")))
@@ -8669,7 +8745,7 @@ W(li("Cast Range increased from 165 to 200", b(165, 200)))
 W(li("Attacks rescaled from 5 to 4/5/6/7", b(5, [4, 5, 6, 7])))
 W(li("No longer upgraded with Aghanim's Shard", t("NERF")))
 W(ul_close())
-W(ability("Toss Tree"))
+W(ability("Tree Throw"))
 W(ul_open())
 W(li("No longer applies a slow on the tossed tree by default", t("NERF")))
 W(ul_close())
@@ -8679,7 +8755,7 @@ W(li("Now upgraded with Aghanim's Shard", t("REWORK")))
 W(li("Thrown trees and tossed units deal 20% more damage in their AoE, have +125 radius, and apply a 25% movement slow and a 45 attack speed slow to all units in the AoE of Toss, Tree Throw, and Tree Volley for 2.5s", t("MISC")))
 W(li("Damage is not increased for the Tossed unit itself", t("BUFF")))
 W(ul_close())
-W(ability("Tree Channel"))
+W(ability("Tree Volley"))
 W(ul_open())
 W(li("Now uses the bonus damage value of Tree Throw and bonuses from Aghanim's Shard", t("REWORK")))
 W(ul_close())
@@ -8691,7 +8767,7 @@ W(ul_close())
 
 # Treant Protector
 W(hero_header("Treant Protector"))
-W(ability("Natures Guise"))
+W(ability("Nature's Guise"))
 W(ul_open())
 W(li("Cooldown changed from 35s - 1s per level up to 36s -1s per level ", t("MISC")))
 W(ul_close())
@@ -8702,7 +8778,7 @@ W(li("Mana Cost increased from 40/45/50/55 to 65/70/75/80", b([40, 45, 50, 55], 
 W(li("Max Damage Blocked decreased from 120 to 60/80/100/120", b(120, [60, 80, 100, 120])))
 W(li("Damage Block Decrease improved from 35/30/25/20 to 20", b([35, 30, 25, 20], 20)))
 W(ul_close())
-W(ability("Eyes in the Forest"))
+W(ability("Eyes In The Forest"))
 W(ul_open())
 W(li("Charge Restore Time increased from 55s to 135s", b(55, 135, l=True)))
 W(li("Duration increased from 300s to 360s", b(300, 360)))
@@ -8711,11 +8787,11 @@ W(ul_close())
 
 # Troll Warlord
 W(hero_header("Troll Warlord"))
-W(ability("Switch Stance"))
+W(ability("Battle Stance"))
 W(ul_open())
 W(li("Troll Warlord gains 1 armor per 30 bonus attack speed", t("MISC")))
 W(ul_close())
-W(ability("Berserkers Rage"))
+W(ability("Berserker's Rage"))
 W(ul_open())
 W(li("No longer provides +3/4/5/6 Bonus Armor while in melee form", t("NERF")))
 W(ul_close())
@@ -8754,7 +8830,7 @@ W(li("Level 20 Talent -6s Ice Shards Cooldown replaced with -6s Snowball Cooldow
 W(li("Level 25 Talent -8s Snowball Cooldown replaced with Ice Shards Slow by 50% and Deal 110 DPS (only affects enemies trapped inside)", t("REWORK")))
 # Underlord
 W(hero_header("Underlord"))
-W(ability("Raid Boss"))
+W(ability("Invading Force"))
 W(ul_open())
 W(li("No longer levels with Fiend's Gate", t("NERF")))
 W(li("Damage Reduction rescaled from 4/6/8/10% to 3.7% + 0.3% per level", t("REWORK")))
@@ -8878,7 +8954,7 @@ W(hero_header("Visage"))
 W(ul_open())
 W(li("Removed Lurker innate ability", t("MISC")))
 W(ul_close())
-W(ability("Silent As The Grave"))
+W(ability("Silent as the Grave"))
 W(ul_open())
 W(li("Now innate ability. Active", t("REWORK")))
 W(li("Visage gains flying movement and 12% bonus movement speed for 20s. Upon attacking or casting, he loses both effects, but he and his familiars gain 10% attack damage bonus for 2 seconds", t("MISC")))
@@ -8945,7 +9021,7 @@ W(hero_header("Weaver"))
 W(ul_open())
 W(li("Removed Rewoven innate ability", t("MISC")))
 W(ul_close())
-W(ability("Threads Of Fate"))
+W(ability("Threads of Fate"))
 W(ul_open())
 W(li("New innate ability. Passive", t("MISC")))
 W(li("After dealing damage to an enemy hero with an attack or ability, if Weaver remains within 700 range of them for 1.5s, he establishes a Thread of Fate that briefly slows movement of the enemy and ties them to Weaver. Each established thread of fate grants 10% bonus damage to Weaver. Threads last up to 6s and break if the distance is longer than 900. If the enemy dies with Thread of Fate established, the thread's bonuses linger for an additional 5s", t("MISC")))
@@ -8991,7 +9067,7 @@ W(hero_header("Winter Wyvern"))
 W(ul_open())
 W(li("Removed Eldwurm Scholar innate ability", t("MISC")))
 W(ul_close())
-W(ability("Eldwurms Edda"))
+W(ability("Eldwurm's Edda"))
 W(ul_open())
 W(li("New innate ability", t("MISC")))
 W(li("Winter Wyvern starts the game with Eldwurm's Edda item. After 10 minutes it can be consumed, increasing the current and maximum level of a basic ability by one. Also increases Winter Wyvern's Intelligence by 25% of its base value at the time of consumption", t("MISC")))
@@ -9008,7 +9084,7 @@ W(ul_open())
 W(li("Aghanim's Shard reworked", t("MISC")))
 W(li("Decreases cooldown by 4s. Allied units gain 60% bonus attack damage for 6s when emerging from the icy cocoon", t("MISC")))
 W(ul_close())
-W(ability("Winters Curse"))
+W(ability("Winter's Curse"))
 W(ul_open())
 W(li("Attack Speed rescaled from 65 to 50/65/80", b(65, [50, 65, 80])))
 W(li("Maximum Duration rescaled from 4/5.5/7s to 6s", b([4, 5.5, 7], 6)))
@@ -9092,7 +9168,7 @@ W(ability("Lightning Bolt"))
 W(ul_open())
 W(li("Vision and True Sight radius increased from 500 to 600", b(500, 600)))
 W(ul_close())
-W(ability("Thundergods Wrath"))
+W(ability("Thundergod's Wrath"))
 W(ul_open())
 W(li("Now applies the True Sight before the damage and strikes even untargetable and still invisible enemies ", t("REWORK")))
 W(ul_close())
@@ -9100,7 +9176,7 @@ W(subnote("It used to simply reveal invisible heroes without dealing damage to t
 W(ul_open())
 W(li("Vision and True Sight radius increased from 500 to 600", b(500, 600)))
 W(ul_close())
-W(ability("Cloud"))
+W(ability("Nimbus"))
 W(ul_open())
 W(li("Damage source changed from Nimbus to the caster", t("MISC")))
 W(ul_close())
@@ -9290,7 +9366,7 @@ W(ul_close())
 
 # Morphling
 W(hero_header("Morphling"))
-W(ability("Replicate"))
+W(ability("Morph"))
 W(ul_open())
 W(li("Cast range increased from 600 to 1000", b(600, 1000)))
 W(li("Manacost reduced from 75/100/125 to 50", b([75, 100, 125], 50, l=True)))
