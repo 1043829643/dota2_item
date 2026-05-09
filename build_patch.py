@@ -1532,7 +1532,8 @@ h4.subgroup {
 }
 /* Formula tables INSIDE .ability-block — extend back to entity-block left edge,
    not just within content column (else they look right-aligned past the icon). */
-.ability-block ul.changes li > .formula-table {
+.ability-block ul.changes li > .formula-table,
+.ability-block ul.changes li > .correction-note {
   margin-left: -60px;          /* counter ability-block icon column (48 + 12 gap) */
   width: calc(100% + 60px);
 }
@@ -1560,20 +1561,19 @@ ul.changes li {
   color: #c9d1d9;
   position: relative;
 }
-/* Hover ruler: dashed underline under the change-text, leading the eye
-   toward the % badge. Anchored to .row-text so notes/formulas/correction
-   boxes (which span full width on row 2) don't pull the line down. */
-ul.changes li:has(> .badge-group):hover > .row-text {
-  text-decoration: underline dashed rgba(139, 148, 158, 0.32);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-}
-/* For raw-row li (no .row-text wrapper): underline the li's first-line text
-   directly. min-height ensures the underline shows even on short rows. */
-ul.changes li:not(:has(> .row-text)):has(> .badge-group):hover {
-  text-decoration: underline dashed rgba(139, 148, 158, 0.32);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
+/* Hover ruler: dashed line spanning from text toward the % so the eye can
+   trace the row. Anchored at the bottom of the FIRST grid row (i.e. just
+   under the change-text baseline), not at the bottom of the whole li —
+   that way it stays put even when correction-notes/formula-tables span
+   full-width below. */
+ul.changes li:has(> .badge-group):hover::after {
+  content: "";
+  position: absolute;
+  left: 76px;
+  right: 0;
+  top: calc(1px + 1.5em);     /* li padding-top + line-height of first row */
+  border-bottom: 1px dashed rgba(139, 148, 158, 0.32);
+  pointer-events: none;
 }
 /* Left column: text-tag goes here. All variants (real .badge, placeholder, raw-row
    ::before) share fixed dimensions so they line up perfectly across rows. */
@@ -2840,7 +2840,12 @@ W(ul_close())
 W(section("Item Updates"))
 W(item_header("Bloodstone"))
 W(ul_open())
-W('''<li data-tag="nerf"><span class="wrong-line">Health bonus increased from +600 to +625 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span></span> <div class="correction-note"><span class="correction-label">Note</span>— This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div></li>''')
+W(li(
+    '<span class="wrong-word">Health bonus increased from +600 to +625</span>',
+    '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>',
+    extra='<div class="correction-note"><span class="correction-label">Note</span>— This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div>',
+    force_tag="nerf"
+))
 W(li("Bloodpact cooldown increased from 30s to 35s", b(30, 35, l=True)))
 W(li("Spell Weakness Aura damage from spells taken decreased from 12% to 10%", b(12, 10)))
 W(ul_close())
@@ -3520,7 +3525,12 @@ W(ul_close())
 W(hero_header("Timbersaw"))
 W(ul_open())
 W(li("Base Damage increased by 2", bstat_h("Timbersaw", "AttackDamageMin", "7.41b", 2), extra=note_box("From 25 to 27")))
-W('''<li data-tag="buff">Damage at level 1 <span class="wrong-word">decreased</span> from 46-50 to 48-52 <span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span><div class="correction-note"><span class="correction-label">Note</span>— The patch text says "decreased", but the values actually went up.</div></li>''')
+W(li(
+    'Damage at level 1 <span class="wrong-word">decreased</span> from 46-50 to 48-52',
+    '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>',
+    extra='<div class="correction-note"><span class="correction-label">Note</span>— The patch text says "decreased", but the values actually went up.</div>',
+    force_tag="buff"
+))
 W(li("Base Intelligence increased from 23 to 24", b(23, 24)))
 W(ul_close())
 W(subgroup("Abilities"))
