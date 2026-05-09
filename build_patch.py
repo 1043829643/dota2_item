@@ -1486,11 +1486,11 @@ h4.subgroup {
 .ability-block > .ability-title {
   grid-column: 2;
   margin: 0;
-  padding: 2px 0 4px 0;
-  color: #c9d1d9;          /* same as body text — not coloured */
+  padding: 0 0 4px 0;       /* no top padding so title-top aligns with icon-top */
+  color: #c9d1d9;            /* same as body text — not coloured */
   font-size: 17px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1;            /* tight line-height — text top = box top */
   align-self: start;
 }
 .ability-block > ul.changes {
@@ -1674,12 +1674,18 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   text-transform: none;
   letter-spacing: 0;
   font-size: inherit;
+  display: inline;            /* override .badge's inline-block — proper baseline align */
+  vertical-align: baseline;   /* override .badge's middle */
 }
 /* Comma separator between multi-level badges */
 .badge-group .badge:not(:last-child)::after {
   content: ", ";
   color: #6e7681;
   font-weight: 400;
+}
+/* Extra leading space before 0% (neutral) — without +/- prefix it visually crowds the comma */
+.badge-group .badge.neutral:not(:first-child) {
+  margin-left: 0.25em;
 }
 
 /* NEUTRAL & TEXT TAGS */
