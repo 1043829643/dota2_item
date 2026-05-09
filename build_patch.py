@@ -510,6 +510,15 @@ def note_box(text):
     return f'<div class="correction-note"><span class="correction-label">Note</span>— {text}</div>'
 
 
+def cont(text):
+    """Continuation / sub-sentence visually attached to the main <li>.
+    For an additional sentence FROM THE SAME PATCH that extends/clarifies the
+    main change but isn't itself a separate change requiring a badge.
+    Difference from note_box (NOTE: ours) and subnote (separate ↳ block).
+    Use as extra=cont(...) of li()."""
+    return f'<div class="li-cont">{text}</div>'
+
+
 def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False,
                rework_badge=True, **bf_kwargs):
     """Convenience: emit <li> with formula table.
@@ -1298,8 +1307,6 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   border: 1px solid rgba(180, 70, 70, 0.36);
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-decoration: line-through;
-  text-decoration-color: rgba(201, 112, 112, 0.55);
 }
 
 /* BUFF GRADIENT (10 tiers, soft-saturated greens) */
@@ -1377,6 +1384,13 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
   text-transform: uppercase;
   color: #8b949e;
   margin-right: 4px;
+}
+.li-cont {
+  display: block;
+  margin: 3px 0 0 0;
+  color: #adb5bd;
+  font-size: 13.5px;
+  line-height: 1.45;
 }
 
 /* IMAGE FALLBACK STYLE */
@@ -1850,6 +1864,7 @@ def write_head(version, date):
     <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
     <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
     <button class="badge new filter-btn" data-filter="new">NEW</button>
+    <button class="badge del filter-btn" data-filter="del">DEL</button>
     <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
     <button class="badge misc filter-btn" data-filter="misc">MISC</button>
     <button class="badge qol filter-btn" data-filter="qol">QoL</button>
@@ -4322,8 +4337,9 @@ W(plain_header("Global Changes"))
 W(ul_open())
 W(li("Facets removed from the game", t("DEL")))
 W(li("Innate abilities no longer scale with other abilities' level", t("NERF")))
-W(li("All innate abilities that used to scale with other abilities now either provide unchangeable bonuses or improve on 'per level' basis", t("REWORK")))
-W(li("Abilities that improve with hero level have base value and increment value. Some also have amount of levels required for increment", t("MISC")))
+W(li("All innate abilities that used to scale with other abilities now either provide unchangeable bonuses or improve on 'per level' basis",
+     t("REWORK"),
+     extra=cont("Abilities that improve with hero level have base value and increment value. Some also have amount of levels required for increment")))
 W(ul_close())
 W(subnote("Abilities that improve each level provide their increment value at level 1"))
 W(ul_open())
