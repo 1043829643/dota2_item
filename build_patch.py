@@ -85,6 +85,52 @@ def bstat_h(hero_display: str, field: str, patch_before: str, delta,
     return b(old, new, l=l)
 
 
+def _patch_sort_key(v: str):
+    """Sort key for patch versions like '7.41', '7.41b'. Returns (major, minor, suffix)."""
+    parts = v.split(".")
+    major = int(parts[0]) if parts[0].isdigit() else 0
+    rest = parts[1] if len(parts) > 1 else "0"
+    num = ""
+    suf = ""
+    for c in rest:
+        if c.isdigit():
+            num += c
+        else:
+            suf += c
+    return (major, int(num) if num else 0, suf)
+
+
+def _prev_change_patch(db: dict, key_with_prefix: str, field: str, before_patch: str):
+    """Returns the patch in which the value at `before_patch` was first set
+    (i.e. the most recent earlier patch where the value differs from the
+    target, +1 step). None if value never changed within known history."""
+    target = db.get(before_patch, {}).get(key_with_prefix, {}).get(field)
+    if target is None:
+        return None
+    versions = sorted([v for v in db
+                       if _patch_sort_key(v) <= _patch_sort_key(before_patch)],
+                      key=_patch_sort_key)
+    last_with_target = before_patch
+    for v in reversed(versions[:-1]):
+        val = db.get(v, {}).get(key_with_prefix, {}).get(field)
+        if val != target:
+            return last_with_target
+        last_with_target = v
+    return last_with_target
+
+
+def prev_change_patch_h(hero_display: str, field: str, before_patch: str):
+    raw_slug = HERO_SLUG.get(hero_display,
+                              hero_display.lower().replace(" ", "_").replace("'", ""))
+    return _prev_change_patch(_STATS_H, "npc_dota_hero_" + raw_slug, field, before_patch)
+
+
+def prev_change_patch_i(item_display: str, field: str, before_patch: str):
+    raw_slug = ITEM_SLUG.get(item_display,
+                              item_display.lower().replace(" ", "_").replace("'", ""))
+    return _prev_change_patch(_STATS_I, "item_" + raw_slug, field, before_patch)
+
+
 def bstat_i(item_display: str, field: str, patch_before: str, delta,
             l: bool = False):
     """Аналог bstat_h для предметов."""
@@ -741,10 +787,34 @@ def subnote(text):
     return f'<ul class="subnotes"><li>{text}</li></ul>'
 
 
-def note_box(text):
-    """Inline NOTE box for content NOT in the original patch (e.g. auto-derived
-    base values like 'From 17 to 18'). Use as `extra=note_box(...)` of li()."""
-    return f'<div class="correction-note"><span class="correction-label">Note</span>— {text}</div>'
+def _fmt_val(v):
+    """Pretty-print a numeric stat value: drop .0 on integers."""
+    if v is None:
+        return "?"
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v))
+    return str(v)
+
+
+def note_box(text=None, *, hero=None, item=None, field=None, before_patch=None):
+    """Inline NOTE box rendered after a row.
+
+    Two usage modes:
+      - Legacy free-form:  note_box("any text")
+      - Auto-derived from stats DB: provide hero=/item= + field= + before_patch=
+        → emits "was <b>X</b>. Previous change in <b>PATCH</b>".
+    """
+    if hero or item:
+        if hero:
+            prev_val = stat_h(hero, field, before_patch)
+            prev_patch = prev_change_patch_h(hero, field, before_patch) or before_patch
+        else:
+            prev_val = stat_i(item, field, before_patch)
+            prev_patch = prev_change_patch_i(item, field, before_patch) or before_patch
+        body = f'was <b>{_fmt_val(prev_val)}</b>. Previous change in <b>{prev_patch}</b>'
+    else:
+        body = text or ""
+    return f'<div class="correction-note"><span class="correction-label">Note</span>: {body}</div>'
 
 
 def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False,
@@ -2853,7 +2923,7 @@ W(ul_open())
 W(li(
     '<span class="wrong-word">Health bonus increased from +600 to +625</span>',
     '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>',
-    extra='<div class="correction-note"><span class="correction-label">Note</span>— This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div>',
+    extra='<div class="correction-note"><span class="correction-label">Note</span>: This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div>',
     force_tag="nerf"
 ))
 W(li("Bloodpact cooldown increased from 30s to 35s", b(30, 35, l=True)))
@@ -2922,7 +2992,7 @@ W(ul_close())
 W(section("Hero Updates"))
 W(hero_header("Abaddon"))
 W(ul_open())
-W(li("Base Intelligence increased by 1", bstat_h("Abaddon", "AttributeBaseIntelligence", "7.41b", 1), extra=note_box("From 18 to 19")))
+W(li("Base Intelligence increased by 1", bstat_h("Abaddon", "AttributeBaseIntelligence", "7.41b", 1), extra=note_box(hero="Abaddon", field="AttributeBaseIntelligence", before_patch="7.41b")))
 W(ul_close())
 W(subnote("Damage at level 1 unchanged at 49-59"))
 W(subgroup("Talents"))
@@ -3080,7 +3150,7 @@ W(li("Radius increased from 400/450/500 to 450/500/550", b([400, 450, 500], [450
 W(ul_close())
 W(hero_header("Dawnbreaker"))
 W(ul_open())
-W(li("Base Damage decreased by 1", bstat_h("Dawnbreaker", "AttackDamageMin", "7.41b", -1), extra=note_box("From 33 to 32")))
+W(li("Base Damage decreased by 1", bstat_h("Dawnbreaker", "AttackDamageMin", "7.41b", -1), extra=note_box(hero="Dawnbreaker", field="AttackDamageMin", before_patch="7.41b")))
 W(li("Damage at level 1 decreased from 56-60 to 55-59", '<span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span>'))
 W(ul_close())
 W(subgroup("Abilities"))
@@ -3134,7 +3204,7 @@ W(li("Duration increased from 4s to 5s", b(4, 5)))
 W(ul_close())
 W(hero_header("Hoodwink"))
 W(ul_open())
-W(li("Base Damage increased by 3", bstat_h("Hoodwink", "AttackDamageMin", "7.41b", 3), extra=note_box("From 25.5 to 28.5")))
+W(li("Base Damage increased by 3", bstat_h("Hoodwink", "AttackDamageMin", "7.41b", 3), extra=note_box(hero="Hoodwink", field="AttackDamageMin", before_patch="7.41b")))
 W(li("Base Agility decreased from 25 to 22", b(25, 22)))
 W(ul_close())
 W(subnote("Damage at level 1 unchanged at 47-54"))
@@ -3365,7 +3435,7 @@ W(li("Level 20: Astral Imprisonment Mana Capacity Steal increased from 10% to 12
 W(ul_close())
 W(hero_header("Pangolier"))
 W(ul_open())
-W(li("Base Health Regen decreased by 1.0", bstat_h("Pangolier", "StatusHealthRegen", "7.41b", -1), extra=note_box("From 1.25 to 0.25")))
+W(li("Base Health Regen decreased by 1.0", bstat_h("Pangolier", "StatusHealthRegen", "7.41b", -1), extra=note_box(hero="Pangolier", field="StatusHealthRegen", before_patch="7.41b")))
 W(ul_close())
 W(subgroup("Abilities"))
 W(ability("Swashbuckle"))
@@ -3484,7 +3554,7 @@ W(li("Cooldown increased from 7s to 8.5/8/7.5/7s", b(7, [8.5, 8, 7.5, 7], l=True
 W(ul_close())
 W(hero_header("Snapfire"))
 W(ul_open())
-W(li("Base Damage increased by 2", bstat_h("Snapfire", "AttackDamageMin", "7.41b", 2), extra=note_box("From 28 to 30")))
+W(li("Base Damage increased by 2", bstat_h("Snapfire", "AttackDamageMin", "7.41b", 2), extra=note_box(hero="Snapfire", field="AttackDamageMin", before_patch="7.41b")))
 W(li("Damage at level 1 increased from 51-57 to 53-59", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>'))
 W(ul_close())
 W(hero_header("Spectre"))
@@ -3515,7 +3585,7 @@ W(li("Mana Cost decreased from 110/115/120/125 to 110", b([110, 115, 120, 125], 
 W(ul_close())
 W(hero_header("Techies"))
 W(ul_open())
-W(li("Base Mana Regen decreased by 0.5", bstat_h("Techies", "StatusManaRegen", "7.41b", -0.5), extra=note_box("From 1.0 to 0.5")))
+W(li("Base Mana Regen decreased by 0.5", bstat_h("Techies", "StatusManaRegen", "7.41b", -0.5), extra=note_box(hero="Techies", field="StatusManaRegen", before_patch="7.41b")))
 W(li("Intelligence gain decreased from 3.0 to 2.7", b(3, 2.7)))
 W(li("Damage gain per level decreased from 3.3 to 3.2", b(3.3, 3.2)))
 W(ul_close())
@@ -3538,15 +3608,15 @@ W(li("Base Movement Speed increased from 310 to 315", b(310, 315)))
 W(ul_close())
 W(hero_header("Tidehunter"))
 W(ul_open())
-W(li("Base Mana Regen decreased by 0.5", bstat_h("Tidehunter", "StatusManaRegen", "7.41b", -0.5), extra=note_box("From 0.5 to 0")))
+W(li("Base Mana Regen decreased by 0.5", bstat_h("Tidehunter", "StatusManaRegen", "7.41b", -0.5), extra=note_box(hero="Tidehunter", field="StatusManaRegen", before_patch="7.41b")))
 W(ul_close())
 W(hero_header("Timbersaw"))
 W(ul_open())
-W(li("Base Damage increased by 2", bstat_h("Timbersaw", "AttackDamageMin", "7.41b", 2), extra=note_box("From 25 to 27")))
+W(li("Base Damage increased by 2", bstat_h("Timbersaw", "AttackDamageMin", "7.41b", 2), extra=note_box(hero="Timbersaw", field="AttackDamageMin", before_patch="7.41b")))
 W(li(
     'Damage at level 1 <span class="wrong-word">decreased</span> from 46-50 to 48-52',
     '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>',
-    extra='<div class="correction-note"><span class="correction-label">Note</span>— The patch text says "decreased", but the values actually went up.</div>',
+    extra='<div class="correction-note"><span class="correction-label">Note</span>: The patch text says "decreased", but the values actually went up.</div>',
     force_tag="buff"
 ))
 W(li("Base Intelligence increased from 23 to 24", b(23, 24)))
@@ -3787,8 +3857,8 @@ W(enchant_header("Crude", "crude"))
 W(ul_open())
 W(li("Health Restoration bonus decreased from +10/15/20% to +9/12/15%", b([10, 15, 20], [9, 12, 15])))
 W(ul_close())
-W(unit_header("Frostbitten Golem", "https://liquipedia.net/commons/images/5/5c/Ancient_Frostbitten_Golem_icon_dota2_gameasset.png"))
-W(ability("Time Warp Aura", icon_url="https://liquipedia.net/commons/images/c/cf/Ancient_Frostbitten_Golem_Time_Warp_Aura_abilityicon_dota2_gameasset.png"))
+W(unit_header("Frostbitten Golem", "https://cdn.steamstatic.com/apps/dota2/images/dota_react/units/npc_dota_neutral_frostbitten_golem.png"))
+W(ability("Time Warp Aura"))
 W(ul_open())
 W(li("Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
 W(ul_close())
@@ -3839,7 +3909,7 @@ W(ul_close())
 # Batrider
 W(hero_header("Batrider"))
 W(ul_open())
-W(li("Base Armor decreased by 1", bstat_h("Batrider", "ArmorPhysical", "7.41a", -1), extra=note_box("From 2 to 1")))
+W(li("Base Armor decreased by 1", bstat_h("Batrider", "ArmorPhysical", "7.41a", -1), extra=note_box(hero="Batrider", field="ArmorPhysical", before_patch="7.41a")))
 W(ul_close())
 W(ability("Firefly"))
 W(ul_open())
@@ -3974,7 +4044,7 @@ W(ul_close())
 # Ember Spirit
 W(hero_header("Ember Spirit"))
 W(ul_open())
-W(li("Base Damage decreased by 3", bstat_h("Ember Spirit", "AttackDamageMin", "7.41a", -3), extra=note_box("From 35 to 32")))
+W(li("Base Damage decreased by 3", bstat_h("Ember Spirit", "AttackDamageMin", "7.41a", -3), extra=note_box(hero="Ember Spirit", field="AttackDamageMin", before_patch="7.41a")))
 W(li("Damage at level 1 decreased from 55-59 to 52-56", b(57, 54)))
 W(ul_close())
 W(ability("Sleight of Fist"))
@@ -4171,7 +4241,7 @@ W(ul_close())
 # Night Stalker
 W(hero_header("Night Stalker"))
 W(ul_open())
-W(li("Base Health Regen decreased by 1.25", bstat_h("Night Stalker", "StatusHealthRegen", "7.41a", -1.25), extra=note_box("From 1.5 to 0.25")))
+W(li("Base Health Regen decreased by 1.25", bstat_h("Night Stalker", "StatusHealthRegen", "7.41a", -1.25), extra=note_box(hero="Night Stalker", field="StatusHealthRegen", before_patch="7.41a")))
 W(ul_close())
 
 # Nyx Assassin
@@ -4293,7 +4363,7 @@ W(ul_close())
 # Skywrath Mage
 W(hero_header("Skywrath Mage"))
 W(ul_open())
-W(li("Base Mana Regen increased by 0.25", bstat_h("Skywrath Mage", "StatusManaRegen", "7.41a", 0.25), extra=note_box("From 0.25 to 0.5")))
+W(li("Base Mana Regen increased by 0.25", bstat_h("Skywrath Mage", "StatusManaRegen", "7.41a", 0.25), extra=note_box(hero="Skywrath Mage", field="StatusManaRegen", before_patch="7.41a")))
 W(ul_close())
 
 # Slardar
@@ -4490,7 +4560,7 @@ W(ul_close())
 W(hero_header("Anti-Mage"))
 W(ul_open())
 W(li("Base Movement Speed increased from 310 to 315", b(310, 315)))
-W(li("Base Health Regen increased by 0.5", bstat_h("Anti-Mage", "StatusHealthRegen", "7.41", 0.5), extra=note_box("From 1.0 to 1.5")))
+W(li("Base Health Regen increased by 0.5", bstat_h("Anti-Mage", "StatusHealthRegen", "7.41", 0.5), extra=note_box(hero="Anti-Mage", field="StatusHealthRegen", before_patch="7.41")))
 W(ul_close())
 W(ability("Mana Break"))
 W(ul_open())
@@ -4515,7 +4585,7 @@ W(ul_close())
 # Chaos Knight
 W(hero_header("Chaos Knight"))
 W(ul_open())
-W(li("Base Damage increased by 3", bstat_h("Chaos Knight", "AttackDamageMin", "7.41", 3), extra=note_box("From 39 to 42")))
+W(li("Base Damage increased by 3", bstat_h("Chaos Knight", "AttackDamageMin", "7.41", 3), extra=note_box(hero="Chaos Knight", field="AttackDamageMin", before_patch="7.41")))
 W(li("Damage on level 1 increased from 53–73 to 56–76", t("BUFF")))
 W(ul_close())
 
@@ -4552,7 +4622,7 @@ W(ul_close())
 # Doom
 W(hero_header("Doom"))
 W(ul_open())
-W(li("Base Armor decreased by 1", bstat_h("Doom", "ArmorPhysical", "7.41", -1), extra=note_box("From 2 to 1")))
+W(li("Base Armor decreased by 1", bstat_h("Doom", "ArmorPhysical", "7.41", -1), extra=note_box(hero="Doom", field="ArmorPhysical", before_patch="7.41")))
 W(ul_close())
 W(ability("Lvl Pain"))
 W(ul_open())
@@ -4628,7 +4698,7 @@ W(ul_close())
 # Lifestealer
 W(hero_header("Lifestealer"))
 W(ul_open())
-W(li("Base Damage decreased by 3", bstat_h("Lifestealer", "AttackDamageMin", "7.41", -3), extra=note_box("From 19 to 16")))
+W(li("Base Damage decreased by 3", bstat_h("Lifestealer", "AttackDamageMin", "7.41", -3), extra=note_box(hero="Lifestealer", field="AttackDamageMin", before_patch="7.41")))
 W(li("Damage on level 1 decreased from 49–55 to 46–52", t("NERF")))
 W(ul_close())
 W(ability("Ghoul Frenzy"))
@@ -4804,7 +4874,7 @@ W(ul_close())
 # Void Spirit
 W(hero_header("Void Spirit"))
 W(ul_open())
-W(li("Base Mana Regen decreased by 0.6", bstat_h("Void Spirit", "StatusManaRegen", "7.41", -0.6), extra=note_box("From 0.6 to 0")))
+W(li("Base Mana Regen decreased by 0.6", bstat_h("Void Spirit", "StatusManaRegen", "7.41", -0.6), extra=note_box(hero="Void Spirit", field="StatusManaRegen", before_patch="7.41")))
 W(ul_close())
 
 # Windranger
@@ -5930,7 +6000,7 @@ W(ul_close())
 # Anti-Mage
 W(hero_header("Anti-Mage"))
 W(ul_open())
-W(li("Base Armor increased by 1", bstat_h("Anti-Mage", "ArmorPhysical", "7.40c", 1), extra=note_box("From 1 to 2")))
+W(li("Base Armor increased by 1", bstat_h("Anti-Mage", "ArmorPhysical", "7.40c", 1), extra=note_box(hero="Anti-Mage", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Persecutor"))
 W(ul_open())
@@ -6365,7 +6435,7 @@ W(ul_close())
 # Dawnbreaker
 W(hero_header("Dawnbreaker"))
 W(ul_open())
-W(li("Base damage increased by 6", bstat_h("Dawnbreaker", "AttackDamageMin", "7.40c", 6), extra=note_box("From 27 to 33")))
+W(li("Base damage increased by 6", bstat_h("Dawnbreaker", "AttackDamageMin", "7.40c", 6), extra=note_box(hero="Dawnbreaker", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage at level 1 increased from 50–54 to 56–60", t("BUFF")))
 W(ul_close())
 W(ability("Break of Dawn"))
@@ -6408,7 +6478,7 @@ W(ul_close())
 # Death Prophet
 W(hero_header("Death Prophet"))
 W(ul_open())
-W(li("Base Armor increased by 1", bstat_h("Death Prophet", "ArmorPhysical", "7.40c", 1), extra=note_box("From 0 to 1")))
+W(li("Base Armor increased by 1", bstat_h("Death Prophet", "ArmorPhysical", "7.40c", 1), extra=note_box(hero="Death Prophet", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Witchcraft"))
 W(ul_open())
@@ -6555,7 +6625,7 @@ W(ul_close())
 # Drow Ranger
 W(hero_header("Drow Ranger"))
 W(ul_open())
-W(li("Base Damage decreased by 2", bstat_h("Drow Ranger", "AttackDamageMin", "7.40c", -2), extra=note_box("From 32.5 to 30.5")))
+W(li("Base Damage decreased by 2", bstat_h("Drow Ranger", "AttackDamageMin", "7.40c", -2), extra=note_box(hero="Drow Ranger", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage at level 1 decreased from 51–58 to 49–56", t("NERF")))
 W(ul_close())
 W(ability("Trueshot"))
@@ -7080,7 +7150,7 @@ W(ul_close())
 # Legion Commander
 W(hero_header("Legion Commander"))
 W(ul_open())
-W(li("Base armor decreased by 1", bstat_h("Legion Commander", "ArmorPhysical", "7.40c", -1), extra=note_box("From 0.0 to -1")))
+W(li("Base armor decreased by 1", bstat_h("Legion Commander", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Legion Commander", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Outfight Them"))
 W(ul_open())
@@ -7154,7 +7224,7 @@ W(ul_close())
 # Lifestealer
 W(hero_header("Lifestealer"))
 W(ul_open())
-W(li("Base Damage increased by 10", bstat_h("Lifestealer", "AttackDamageMin", "7.40c", 10), extra=note_box("From 19 to 29")))
+W(li("Base Damage increased by 10", bstat_h("Lifestealer", "AttackDamageMin", "7.40c", 10), extra=note_box(hero="Lifestealer", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage at level 1 increased from 39–45 to 49–55", t("BUFF")))
 W(li("Base Attack Speed increased from 100 to 120", b(100, 120)))
 W(li("Base Movement Speed increased from 315 to 320", b(315, 320)))
@@ -7560,7 +7630,7 @@ W(ul_close())
 # Nature's Prophet
 W(hero_header("Nature's Prophet"))
 W(ul_open())
-W(li("Minimum Base damage increased by 4 ", bstat_h("Nature's Prophet", "AttackDamageMin", "7.40c", 4), extra=note_box("From 21 to 25")))
+W(li("Minimum Base damage increased by 4 ", bstat_h("Nature's Prophet", "AttackDamageMin", "7.40c", 4), extra=note_box(hero="Nature's Prophet", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage spread decreased from 10 to 6", b(10, 6)))
 W(li("Damage at level 1 increased from 40–50 to 44–50", t("BUFF")))
 W(ul_close())
@@ -7694,7 +7764,7 @@ W(ul_close())
 # Omniknight
 W(hero_header("Omniknight"))
 W(ul_open())
-W(li("Base Armor decreased by 1", bstat_h("Omniknight", "ArmorPhysical", "7.40c", -1), extra=note_box("From 3 to 2")))
+W(li("Base Armor decreased by 1", bstat_h("Omniknight", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Omniknight", field="ArmorPhysical", before_patch="7.40c")))
 W(li("Agility gain decreased from 2.0 to 1.7", b(2.0, 1.7)))
 W(ul_close())
 W(ability("Degen Aura"))
@@ -7767,7 +7837,7 @@ W(ul_close())
 W(hero_header("Outworld Destroyer"))
 W(ul_open())
 W(li("Base Agility decreased from 22 to 17", b(22, 17)))
-W(li("Base Armor decreased by 1", bstat_h("Outworld Destroyer", "ArmorPhysical", "7.40c", -1), extra=note_box("From 1 to 0")))
+W(li("Base Armor decreased by 1", bstat_h("Outworld Destroyer", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Outworld Destroyer", field="ArmorPhysical", before_patch="7.40c")))
 W(li("Removed OD innate ", t("MISC")))
 W(li("Aka Ominous Discernment, aka Obstreperous Dissimilator, aka Obnoxious Determinator, aka Obsequious Deliberator, aka Ornery Deconstructor, aka Obnubilated Delineator, aka Omniscient Desiderator", t("MISC")))
 W(ul_close())
@@ -7998,7 +8068,7 @@ W(ul_close())
 # Rubick
 W(hero_header("Rubick"))
 W(ul_open())
-W(li("Base Damage increased by 1", bstat_h("Rubick", "AttackDamageMin", "7.40c", 1), extra=note_box("From 29 to 30")))
+W(li("Base Damage increased by 1", bstat_h("Rubick", "AttackDamageMin", "7.40c", 1), extra=note_box(hero="Rubick", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage at level 1 increased from 49–55 to 50–56", t("BUFF")))
 W(li("Removed Might and Magus innate ability", t("MISC")))
 W(ul_close())
@@ -8423,7 +8493,7 @@ W(ul_close())
 # Terrorblade
 W(hero_header("Terrorblade"))
 W(ul_open())
-W(li("Base Armor increased by 1", bstat_h("Terrorblade", "ArmorPhysical", "7.40c", 1), extra=note_box("From 5 to 6")))
+W(li("Base Armor increased by 1", bstat_h("Terrorblade", "ArmorPhysical", "7.40c", 1), extra=note_box(hero="Terrorblade", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Conjure Image"))
 W(ul_open())
@@ -8657,7 +8727,7 @@ W(ul_close())
 W(hero_header("Undying"))
 W(ul_open())
 W(li("Base Agility increased from 10 to 13", b(10, 13)))
-W(li("Base Armor decreased by 1", bstat_h("Undying", "ArmorPhysical", "7.40c", -1), extra=note_box("From 1 to 0")))
+W(li("Base Armor decreased by 1", bstat_h("Undying", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Undying", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Flesh Golem"))
 W(ul_open())
@@ -8781,7 +8851,7 @@ W(ul_close())
 # Void Spirit
 W(hero_header("Void Spirit"))
 W(ul_open())
-W(li("Base Damage decreased by 4", bstat_h("Void Spirit", "AttackDamageMin", "7.40c", -4), extra=note_box("From 24 to 20")))
+W(li("Base Damage decreased by 4", bstat_h("Void Spirit", "AttackDamageMin", "7.40c", -4), extra=note_box(hero="Void Spirit", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage at level 1 unchanged due to innate ability changes", t("MISC")))
 W(ul_close())
 W(ability("Intrinsic Edge"))
@@ -8916,7 +8986,7 @@ W(ul_close())
 # Wraith King
 W(hero_header("Wraith King"))
 W(ul_open())
-W(li("Base Armor decreased by 1", bstat_h("Wraith King", "ArmorPhysical", "7.40c", -1), extra=note_box("From 1 to 0")))
+W(li("Base Armor decreased by 1", bstat_h("Wraith King", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Wraith King", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Vampiric Spirit"))
 W(ul_open())
@@ -8950,11 +9020,11 @@ W(ul_close())
 W(hero_header("Zeus"))
 W(ul_open())
 W(li("Base Strength increased from 19 to 21", b(19, 21)))
-W(li("Base Damage increased by 1–3 ", bstat_h("Zeus", "AttackDamageMin", "7.40c", 1), extra=note_box("From 33 to 34")))
+W(li("Base Damage increased by 1–3 ", bstat_h("Zeus", "AttackDamageMin", "7.40c", 1), extra=note_box(hero="Zeus", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage spread increased from 8 to 10", b(8, 10)))
 W(li("Damage at level 1 increased from 52–60 to 53–63", t("BUFF")))
 W(li("Base Movement Speed decreased from 315 to 305", b(315, 305)))
-W(li("Base Armor decreased by 1", bstat_h("Zeus", "ArmorPhysical", "7.40c", -1), extra=note_box("From 2 to 1")))
+W(li("Base Armor decreased by 1", bstat_h("Zeus", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Zeus", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
 W(ability("Static Field"))
 W(ul_open())
