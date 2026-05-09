@@ -579,15 +579,22 @@ STAT_DETECT_RULES = [
 ]
 
 # Innate abilities — marked with INNATE_ICON inside the .ability-block.
-# Format: {(hero_internal_slug, ability_display_name), ...}
-# Source: 7.41+ patchnotes that introduced innate slots.
-INNATE_ABILITIES = {
-    # Conservative list — only abilities I'm highly confident are innate.
-    # Add more as user verifies (e.g. by checking dota2.com/patches/7.41c).
-    ("alchemist", "Greevil's Greed"),
-    ("antimage", "Mana Break"),
-    ("storm_spirit", "Galvanized"),
-}
+# Auto-loaded from data/abilities_slim.json (mirrored from odota/dotaconstants
+# build/abilities.json, field is_innate). Refresh by re-running the snippet
+# in build_patch.py top-of-file commit message — manual entries only needed
+# when an innate isn't yet in dotaconstants.
+def _load_innate_slugs():
+    p = _os.path.join(_os.path.dirname(__file__), "data", "abilities_slim.json")
+    if not _os.path.exists(p):
+        return set()
+    with open(p, encoding="utf-8") as f:
+        d = _json.load(f)
+    return {k for k, v in d.items() if v.get("is_innate")}
+
+_INNATE_SLUGS = _load_innate_slugs()
+
+# Manual fallback for innates not yet in dotaconstants (rare).
+INNATE_ABILITIES = set()
 
 def subgroup(title):
     """Subgroup heading (e.g., 'Stats', 'Abilities', 'Talents', 'Tier 1').
@@ -777,10 +784,6 @@ def ability(title, slug=None, innate=None, icon_url=None):
         hero = _State.current_hero
         prefix = HERO_TO_ABIL_PREFIX.get(hero, hero)
         key = (hero, title)
-        if innate is None:
-            is_innate = key in INNATE_ABILITIES
-        else:
-            is_innate = bool(innate)
         if key in ABILITY_DISPLAY_TO_SLUG:
             ability_part = ABILITY_DISPLAY_TO_SLUG[key]
         else:
@@ -792,6 +795,11 @@ def ability(title, slug=None, innate=None, icon_url=None):
                             .replace("(", "")
                             .replace(")", ""))
         slug = f"{prefix}_{ability_part}"
+        if innate is None:
+            # Auto-detect: dotaconstants is_innate flag, or manual override.
+            is_innate = (slug in _INNATE_SLUGS) or (key in INNATE_ABILITIES)
+        else:
+            is_innate = bool(innate)
     elif innate is not None:
         is_innate = bool(innate)
     icon_inner = ''
@@ -2132,21 +2140,27 @@ img { max-width: 100%; }
   display: flex;
 }
 
-/* AGHANIM'S SCEPTER / SHARD ROWS — light blue stripe with right-edge fade
-   + small icon prefix. Matches Valve's official patch-page visual. */
+/* AGHANIM'S SCEPTER / SHARD ROWS — light blue stripe (begins AT the icon, never
+   covers the tag column) + small icon prefix sitting in the gap between tag
+   and text columns (absolutely positioned so the row's text stays aligned
+   with all other rows in the list). */
 ul.changes li.aghanim-scepter,
 ul.changes li.aghanim-shard {
-  background: linear-gradient(90deg, rgba(121, 192, 255, 0.18) 0%, rgba(121, 192, 255, 0.10) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0 56px, rgba(121, 192, 255, 0.22) 56px, rgba(121, 192, 255, 0.10) 55%, transparent 100%);
   border-radius: 3px;
+}
+ul.changes li.aghanim-scepter > .row-text,
+ul.changes li.aghanim-shard > .row-text {
+  position: relative;
 }
 ul.changes li.aghanim-scepter > .row-text::before,
 ul.changes li.aghanim-shard > .row-text::before {
   content: "";
-  display: inline-block;
+  position: absolute;
+  left: -20px;            /* sit in the 12px gap (col 1 ends at 64, col 2 starts at 76) */
+  top: 4px;
   width: 14px;
   height: 14px;
-  margin-right: 5px;
-  vertical-align: -2px;
   background-position: center;
   background-size: contain;
   background-repeat: no-repeat;
@@ -3252,8 +3266,8 @@ W(ul_close())
 W(hero_header("Arc Warden"))
 W(ul_open())
 W(li("Base Agility increased from 20 to 22", b(20, 22)))
-W(li("Damage at level 1 increased from 51-57 to 52-58", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 51-57 to 52-58"))
 W(hero_header("Bane"))
 W(subgroup("Abilities"))
 W(ability("Brain Sap"))
@@ -3280,8 +3294,8 @@ W(ul_close())
 W(hero_header("Beastmaster"))
 W(ul_open())
 W(li("Base Strength decreased from 25 to 24", b(25, 24)))
-W(li("Damage at level 1 decreased from 50-54 to 49-53", '<span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 50-54 to 49-53"))
 W(subgroup("Abilities"))
 W(ability("Wild Axes"))
 W(ul_open())
@@ -3359,8 +3373,8 @@ W(ul_close())
 W(hero_header("Dark Seer"))
 W(ul_open())
 W(li("Base Intelligence increased from 22 to 23", b(22, 23)))
-W(li("Damage at level 1 increased from 53-59 to 54-60", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 53-59 to 54-60"))
 W(hero_header("Dark Willow"))
 W(subgroup("Abilities"))
 W(ability("Terrorize"))
@@ -3370,8 +3384,8 @@ W(ul_close())
 W(hero_header("Dawnbreaker"))
 W(ul_open())
 W(li("Base Damage decreased by 1", bstat_h("Dawnbreaker", "AttackDamageMin", "7.41b", -1), extra=note_box(hero="Dawnbreaker", field="AttackDamageMin", before_patch="7.41b")))
-W(li("Damage at level 1 decreased from 56-60 to 55-59", '<span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 56-60 to 55-59"))
 W(subgroup("Abilities"))
 W(ability("Solar Guardian"))
 W(ul_open())
@@ -3396,8 +3410,8 @@ W(ul_close())
 W(hero_header("Earth Spirit"))
 W(ul_open())
 W(li("Base Strength increased from 22 to 23", b(22, 23)))
-W(li("Damage at level 1 increased from 47-51 to 48-52", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 47-51 to 48-52"))
 W(hero_header("Elder Titan"))
 W(subgroup("Abilities"))
 W(ability("Echo Stomp"))
@@ -3585,8 +3599,8 @@ W(ul_close())
 W(hero_header("Monkey King"))
 W(ul_open())
 W(li("Base Agility decreased from 24 to 23", b(24, 23)))
-W(li("Damage at level 1 decreased from 53-57 to 52-56", '<span class="badge-group" data-overall="nerf"><span class="badge nerf1">-2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 53-57 to 52-56"))
 W(subgroup("Abilities"))
 W(ability("Primal Spring"))
 W(ul_open())
@@ -3672,8 +3686,8 @@ W(ul_close())
 W(hero_header("Phantom Assassin"))
 W(ul_open())
 W(li("Base Agility increased from 21 to 22", b(21, 22)))
-W(li("Damage at level 1 increased from 56-58 to 57-59", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 56-58 to 57-59"))
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 10: Phantom Strike Duration increased from +0.6 to +0.8s", b(0.6, 0.8)))
@@ -3774,13 +3788,13 @@ W(ul_close())
 W(hero_header("Snapfire"))
 W(ul_open())
 W(li("Base Damage increased by 2", bstat_h("Snapfire", "AttackDamageMin", "7.41b", 2), extra=note_box(hero="Snapfire", field="AttackDamageMin", before_patch="7.41b")))
-W(li("Damage at level 1 increased from 51-57 to 53-59", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 51-57 to 53-59"))
 W(hero_header("Spectre"))
 W(ul_open())
 W(li("Base Agility increased from 26 to 29", b(26, 29)))
-W(li("Damage at level 1 increased from 49-53 to 52-56", '<span class="badge-group" data-overall="buff"><span class="badge buff2">+6%</span></span>'))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 49-53 to 52-56"))
 W(subgroup("Abilities"))
 W(ability("Dispersion"))
 W(ul_open())
@@ -4174,8 +4188,8 @@ W(ul_close())
 W(hero_header("Broodmother"))
 W(ul_open())
 W(li("Base agility increased from 18 to 20", b(18, 20)))
-W(li("Damage at level 1 increased from 45-51 to 47-53", b(48, 50)))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 45-51 to 47-53"))
 
 # Chaos Knight
 W(hero_header("Chaos Knight"))
@@ -4243,8 +4257,8 @@ W(ul_close())
 W(hero_header("Drow Ranger"))
 W(ul_open())
 W(li("Base Agility increased from 22 to 24", b(22, 24)))
-W(li("Damage at level 1 increased from 49-56 to 51-58", b(52.5, 54.5)))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 49-56 to 51-58"))
 W(ability("Marksmanship"))
 W(ul_open())
 W(li("Enemy hero disable range decreased from 325 to 300", b(325, 300)))
@@ -4269,8 +4283,8 @@ W(ul_close())
 W(hero_header("Ember Spirit"))
 W(ul_open())
 W(li("Base Damage decreased by 3", bstat_h("Ember Spirit", "AttackDamageMin", "7.41a", -3), extra=note_box(hero="Ember Spirit", field="AttackDamageMin", before_patch="7.41a")))
-W(li("Damage at level 1 decreased from 55-59 to 52-56", b(57, 54)))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 55-59 to 52-56"))
 W(ability("Sleight of Fist"))
 W(ul_open())
 W(li("Mana Cost increased from 60/65/70/75 to 75", b([60, 65, 70, 75], 75, l=True)))
@@ -4601,7 +4615,7 @@ W(ul_close())
 W(hero_header("Slark"))
 W(ability("Essence Shift"))
 W(ul_open())
-W(li("Duration decreased from 12.5s + 2.5s per level to 10s + 2.5s per level", t("NERF")))
+W(li_formula("Duration decreased", "12.5s + 2.5s per level", "10s + 2.5s per level", lambda L: 12.5 + 2.5*L, lambda L: 10.0 + 2.5*L, l=False))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -4649,8 +4663,8 @@ W(ul_close())
 W(hero_header("Tidehunter"))
 W(ul_open())
 W(li("Base Strength decreased from 26 to 25", b(26, 25)))
-W(li("Damage at level 1 decreased from 51-57 to 50-56", b(54, 53)))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 51-57 to 50-56"))
 W(ability("Leviathan's Catch"))
 W(ul_open())
 W(li("Now gains fish on every even level instead of every level", t("NERF")))
@@ -4813,8 +4827,8 @@ W(ul_close())
 W(hero_header("Chaos Knight"))
 W(ul_open())
 W(li("Base Damage increased by 3", bstat_h("Chaos Knight", "AttackDamageMin", "7.41", 3), extra=note_box(hero="Chaos Knight", field="AttackDamageMin", before_patch="7.41")))
-W(li("Damage on level 1 increased from 53–73 to 56–76", t("BUFF")))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 53–73 to 56–76"))
 
 # Chen
 W(hero_header("Chen"))
@@ -4860,8 +4874,8 @@ W(ul_close())
 W(hero_header("Invoker"))
 W(ul_open())
 W(li("Base Intelligence increased from 20 to 22", b(20, 22)))
-W(li("Damage on level 1 increased from 39–45 to 41–47", t("BUFF")))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 39–45 to 41–47"))
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 10 Talent Tornado Cooldown Reduction increased from 4s to 5s", b(4, 5, l=True)))
@@ -4869,7 +4883,7 @@ W(ul_close())
 
 # Io
 W(hero_header("Io"))
-W(ability("Essence Flux"))
+W(ability("Equilibrium"))
 W(ul_open())
 W(li_formula("Max Damage Amp and Max Heal Amplification decreased", "5% + 0.5% per level", "4% + 0.4% per level", lambda L: 5.0 + 0.5*L, lambda L: 4.0 + 0.4*L))
 W(ul_close())
@@ -4926,11 +4940,11 @@ W(ul_close())
 W(hero_header("Lifestealer"))
 W(ul_open())
 W(li("Base Damage decreased by 3", bstat_h("Lifestealer", "AttackDamageMin", "7.41", -3), extra=note_box(hero="Lifestealer", field="AttackDamageMin", before_patch="7.41")))
-W(li("Damage on level 1 decreased from 49–55 to 46–52", t("NERF")))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 49–55 to 46–52"))
 W(ability("Ghoul Frenzy"))
 W(ul_open())
-W(li("Bonus Attack Speed decreased from 5 per level to 4 per level", t("NERF")))
+W(li_formula("Bonus Attack Speed decreased", "5 per level", "4 per level", lambda L: 5.0*L, lambda L: 4.0*L))
 W(ul_close())
 W(ability("Rage"))
 W(ul_open())
@@ -4953,7 +4967,7 @@ W(ul_close())
 W(hero_header("Mirana"))
 W(ability("Celestial Quiver"))
 W(ul_open())
-W(li("Bonus Damage changed from 3 per level to 5 + 3 per level", t("MISC")))
+W(li_formula("Bonus Damage changed", "3 per level", "5 + 3 per level", lambda L: 3.0*L, lambda L: 5.0 + 3.0*L))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -5108,8 +5122,8 @@ W(ul_close())
 W(hero_header("Windranger"))
 W(ul_open())
 W(li("Base Agility increased from 17 to 20", b(17, 20)))
-W(li("Damage on level 1 increased from 47–59 to 49–61", t("BUFF")))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 47–59 to 49–61"))
 W(ability("Tailwind"))
 W(ul_open())
 W(li("Duration increased from 2s to 2.5s", b(2, 2.5)))
@@ -6664,8 +6678,8 @@ W(ul_close())
 W(hero_header("Dawnbreaker"))
 W(ul_open())
 W(li("Base damage increased by 6", bstat_h("Dawnbreaker", "AttackDamageMin", "7.40c", 6), extra=note_box(hero="Dawnbreaker", field="AttackDamageMin", before_patch="7.40c")))
-W(li("Damage at level 1 increased from 50–54 to 56–60", t("BUFF")))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 50–54 to 56–60"))
 W(ability("Break of Dawn"))
 W(ul_open())
 W(li("Max Damage Increase changed from 25% to 10% + 1% per level", b(25, 10)))
@@ -6854,8 +6868,8 @@ W(ul_close())
 W(hero_header("Drow Ranger"))
 W(ul_open())
 W(li("Base Damage decreased by 2", bstat_h("Drow Ranger", "AttackDamageMin", "7.40c", -2), extra=note_box(hero="Drow Ranger", field="AttackDamageMin", before_patch="7.40c")))
-W(li("Damage at level 1 decreased from 51–58 to 49–56", t("NERF")))
 W(ul_close())
+W(subnote("Damage at level 1 decreased from 51–58 to 49–56"))
 W(ability("Precision Aura"))
 W(ul_open())
 W(li("No longer levels with Marksmanship", t("NERF")))
@@ -7174,7 +7188,7 @@ W(hero_header("Io"))
 W(ul_open())
 W(li("Removed Wellspring innate ability", t("MISC")))
 W(ul_close())
-W(ability("Essence Flux"))
+W(ability("Equilibrium"))
 W(ul_open())
 W(li("New innate ability", t("MISC")))
 W(li("Io always has bonus Outgoing Damage Amp which linearly scales with its health, reaching a maximum of 5% + 0.5% per level at 100% Health. At the same time, Io has Health Restoration and Healing Amplifications which also linearly scale with its health, but reach a maximum of 5% + 0.5% per level at zero Health", t("MISC")))
@@ -7601,8 +7615,8 @@ W(ul_close())
 W(hero_header("Magnus"))
 W(ul_open())
 W(li("Base Agility increased from 12 to 14", b(12, 14)))
-W(li("Damage at level 1 increased from 55–63 to 56–64", t("BUFF")))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 55–63 to 56–64"))
 W(ability("Solid Core"))
 W(ul_open())
 W(li("No longer levels with Reverse Polarity", t("NERF")))
@@ -7860,8 +7874,8 @@ W(hero_header("Nature's Prophet"))
 W(ul_open())
 W(li("Minimum Base damage increased by 4 ", bstat_h("Nature's Prophet", "AttackDamageMin", "7.40c", 4), extra=note_box(hero="Nature's Prophet", field="AttackDamageMin", before_patch="7.40c")))
 W(li("Damage spread decreased from 10 to 6", b(10, 6)))
-W(li("Damage at level 1 increased from 40–50 to 44–50", t("BUFF")))
 W(ul_close())
+W(subnote("Damage at level 1 increased from 40–50 to 44–50"))
 W(ability("Spirit of the Forest"))
 W(ul_open())
 W(li("No longer levels with Wrath of Nature", t("NERF")))
@@ -9080,8 +9094,8 @@ W(ul_close())
 W(hero_header("Void Spirit"))
 W(ul_open())
 W(li("Base Damage decreased by 4", bstat_h("Void Spirit", "AttackDamageMin", "7.40c", -4), extra=note_box(hero="Void Spirit", field="AttackDamageMin", before_patch="7.40c")))
-W(li("Damage at level 1 unchanged due to innate ability changes", t("MISC")))
 W(ul_close())
+W(subnote("Damage at level 1 unchanged due to innate ability changes"))
 W(ability("Intrinsic Edge"))
 W(ul_open())
 W(li("Now also increases Void Spirit's attack damage per point of attribute by 15%", t("REWORK")))
