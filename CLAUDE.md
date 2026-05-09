@@ -4,65 +4,108 @@
 
 `build_patch.py` — **главный файл патч-страниц**. CSS и JS для них встроены прямо в него.
 - `scripts.js` и `styles.css` — отдельные файлы для `index.html` и `calendar.html`. Редактировать их можно, они не перезаписываются.
-- Чтобы изменить стиль или поведение **патч-страниц** (`7.41c.html` и т.д.) — редактируй `CSS`/`SCRIPT` строки внутри `build_patch.py`, а не `styles.css`/`scripts.js`.
-- Сгенерированные HTML (`7.41c.html` и т.д.) — результат запуска `build_patch.py`, не редактируй вручную.
+- Чтобы изменить стиль или поведение **патч-страниц** — редактируй `CSS`/`SCRIPT` строки внутри `build_patch.py`, а не `styles.css`/`scripts.js`.
+- Сгенерированные HTML (`patches/7.41c.html` и т.д.) — результат запуска `python build_patch.py`, не редактируй вручную.
+- Все патч-файлы лежат в `patches/` (не в корне), поэтому их CSS/JS подключаются через `../styles.css`, `../scripts.js`.
 
 ## Структура проекта
 
 ```
-build_patch.py          ← ГЛАВНЫЙ файл. Всё в одном: CSS, JS, HTML-хелперы, данные патча
-generate_patch_code.py  ← Парсит Valve KV-формат → генерирует Python-код для build_patch.py
+build_patch.py            ← ГЛАВНЫЙ. CSS, JS, HTML-хелперы, данные всех патчей
+generate_patch_code.py    ← KV → Python-код. Запускать перед добавлением нового патча
+apply_stats_to_build.py   ← Постпроцессор: t("BUFF")→bstat_h() где есть БД
 data/
-  patchnotes_english.txt  ← Сырые патчноуты от Valve (KV формат)
+  patchnotes_english.txt  ← Сырые патчноуты Valve (KV формат)
   patchnotes_russian.txt  ← Русский перевод
-  items.txt               ← Данные по предметам
+  stats/{version}/
+    heroes.json           ← Стоты героев (npc_heroes.txt → нужные поля)
+    items.json            ← Стоты предметов (items.txt → нужные поля)
+patches/                  ← Финальные HTML, генерируются build_patch.py
 docs/
-  architecture.md         ← Как всё устроено
-  data-format.md          ← API хелперов и формат данных
-  workflow.md             ← Как добавить новый патч
+  architecture.md, data-format.md, workflow.md
 ```
+
+Внешние скрипты (в `D:\Sloppy Patches`):
+- `extract_patchnotes.py` — выкачивает свежие patchnotes_*.txt и npc_*.txt из локального VPK + заливает в репо
+- `fetch_stats.py` — скачивает npc_heroes/items.txt из muk-as/DOTA2_CLIENT за каждый патч (с 7.33), парсит → JSON
+- `upload_stats.py` — заливает JSON-файлы в репо
 
 ## Как запустить
 
 ```bash
-python build_patch.py > 7.41c.html     # собрать текущий патч
-python generate_patch_code.py 7.42     # сгенерировать код из KV-файла
+python build_patch.py        # пересобирает все patches/*.html и calendar.html
+python generate_patch_code.py 7.42   # → _generated_p_7.42.py (вставлять в build_patch.py)
+python apply_stats_to_build.py        # упгрейдит t() → bstat_h() где можем
 ```
 
 ## Ключевые концепции
 
-- **Бейджи** — цветные метки в % для числовых изменений: `b(old, new)` или `b(old, new, l=True)` (l=True = меньше лучше, для кулдаунов)
-- **Текстовые теги** — `t("BUFF")`, `t("NERF")`, `t("REWORK")`, `t("MISC")`, `t("NEW")`, `t("QoL")`
-- **Формульные бейджи** — `bf()` для scale-with-level изменений, создаёт раскрывающуюся таблицу
-- **entity-block** — каждый герой/предмет оборачивается в блок через `hero_header()` / `item_header()`
-- **ITEM_SLUG в build_patch.py** — также читается в `generate_patch_code.py` (line 81-87), добавлять новые предметы надо туда
+### Хелперы для строк изменений
+- `b(old, new, l=False)` — числовой бейдж в %. `l=True`: меньше = лучше (cooldown, mana cost, BAT, gold cost, penalty, channel time, recharge, cast point)
+  - **Исключение**: «X Cooldown Reduction», «X Mana Cost Reduction», «Cooldown Advance» — это **значения талантов**, НЕ применять l=True
+- `br(old_min, old_max, new_min, new_max)` — для range-значений (по midpoint)
+- `bf(old_fn, new_fn, formula_text)` — формульные изменения, возвращает `(trigger, badge, table)`
+- `t("BUFF/NERF/REWORK/MISC/QoL/NEW/DEL")` — текстовые теги
+  - `NEW` (фиолет): считается buff в фильтре (`data-overall=buff`)
+  - `DEL` (красный с зачёркиванием): считается nerf в фильтре (`data-overall=nerf`). Для удалений: «Facets removed from the game», «Item removed from the game»
+- `bstat_h(hero_display, field, patch_before, delta, l=False)` — авто-бейдж из stats DB. Если стат не найден — fallback на `t("BUFF/NERF")`
+- `bstat_i(item_display, field, patch_before, delta, l=False)` — то же для предметов
+- `note_box(text)` — бокс «NOTE: …» для авто-добавок (например «From 17 to 18» когда патчноут не указал базовое значение). Использовать через `extra=note_box(...)` в `li()`
+- `subnote(text)` — мелкий серый текст со стрелкой ↳, для официальных доп. инфо («Damage at level 1 unchanged at 49-59»). Закрывает changes ul; после неё нужен `ul_open()` если будут ещё изменения
+- `info_li`/raw `<li>` — НЕ использовать; либо bstat_h с note_box, либо subnote
+
+### Заголовки сущностей
+- `hero_header(name)` — `/heroes/{slug}.png`. Slug из `HERO_SLUG` или fallback titlecase
+- `item_header(name)` — `/items/{slug}.png`. Slug из `ITEM_SLUG`
+- `enchant_header(name, slug)` — для нейтральных enchantments. URL = `/items/enhancement_{slug}.png`. Использовать вместо `plain_header` для Crude/Greedy/Tough и т.д.
+- `unit_header(name, icon_url)` — отдельный юнит (Spirit Bear) с кастомным URL
+- `plain_header(name)` — без иконки (Mechanics, Tormentor, Roshan, Map Objectives и т.п.)
+- `ability(name)` — `<h4>` название способности. **БЕЗ префикса героя** в имени! «Penitence», не «Chen Penitence». Generate_patch_code.py делает это автоматически — fallback titlecase берёт только bare ability name (после `entity_` префикса)
+- `subgroup(name)` — `<h4>` подгруппа («Talents», «Abilities», «Spirit Bear»)
+
+### Структура changes-блока
+```python
+W(hero_header("Abaddon"))
+W(ul_open())
+W(li("Base Intelligence increased by 1", bstat_h("Abaddon", "AttributeBaseIntelligence", "7.41b", 1),
+     extra=note_box("From 18 to 19")))
+W(ul_close())
+W(subnote("Damage at level 1 unchanged at 49-59"))
+W(subgroup("Talents"))
+W(ul_open())
+W(li(...))
+W(ul_close())
+```
 
 ## База статов (stats DB)
 
-Файлы `data/stats/{version}/heroes.json` и `items.json` — распарсенные поля из npc_heroes.txt / items.txt за каждый патч. Скачиваются через `D:\Sloppy Patches\fetch_stats.py`.
+Файлы `data/stats/{version}/heroes.json` и `items.json` — поля из npc_heroes.txt / items.txt. Покрытие: с 7.33 (источник muk-as/DOTA2_CLIENT). Для патчей старше 7.33 БД нет, fallback на t().
 
-### Хелперы для авто-бейджей из БД
+Ключи из npc_heroes.txt: `ArmorPhysical`, `AttackDamageMin/Max`, `AttackRate`, `MovementSpeed`, `AttackRange`, `AttributeBaseStrength/Agility/Intelligence`, `AttributeStrengthGain/AgilityGain/IntelligenceGain`, `StatusHealth`, `StatusMana`, `StatusHealthRegen`, `StatusManaRegen`.
+Ключи из items.txt: `ItemCost`, `ItemCooldown`, `AbilityManaCost`.
 
-```python
-# Получить значение стата напрямую
-old = stat_h("Doom", "ArmorPhysical", "7.41")        # → 4
-old = stat_i("Blink Dagger", "ItemCooldown", "7.41") # → 14
+## Маппинг описаний → поля БД (HERO_STAT_MAP в generate_patch_code.py)
 
-# Авто-бейдж: delta = разница (new - old). patch_before = версия ДО патча
-W(li("Base Armor decreased by 1", bstat_h("Doom", "ArmorPhysical", "7.41", -1)))
-W(li("Cooldown decreased from 14 to 12", bstat_i("Blink Dagger", "ItemCooldown", "7.41b", -2, l=True)))
-```
+При паттерне `"увеличено/уменьшено на N"` (без явного from-to) генератор смотрит первое совпадение:
+| English текст | KV-поле | l_flag |
+|---|---|---|
+| base health regen | StatusHealthRegen | False |
+| base mana regen | StatusManaRegen | False |
+| base health | StatusHealth | False |
+| base mana | StatusMana | False |
+| base armor | ArmorPhysical | False |
+| base strength/agility/intelligence | Attribute Base * | False |
+| strength/agility/intelligence gain | AttributeStrength/Agility/Intelligence Gain | False |
+| base attack time | AttackRate | True |
+| movement/move speed | MovementSpeed | False |
+| attack range | AttackRange | False |
+| base damage | AttackDamageMin (avg с Max) | False, is_dmg=True |
 
-Ключи из npc_heroes.txt: `ArmorPhysical`, `AttackDamageMin/Max`, `AttackRate`, `MovementSpeed`,
-`AttributeBaseStrength/Agility/Intelligence`, `AttributeStrengthGain/AgilityGain/IntelligenceGain`,
-`StatusHealth`, `StatusMana`, `StatusHealthRegen`, `StatusManaRegen`.
-
-Ключи из items.txt: `ItemCost`, `ItemCooldown`, `AbilityManaCost`, `AbilityCooldown`.
-
-Если стат не найден (ещё нет файла за ту версию) — fallback на `t("BUFF")`/`t("NERF")`.
-
-## Предупреждения
+## Предупреждения и подводные камни
 
 - При добавлении нового героя: добавить в `HERO_SLUG` (build_patch.py) И в `load_hero_internal_to_display()` (generate_patch_code.py)
-- `l=True` — флаг «меньше = лучше»: cooldown, mana cost, cast point, gold cost и т.д.
-- `_formula_id_counter` — глобальный счётчик для уникальных ID таблиц, сбрасывается при каждом запуске
+- При добавлении нового предмета: только в `ITEM_SLUG` (build_patch.py); generate_patch_code.py читает оттуда
+- 7.41c в HANDCRAFTED раньше был сырой HTML — теперь конвертирован в W() вызовы; следующие патчи делать только через W()
+- `_formula_id_counter` — глобальный счётчик для table-id, сбрасывается при каждом запуске
+- `.gitignore` исключает `__pycache__/`, `_generated_p_*.py`, `_insert_patches.py`. Одноразовые скрипты `_*.py` после использования можно удалять
+- 7.08 — патч слишком старый для stats DB (muk-as начался с 7.33), он остаётся с t() fallback

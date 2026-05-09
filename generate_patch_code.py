@@ -378,6 +378,14 @@ def _detect_l(text):
 
 def _detect_text_tag(text):
     t = text.lower()
+    # DEL: explicit removal of feature/mechanic/item.
+    # Note: NEW gets data-overall=buff, DEL gets data-overall=nerf (see t() in build_patch).
+    if any(p in t for p in [
+        'removed from the game', 'removed from game',
+        'has been removed', 'have been removed',
+        ' has been deleted', ' have been deleted',
+    ]):
+        return 'DEL'
     if any(p in t for p in ['no longer', "can't", 'cannot', "won't be applied",
                              'will no longer']):
         return 'NERF'
@@ -967,12 +975,12 @@ def generate(version):
             continue
 
         if t == 'enchantment':
-            # Falls under "Enchantment changes" subgroup if active, otherwise emit as item
+            # Neutral enchantment — uses item-style icon header.
             entity_key = ('enchantment', info['entity'])
             if entity_key != last_entity_key:
                 end_ul()
                 name = item_display_name('enhancement_' + info['entity'])
-                out.append(f'W(plain_header("{_escape(name)}"))')
+                out.append(f'W(enchant_header("{_escape(name)}", "{info["entity"]}"))')
                 last_entity_key = entity_key
             if info['is_info']:
                 end_ul()
@@ -1043,9 +1051,17 @@ def generate(version):
                 ab = info['ability']
                 if last_ability != ab:
                     end_ul()
-                    name = ability_display_name(info['entity'] + '_' + info['entity'] + '_' + ab) \
-                           if (info['entity'] + '_' + info['entity'] + '_' + ab) in ABILITY_OVERRIDES \
-                           else ability_display_name(info['entity'] + '_' + ab)
+                    # Look up ABILITY_OVERRIDES with both prefix patterns;
+                    # fallback to BARE ability titlecased (NOT entity+ab — иначе
+                    # получим "Centaur Horsepower" вместо "Horsepower").
+                    full = info['entity'] + '_' + info['entity'] + '_' + ab
+                    short = info['entity'] + '_' + ab
+                    if full in ABILITY_OVERRIDES:
+                        name = ABILITY_OVERRIDES[full]
+                    elif short in ABILITY_OVERRIDES:
+                        name = ABILITY_OVERRIDES[short]
+                    else:
+                        name = ab.replace('_', ' ').title()
                     out.append(f'W(ability("{_escape(name)}"))')
                     last_ability = ab
                 if info['is_info']:
