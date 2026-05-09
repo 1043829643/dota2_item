@@ -31,25 +31,25 @@ def _load_stats_db():
 _STATS_H, _STATS_I = _load_stats_db()
 
 
+def _stat_h_raw(npc_key: str, field: str, version: str):
+    """Look up `field` for `npc_key` at `version`; fall back to npc_dota_hero_base
+    when the hero doesn't override (Valve KV inheritance)."""
+    bucket = _STATS_H.get(version, {})
+    val = bucket.get(npc_key, {}).get(field)
+    if val is None:
+        val = bucket.get("npc_dota_hero_base", {}).get(field)
+    return val
+
+
 def stat_h(hero_display: str, field: str, version: str):
     """
     Возвращает числовое значение стата героя в указанном патче или None.
-
-    hero_display — отображаемое имя (как в HERO_SLUG), например "Doom"
-    field        — ключ из npc_heroes.txt, например "ArmorPhysical",
-                   "AttackDamageMin", "MovementSpeed", "AttributeBaseStrength"
-    version      — патч, в котором ищем, например "7.41"
-
-    Пример:
-        # Doom Base Armor в патче 7.41 (ДО изменений 7.41a)
-        old = stat_h("Doom", "ArmorPhysical", "7.41")  # → 4
-        W(li("Base Armor decreased by 1", b(old, old - 1)))
+    Если у героя нет явного значения в KV — берёт из npc_dota_hero_base
+    (Valve использует наследование, скрейпер выгребает только явные поля).
     """
-    # Конвертируем имя → npc slug
     raw_slug = HERO_SLUG.get(hero_display,
                               hero_display.lower().replace(" ", "_").replace("'", ""))
-    npc_key = "npc_dota_hero_" + raw_slug
-    return _STATS_H.get(version, {}).get(npc_key, {}).get(field)
+    return _stat_h_raw("npc_dota_hero_" + raw_slug, field, version)
 
 
 def stat_i(item_display: str, field: str, version: str):
@@ -103,8 +103,19 @@ def _patch_sort_key(v: str):
 def _prev_change_patch(db: dict, key_with_prefix: str, field: str, before_patch: str):
     """Returns the patch in which the value at `before_patch` was first set
     (i.e. the most recent earlier patch where the value differs from the
-    target, +1 step). None if value never changed within known history."""
-    target = db.get(before_patch, {}).get(key_with_prefix, {}).get(field)
+    target, +1 step). None if value never changed within known history.
+    Falls back to npc_dota_hero_base / item_base when the entity doesn't
+    override the field (Valve KV inheritance)."""
+    base_key = "npc_dota_hero_base" if key_with_prefix.startswith("npc_dota_hero_") else None
+
+    def _at(v):
+        bucket = db.get(v, {})
+        val = bucket.get(key_with_prefix, {}).get(field)
+        if val is None and base_key:
+            val = bucket.get(base_key, {}).get(field)
+        return val
+
+    target = _at(before_patch)
     if target is None:
         return None
     versions = sorted([v for v in db
@@ -112,8 +123,7 @@ def _prev_change_patch(db: dict, key_with_prefix: str, field: str, before_patch:
                       key=_patch_sort_key)
     last_with_target = before_patch
     for v in reversed(versions[:-1]):
-        val = db.get(v, {}).get(key_with_prefix, {}).get(field)
-        if val != target:
+        if _at(v) != target:
             return last_with_target
         last_with_target = v
     return last_with_target
