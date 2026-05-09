@@ -209,7 +209,7 @@ def load_hero_internal_to_display(build_py=None):
     """Comprehensive map: Valve internal name → display name. Includes all
     heroes that exist in any Dota 2 patch from 7.06 through 7.41c."""
     return {
-        'abaddon': 'Abaddon', 'alchemist': 'Alchemist',
+        'abaddon': 'Abaddon', 'abyssal_underlord': 'Underlord', 'alchemist': 'Alchemist',
         'ancient_apparition': 'Ancient Apparition', 'antimage': 'Anti-Mage',
         'arc_warden': 'Arc Warden', 'axe': 'Axe', 'bane': 'Bane',
         'batrider': 'Batrider', 'beastmaster': 'Beastmaster',
