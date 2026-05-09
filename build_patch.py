@@ -490,6 +490,18 @@ def section(title):
 # Talent icon — Valve's official SVG used in www.dota2.com/patches/.
 TALENT_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/talents.svg"
 INNATE_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png"
+# "Other" subgroup icon — neutral inline SVG (three sliders) for stat/misc changes.
+OTHER_ICON_URL = (
+    "data:image/svg+xml;utf8,"
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'>"
+    "<rect x='6' y='11' width='36' height='2' rx='1' fill='%238b949e'/>"
+    "<circle cx='16' cy='12' r='4' fill='%23c9d1d9' stroke='%238b949e' stroke-width='1.5'/>"
+    "<rect x='6' y='23' width='36' height='2' rx='1' fill='%238b949e'/>"
+    "<circle cx='32' cy='24' r='4' fill='%23c9d1d9' stroke='%238b949e' stroke-width='1.5'/>"
+    "<rect x='6' y='35' width='36' height='2' rx='1' fill='%238b949e'/>"
+    "<circle cx='22' cy='36' r='4' fill='%23c9d1d9' stroke='%238b949e' stroke-width='1.5'/>"
+    "</svg>"
+)
 
 # Innate abilities — marked with INNATE_ICON inside the .ability-block.
 # Format: {(hero_internal_slug, ability_display_name), ...}
@@ -661,7 +673,13 @@ def ability(title, slug=None, innate=None):
 def ul_open():
     out = ''
     if _State.next_ul_is_hero_stats and _State.current_hero:
-        out += '<h4 class="subgroup">Stats</h4>'
+        on_err = "this.style.display='none'"
+        icon = (f'<img src="{OTHER_ICON_URL}" alt="" '
+                f'class="ability-icon-img" loading="lazy" onerror="{on_err}">')
+        out += ('<h4 class="subgroup">Other</h4>'
+                '<div class="ability-block other-block">'
+                f'<div class="ability-icon-wrap">{icon}</div>')
+        _State.ability_block_open = True
         _State.next_ul_is_hero_stats = False
     return out + '<ul class="changes">'
 
@@ -1506,6 +1524,12 @@ h4.subgroup {
   padding: 6px;
   box-shadow: 0 0 0 1px rgba(121, 192, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
 }
+/* Other-block: neutral grey framing for the inline-SVG sliders icon */
+.ability-block.other-block > .ability-icon-wrap > .ability-icon-img {
+  background: rgba(139, 148, 158, 0.05);
+  padding: 6px;
+  box-shadow: 0 0 0 1px rgba(139, 148, 158, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
 /* Formula tables INSIDE .ability-block — extend back to entity-block left edge,
    not just within content column (else they look right-aligned past the icon). */
 .ability-block ul.changes li > .formula-table {
@@ -1534,6 +1558,19 @@ ul.changes li {
   padding: 1px 0;
   line-height: 1.5;
   color: #c9d1d9;
+  position: relative;
+}
+/* Hover ruler: faint dashed line spans the row from text to % so the eye
+   can trace which percentage belongs to which text. Only appears when a
+   badge-group is present (i.e. there's a % to trace to). */
+ul.changes li:has(> .badge-group):hover::after {
+  content: "";
+  position: absolute;
+  left: 76px;
+  right: 0;
+  bottom: 2px;
+  border-bottom: 1px dashed rgba(139, 148, 158, 0.28);
+  pointer-events: none;
 }
 /* Left column: text-tag goes here. All variants (real .badge, placeholder, raw-row
    ::before) share fixed dimensions so they line up perfectly across rows. */
