@@ -1961,7 +1961,7 @@ img { max-width: 100%; }
 /* ENTITY-BLOCK wrapper (used for filtering hide/show) */
 .entity-block {
   margin-bottom: 6px;
-  padding-left: 10px;          /* small breathing room on the left, applies to icon + all rows */
+  padding-left: 16px;          /* small breathing room on the left, applies to icon + all rows */
 }
 
 /* === FILTER MODE === */
