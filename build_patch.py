@@ -2201,17 +2201,19 @@ ul.subnote-items > li::before {
 }
 
 /* BADGES — flat rectangular tag boxes */
-/* Compact inline-flow % badge used inside row text (e.g. after 'Recipe cost
-   from A to B') — plain coloured text, no box. Matches the inline % style
-   used inside .badge-group rows elsewhere on the page. */
+/* Inline % badge used inside row text (e.g. after 'Recipe cost from A to B').
+   Plain coloured text, no box, baseline-aligned — mirrors .badge-group .badge
+   so the +X% sits on the same baseline as the surrounding row text. */
 .badge.badge-inline {
-  display: inline;
-  padding: 0;
-  margin-left: 4px;
   background: none !important;
   border: none !important;
+  padding: 0 !important;
   text-shadow: none !important;
-  font-size: 13px;
+  display: inline;
+  vertical-align: baseline;
+  margin: 0 0 0 4px;
+  min-width: 0;
+  font-size: inherit;
   letter-spacing: 0;
   text-transform: none;
 }
