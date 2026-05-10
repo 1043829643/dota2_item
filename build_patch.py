@@ -1655,8 +1655,9 @@ span.cal-full-day.has-patch {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;          /* keep all tag buttons on one line */
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .legend-tags strong {
   color: #c9d1d9;
@@ -1670,8 +1671,8 @@ span.cal-full-day.has-patch {
 /* SEARCH BOX */
 .search-box {
   position: relative;
-  flex: 1 1 auto;
-  min-width: 200px;
+  flex: 0 1 280px;
+  min-width: 180px;            /* shrinks so categories/tags fit on one line each */
 }
 .search-box input {
   width: 100%;
@@ -1822,8 +1823,10 @@ h2.section {
 .entity-block.is-new ul.changes li > .row-tag-empty {
   visibility: hidden;
 }
-.entity-block.is-new[data-new-tag] ul.changes li:first-child::before {
-  content: attr(data-new-tag);
+/* The pseudo lives on <li>; attr() can't read data-new-tag from .entity-block.
+   Use explicit content per known tag value. */
+.entity-block.is-new[data-new-tag="NEW"] ul.changes li:first-child::before,
+.entity-block.is-new[data-new-tag="RETURNING"] ul.changes li:first-child::before {
   grid-column: 1;
   align-self: start;
   margin-top: 2px;
@@ -1842,6 +1845,8 @@ h2.section {
   border: 1px solid rgba(220, 175, 95, 0.28);
   box-sizing: border-box;
 }
+.entity-block.is-new[data-new-tag="NEW"]       ul.changes li:first-child::before { content: "NEW"; }
+.entity-block.is-new[data-new-tag="RETURNING"] ul.changes li:first-child::before { content: "RETURNING"; }
 /* Type label after the item name — small, uppercased, NEW colour family. */
 .entity-name .entity-new-type {
   margin-left: 8px;
@@ -2495,7 +2500,8 @@ ul.changes li.aghanim-shard {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 .legend-categories strong {
   color: #c9d1d9;
