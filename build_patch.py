@@ -1813,57 +1813,35 @@ h2.section {
   color: #79c0ff;
 }
 
-/* NEW-ITEM BLOCK — entity row shows only the type label after the name.
-   The NEW tag itself sits to the LEFT of the changes list, vertically
-   centred over all rows; a thin NEW-coloured left rule visually groups
-   the rows it covers. Per-row BUFF/NERF tags are suppressed. */
-.entity-block.is-new {
-  position: relative;
-  padding-left: 64px;          /* room for the centred NEW tag */
+/* NEW-ITEM BLOCK — keeps the standard grid (tag column / text / %).
+   Only the FIRST row of the block gets a NEW tag (or RETURNING) in the tag
+   column; the original per-row tag is hidden. Subsequent rows show an empty
+   placeholder so the text column stays aligned with the rest of the page.
+   The tag text comes from data-new-tag on the .entity-block. */
+.entity-block.is-new ul.changes li > .badge:first-child,
+.entity-block.is-new ul.changes li > .row-tag-empty {
+  visibility: hidden;
 }
-.entity-block.is-new > .entity { margin-left: 0; }
-.entity-block.is-new ul.changes {
-  position: relative;
-  border-left: 2px solid rgba(220, 175, 95, 0.45);
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-  padding-left: 14px;
-}
-.entity-block.is-new ul.changes::before {
-  /* NEW tag — content set via the parent's data-new-tag attribute. */
+.entity-block.is-new[data-new-tag] ul.changes li:first-child::before {
   content: attr(data-new-tag);
-  position: absolute;
-  left: -64px;
-  top: 50%;
-  transform: translateY(-50%);
-  /* match .badge new visuals */
+  grid-column: 1;
+  align-self: start;
+  margin-top: 2px;
+  width: 64px;
+  min-width: 64px;
   display: inline-block;
   padding: 3px 7px;
   border-radius: 2px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.4px;
+  line-height: 1;
+  text-align: center;
   background: rgba(220, 175, 95, 0.10);
   color: #b08c5a;
-  border: 1px solid rgba(220, 175, 95, 0.30);
-  text-align: center;
-  min-width: 50px;
+  border: 1px solid rgba(220, 175, 95, 0.28);
+  box-sizing: border-box;
 }
-/* Bridge the data-new-tag attribute from the parent to the ::before content. */
-.entity-block.is-new[data-new-tag] ul.changes { /* anchor needed for selector */ }
-.entity-block.is-new[data-new-tag="NEW"] ul.changes::before { content: "NEW"; }
-.entity-block.is-new[data-new-tag="RETURNING"] ul.changes::before { content: "RETURNING"; }
-/* Hide per-row tags (the NEW signal is the block-level tag on the left). */
-.entity-block.is-new ul.changes li > .badge:first-child,
-.entity-block.is-new ul.changes li > .row-tag-empty {
-  display: none;
-}
-.entity-block.is-new ul.changes li {
-  grid-template-columns: 1fr auto;
-  column-gap: 12px;
-}
-.entity-block.is-new ul.changes li > .row-text { grid-column: 1; }
-.entity-block.is-new ul.changes li > .badge-group { grid-column: 2; }
 /* Type label after the item name — small, uppercased, NEW colour family. */
 .entity-name .entity-new-type {
   margin-left: 8px;
@@ -2504,20 +2482,27 @@ ul.changes li.aghanim-shard {
   background-clip: padding-box !important;
 }
 
-/* CATEGORIES FILTER BAR — sits next to tag filters; same button style. */
+/* Tags row + Categories row stacked vertically inside the toolbar; both rows
+   share the same horizontal-button rhythm so labels align under each other. */
+.legend-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
 .legend-categories {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: 18px;
   flex-wrap: wrap;
 }
 .legend-categories strong {
-  color: #8b949e;
+  color: #c9d1d9;
+  font-weight: 600;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.7px;
   text-transform: uppercase;
+  letter-spacing: 0.6px;
   margin-right: 4px;
 }
 .cat-filter-btn {
@@ -2896,17 +2881,19 @@ def write_head(version, date):
 <div class="container">
 
 <div class="toolbar">
-  <div class="legend-tags">
-    <strong>Tags:</strong>
-    <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
-    <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
-    <button class="badge new filter-btn" data-filter="new">NEW</button>
-    <button class="badge del filter-btn" data-filter="del">DEL</button>
-    <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
-    <button class="badge misc filter-btn" data-filter="misc">MISC</button>
-    <button class="badge qol filter-btn" data-filter="qol">QoL</button>
+  <div class="legend-stack">
+    <div class="legend-tags">
+      <strong>Tags:</strong>
+      <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
+      <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
+      <button class="badge new filter-btn" data-filter="new">NEW</button>
+      <button class="badge del filter-btn" data-filter="del">DEL</button>
+      <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
+      <button class="badge misc filter-btn" data-filter="misc">MISC</button>
+      <button class="badge qol filter-btn" data-filter="qol">QoL</button>
+    </div>
+    <div class="legend-categories"><!--CATEGORIES_BAR--></div>
   </div>
-  <div class="legend-categories"><!--CATEGORIES_BAR--></div>
   <div class="search-box">
     <input type="text" id="entity-search" placeholder="Search heroes, items, abilities…" autocomplete="off" spellcheck="false">
     <div class="search-results" id="search-results"></div>
