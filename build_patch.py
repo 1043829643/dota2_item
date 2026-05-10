@@ -2010,7 +2010,9 @@ ul.changes li.ability-row-end {
   font-size: 13.5px;
 }
 
-/* Type label after the item name — small, uppercased, NEW colour family. */
+/* Type label after the item name — small, uppercased, NEW colour family.
+   vertical-align: middle so it sits on the item name's optical mid-line
+   instead of dropping to the baseline of the larger heading text. */
 .entity-name .entity-new-type {
   margin-left: 8px;
   font-size: 11.5px;
@@ -2019,6 +2021,7 @@ ul.changes li.ability-row-end {
   text-transform: uppercase;
   color: #b08c5a;
   opacity: 0.85;
+  vertical-align: middle;
 }
 
 /* SUBGROUPS — same colour as body text / ability titles, not blue.
@@ -2730,6 +2733,14 @@ body.cat-filter-active .cat-hide { display: none !important; }
 .entity-block > ul.subnotes,
 .entity-block > .ability-block {
   padding-left: 14px;
+}
+/* components/provides are bordered boxes (not flow text), so use margin-left
+   instead of padding-left — the box's own padding stays its visual breathing
+   room and the BORDER aligns with the +14 indent applied to ul.changes /
+   subgroups. */
+.entity-block > .components-box,
+.entity-block > .provides-box {
+  margin-left: 14px;
 }
 
 /* === FILTER MODE === */
