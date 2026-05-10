@@ -272,22 +272,6 @@ def gradient_class(magnitude, is_buff):
     return f"{prefix}10"
 
 
-def b_inline(old, new, l=True):
-    """Compact percentage badge meant to be embedded INSIDE row text (e.g.
-    after 'Recipe cost decreased from A to B'). Default l=True since this is
-    primarily used for cost changes where lower=buff."""
-    if old == 0 or new == old:
-        return '<span class="badge neutral badge-inline">0%</span>'
-    pct = round((new - old) / old * 100)
-    if pct == 0:
-        return '<span class="badge neutral badge-inline">0%</span>'
-    is_buff = (new < old) if l else (new > old)
-    mag = abs(pct)
-    cls = gradient_class(mag, is_buff)
-    sign = '+' if is_buff else '-'
-    return f'<span class="badge {cls} badge-inline">{sign}{mag}%</span>'
-
-
 def b(old, new, l=False):
     """Generate per-level badges. old/new can be scalar or list.
     l=True means lower-is-buff (cooldowns, mana costs, penalties).
@@ -2201,23 +2185,6 @@ ul.subnote-items > li::before {
 }
 
 /* BADGES — flat rectangular tag boxes */
-/* Inline % badge used inside row text (e.g. after 'Recipe cost from A to B').
-   Plain coloured text, no box, baseline-aligned — mirrors .badge-group .badge
-   so the +X% sits on the same baseline as the surrounding row text. */
-.badge.badge-inline {
-  background: none !important;
-  border: none !important;
-  padding: 0 !important;
-  text-shadow: none !important;
-  display: inline;
-  vertical-align: baseline;
-  margin: 0 0 0 4px;
-  min-width: 0;
-  font-size: inherit;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
 .badge {
   display: inline-block;
   padding: 3px 7px;
@@ -6021,12 +5988,12 @@ W(item_header("Arcane Boots"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now also requires a Wizard Hat (250g)", t("REWORK")))
-W(li("Recipe cost decreased from 475 to 325 " + b_inline(475, 325) + ". Total cost increased from 1400g to 1500g", b(1400, 1500, l=True)))
+W(li("Recipe cost decreased from 475 to 325 " + b(475, 325, l=True) + ". Total cost increased from 1400g to 1500g", b(1400, 1500, l=True)))
 W(li("Now also provides +125 Mana", t("NEW")))
 W(ul_close())
 W(item_header("Guardian Greaves"))
 W(ul_open())
-W(li("Recipe cost increased from 1125 to 1175 " + b_inline(1125, 1175) + ". Total cost increased from 4300g to 4450g (due to Arcane Boots cost increase)", b(4300, 4450, l=True)))
+W(li("Recipe cost increased from 1125 to 1175 " + b(1125, 1175, l=True) + ". Total cost increased from 4300g to 4450g (due to Arcane Boots cost increase)", b(4300, 4450, l=True)))
 W(li("Now also provides +150 Mana", t("NEW")))
 W(li("Mana Regen bonus decreased from +1.5 to +1", b(1.5, 1)))
 W(ul_close())
@@ -6034,7 +6001,7 @@ W(item_header("Battle Fury"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Perseverance (1400) instead of Cornucopia (1200)", t("REWORK")))
-W(li("Recipe cost decreased from 600 to 400 " + b_inline(600, 400) + ". Total cost unchanged at 3900g", t("MISC")))
+W(li("Recipe cost decreased from 600 to 400 " + b(600, 400, l=True) + ". Total cost unchanged at 3900g", t("MISC")))
 W(ul_close())
 W(item_header("Black King Bar"))
 W(ul_open())
@@ -6044,7 +6011,7 @@ W(item_header("Blade Mail"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Splintmail (950) instead of Chainmail (550)", t("REWORK")))
-W(li("Recipe cost decreased from 750 to 450 " + b_inline(750, 450) + ". Total cost increased from 2300g to 2400g", b(2300, 2400, l=True)))
+W(li("Recipe cost decreased from 750 to 450 " + b(750, 450, l=True) + ". Total cost increased from 2300g to 2400g", b(2300, 2400, l=True)))
 W(li("Armor bonus increased from +6 to +7", b(6, 7)))
 W(ul_close())
 W(item_header("Crimson Guard"))
@@ -6081,7 +6048,7 @@ W(item_header("Ancient Janggo"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Headdress (425) instead of Robe of the Magi (450)", t("REWORK")))
-W(li("Recipe cost increased from 500 to 525 " + b_inline(500, 525) + ". Total cost unchanged at 1625g", t("MISC")))
+W(li("Recipe cost increased from 500 to 525 " + b(500, 525, l=True) + ". Total cost unchanged at 1625g", t("MISC")))
 W(li("No longer provides +7 Intelligence", t("NERF")))
 W(li("Strength bonus increased from +7 to +8", b(7, 8)))
 W(li("Swiftness Aura now also provides +2.5 Health Regen", t("REWORK")))
@@ -6105,14 +6072,14 @@ W(item_header("Gungir"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now also requires Chasm Stone (800)", t("REWORK")))
-W(li("Recipe cost decreased from 1100 to 400 " + b_inline(1100, 400) + ". Total cost increased from 4550g to 4650g", b(4550, 4650, l=True)))
+W(li("Recipe cost decreased from 1100 to 400 " + b(1100, 400, l=True) + ". Total cost increased from 4550g to 4650g", b(4550, 4650, l=True)))
 W(li("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack", t("MISC")))
 W(ul_close())
 W(item_header("Glimmer Cape"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Shawl (450) instead of Cloak (800)", t("REWORK")))
-W(li("Recipe cost increased from 450 to 800 " + b_inline(450, 800) + ". Total cost unchanged at 2150g", t("MISC")))
+W(li("Recipe cost increased from 450 to 800 " + b(450, 800, l=True) + ". Total cost unchanged at 2150g", t("MISC")))
 W(ul_close())
 W(item_header("Hand Of Midas"))
 W(ul_open())
@@ -6179,11 +6146,11 @@ W(li("Berserk armor reduction decreased from 8 to 7", b(8, 7)))
 W(ul_close())
 W(item_header("Mekansm"))
 W(ul_open())
-W(li("Recipe cost increased from 800 to 850 " + b_inline(800, 850) + ". Total cost unchanged at 1775g (due to Chainmail cost decrease)", t("MISC")))
+W(li("Recipe cost increased from 800 to 850 " + b(800, 850, l=True) + ". Total cost unchanged at 1775g (due to Chainmail cost decrease)", t("MISC")))
 W(ul_close())
 W(item_header("Monkey King Bar"))
 W(ul_open())
-W(li("Recipe cost increased from 600 to 900 " + b_inline(600, 900) + ". Total cost increased from 4700g to 5000g", b(4700, 5000, l=True)))
+W(li("Recipe cost increased from 600 to 900 " + b(600, 900, l=True) + ". Total cost increased from 4700g to 5000g", b(4700, 5000, l=True)))
 W(li("Now also provides +50 Attack Range to melee heroes only", t("REWORK")))
 W(li("Damage bonus increased from +40 to +50", b(40, 50)))
 W(li("Attack Speed bonus increased from +45 to +50", b(45, 50)))
@@ -6203,7 +6170,7 @@ W(item_header("Orchid"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Claymore (1350) instead of Cornucopia (1200)", t("REWORK")))
-W(li("Recipe cost decreased from 450 to 300 " + b_inline(450, 300) + ". Total cost unchanged at 3275g", t("MISC")))
+W(li("Recipe cost decreased from 450 to 300 " + b(450, 300, l=True) + ". Total cost unchanged at 3275g", t("MISC")))
 W(li("No longer provides +6 Health Regen", t("NERF")))
 W(li("Damage bonus increased from +10 to +20", b(10, 20)))
 W(li("Mana Regen bonus decreased from +3 to +2.5", b(3, 2.5)))
@@ -6213,7 +6180,7 @@ W(item_header("Bloodthorn"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Oblivion Staff (1625) instead of Hyperstone (2000)", t("REWORK")))
-W(li("Recipe cost increased from 450 to 600 " + b_inline(450, 600) + ". Total cost decreased from 6625g to 6400g", b(6625, 6400, l=True)))
+W(li("Recipe cost increased from 450 to 600 " + b(450, 600, l=True) + ". Total cost decreased from 6625g to 6400g", b(6625, 6400, l=True)))
 W(li("No longer provides +6.5 Health Regen", t("NERF")))
 W(li("Intelligence bonus increased from +10 to +25", b(10, 25)))
 W(li("Attack Speed bonus decreased from +95 to +70", b(95, 70)))
@@ -6238,7 +6205,7 @@ W(item_header("Pavise"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Wizard Hat (250) instead of Energy Booster (800)", t("REWORK")))
-W(li("Recipe cost increased from 175 to 675 " + b_inline(175, 675) + ". Total cost decreased from 1400g to 1350g", b(1400, 1350, l=True)))
+W(li("Recipe cost increased from 175 to 675 " + b(175, 675, l=True) + ". Total cost decreased from 1400g to 1350g", b(1400, 1350, l=True)))
 W(li("Mana bonus decreased from +250 to +175", b(250, 175)))
 W(ul_close())
 W(item_header("Solar Crest"))
@@ -6313,7 +6280,7 @@ W(item_header("Shiva's Guard"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Splintmail (950) and Chasm Stone (800) instead of Veil of Discord (1725)", t("REWORK")))
-W(li("Recipe cost decreased from 2050 to 1350 " + b_inline(2050, 1350) + ". Total cost decreased from 5175g to 4500g", b(5175, 4500, l=True)))
+W(li("Recipe cost decreased from 2050 to 1350 " + b(2050, 1350, l=True) + ". Total cost decreased from 5175g to 4500g", b(5175, 4500, l=True)))
 W(li("No longer provides +5 Strength, +5 Agility, +5 Intelligence, or +5 Health Regen", t("NERF")))
 W(li("Armor bonus increased from +15 to +17", b(15, 17)))
 W(li("Now also provides +75 Area of Effect", t("REWORK")))
@@ -6365,7 +6332,7 @@ W(li("Effect does not stack with Veil of Discord's Spell Weakness", t("MISC")))
 W(ul_close())
 W(item_header("Witch Blade"))
 W(ul_open())
-W(li("Recipe cost increased from 250 to 300 " + b_inline(250, 300) + ". Total cost unchanged at 2775g (due to Chainmail cost decrease)", t("MISC")))
+W(li("Recipe cost increased from 250 to 300 " + b(250, 300, l=True) + ". Total cost unchanged at 2775g (due to Chainmail cost decrease)", t("MISC")))
 W(ul_close())
 # ===== NEUTRAL ITEM UPDATES =====
 W(section("Neutral Item Updates"))
