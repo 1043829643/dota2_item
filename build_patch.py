@@ -2160,11 +2160,11 @@ img { max-width: 100%; }
    with all other rows in the list). */
 ul.changes li.aghanim-scepter,
 ul.changes li.aghanim-shard {
-  /* Stripe begins at 76px = beginning of text column (col 1 ends at 64,
-     12px gap, col 2 starts at 76). Tag column AND the gap stay untinted.
-     Colour is a saturated translucent blue so the row reads as a sub-
-     category, not as the same neutral grey-blue as entity cards. */
-  background: linear-gradient(90deg, transparent 0 70px, rgba(72, 148, 255, 0.22) 70px, rgba(72, 148, 255, 0.10) 60%, transparent 100%);
+  /* Stripe begins ~70px from li edge (just before the text column starts at
+     76, leaves a small breathing-room before the first letter). Height is
+     constrained to the tag-block height (~19px from top:3px) so the stripe
+     never grows with multi-line rows or correction-notes below. */
+  background: linear-gradient(90deg, transparent 0 70px, rgba(72, 148, 255, 0.22) 70px, rgba(72, 148, 255, 0.10) 60%, transparent 100%) no-repeat 0 3px / 100% 19px;
   border-radius: 3px;
 }
 /* Aghanim marker — inline icon appended to the change-text inside .row-text,
@@ -8362,14 +8362,14 @@ W(ul_close())
 
 # Sand King
 W(hero_header("Sand King"))
-W(ability("Sandking Caustic Finale"))
+W(ability("Caustic Finale"))
 W(ul_open())
 W(li("No longer levels with Epicenter", t("NERF")))
 W(li("Base Damage rescaled from 20/40/60/80 to 17 + 3 per level", b([20, 40, 60, 80], 17)))
 W(li("Max Health Damage rescaled from 3/7/11/15% to 2.5% + 0.5% per level", b([3, 7, 11, 15], 2.5)))
 W(li("Duration decreased from 4.5/5/5.5/6s to 4.5s", b([4.5, 5, 5.5, 6], 4.5)))
 W(ul_close())
-W(ability("Sandking Burrowstrike"))
+W(ability("Burrowstrike"))
 W(ul_open())
 W(li("Cast Range increased from 525/600/675/750 to 550/625/700/775", b([525, 600, 675, 750], [550, 625, 700, 775])))
 W(li("Sand King now immediately re-gains invisibility if the Burrowstrike ends within Sand Storm's AoE", t("REWORK")))
