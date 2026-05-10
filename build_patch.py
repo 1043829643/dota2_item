@@ -155,9 +155,11 @@ def bstat_i(item_display: str, field: str, patch_before: str, delta,
 
 # ---------- IMAGE URL HELPERS ----------
 
-HERO_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/"
-ITEM_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/"
-ABIL_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/"
+# Local mirrors. Patch HTMLs sit in /patches/ so they reference ../icons/...
+# Originals are kept under git history for reference; mirror script: _mirror_icons.py.
+HERO_CDN = "../icons/heroes/"
+ITEM_CDN = "../icons/items/"
+ABIL_CDN = "../icons/abilities/"
 
 HERO_SLUG = {
     "Abaddon": "abaddon", "Underlord": "abyssal_underlord", "Alchemist": "alchemist",
@@ -546,8 +548,8 @@ def section(title):
 
 
 # Talent icon — Valve's official SVG used in www.dota2.com/patches/.
-TALENT_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/talents.svg"
-INNATE_ICON_URL = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png"
+TALENT_ICON_URL = "../icons/misc/talents.svg"
+INNATE_ICON_URL = "../icons/misc/innate_icon.png"
 # "Other" subgroup icon — neutral inline SVG (three sliders) for stat/misc changes.
 OTHER_ICON_URL = "../icons/other.svg"
 # Stat-specific icons used when an Other-block has exactly one row — in that
@@ -2097,7 +2099,10 @@ ul.subnotes li::before { content: "↳ "; color: #6e7681; }
    so it visually mirrors the row's main % (which sits in the right grid column). */
 .correction-note > .badge-group {
   float: right;
-  margin-left: 12px;
+  /* Negative right margin compensates the .correction-note padding-right (12px)
+     so the badge sits flush with the right edge — aligns with the row's main %
+     above/below the note. */
+  margin: 0 -12px 0 12px;
   font-style: normal;
 }
 .correction-label {
@@ -2176,10 +2181,10 @@ ul.changes li.aghanim-shard {
   background-repeat: no-repeat;
 }
 .aghanim-marker.scepter {
-  background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter_icon.png');
+  background-image: url('icons/stats/aghs_scepter_icon.png');
 }
 .aghanim-marker.shard {
-  background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_shard_icon.png');
+  background-image: url('icons/stats/aghs_shard_icon.png');
 }
 
 /* WRONG-WORD HIGHLIGHT — subtle, neutral marker (no strikethrough) */
@@ -2854,7 +2859,7 @@ JS_TEXT = '''
     resultsBox.innerHTML = matches.map((m, i) =>
       `<div class="result-item" data-idx="${i}">${
         m.icon
-          ? `<img src="${m.icon}" alt="" onerror="this.onerror=null;this.src='https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png';">`
+          ? `<img src="${m.icon}" alt="" onerror="this.onerror=null;this.src='../icons/misc/innate_icon.png';">`
           : '<span style="width:32px;display:inline-block"></span>'
       }<span>${highlight(m.name, query)}</span><span class="kind">${m.kind}</span></div>`
     ).join('');
@@ -3542,7 +3547,7 @@ W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 10: −25s Summon Spirit Bear Cooldown replaced with +5s True Form Duration", '<span class="badge rework" data-tag="rework">REWORK</span>'))
 W(ul_close())
-W(unit_header("Spirit Bear", "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/lone_druid_spirit_bear.png"))
+W(unit_header("Spirit Bear", "../icons/abilities/lone_druid_spirit_bear.png"))
 W(ul_open())
 W(li(
     'Gold/Experience Bounty changed from <span class="formula-old">175 + 8 per Spirit Bear level</span> up to <span class="formula-trigger" data-formula="fsb">165 + 10 per Spirit Bear level</span>',
@@ -3990,8 +3995,8 @@ W(ul_close())
 
 # ===== NEUTRAL CREEP UPDATES =====
 W(section("Neutral Creep Updates"))
-W(unit_header("Frostbitten Golem", "https://cdn.steamstatic.com/apps/dota2/images/dota_react/units/npc_dota_neutral_frostbitten_golem.png"))
-W(ability("Time Warp Aura", icon_url="https://courier.spectral.gg/images/dota/spellicons/frostbitten_golem_time_warp_aura.png"))
+W(unit_header("Frostbitten Golem", "../icons/units/npc_dota_neutral_frostbitten_golem.png"))
+W(ability("Time Warp Aura", icon_url="../icons/abilities/frostbitten_golem_time_warp_aura.png"))
 W(ul_open())
 W(li("Cooldown Reduction decreased from 10/11/12/14% to 8/9/10/11%", b([10, 11, 12, 14], [8, 9, 10, 11], l=True)))
 W(ul_close())
