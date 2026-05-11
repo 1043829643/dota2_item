@@ -234,6 +234,7 @@ ITEM_SLUG = {
     "Soul Ring": "soul_ring",
     "Specialist's Array": "specialists_array",
     "Manta Style": "manta",
+    "Drum of Endurance": "ancient_janggo",
     "Heaven's Halberd": "heavens_halberd",
     "Glimmer Cape": "glimmer_cape",
     "Spirit Vessel": "spirit_vessel",
@@ -607,6 +608,35 @@ def provides(text):
     return f'<div class="provides-box">{text}</div>'
 
 
+def properties_change(old, new, old_extras=None, new_extras=None):
+    """Two-pane stat properties diff for items whose grant set changed in
+    this patch. Mirrors the visual language of components_change.
+
+    old / new       : list of strings (one stat per row), shown verbatim
+                      with a leading '+' / '-' / '%' already in the text.
+    old_extras /
+    new_extras      : optional dicts {row_index: extra_html} to append a
+                      show_list (or any inline html) after a given row in
+                      that pane. Use for sub-info that hangs off one stat.
+    """
+    old_extras = old_extras or {}
+    new_extras = new_extras or {}
+    def pane(rows, extras, kind):
+        body = []
+        for i, row in enumerate(rows):
+            extra = extras.get(i, '')
+            body.append(f'<div class="property-row property-{kind}">{row}{extra}</div>')
+        return ''.join(body)
+    return (f'<div class="properties-change">'
+            f'<div class="properties-pane properties-old">'
+            f'{pane(old, old_extras, "old")}'
+            f'</div>'
+            f'<span class="components-arrow">→</span>'
+            f'<div class="properties-pane properties-new">'
+            f'{pane(new, new_extras, "new")}'
+            f'</div></div>')
+
+
 def show_list(*items, summary='Show list'):
     """Collapsible info row attached AFTER a sentence li. Renders on a new
     line below the row text with a rotating triangle arrow, matching the
@@ -618,7 +648,8 @@ def show_list(*items, summary='Show list'):
     ability-box wrapper that augments top-level <li> elements."""
     items_html = ''.join(f'<span class="show-list-item">{it}</span>' for it in items)
     return (f'<details class="show-list-inline">'
-            f'<summary>{summary} <span class="subnote-count">({len(items)})</span></summary>'
+            f'<summary><span class="show-list-chevron">▸</span>'
+            f'{summary} <span class="subnote-count">({len(items)})</span></summary>'
             f'<div class="show-list-body">{items_html}</div></details>')
 
 
@@ -2322,11 +2353,46 @@ ul.changes li.ability-row-end {
 }
 .entity-block.is-changed > .components-change,
 .entity-block.is-changed > .components-box,
-.entity-block.is-changed > .provides-box {
+.entity-block.is-changed > .provides-box,
+.entity-block.is-changed > .properties-change {
   margin-left: 0;
 }
 .entity-block.is-changed > ul.changes {
   padding-left: 0;
+}
+
+/* Two-pane property diff (old grant set → new grant set). Mirrors the
+   layout of components-change but each cell is a stat string, not an icon. */
+.properties-change {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 12px;
+  margin: 6px 0 4px;
+}
+.properties-change .properties-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 12px;
+  background: rgba(139, 148, 158, 0.04);
+  border: 1px solid rgba(139, 148, 158, 0.18);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.properties-change .properties-pane.properties-old {
+  border-color: rgba(220, 80, 80, 0.35);
+  background: rgba(220, 80, 80, 0.05);
+}
+.properties-change .properties-pane.properties-new {
+  border-color: rgba(218, 165, 32, 0.45);
+  background: rgba(218, 165, 32, 0.05);
+}
+.properties-change .property-row {
+  color: #c9d1d9;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
 /* SUBGROUPS — same colour as body text / ability titles, not blue.
@@ -2611,6 +2677,7 @@ ul.subnote-items > li::before {
 .show-list-inline > summary {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   list-style: none;
   cursor: pointer;
   color: #8b949e;
@@ -2618,15 +2685,23 @@ ul.subnote-items > li::before {
   user-select: none;
 }
 .show-list-inline > summary::-webkit-details-marker { display: none; }
+/* ↳ corner arrow (matches the subnote-style indent marker) followed by the
+   rotating ▸ chevron. Both rendered via a single ::before so they animate
+   together. */
 .show-list-inline > summary::before {
-  content: '\\25B8';           /* ▸ */
+  content: '\\21B3';           /* ↳ */
   display: inline-block;
-  margin-right: 6px;
-  font-size: 11px;
   color: #6e7681;
+  font-size: 12.5px;
+  margin-right: 2px;
+}
+.show-list-inline > summary > .show-list-chevron {
+  display: inline-block;
+  color: #6e7681;
+  font-size: 11px;
   transition: transform 0.15s ease;
 }
-.show-list-inline[open] > summary::before { transform: rotate(90deg); }
+.show-list-inline[open] > summary > .show-list-chevron { transform: rotate(90deg); }
 .show-list-inline > summary:hover { color: #c9d1d9; }
 .show-list-inline[open] > summary { color: #c9d1d9; }
 .show-list-inline > .show-list-body {
@@ -6494,17 +6569,20 @@ W(li("Guard max health damage block decreased from 2.2% to 2%", b(2.2, 2)))
 W(ul_close())
 W(item_header("Dagon", changed=True))
 W(auto_components_change("Dagon", "7.41"))
+W(properties_change(
+    old=["+15/16/17/18/19% Spell Lifesteal"],
+    new=["+200/210/220/230/240 Health",
+         "+350/375/400/425/450 Mana",
+         "+60/90/120/150/180 Cast Range"],
+    new_extras={2: show_list("Cast Range Bonus does not stack with Aether Lens or multiple Dagons",
+                              summary="Stacking")}))
 W(ul_open())
-W(li("Now requires Point Booster (1200), Wizard Hat (250) and Crown (450) instead of Diadem (1000) and Voodoo Mask (650)", t("REWORK")))
 W(li("Recipe cost unchanged at 1150. Total cost increased from 2800/3950/5100/6250/7400g to 3050/4200/5350/6500/7650g", b([2800, 3950, 5100, 6250, 7400], [3050, 4200, 5350, 6500, 7650], l=True)))
-W(li("No longer provides +15/16/17/18/19% Spell Lifesteal", t("NERF")))
 W(li("All Attributes bonus decreased from +7/9/11/13/15 to +6/7/8/9/10", b([7, 9, 11, 13, 15], [6, 7, 8, 9, 10])))
-W(li("Now also provides +200/210/220/230/240 Health, +350/375/400/425/450 Mana, and +60/90/120/150/180 Cast Range", t("REWORK")))
-W(li("Cast Range Bonus does not stack with Aether Lens or multiple Dagons", t("MISC")))
 W(li("Energy Burst cast range decreased from 700/750/800/850/900 to 640", b([700, 750, 800, 850, 900], 640)))
 W(li("Effective cast range with item's built-in Cast Range bonus decreased from 700/750/800/850/900 to 700/730/760/790/820", b([700, 750, 800, 850, 900], [700, 730, 760, 790, 820])))
-W(li("Energy Burst no longer instantly kills non-ancient creeps", t("NERF")))
-W(li("Energy Burst no longer heals for 75% of damage dealt", t("NERF")))
+W(li("Energy Burst no longer instantly kills non-ancient creeps", t("DEL")))
+W(li("Energy Burst no longer heals for 75% of damage dealt", t("DEL")))
 W(ul_close())
 W(item_header("Dragon Lance"))
 W(ul_open())
@@ -6516,7 +6594,7 @@ W(li("Ranged Attack Range bonus decreased from +140 to +130", b(140, 130)))
 W(li("Hurricane Thrust cast range on enemies decreased from 450 to 425", b(450, 425)))
 W(li("Hurricane Thrust enemy push distance decreased from 450 to 425", b(450, 425)))
 W(ul_close())
-W(item_header("Ancient Janggo"))
+W(item_header("Drum of Endurance"))
 W(ul_open())
 W(li("Recipe changed"))
 W(li("Now requires Headdress (425) instead of Robe of the Magi (450)", t("REWORK")))
