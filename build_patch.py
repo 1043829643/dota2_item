@@ -6199,9 +6199,9 @@ W(li("Similarly to Specialist's Array, doesn't work with other sources of second
 W(ul_close())
 W(item_header("Arcane Boots", changed=True))
 W(components_change(
-    old=[("Boots of Speed", 500), ("Energy Booster", 425)],
+    old=[("Boots of Speed", 500), ("Ring of Basilius", 425)],
     recipe_old=("Recipe", 475), total_old=1400,
-    new=[("Boots of Speed", 500), ("Energy Booster", 425), ("Wizard Hat", 250)],
+    new=[("Boots of Speed", 500), ("Ring of Basilius", 425), ("Wizard Hat", 250)],
     recipe_new=("Recipe", 325), total_new=1500,
     added=["Wizard Hat"]))
 W(ul_open())
