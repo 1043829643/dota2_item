@@ -593,17 +593,22 @@ def provides(text):
     return f'<div class="provides-box">{text}</div>'
 
 
-def _component_cell(name, cost):
+def _component_cell(name, cost, mark=None):
     slug = ITEM_SLUG.get(name, name.lower().replace(' ', '_').replace("'", ''))
     if name.lower() == 'recipe':
         slug = 'recipe'
-    return (f'<div class="component">'
+    cls = 'component'
+    if mark == 'added':
+        cls += ' component-added'
+    elif mark == 'removed':
+        cls += ' component-removed'
+    return (f'<div class="{cls}">'
             f'<img src="{ITEM_CDN}{slug}.png" alt="{name}" title="{name}" loading="lazy">'
             f'<div class="component-price">{cost}</div></div>')
 
 
-def _components_side(parts, recipe, total):
-    cells = [_component_cell(n, c) for n, c in parts]
+def _components_side(parts, recipe, total, marks):
+    cells = [_component_cell(n, c, marks.get(n)) for n, c in parts]
     if recipe:
         cells.append(_component_cell(recipe[0], recipe[1]))
     body = '<span class="components-plus">+</span>'.join(cells)
@@ -612,19 +617,25 @@ def _components_side(parts, recipe, total):
 
 
 def components_change(old, new, total_old, total_new,
-                      recipe_old=None, recipe_new=None):
-    """Old → New components box for items whose recipe changed.
+                      recipe_old=None, recipe_new=None,
+                      added=None, removed=None):
+    """Old → New components panes for items whose recipe changed.
 
-    old/new:           list of (item_display_name, cost) tuples.
-    recipe_old/_new:   optional (label, cost) for the recipe component.
-    total_old/_new:    total gold cost on each side.
-
-    Renders two component rows separated by a right-pointing arrow.
+    added:   list of names highlighted with a gold border on the NEW side
+             (matches 'Now requires X' / 'Now also requires X').
+    removed: list of names highlighted with a faint red border on the OLD side
+             (matches 'instead of Y').
     """
-    return (f'<div class="components-box components-change">'
-            f'<div class="components-side">{_components_side(old, recipe_old, total_old)}</div>'
+    marks_old = {name: 'removed' for name in (removed or [])}
+    marks_new = {name: 'added' for name in (added or [])}
+    return (f'<div class="components-change">'
+            f'<div class="components-box components-pane">'
+            f'{_components_side(old, recipe_old, total_old, marks_old)}'
+            f'</div>'
             f'<span class="components-arrow">→</span>'
-            f'<div class="components-side">{_components_side(new, recipe_new, total_new)}</div>'
+            f'<div class="components-box components-pane">'
+            f'{_components_side(new, recipe_new, total_new, marks_new)}'
+            f'</div>'
             f'</div>')
 
 
@@ -2063,25 +2074,42 @@ ul.changes li.ability-row-end {
   vertical-align: middle;
 }
 
-/* Recipe-changed visual: old build → new build, side by side. */
-.components-box.components-change {
+/* Recipe-changed visual: two SEPARATE component boxes (old and new), joined
+   by a bold arrow between them. */
+.components-change {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
-  gap: 14px;
+  gap: 12px;
+  margin: 6px 0 4px;
   flex-wrap: wrap;
 }
-.components-box.components-change .components-side {
+.components-change .components-pane {
+  margin: 0;
+  flex: 0 1 auto;
+}
+.components-change .components-arrow {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-.components-box.components-change .components-arrow {
-  font-size: 18px;
-  color: #8b949e;
-  opacity: 0.7;
+  font-size: 22px;
+  font-weight: 700;
+  color: #c9d1d9;
+  opacity: 0.85;
   padding: 0 2px;
 }
+.component.component-added {
+  border: 1.5px solid rgba(218, 165, 32, 0.85);
+  border-radius: 6px;
+  padding: 2px;
+  box-shadow: 0 0 6px rgba(218, 165, 32, 0.25);
+}
+.component.component-removed {
+  border: 1.5px solid rgba(220, 80, 80, 0.55);
+  border-radius: 6px;
+  padding: 2px;
+  opacity: 0.85;
+}
+.entity-block.is-changed > .components-change,
 .entity-block.is-changed > .components-box,
 .entity-block.is-changed > .provides-box {
   margin-left: 0;
@@ -6174,7 +6202,8 @@ W(components_change(
     old=[("Boots of Speed", 500), ("Energy Booster", 425)],
     recipe_old=("Recipe", 475), total_old=1400,
     new=[("Boots of Speed", 500), ("Energy Booster", 425), ("Wizard Hat", 250)],
-    recipe_new=("Recipe", 325), total_new=1500))
+    recipe_new=("Recipe", 325), total_new=1500,
+    added=["Wizard Hat"]))
 W(ul_open())
 W(li("Now also requires a Wizard Hat (250g)", t("REWORK")))
 W(li("Recipe cost decreased from 475 to 325 " + b(475, 325, l=True) + ". Total cost increased from 1400g to 1500g", b(1400, 1500, l=True)))
@@ -6201,7 +6230,8 @@ W(components_change(
     old=[("Chainmail", 550), ("Broadsword", 1000)],
     recipe_old=("Recipe", 750), total_old=2300,
     new=[("Splintmail", 950), ("Broadsword", 1000)],
-    recipe_new=("Recipe", 450), total_new=2400))
+    recipe_new=("Recipe", 450), total_new=2400,
+    added=["Splintmail"], removed=["Chainmail"]))
 W(ul_open())
 W(li("Now requires Splintmail (950) instead of Chainmail (550)", t("REWORK")))
 W(li("Recipe cost decreased from 750 to 450 " + b(750, 450, l=True) + ". Total cost increased from 2300g to 2400g", b(2300, 2400, l=True)))
