@@ -235,6 +235,11 @@ ITEM_SLUG = {
     "Specialist's Array": "specialists_array",
     "Manta Style": "manta",
     "Drum of Endurance": "ancient_janggo",
+    "Gleipnir": "gungir",
+    "Orchid Malevolence": "orchid",
+    "Pipe of Insight": "pipe",
+    "Perseverance": "pers",
+    "Phylactery": "phylactery",
     "Heaven's Halberd": "heavens_halberd",
     "Glimmer Cape": "glimmer_cape",
     "Spirit Vessel": "spirit_vessel",
@@ -602,39 +607,150 @@ def components(*parts, total, recipe=None):
             f'</div>')
 
 
-def provides(text):
-    """Visual properties block — replaces the 'Provides X, Y, and Z' row for
-    new items. One line, comma-separated, soft outlined box."""
-    return f'<div class="provides-box">{text}</div>'
+def provides(*items):
+    """Visual properties block — one stat per row, soft outlined box. Use:
+        provides('+1.75 Mana Regen', '+3 All Attributes', '+6 Armor')
+    Legacy single-string mode with comma-separated values is auto-split."""
+    if len(items) == 1 and isinstance(items[0], str) and ',' in items[0]:
+        items = [s.strip() for s in items[0].split(',') if s.strip()]
+    rows = ''.join(f'<div class="provides-row">{it}</div>' for it in items)
+    return f'<div class="provides-box">{rows}</div>'
+
+
+_PROP_TAG_CSS = {
+    'BUFF':   'buff-text',
+    'NERF':   'nerf-text',
+    'REWORK': 'rework',
+    'MISC':   'misc',
+    'QOL':    'qol',
+    'NEW':    'new',
+    'DEL':    'del',
+}
+
+
+def _prop_tag(tag):
+    """Render a property-row left tag span. tag is one of BUFF/NERF/REWORK/
+    MISC/QoL/NEW/DEL (case-insensitive) or empty string → placeholder span
+    that still occupies the tag column so all rows align vertically."""
+    if not tag:
+        return '<span class="row-tag-empty"></span>'
+    key = tag.upper()
+    cls = _PROP_TAG_CSS.get(key, 'misc')
+    overall = 'buff' if key in ('BUFF', 'NEW') else ('nerf' if key in ('NERF', 'DEL') else 'buff')
+    return f'<span class="badge {cls}" data-tag="{key.lower()}" data-overall="{overall}">{key}</span>'
+
+
+def _prop_cells(row):
+    """Normalize a properties_change row spec into (tag, text, badge)."""
+    if row is None:
+        return ('', '', '')
+    if isinstance(row, str):
+        return ('', row, '')
+    if len(row) == 2:
+        return (row[0], row[1], '')
+    return (row[0], row[1], row[2])
 
 
 def properties_change(old, new, old_extras=None, new_extras=None):
-    """Two-pane stat properties diff for items whose grant set changed in
-    this patch. Mirrors the visual language of components_change.
+    """Two-pane stat properties diff (old grant set → new grant set).
 
-    old / new       : list of strings (one stat per row), shown verbatim
-                      with a leading '+' / '-' / '%' already in the text.
-    old_extras /
-    new_extras      : optional dicts {row_index: extra_html} to append a
-                      show_list (or any inline html) after a given row in
-                      that pane. Use for sub-info that hangs off one stat.
+    Each row in `old`/`new` is one of:
+      * None                  — explicit blank row (used to align across panes)
+      * string                — plain text, no tag, no badge
+      * (tag, text)           — left tag (BUFF/NERF/REWORK/MISC/QoL/NEW/DEL)
+      * (tag, text, badge)    — tag + right-edge badge (e.g. b(...) %-delta)
+
+    Structurally renders two real `.properties-pane` boxes (equal width via
+    grid-template-columns: 1fr arrow 1fr on the parent) with CSS subgrid for
+    rows — so row N of the left pane vertically aligns with row N of the
+    right pane regardless of which side's content is taller.
+
+    old_extras/new_extras: optional {row_index: html} — drops an extra row
+    (show_list etc.) in that pane only, immediately below row_index.
     """
     old_extras = old_extras or {}
     new_extras = new_extras or {}
-    def pane(rows, extras, kind):
-        body = []
+    n = max(len(old), len(new))
+    old_rows = list(old) + [None] * (n - len(old))
+    new_rows = list(new) + [None] * (n - len(new))
+
+    def pane_cells(rows, extras):
+        cells = []
+        cur_row = 1
         for i, row in enumerate(rows):
-            extra = extras.get(i, '')
-            body.append(f'<div class="property-row property-{kind}">{row}{extra}</div>')
-        return ''.join(body)
-    return (f'<div class="properties-change">'
-            f'<div class="properties-pane properties-old">'
-            f'{pane(old, old_extras, "old")}'
+            if row is None:
+                # Empty row — placeholder that occupies the row track so
+                # the row gets a minimum height. Spans the pane's 3 inner cols.
+                cells.append(
+                    f'<span class="property-row-empty" '
+                    f'style="grid-row:{cur_row};grid-column:1/-1">&nbsp;</span>'
+                )
+            else:
+                tag, text, badge = _prop_cells(row)
+                cells.append(
+                    f'<span class="property-tag" style="grid-row:{cur_row};grid-column:1">'
+                    f'{_prop_tag(tag)}</span>'
+                    f'<span class="property-text" style="grid-row:{cur_row};grid-column:2">'
+                    f'{text}</span>'
+                    f'<span class="property-badge" style="grid-row:{cur_row};grid-column:3">'
+                    f'{badge}</span>'
+                )
+            cur_row += 1
+            ex = extras.get(i, '')
+            if ex:
+                cells.append(
+                    f'<div class="property-extra" '
+                    f'style="grid-row:{cur_row};grid-column:2/-1">{ex}</div>'
+                )
+                cur_row += 1
+        return ''.join(cells), cur_row - 1
+
+    old_empty = not old or all(r is None for r in old)
+    new_empty = not new or all(r is None for r in new)
+    old_body, old_n = pane_cells(old_rows, old_extras)
+    new_body, new_n = pane_cells(new_rows, new_extras)
+    total_rows = max(old_n, new_n)
+
+    # Special case: only one side has changes — render just that pane in its
+    # own column (left/right) so its position matches the 2-pane layout.
+    # An invisible arrow placeholder keeps the centre column at the same
+    # width as in 2-pane mode so the visible pane's width matches the
+    # components_change panes above it.
+    if old_empty and not new_empty:
+        return (
+            f'<div class="properties-change new-only" '
+            f'style="grid-template-rows:repeat({new_n},auto)">'
+            f'<span class="properties-arrow" aria-hidden="true" '
+            f'style="visibility:hidden">→</span>'
+            f'<div class="properties-pane pane-new">{new_body}</div>'
             f'</div>'
-            f'<span class="components-arrow">→</span>'
-            f'<div class="properties-pane properties-new">'
-            f'{pane(new, new_extras, "new")}'
-            f'</div></div>')
+        )
+    if new_empty and not old_empty:
+        return (
+            f'<div class="properties-change old-only" '
+            f'style="grid-template-rows:repeat({old_n},auto)">'
+            f'<div class="properties-pane pane-old">{old_body}</div>'
+            f'<span class="properties-arrow" aria-hidden="true" '
+            f'style="visibility:hidden">→</span>'
+            f'</div>'
+        )
+
+    return (
+        f'<div class="properties-change" '
+        f'style="grid-template-rows:repeat({total_rows},auto)">'
+        f'<div class="properties-pane pane-old">{old_body}</div>'
+        f'<span class="properties-arrow">→</span>'
+        f'<div class="properties-pane pane-new">{new_body}</div>'
+        f'</div>'
+    )
+
+
+def inline_note(text):
+    """Small ↳ note that hangs off the end of a li (pass via `extra=`).
+    Renders below the row text inside the same li, indented to match the
+    subnote visual style. Use for one-liner info that belongs to a single
+    change row (e.g. 'As a result of Health Restoration changes')."""
+    return f'<div class="inline-note">{text}</div>'
 
 
 def show_list(*items, summary='Show list'):
@@ -1260,7 +1376,7 @@ import re
 
 _TALENT_PREFIX_RE = re.compile(r'^(Level \d+ Talent) (?!:)')
 
-def li(text, badge="", extra="", force_tag=None):
+def li(text, badge="", extra="", force_tag=None, ability_row=False):
     """Generate <li>. Layout is: [left-tag] [description] [right percentages] [extra].
     The left tag is either:
       - Extracted from `badge` if it contains a text tag (BUFF/NERF/REWORK/MISC/QoL/NEW/DEL)
@@ -1319,6 +1435,10 @@ def li(text, badge="", extra="", force_tag=None):
         # Bold the leading keyword + colon so 'Passive:' / 'Active:' jumps out.
         text = re.sub(r'^(\s*)(Passive|Active|Toggle|Aura|Ability)(\s*:)',
                       r'\1<b>\2\3</b>', text)
+    elif ability_row:
+        # Explicit opt-in to the ability-box visual without a "Passive:" prefix
+        # (e.g. multi-bullet "what this passive provides" descriptions).
+        classes.append("ability-row")
     cls_attr = f' class="{" ".join(classes)}"' if classes else ""
     attr = f' data-tag="{tag_str}"' if tag_str else ""
     # Marker is appended INSIDE .row-text so it sits right after the change
@@ -2183,18 +2303,28 @@ ul.changes li.ability-row-end {
   border-left:  1px solid rgba(139, 148, 158, 0.18);
   border-right: 1px solid rgba(139, 148, 158, 0.18);
 }
-.entity-block.is-new ul.changes li.ability-row-solo,
-.entity-block.is-new ul.changes li.ability-row-start,
-.entity-block.is-new ul.changes li.ability-row-cont,
-.entity-block.is-new ul.changes li.ability-row-end {
+/* Apply Hydras-Breath-style layout (no tag column, text flush-left with 12px
+   padding) to ALL ability-row li, not just inside .is-new blocks. Tag column
+   collapses; only ability-rows that EXPLICITLY have a non-empty tag will
+   show one inline at the front of the row text. */
+ul.changes li.ability-row-solo,
+ul.changes li.ability-row-start,
+ul.changes li.ability-row-cont,
+ul.changes li.ability-row-end {
   grid-template-columns: 1fr auto;
   padding-left: 12px;
   padding-right: 12px;
 }
-.entity-block.is-new ul.changes li.ability-row-solo > .row-text,
-.entity-block.is-new ul.changes li.ability-row-start > .row-text,
-.entity-block.is-new ul.changes li.ability-row-cont > .row-text,
-.entity-block.is-new ul.changes li.ability-row-end > .row-text {
+ul.changes li.ability-row-solo > .row-tag-empty,
+ul.changes li.ability-row-start > .row-tag-empty,
+ul.changes li.ability-row-cont > .row-tag-empty,
+ul.changes li.ability-row-end > .row-tag-empty {
+  display: none;
+}
+ul.changes li.ability-row-solo > .row-text,
+ul.changes li.ability-row-start > .row-text,
+ul.changes li.ability-row-cont > .row-text,
+ul.changes li.ability-row-end > .row-text {
   grid-column: 1;
   text-align: left;
 }
@@ -2224,7 +2354,7 @@ ul.changes li.ability-row-end {
   justify-content: flex-start;
   gap: 12px;
   margin: 6px 0 4px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   background: rgba(139, 148, 158, 0.04);
   border: 1px solid rgba(139, 148, 158, 0.18);
   border-radius: 6px;
@@ -2281,12 +2411,16 @@ ul.changes li.ability-row-end {
    components box for new items. Soft outlined to match other blocks. */
 .provides-box {
   margin: 4px 0;
-  padding: 6px 12px;
+  padding: 6px 14px;
   background: rgba(139, 148, 158, 0.04);
   border: 1px solid rgba(139, 148, 158, 0.18);
   border-radius: 6px;
   color: #c9d1d9;
   font-size: 13.5px;
+}
+.provides-box .provides-row {
+  padding: 2px 0;
+  line-height: 1.5;
 }
 
 /* Type label after the item name — small, uppercased, NEW colour family.
@@ -2317,22 +2451,24 @@ ul.changes li.ability-row-end {
 }
 
 /* Recipe-changed visual: two SEPARATE component boxes (old and new), joined
-   by a bold arrow between them. */
+   by a bold arrow between them. Uses the same grid 1fr/auto/1fr layout as
+   properties-change so the two side-by-side blocks are exactly the same
+   width (pane edges line up vertically). */
 .components-change {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  column-gap: 12px;
   align-items: stretch;
-  justify-content: stretch;
-  gap: 12px;
   margin: 6px 0 4px;
 }
 .components-change .components-pane {
   margin: 0;
-  flex: 1 1 0;
   min-width: 0;
 }
-.components-change .components-arrow {
-  display: flex;
-  align-items: center;
+.components-change .components-arrow,
+.properties-change .properties-arrow {
+  align-self: center;
+  justify-self: center;
   font-size: 22px;
   font-weight: 700;
   color: #c9d1d9;
@@ -2351,40 +2487,76 @@ ul.changes li.ability-row-end {
   padding: 2px;
   opacity: 0.85;
 }
-.entity-block.is-changed > .components-change,
-.entity-block.is-changed > .components-box,
-.entity-block.is-changed > .provides-box,
-.entity-block.is-changed > .properties-change {
-  margin-left: 0;
-}
-.entity-block.is-changed > ul.changes {
-  padding-left: 0;
-}
+/* (is-changed visual blocks inherit the +14px indent from the generic
+   .entity-block > * rules above — no special override needed.) */
+/* (removed: is-changed ul.changes padding-left: 0 — that made the tag column
+   shift 40px left of the default ul padding, misaligning is-changed item tags
+   relative to regular items below them. Now is-changed inherits default
+   ul.changes padding so tags line up vertically across the whole page.) */
 
-/* Two-pane property diff (old grant set → new grant set). Mirrors the
-   layout of components-change but each cell is a stat string, not an icon. */
+/* Two-pane property diff (old grant set → new grant set).
+   ONE grid for both panes so row N on the left lines up with row N on the
+   right. Pane "boxes" are drawn by two background divs that span cols 1-3
+   and 5-7 respectively, sitting behind content via z-index. */
+/* Two equal-width panes joined by a centred bold arrow. Each pane is a
+   subgrid for ROWS, so row N on the left vertically aligns with row N on
+   the right — no matter which side has taller cells. Each pane has its own
+   3-col grid inside (tag | text 1fr | badge auto-pinned right). */
 .properties-change {
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  column-gap: 12px;
   margin: 6px 0 4px;
 }
 .properties-change .properties-pane {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: subgrid;
+  grid-row: 1 / -1;
+  column-gap: 8px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 8px 14px;
   background: rgba(139, 148, 158, 0.04);
   border: 1px solid rgba(139, 148, 158, 0.18);
   border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
-.properties-change .property-row {
+.properties-change .pane-old { grid-column: 1; }
+.properties-change .pane-new { grid-column: 3; }
+.properties-change .properties-arrow {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+/* Single-pane mode: only one side changed → render just that pane in its
+   column position from the 2-pane layout (left = col 1, right = col 3) so
+   the visible pane lands in the same horizontal area as it would when both
+   panes are present. */
+.properties-change.new-only,
+.properties-change.old-only {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+.properties-change.new-only .pane-new { grid-column: 3; }
+.properties-change.old-only .pane-old { grid-column: 1; }
+.properties-change .property-text {
+  min-width: 0;
   color: #c9d1d9;
   font-size: 13.5px;
   line-height: 1.5;
+}
+.properties-change .property-badge {
+  justify-self: end;
+  white-space: nowrap;
+  /* Pane has padding-right: 14px. Pull the badge cell 12px outside that
+     padding so the b() % bands sit only 2px from the pane's right border. */
+  margin-right: -12px;
+}
+.properties-change .property-row-empty {
+  min-height: 1.5em;
+}
+.properties-change .property-extra {
+  margin-top: -2px;             /* sit close to the row above; subgrid row-gap
+                                   already provides a small natural separation */
 }
 
 /* SUBGROUPS — same colour as body text / ability titles, not blue.
@@ -2486,6 +2658,10 @@ h4.subgroup {
 ul.changes {
   list-style: none;
   margin: 3px 0 3px 0;
+  padding-left: 0;          /* per-context indent applied via .entity-block,
+                               .ability-block etc. (14px to align with icon) */
+  padding-right: 2px;       /* keep right-edge % bands 2px in from the
+                               container border (entity-block / ability-block) */
 }
 ul.changes li {
   display: grid;
@@ -2664,7 +2840,7 @@ ul.subnote-items > li::before {
 .show-list-inline {
   display: block;
   grid-column: 1 / -1;        /* span full li width inside the row grid */
-  margin-top: 6px;
+  margin-top: 0;
 }
 .show-list-inline > summary {
   display: inline-flex;
@@ -2711,6 +2887,30 @@ ul.subnote-items > li::before {
 .show-list-inline > .show-list-body > .show-list-item::before {
   content: "•  ";
   color: #6e7681;
+}
+
+/* One-liner ↳ note hanging off a li (passed via extra= on li()). Drops to a
+   new visual line below the row text. Starts at the text column (col 2) so
+   it sits under the change description, NOT under the tag. */
+.inline-note {
+  display: block;
+  grid-column: 2 / -1;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #8b949e;
+  line-height: 1.45;
+}
+.inline-note::before {
+  content: "↳ ";
+  color: #6e7681;
+}
+/* In ability-row li the grid is [text 1fr][badge auto] (no separate tag
+   column), so col 2 = badge. Move inline-note back to col 1 = under text. */
+ul.changes li.ability-row-solo > .inline-note,
+ul.changes li.ability-row-start > .inline-note,
+ul.changes li.ability-row-cont > .inline-note,
+ul.changes li.ability-row-end > .inline-note {
+  grid-column: 1 / -1;
 }
 
 /* BADGES — flat rectangular tag boxes */
@@ -3143,18 +3343,29 @@ body.cat-filter-active .cat-hide { display: none !important; }
 
 /* ENTITY-BLOCK wrapper (used for filtering hide/show) */
 .entity-block { margin-bottom: 6px; }
-/* Everything inside entity-block EXCEPT the entity-card itself shifts right
-   by 14px so it aligns with the hero icon inside the card (which sits at +14
-   from the card's left edge, matching .entity padding-left). */
+/* All entity-block children flush against the entity-block left edge (margin
+   not padding — padding-left controls INTERNAL content inset, which the
+   visual boxes need to keep at 14px so their content aligns with the entity
+   icon above). */
 .entity-block > h4.subgroup,
 .entity-block > ul.changes,
-.entity-block > ul.subnotes,
-.entity-block > .ability-block {
-  padding-left: 14px;
+.entity-block > .ability-block,
+.entity-block > .components-box,
+.entity-block > .components-change,
+.entity-block > .provides-box,
+.entity-block > .properties-change {
+  margin-left: 0;
 }
-/* Inside an .is-new block the components / provides / ability-row boxes span
-   the full width of the entity-block (no +14 indent) so all three bordered
-   blocks share the same left edge as the entity card above them. */
+/* Tag column inside ul.changes also flush at entity-block left edge — these
+   lists have no inner box border to inset from. */
+.entity-block > ul.changes,
+.entity-block > .ability-block {
+  padding-left: 0;
+}
+/* ul.subnotes is NOT touched here — it keeps its base margin-left: 76px so
+   the ↳ arrow lines up under the row text column (after the 64px tag column
+   + 12px gap). Resetting it to 0 here would flush subnotes against the
+   entity-block left edge, misaligning every "Damage at level 1 ..." note. */
 .entity-block.is-new > ul.changes {
   padding-left: 0;
 }
@@ -3555,6 +3766,9 @@ JS_TEXT = '''
   document.querySelectorAll('[data-tag]').forEach(el => {
     (el.dataset.tag || '').split(' ').filter(Boolean).forEach(t => presentTags.add(t));
   });
+  // Recipe-changed items count as REWORK even if none of their explicit rows
+  // carry t("REWORK") — keep the filter button discoverable on those pages.
+  if (document.querySelector('.entity-block.is-changed')) presentTags.add('rework');
   document.querySelectorAll('.filter-btn').forEach(btn => {
     if (!presentTags.has(btn.dataset.filter)) {
       btn.style.display = 'none';
@@ -3582,6 +3796,9 @@ JS_TEXT = '''
     if (!isActive) return;
     document.querySelectorAll('ul.changes > li').forEach(li => {
       const tags = (li.dataset.tag || '').split(' ').filter(Boolean);
+      // Items whose recipe changed (entity-block.is-changed) count as REWORK
+      // so the REWORK filter keeps their rows visible too.
+      if (li.closest('.entity-block.is-changed')) tags.push('rework');
       const matches = tags.some(t => activeFilters.has(t));
       if (!matches) li.classList.add('f-hide');
     });
@@ -3679,11 +3896,15 @@ JS_TEXT = '''
     const nameEl = entity.querySelector('.entity-name');
     const imgEl = entity.querySelector('.entity-icon img');
     if (!nameEl) return;
+    // Strip the "New X Item" / "Returning Tier N Artifact" / "Recipe changed"
+    // labels so the search index uses just the entity name itself.
+    const nameClone = nameEl.cloneNode(true);
+    nameClone.querySelectorAll('.entity-new-type, .entity-changed-type').forEach(n => n.remove());
     let kind = 'mechanic';
     if (entity.classList.contains('hero-entity')) kind = 'hero';
     else if (entity.classList.contains('item-entity')) kind = 'item';
     entities.push({
-      name: nameEl.textContent.trim(),
+      name: nameClone.textContent.trim().replace(/\s+/g, ' '),
       element: entity,
       icon: imgEl ? imgEl.src : null,
       kind: kind
@@ -3691,13 +3912,17 @@ JS_TEXT = '''
   });
   // Also index ability titles (h4.ability-title) — pull icon from the .ability-block
   // wrapper so search results show the same picture as the ability heading.
+  // For innate abilities, Valve doesn't expose icons on the React CDN; the
+  // canonical image is the innate marker, so use that directly in search.
   document.querySelectorAll('h4.ability-title').forEach(h => {
     const block = h.closest('.ability-block');
     const imgEl = block ? block.querySelector('.ability-icon-img') : null;
+    const isInnate = block ? block.classList.contains('is-innate') : false;
+    const innateUrl = '../icons/misc/innate_icon.png';
     entities.push({
       name: h.textContent.trim(),
       element: h,
-      icon: imgEl ? imgEl.src : null,
+      icon: isInnate ? innateUrl : (imgEl ? imgEl.src : null),
       kind: 'ability'
     });
   });
@@ -5039,7 +5264,7 @@ W(li("Gaining max stacks requirement for the speedup buff is removed", t("BUFF")
 W(li("Initial 3 charges don't provide the movement speed buff", t("MISC")))
 W(li("Hallowed charge gain time increased from 3s to 4s", b(3, 4)))
 W(ul_close())
-W(item_header("Gungir"))
+W(item_header("Gleipnir"))
 W(ul_open())
 W(li("Eternal Chains radius increased from 275 to 325", b(275, 325)))
 W(li("Effective radius increased from 350 to 400 due to item's built-in Area of Effect bonus", b(350, 400)))
@@ -5334,9 +5559,9 @@ W(ul_close())
 W(ability("Demonic Summoning"))
 W(ul_open())
 W(li("Fixed Eidolons not having an 8 attack damage spread", t("MISC")))
-W(li("Eidolon Damage increased from 16/27/38/49 to 16/28/40/52", b([16, 27, 38, 49], [16, 28, 40, 52])))
+W(li("Eidolon Damage increased from 16/27/38/49 to 16/28/40/52", b([16, 27, 38, 49], [16, 28, 40, 52]),
+     extra=inline_note("As a result, damage changed from 16/27/38/49 to 12-20/24-32/36-44/48-56")))
 W(ul_close())
-W(subnote("As a result, damage changed from 16/27/38/49 to 12-20/24-32/36-44/48-56"))
 
 # Gyrocopter
 W(hero_header("Gyrocopter"))
@@ -6454,16 +6679,16 @@ W(item_header("Cornucopia"))
 W(ul_open())
 W(li("Item removed from the game", t("DEL")))
 W(ul_close())
-W(item_header("Orb Of Frost"))
+W(item_header("Orb of Frost"))
 W(ul_open())
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW")))
 W(ul_close())
 W(subnote("As a result of Health Restoration changes"))
 W(item_header("Refresher Shard"))
 W(ul_open())
 W(li("Reset Cooldowns no longer refreshes items", t("NERF")))
 W(ul_close())
-W(item_header("Ring Of Health"))
+W(item_header("Ring of Health"))
 W(ul_open())
 W(li("Item moved back to Secret Shop from Miscellaneous Shop", t("MISC")))
 W(ul_close())
@@ -6525,15 +6750,17 @@ W(li("Similarly to Specialist's Array, doesn't work with other sources of second
 W(ul_close())
 W(item_header("Arcane Boots", changed=True))
 W(auto_components_change("Arcane Boots", "7.41"))
+W(properties_change(
+    old=[],
+    new=[("NEW", "+125 Mana")]))
 W(ul_open())
 W(li("Recipe cost decreased from 475 to 325 " + b(475, 325, l=True) + ". Total cost increased from 1400g to 1500g", b(1400, 1500, l=True)))
-W(li("Now also provides +125 Mana", t("NEW")))
 W(ul_close())
 W(item_header("Guardian Greaves"))
 W(ul_open())
 W(li("Recipe cost increased from 1125 to 1175 " + b(1125, 1175, l=True) + ". Total cost increased from 4300g to 4450g (due to Arcane Boots cost increase)", b(4300, 4450, l=True)))
-W(li("Now also provides +150 Mana", t("NEW")))
 W(li("Mana Regen bonus decreased from +1.5 to +1", b(1.5, 1)))
+W(li("Now also provides +150 Mana", t("NEW")))
 W(ul_close())
 W(item_header("Battle Fury", changed=True))
 W(auto_components_change("Battle Fury", "7.41"))
@@ -6546,25 +6773,27 @@ W(li("Avatar duration changed from 9/8/7/6s to 9/8/7s", t("REWORK")))
 W(ul_close())
 W(item_header("Blade Mail", changed=True))
 W(auto_components_change("Blade Mail", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+6 Armor")],
+    new=[("",     "+7 Armor", b(6, 7))]))
 W(ul_open())
 W(li("Recipe cost decreased from 750 to 450 " + b(750, 450, l=True) + ". Total cost increased from 2300g to 2400g", b(2300, 2400, l=True)))
-W(li("Armor bonus increased from +6 to +7", b(6, 7)))
 W(ul_close())
 W(item_header("Crimson Guard"))
 W(ul_open())
 W(li("Armor bonus decreased from +8 to +6", b(8, 6)))
-W(li("Guard base damage block rescaled from 70 for all units to 70 on melee heroes and buildings and 45 on ranged heroes", t("REWORK")))
 W(li("Guard max health damage block decreased from 2.2% to 2%", b(2.2, 2)))
+W(li("Guard base damage block rescaled from 70 for all units to 70 on melee heroes and buildings and 45 on ranged heroes", t("REWORK")))
 W(ul_close())
 W(item_header("Dagon", changed=True))
 W(auto_components_change("Dagon", "7.41"))
 W(properties_change(
-    old=["+7/9/11/13/15 All Attributes",
-         "+15/16/17/18/19% Spell Lifesteal"],
-    new=["+6/7/8/9/10 All Attributes " + b([7, 9, 11, 13, 15], [6, 7, 8, 9, 10]),
-         "+200/210/220/230/240 Health",
-         "+350/375/400/425/450 Mana",
-         "+60/90/120/150/180 Cast Range"],
+    old=[("NERF", "+7/9/11/13/15 All Attributes"),
+         ("DEL",  "+15/16/17/18/19% Spell Lifesteal")],
+    new=[("",    "+6/7/8/9/10 All Attributes", b([7, 9, 11, 13, 15], [6, 7, 8, 9, 10])),
+         ("NEW", "+200/210/220/230/240 Health"),
+         ("NEW", "+350/375/400/425/450 Mana"),
+         ("NEW", "+60/90/120/150/180 Cast Range")],
     new_extras={3: show_list("Cast Range Bonus does not stack with Aether Lens or multiple Dagons",
                               summary="Stacking rules")}))
 W(ul_open())
@@ -6584,21 +6813,22 @@ W(li("Ranged Attack Range bonus decreased from +140 to +130", b(140, 130)))
 W(li("Hurricane Thrust cast range on enemies decreased from 450 to 425", b(450, 425)))
 W(li("Hurricane Thrust enemy push distance decreased from 450 to 425", b(450, 425)))
 W(ul_close())
-W(item_header("Drum of Endurance"))
+W(item_header("Drum of Endurance", changed=True))
+W(auto_components_change("Drum of Endurance", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+7 Strength"),
+         ("DEL",  "+7 Intelligence")],
+    new=[("",     "+8 Strength", b(7, 8))]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Headdress (425) instead of Robe of the Magi (450)", t("REWORK")))
+W(li("Endurance now shares cooldown with Boots of Bearing", t("NERF")))
+W(li("Swiftness Aura now also provides +2.5 Health Regen", t("NEW")))
 W(li("Recipe cost increased from 500 to 525 " + b(500, 525, l=True) + ". Total cost unchanged at 1625g", t("MISC")))
-W(li("No longer provides +7 Intelligence", t("NERF")))
-W(li("Strength bonus increased from +7 to +8", b(7, 8)))
-W(li("Swiftness Aura now also provides +2.5 Health Regen", t("REWORK")))
-W(li("Endurance now shares cooldown with Boots of Bearing", t("REWORK")))
 W(ul_close())
 W(item_header("Boots of Bearing"))
 W(ul_open())
-W(li("No longer provides +8 Intelligence", t("NERF")))
-W(li("Swiftness Aura now also provides +2.5 Health Regen", t("REWORK")))
-W(li("Endurance now shares cooldown with Drum of Endurance", t("REWORK")))
+W(li("Endurance now shares cooldown with Drum of Endurance", t("NERF")))
+W(li("No longer provides +8 Intelligence", t("DEL")))
+W(li("Swiftness Aura now also provides +2.5 Health Regen", t("NEW")))
 W(ul_close())
 W(item_header("Eternal Shroud"))
 W(ul_open())
@@ -6608,10 +6838,9 @@ W(item_header("Ethereal Blade"))
 W(ul_open())
 W(li("Can no longer be disassembled", t("NERF")))
 W(ul_close())
-W(item_header("Gungir"))
+W(item_header("Gleipnir", changed=True))
+W(auto_components_change("Gleipnir", "7.41"))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now also requires Chasm Stone (800)", t("REWORK")))
 W(li("Recipe cost decreased from 1100 to 400 " + b(1100, 400, l=True) + ". Total cost increased from 4550g to 4650g", b(4550, 4650, l=True)))
 W(li("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack", t("MISC")))
 W(ul_close())
@@ -6620,25 +6849,29 @@ W(auto_components_change("Glimmer Cape", "7.41"))
 W(ul_open())
 W(li("Recipe cost increased from 450 to 800 " + b(450, 800, l=True) + ". Total cost unchanged at 2150g", t("MISC")))
 W(ul_close())
-W(item_header("Hand Of Midas"))
+W(item_header("Hand of Midas"))
 W(ul_open())
-W(li("Transmute no longer prevents camp-clearing Madstone Bundles from spawning if it was used on the last creep in neutral camp", t("NERF")))
+W(li("Transmute no longer prevents camp-clearing Madstone Bundles from spawning if it was used on the last creep in neutral camp", t("MISC")))
 W(li("Getting guaranteed Madstone Bundle from Transmute used to prevent the camp-clearing bundle from spawning", t("MISC")))
 W(ul_close())
 W(item_header("Harpoon"))
 W(ul_open())
-W(li("Draw Forth can now target trees and will pull the caster to it, destroying all trees on the way", t("REWORK")))
+W(li("Draw Forth can now target trees and will pull the caster to it, destroying all trees on the way", t("NEW")))
 W(ul_close())
 W(item_header("Heaven's Halberd", changed=True))
 W(auto_components_change("Heaven's Halberd", "7.41"))
+W(properties_change(
+    old=[("DEL",  "+275 Health"),
+         ("DEL",  "Damage Block (passive)"),
+         ("BUFF", "+6 Health Regen")],
+    new=[("NEW",  "+9 Armor"),
+         ("NEW",  "+25% Evasion"),
+         ("",     "+6.5 Health Regen", b(6, 6.5))]))
 W(ul_open())
-W(li("Can no longer be disassembled", t("NERF")))
-W(li("No longer provides +275 Health", t("NERF")))
-W(li("Now also provides +9 Armor and +25% Evasion", t("REWORK")))
-W(li("No longer has Damage Block passive", t("NERF")))
 W(li("Disarm cooldown decreased from 20s to 16s", b(20, 16, l=True)))
 W(li("Disarm cast range increased from 650 to 750", b(650, 750)))
 W(li("Disarm duration increased from 3s to 3.5s", b(3, 3.5)))
+W(li("Can no longer be disassembled", t("NERF")))
 W(ul_close())
 W(item_header("Kaya"))
 W(ul_open())
@@ -6647,14 +6880,14 @@ W(ul_close())
 W(item_header("Kaya and Sange"))
 W(ul_open())
 W(li("Mana Regen Amplification bonus decreased from +50% to +40%", b(50, 40)))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW"),
+     extra=inline_note("As a result of Health Restoration changes")))
 W(ul_close())
-W(subnote("As a result of Health Restoration changes"))
 W(item_header("Meteor Hammer"))
 W(ul_open())
 W(li("Mana Regen Amplification bonus decreased from +40% to +35%", b(40, 35)))
 W(ul_close())
-W(item_header("Yasha And Kaya"))
+W(item_header("Yasha and Kaya"))
 W(ul_open())
 W(li("Mana Regen Amplification bonus decreased from +50% to +40%", b(50, 40)))
 W(ul_close())
@@ -6664,20 +6897,24 @@ W(li("Can no longer be disassembled", t("NERF")))
 W(ul_close())
 W(item_header("Mage Slayer", changed=True))
 W(auto_components_change("Mage Slayer", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+5 Health Regen"),
+         ("BUFF", "+2 Mana Regen"),
+         ("BUFF", "+8 Damage"),
+         ("DEL",  "+30 Attack Speed")],
+    new=[("",     "+6 Health Regen",  b(5, 6)),
+         ("",     "+2.5 Mana Regen",  b(2, 2.5)),
+         ("",     "+15 Damage",       b(8, 15))]))
 W(ul_open())
-W(li("Total cost increased from 2800g to 3100g (change is bigger due to Cloak cost increase)", b(2800, 3100, l=True)))
-W(li("No longer provides +30 Attack Speed", t("NERF")))
-W(li("Health Regen bonus increased from +5 to +6", b(5, 6)))
-W(li("Mana Regen bonus increased from +2 to +2.5", b(2, 2.5)))
-W(li("Damage bonus increased from +8 to +15", b(8, 15)))
-W(li("Mage Slayer damage type changed from magical to physical", t("MISC")))
 W(li("Mage Slayer damage per second increased from 20 to 40", b(20, 40)))
+W(li("Total cost increased from 2800g to 3100g (change is bigger due to Cloak cost increase)", b(2800, 3100, l=True)))
+W(li("Mage Slayer damage type changed from magical to physical", t("REWORK")))
 W(ul_close())
-W(item_header("Mask Of Madness"))
+W(item_header("Mask of Madness"))
 W(ul_open())
-W(li("Berserk now also grants 30% Slow Resistance for the duration", t("REWORK")))
-W(li("Berserk bonus Movement Speed changed from +25 for all heroes to +8%/12% for Ranged/Melee", t("MISC")))
-W(li("Berserk armor reduction decreased from 8 to 7", b(8, 7)))
+W(li("Berserk armor reduction decreased from 8 to 7", b(8, 7, l=True)))
+W(li("Berserk now also grants 30% Slow Resistance for the duration", t("NEW")))
+W(li("Berserk bonus Movement Speed changed from +25 for all heroes to +8%/12% for Ranged/Melee", t("REWORK")))
 W(ul_close())
 W(item_header("Mekansm"))
 W(ul_open())
@@ -6685,75 +6922,85 @@ W(li("Recipe cost increased from 800 to 850 " + b(800, 850, l=True) + ". Total c
 W(ul_close())
 W(item_header("Monkey King Bar"))
 W(ul_open())
-W(li("Recipe cost increased from 600 to 900 " + b(600, 900, l=True) + ". Total cost increased from 4700g to 5000g", b(4700, 5000, l=True)))
-W(li("Now also provides +50 Attack Range to melee heroes only", t("REWORK")))
 W(li("Damage bonus increased from +40 to +50", b(40, 50)))
 W(li("Attack Speed bonus increased from +45 to +50", b(45, 50)))
+W(li("Recipe cost increased from 600 to 900 " + b(600, 900, l=True) + ". Total cost increased from 4700g to 5000g", b(4700, 5000, l=True)))
+W(li("Now also provides +50 Attack Range to melee heroes only", t("NEW")))
 W(ul_close())
-W(item_header("Nullifier"))
+W(item_header("Nullifier", changed=True))
+W(auto_components_change("Nullifier", "7.41"))
+W(properties_change(
+    old=[("DEL", "+6 Health Regen")],
+    new=[]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Splintmail (950) instead of Helm of Iron Will (975)", t("REWORK")))
 W(li("Total cost decreased from 4375g to 4350g", b(4375, 4350, l=True)))
-W(li("No longer provides +6 Health Regen", t("NERF")))
 W(ul_close())
 W(item_header("Oblivion Staff"))
 W(ul_open())
 W(li("Mana Regen bonus increased from +1 to +1.25", b(1, 1.25)))
 W(ul_close())
-W(item_header("Orchid"))
+W(item_header("Orchid Malevolence", changed=True))
+W(auto_components_change("Orchid Malevolence", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+10 Damage"),
+         ("NERF", "+3 Mana Regen"),
+         ("BUFF", "+10 Intelligence"),
+         ("DEL",  "+6 Health Regen")],
+    new=[("",     "+20 Damage",       b(10, 20)),
+         ("",     "+2.5 Mana Regen",  b(3, 2.5)),
+         ("",     "+12 Intelligence", b(10, 12))]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Claymore (1350) instead of Cornucopia (1200)", t("REWORK")))
 W(li("Recipe cost decreased from 450 to 300 " + b(450, 300, l=True) + ". Total cost unchanged at 3275g", t("MISC")))
-W(li("No longer provides +6 Health Regen", t("NERF")))
-W(li("Damage bonus increased from +10 to +20", b(10, 20)))
-W(li("Mana Regen bonus decreased from +3 to +2.5", b(3, 2.5)))
-W(li("Intelligence bonus increased from +10 to +12", b(10, 12)))
 W(ul_close())
-W(item_header("Bloodthorn"))
+W(item_header("Bloodthorn", changed=True))
+W(auto_components_change("Bloodthorn", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+10 Intelligence"),
+         ("NERF", "+95 Attack Speed"),
+         ("BUFF", "+3.25 Mana Regen"),
+         ("BUFF", "+10 Damage"),
+         ("DEL",  "+6.5 Health Regen")],
+    new=[("",     "+25 Intelligence", b(10, 25)),
+         ("",     "+70 Attack Speed", b(95, 70)),
+         ("",     "+4 Mana Regen",    b(3.25, 4)),
+         ("",     "+20 Damage",       b(10, 20))]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Oblivion Staff (1625) instead of Hyperstone (2000)", t("REWORK")))
 W(li("Recipe cost increased from 450 to 600 " + b(450, 600, l=True) + ". Total cost decreased from 6625g to 6400g", b(6625, 6400, l=True)))
-W(li("No longer provides +6.5 Health Regen", t("NERF")))
-W(li("Intelligence bonus increased from +10 to +25", b(10, 25)))
-W(li("Attack Speed bonus decreased from +95 to +70", b(95, 70)))
-W(li("Mana Regen bonus increased from +3.25 to +4", b(3.25, 4)))
-W(li("Damage bonus increased from +10 to +20", b(10, 20)))
 W(li("Soul Rend Mana Cost increased from 125 to 150", b(125, 150, l=True)))
 W(ul_close())
-W(item_header("Orb Of Corrosion"))
+W(item_header("Orb of Corrosion"))
 W(ul_open())
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW"),
+     extra=inline_note("As a result of Health Restoration changes")))
 W(ul_close())
-W(subnote("As a result of Health Restoration changes"))
 W(item_header("Skadi"))
 W(ul_open())
-W(li("Cold Attack no longer has a separate value for incoming heal reduction ", t("DEL")))
-W(ul_close())
-W(subnote("Still reduces incoming heals due to Health Restoration changes"))
-W(ul_open())
+W(li("Cold Attack no longer has a separate value for incoming heal reduction", t("MISC"),
+     extra=inline_note("Still reduces incoming heals due to Health Restoration changes")))
 W(li("Cold Attack health restoration reduction increased from 40% to 50%", b(40, 50)))
 W(ul_close())
-W(item_header("Pavise"))
+W(item_header("Pavise", changed=True))
+W(auto_components_change("Pavise", "7.41"))
+W(properties_change(
+    old=[("NERF", "+250 Mana")],
+    new=[("",     "+175 Mana", b(250, 175))]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Wizard Hat (250) instead of Energy Booster (800)", t("REWORK")))
 W(li("Recipe cost increased from 175 to 675 " + b(175, 675, l=True) + ". Total cost decreased from 1400g to 1350g", b(1400, 1350, l=True)))
-W(li("Mana bonus decreased from +250 to +175", b(250, 175)))
 W(ul_close())
-W(item_header("Solar Crest"))
+W(item_header("Solar Crest", changed=True))
+W(auto_components_change("Solar Crest", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+4 Armor"),
+         ("NERF", "+300 Mana"),
+         ("BUFF", "+175 Health"),
+         ("DEL",  "+4 All Attributes")],
+    new=[("",     "+7 Armor",    b(4, 7)),
+         ("",     "+200 Mana",   b(300, 200)),
+         ("",     "+200 Health", b(175, 200))]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Chainmail (500) instead of Crown (450)", t("REWORK")))
 W(li("Recipe cost unchanged at 500. Total cost unchanged at 2575g (due to Pavise cost decrease)", t("MISC")))
-W(li("No longer provides +4 All Attributes", t("NERF")))
-W(li("Armor bonus increased from +4 to +7", b(4, 7)))
-W(li("Mana bonus decreased from +300 to +200", b(300, 200)))
-W(li("Health bonus increased from +175 to +200", b(175, 200)))
 W(ul_close())
-W(item_header("Pers"))
+W(item_header("Perseverance"))
 W(ul_open())
 W(li("Health Regen bonus decreased from +6.5 to +5.5", b(6.5, 5.5)))
 W(ul_close())
@@ -6765,26 +7012,23 @@ W(item_header("Phylactery"))
 W(ul_open())
 W(li("Health Regen bonus decreased from +6.5 to +5.5", b(6.5, 5.5)))
 W(ul_close())
-W(item_header("Pipe"))
+W(item_header("Pipe of Insight", changed=True))
+W(auto_components_change("Pipe of Insight", "7.41"))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Shawl (450) instead of Headdress (425)", t("REWORK")))
 W(li("Recipe Cost decreased from 800 to 675. Total cost unchanged at 3725g (due to Cloak cost increase)", b(800, 675, l=True)))
 W(li("Barrier no longer affects units that have been affected by Barrier within Pipe of Insight's cooldown", t("NERF")))
 W(li("Insight Aura no longer provides 2.5 health regen", t("DEL")))
 W(ul_close())
 W(item_header("Radiance"))
 W(ul_open())
-W(li("Burn toggling no longer breaks invisibility nor stops channels", t("NERF")))
+W(li("Burn toggling no longer breaks invisibility nor stops channels", t("MISC")))
 W(ul_close())
 W(item_header("Refresher"))
 W(ul_open())
 W(li("Health Regen bonus increased from +12 to +14", b(12, 14)))
 W(li("Mana Regen bonus increased from +6 to +7", b(6, 7)))
-W(li("Reset Cooldowns cooldown decreased from 180/190/200/210s to 180s ", b([180, 190, 200, 210], 180, l=True)))
-W(ul_close())
-W(subnote("No longer scales with uses"))
-W(ul_open())
+W(li("Reset Cooldowns cooldown decreased from 180/190/200/210s to 180s", b([180, 190, 200, 210], 180, l=True),
+     extra=inline_note("No longer scales with uses")))
 W(li("Reset Cooldowns mana cost decreased from 400 to 325", b(400, 325, l=True)))
 W(li("Reset Cooldowns no longer refreshes items", t("NERF")))
 W(ul_close())
@@ -6795,75 +7039,81 @@ W(ul_close())
 W(item_header("Sange"))
 W(ul_open())
 W(li("Slow Resistance bonus increased from +20% to +25%", b(20, 25)))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW"),
+     extra=inline_note("As a result of Health Restoration changes")))
 W(ul_close())
-W(subnote("As a result of Health Restoration changes"))
 W(item_header("Abyssal Blade"))
 W(ul_open())
 W(li("Slow Resistance bonus increased from +25% to +30%", b(25, 30)))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW"),
+     extra=inline_note("As a result of Health Restoration changes")))
 W(ul_close())
-W(subnote("As a result of Health Restoration changes"))
 W(item_header("Sange and Yasha"))
 W(ul_open())
 W(li("Status Resistance bonus increased from +15% to +16%", b(15, 16)))
 W(li("Slow Resistance bonus increased from +25% to +30%", b(25, 30)))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW"),
+     extra=inline_note("As a result of Health Restoration changes")))
 W(ul_close())
-W(subnote("As a result of Health Restoration changes"))
-W(item_header("Shiva's Guard"))
+W(item_header("Shiva's Guard", changed=True))
+W(auto_components_change("Shiva's Guard", "7.41"))
+W(properties_change(
+    old=[("BUFF", "+15 Armor"),
+         ("DEL",  "+5 Strength"),
+         ("DEL",  "+5 Agility"),
+         ("DEL",  "+5 Intelligence"),
+         ("DEL",  "+5 Health Regen")],
+    new=[("",    "+17 Armor", b(15, 17)),
+         ("NEW", "+75 Area of Effect")]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Splintmail (950) and Chasm Stone (800) instead of Veil of Discord (1725)", t("REWORK")))
 W(li("Recipe cost decreased from 2050 to 1350 " + b(2050, 1350, l=True) + ". Total cost decreased from 5175g to 4500g", b(5175, 4500, l=True)))
-W(li("No longer provides +5 Strength, +5 Agility, +5 Intelligence, or +5 Health Regen", t("NERF")))
-W(li("Armor bonus increased from +15 to +17", b(15, 17)))
-W(li("Now also provides +75 Area of Effect", t("REWORK")))
-W(li("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack", t("MISC")))
 W(li("Arctic Blast damage increased from 200 to 260", b(200, 260)))
-W(li("Arctic Blast radius decreased from 900 to 825 ", b(900, 825)))
-W(ul_close())
-W(subnote("Effective spell radius unchanged due to item's built-in Area of Effect bonus"))
-W(ul_open())
+W(li("Freezing Aura now pierces debuff immunity", t("BUFF")))
 W(li("Arctic Blast no longer increases damage taken from spells", t("DEL")))
 W(li("Freezing Aura no longer reduces Health Restoration and Incoming Heal Amplification by 25%", t("DEL")))
-W(li("Freezing Aura now pierces debuff immunity", t("REWORK")))
+W(li("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack", t("MISC")))
+W(li("Arctic Blast radius decreased from 900 to 825", t("MISC"),
+     extra=inline_note("Effective spell radius unchanged due to item's built-in Area of Effect bonus")))
 W(ul_close())
 W(item_header("Spirit Vessel"))
 W(ul_open())
-W(li("Soul Release no longer has a separate value for incoming heal reduction ", t("DEL")))
+W(li("Soul Release no longer has a separate value for incoming heal reduction", t("MISC"),
+     extra=inline_note("Still reduces incoming heals due to Health Restoration changes")))
 W(ul_close())
-W(subnote("Still reduces incoming heals due to Health Restoration changes"))
 W(item_header("Tranquil Boots"))
 W(ul_open())
 W(li("Break now also goes on cooldown when the item is disassembled. Reassembling the item will remember the time remaining", t("REWORK")))
 W(ul_close())
-W(item_header("Veil Of Discord"))
+W(item_header("Veil of Discord", changed=True))
+W(auto_components_change("Veil of Discord", "7.41"))
+W(properties_change(
+    old=[("DEL", "+4 Armor"),
+         ("DEL", "+4 All Attributes"),
+         ("DEL", "+4.5 Health Regen")],
+    new=[("NEW", "+10 Intelligence"),
+         ("NEW", "+175 Health"),
+         ("NEW", "+18% Spell Lifesteal")]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Voodoo Mask (650), Robe of the Magi (450), Fluffy Hat (250), and a recipe (350). Total cost: 1700g", t("REWORK")))
-W(li("Used to require Ring of Health (700), Chainmail (550), Circlet (155), and a recipe (320). Total cost: 1725g", t("MISC")))
-W(li("No longer provides +4 Armor, +4 All Attributes or +4.5 Health Regen", t("NERF")))
-W(li("Now provides +10 Intelligence, +175 Health and +18% Spell Lifesteal", t("REWORK")))
 W(li("Magic Weakness renamed to Spell Weakness", t("MISC")))
 W(ul_close())
-W(item_header("Bloodstone"))
+W(item_header("Bloodstone", changed=True))
+W(auto_components_change("Bloodstone", "7.41"))
+W(properties_change(
+    old=[("NERF", "+25% Spell Lifesteal"),
+         ("BUFF", "+450 Health"),
+         ("DEL",  "+3 Mana Regen")],
+    new=[("",    "+20% Spell Lifesteal", b(25, 20)),
+         ("",    "+650 Health",          b(450, 650)),
+         ("NEW", "+15 Intelligence")]))
 W(ul_open())
-W(li("Recipe changed"))
-W(li("Now requires Veil of Discord (1700) instead of Void Stone (700) and Voodoo Mask (650). Total cost increased from 4350g to 4700g", b(4350, 4700, l=True)))
-W(li("No longer provides +3 Mana Regen", t("NERF")))
-W(li("Spell Lifesteal bonus decreased from +25% to +20%", b(25, 20)))
-W(li("Health bonus increased from +450 to +650", b(450, 650)))
-W(li("Now also provides +15 Intelligence", t("REWORK")))
-W(li("Bloodpact no longer applies a basic dispel", t("NERF")))
-W(li("Bloodpact no longer multiplies spell lifesteal bonus by 3. Now increases spell lifesteal to 60% instead ", t("NERF")))
-W(ul_close())
-W(subnote("Spell Lifesteal during Bloodpact decreased from 75% to 60%"))
-W(ul_open())
-W(li("Bloodpact no longer has a 30s self debuff preventing repeated usage of Bloodpact", t("DEL")))
-W(li("Now also provides passive Spell Weakness Aura", t("REWORK")))
-W(li("Enemy units within 1200 radius take 12% increased damage from spells", t("BUFF")))
-W(li("Effect does not stack with Veil of Discord's Spell Weakness", t("MISC")))
+W(li("Bloodpact no longer has a 30s self debuff preventing repeated usage of Bloodpact", t("BUFF")))
+W(li("Total cost increased from 4350g to 4700g", b(4350, 4700, l=True)))
+W(li("Bloodpact no longer multiplies spell lifesteal bonus by 3. Now increases spell lifesteal to 60% instead", b(75, 60),
+     extra=inline_note("Spell Lifesteal during Bloodpact decreased from 75% to 60%")))
+W(li("Bloodpact no longer applies a basic dispel", t("DEL")))
+W(li("Now also provides passive Spell Weakness Aura", t("NEW")))
+W(li("Passive: Enemy units within 1200 radius take 12% increased damage from spells", "",
+     extra=inline_note("Effect does not stack with Veil of Discord's Spell Weakness")))
 W(ul_close())
 W(item_header("Witch Blade"))
 W(ul_open())
@@ -6873,43 +7123,42 @@ W(ul_close())
 W(section("Neutral Item Updates"))
 W(subgroup("General changes"))
 W(ul_open())
-W(li("Tier 1 availability changed from 5:00 to 0:00", t("BUFF")))
-W(li("Madstone crafting cost for Tier 1 items increased from 5 to 6", b(5, 6)))
+W(li("Tier 1 availability changed from 5:00 to 0:00", t("REWORK")))
+W(li("Madstone crafting cost for Tier 1 items increased from 5 to 6", t("REWORK")))
 W(ul_close())
 W(subgroup("Artifact changes"))
 W(ul_open())
-W(li("Number of artifact choices increased from 4 to 5 for Tiers 2-5", b(4, 5)))
+W(li("Number of artifact choices increased from 4 to 5 for Tiers 2-5", t("REWORK")))
 W(ul_close())
 W(item_header("Ash Legion Shield"))
 W(ul_open())
 W(li("Shield Wall damage barrier increased from 140 to 160", b(140, 160)))
-W(li("Shield Wall movement speed reduction increased from 12 to 20", b(12, 20)))
+W(li("Shield Wall movement speed reduction increased from 12 to 20", t("NERF")))
 W(ul_close())
 W(item_header("Chipped Vest"))
 W(ul_open())
 W(li("Chipper damage returned to attacking creeps decreased from 20 to 15", b(20, 15)))
 W(ul_close())
-W(item_header("Dagger Of Ristul"))
+W(item_header("Dagger of Ristul", new="Returning Tier 1 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 1 Neutral Artifact", t("MISC")))
-W(li("Active: Imbrue. Increase attack damage by 25 for 8s. Health Cost: 100. Cooldown: 30s", t("MISC")))
+W(li("Active: Imbrue. Increase attack damage by 25 for 8s. Health Cost: 100. Cooldown: 30s", t("NEW")))
 W(ul_close())
 W(item_header("Foragers Kit", new="New Tier 1 Artifact"))
 W(ul_open())
-W(li("When this item is off cooldown, the wearer can see trees that can be foraged. Standing next to one of those trees for 1s will give the wearer one of the following items. Cooldown: 60s. Tree reveal radius: 1200", t("NEW")))
-W(li("All items except for bag of gold are placed in inventory (if there are slots available) and can stack up to 5 times per slot", t("NEW")))
-W(li("Possible items:", t("NEW")))
-W(li("Ironwood Nut: Passively provides +3 Movement Speed. Grants +1 Primary Stat when consumed (+.4 all stats for universal heroes)", t("NEW")))
-W(li("Tomo'kan Ringcap: Passively Provides +2 Intelligence. Can be consumed to instantly grant a target 50 + 5% of their maximum mana", t("NEW")))
-W(li("Vital Toadstool: Passively Provides +2 Damage. Can be consumed to grant a target +1% Max Health Regeneration for 10s. If the unit is attacked by an enemy hero or Roshan the bonus is lost", t("NEW")))
-W(li("Bag of Gold: Provides 30 gold to the wearer. Don't need to be picked up", t("NEW")))
+W(li("When this item is off cooldown, the wearer can see trees that can be foraged. Standing next to one of those trees for 1s will give the wearer one of the following items. Cooldown: 60s. Tree reveal radius: 1200", t("NEW"), ability_row=True))
+W(li("All items except for bag of gold are placed in inventory (if there are slots available) and can stack up to 5 times per slot.", t("NEW"), ability_row=True))
+W(li("&nbsp;", t("NEW"), ability_row=True))
+W(li("Possible items:", t("NEW"), ability_row=True))
+W(li("Ironwood Nut: Passively provides +3 Movement Speed. Grants +1 Primary Stat when consumed (+.4 all stats for universal heroes)", t("NEW"), ability_row=True))
+W(li("Tomo'kan Ringcap: Passively Provides +2 Intelligence. Can be consumed to instantly grant a target 50 + 5% of their maximum mana", t("NEW"), ability_row=True))
+W(li("Vital Toadstool: Passively Provides +2 Damage. Can be consumed to grant a target +1% Max Health Regeneration for 10s. If the unit is attacked by an enemy hero or Roshan the bonus is lost", t("NEW"), ability_row=True))
+W(li("Bag of Gold: Provides 30 gold to the wearer. Don't need to be picked up", t("NEW"), ability_row=True))
 W(ul_close())
-W(item_header("Possessed Mask"))
+W(item_header("Possessed Mask", new="Returning Tier 1 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 1 Neutral Artifact", t("MISC")))
-W(li("Passive: Lifesteal. Attacks heal for 5 health ", t("MISC")))
+W(li("Passive: Lifesteal. Attacks heal for 5 health", t("NEW"),
+     extra=inline_note("This counts as lifesteal and is manipulated by Health Restoration")))
 W(ul_close())
-W(subnote("This counts as lifesteal and is manipulated by Health Restoration"))
 W(item_header("Stonefeather Satchel", new="New Tier 1 Artifact"))
 W(ul_open())
 W(li("Toggle: Transmogrify. Activate to switch the contents of the satchel between Feathers or Rocks. No Mana Cost. Cooldown: 6s.", t("NEW")))
@@ -6922,17 +7171,16 @@ W(li("Loaded now also increases max base damage by 6", t("REWORK")))
 W(ul_close())
 W(item_header("Crippling Crossbow"))
 W(ul_open())
-W(li("Moved from Tier 4 to Tier 2", t("MISC")))
 W(li("Hobble initial damage decreased from 75 to 25", b(75, 25)))
 W(li("Hobble Max slow decreased from 80% to 50%", b(80, 50)))
 W(li("Hobble Cast Range decreased from 800 to 650", b(800, 650)))
-W(li("Hobble now also modifies incoming healing ", t("REWORK")))
+W(li("Hobble now also modifies incoming healing", t("REWORK"),
+     extra=inline_note("As a result of Health Restoration changes")))
+W(li("Moved from Tier 4 to Tier 2", t("MISC")))
 W(ul_close())
-W(subnote("As a result of Health Restoration changes"))
-W(item_header("Medallion Of Courage"))
+W(item_header("Medallion of Courage", new="Returning Tier 2 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 2 Neutral Artifact", t("MISC")))
-W(li("Active: Valor. If cast on an ally, increases their armor by 7 for 8s. If cast on an enemy, decreases their armor by 4 for 8s. Cannot be cast on self. Cast Range: 1000. Mana Cost: 30. Cooldown: 18s ", t("NERF")))
+W(li("Active: Valor. If cast on an ally, increases their armor by 7 for 8s. If cast on an enemy, decreases their armor by 4 for 8s. Cannot be cast on self. Cast Range: 1000. Mana Cost: 30. Cooldown: 18s", t("NEW")))
 W(ul_close())
 W(subnote("Dormant Curio increases duration from 8s to 10.4s"))
 W(item_header("Searing Signet"))
@@ -6943,22 +7191,20 @@ W(subnote("From 117 to 104 with Dormant Curio"))
 W(ul_open())
 W(li("Burn Through: Damage Threshold increased from 55 to 60", b(55, 60)))
 W(ul_close())
-W(item_header("Seeds Of Serenity"))
+W(item_header("Seeds of Serenity", new="Returning Tier 2 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 2 Neutral Artifact", t("MISC")))
-W(li("Active: Verdurous Dale. Place a 400 unit circle on the ground for 8s that increases health regeneration of allies inside by 8 + 25% of the caster's health regeneration. Cast Range: 350. No Mana Cost. Cooldown: 35s ", t("MISC")))
+W(li("Active: Verdurous Dale. Place a 400 unit circle on the ground for 8s that increases health regeneration of allies inside by 8 + 25% of the caster's health regeneration. Cast Range: 350. No Mana Cost. Cooldown: 35s", t("NEW"),
+     extra=inline_note("Dormant Curio increases health regeneration from 8 to 10.4 and from 25% to 32.5%")))
 W(ul_close())
-W(subnote("Dormant Curio increases health regeneration from 8 to 10.4 and from 25% to 32.5%"))
-W(item_header("Whisper Of The Dread"))
+W(item_header("Whisper of the Dread"))
 W(ul_open())
-W(li("Item cycled out", t("MISC")))
+W(li("Item cycled out", t("DEL")))
 W(ul_close())
-W(item_header("Cloak Of Flames"))
+W(item_header("Cloak of Flames", new="Returning Tier 3 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 3 Neutral Artifact", t("MISC")))
-W(li("Passive: Immolate. Burns enemy units in a 375 unit radius for 40 damage per second. Illusions deal 25 damage per second ", t("MISC")))
+W(li("Passive: Immolate. Burns enemy units in a 375 unit radius for 40 damage per second. Illusions deal 25 damage per second", t("NEW"),
+     extra=inline_note("Dormant Curio increases damage from 40 to 52 and illusion damage from 25 to 32.5")))
 W(ul_close())
-W(subnote("Dormant Curio increases damage from 40 to 52 and illusion damage from 25 to 32.5"))
 W(item_header("Gunpowder Gauntlets"))
 W(ul_open())
 W(li("Beat the Crowd cooldown increased from 6s to 10s", b(6, 10, l=True)))
@@ -6989,23 +7235,21 @@ W(subnote("Dormant Curio increases mana restored from 20% to 26%"))
 W(ul_open())
 W(li("Mana recovery duration cannot be modified", t("NERF")))
 W(ul_close())
-W(item_header("Stormcrafter"))
+W(item_header("Stormcrafter", new="Returning Tier 3 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 3 Neutral Artifact", t("MISC")))
-W(li("Passive: Bottled Lightning. Every 6s, zaps up to 2 enemies within 700 units, slowing them by 40% for 0.4s and dealing 70 magic damage ", t("MISC")))
+W(li("Passive: Bottled Lightning. Every 6s, zaps up to 2 enemies within 700 units, slowing them by 40% for 0.4s and dealing 70 magic damage", t("NEW"),
+     extra=inline_note("Dormant Curio increases damage from 70 to 91")))
 W(ul_close())
-W(subnote("Dormant Curio increases damage from 70 to 91"))
 W(item_header("Conjurer's Catalyst"))
 W(ul_open())
 W(li("Passive: Spellover. Every 100 spell damage dealt to an enemy deals damage to their surrounding allies in a 300 unit radius. Hero targets deal 40 damage to their allies, other targets deal 15 damage ", t("MISC")))
 W(ul_close())
 W(subnote("Dormant Curio increases hero damage from 40 to 52 and non-hero damage from 15 to 19.5"))
-W(item_header("Dandelion Amulet"))
+W(item_header("Dandelion Amulet", new="Returning Tier 4 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 4 Neutral Artifact", t("MISC")))
-W(li("Passive: Magical Damage Block. Blocks 300 magic damage from instances over 75 damage. Cooldown: 12s ", t("MISC")))
+W(li("Passive: Magical Damage Block. Blocks 300 magic damage from instances over 75 damage. Cooldown: 12s", t("NEW"),
+     extra=inline_note("Dormant Curio increases blocked damage from 300 to 390")))
 W(ul_close())
-W(subnote("Dormant Curio increases blocked damage from 300 to 390"))
 W(item_header("Enchanter's Bauble"))
 W(ul_open())
 W(li("Passive: Enchant. Increases bonuses of the item's Neutral Enchantment by 15%. Every time you craft this item again the bonus is increased by 40% ", t("BUFF")))
@@ -7050,13 +7294,12 @@ W(item_header("Spider Legs"))
 W(ul_open())
 W(li("Skitter: Duration increased from 10s to 14s", b(10, 14)))
 W(ul_close())
-W(item_header("Heavy Blade"))
+W(item_header("Heavy Blade", new="Returning Tier 5 Artifact"))
 W(ul_open())
-W(li("Returning as a Tier 5 Neutral Artifact", t("MISC")))
-W(li("Active: Cleanse. Apply basic dispel on all units in a 300 unit radius area. Cast Range: 500. Mana Cost: 150. Cooldown: 40s", t("MISC")))
-W(li("Passive: Subjugate. Your attacks deal bonus magical damage equal to 4% of target's Max Mana ", t("MISC")))
+W(li("Active: Cleanse. Apply basic dispel on all units in a 300 unit radius area. Cast Range: 500. Mana Cost: 150. Cooldown: 40s", t("NEW")))
+W(li("Passive: Subjugate. Your attacks deal bonus magical damage equal to 4% of target's Max Mana", t("NEW"),
+     extra=inline_note("Dormant Curio increases damage from 4% to 5.2%")))
 W(ul_close())
-W(subnote("Dormant Curio increases damage from 4% to 5.2%"))
 W(plain_header("Enchantment Changes"))
 W(ul_open())
 W(li("Number of Enchantment choices increased from 4 to 5 for Tiers 2-5", b(4, 5)))
@@ -7144,7 +7387,7 @@ W(ul_open())
 W(li("Now is a guaranteed option for Strength heroes only", t("REWORK")))
 W(li("Tiers changed from 4/5 to 2-4", b([4, 5], 2)))
 W(li("Health Restoration bonus rescaled from +30/40% to +10/15/20%", b([30, 40], [10, 15, 20])))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW")))
 W(ul_close())
 W(subnote("As a result of Health Restoration changes"))
 W(ul_open())
@@ -7272,7 +7515,7 @@ W(hero_header("Abaddon"))
 W(ability("Withering Mist"))
 W(ul_open())
 W(li("Health Restoration Reduction changed from 35% to 24.5% + 0.5% per level", b(35, 24.5)))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW")))
 W(ul_close())
 W(subnote("As a result of Health Restoration changes"))
 W(ability("Mist Coil"))
@@ -9624,7 +9867,7 @@ W(li("Cast Range is now Slark's attack range + 50", t("REWORK")))
 W(li("Stack Restoration Steal increased from 2/4/6/8% to 4/8/12/16%", b([2, 4, 6, 8], [4, 8, 12, 16])))
 W(li("Stack Regen Steal increased from 2/4/6/8 to 4/8/12/16", b([2, 4, 6, 8], [4, 8, 12, 16])))
 W(li("Stack Speed Steal increased from 2/4/6/8 to 4/8/12/16", b([2, 4, 6, 8], [4, 8, 12, 16])))
-W(li("Now also modifies incoming healing ", t("REWORK")))
+W(li("Now also modifies incoming healing", t("NEW")))
 W(ul_close())
 W(subnote("As a result of Health Restoration changes"))
 
