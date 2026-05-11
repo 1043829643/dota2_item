@@ -593,6 +593,17 @@ def provides(text):
     return f'<div class="provides-box">{text}</div>'
 
 
+def show_list(*items, summary='Show list'):
+    """Inline collapsible attached to the end of a sentence. Renders a small
+    'Show list (N)' toggle that expands to a bulleted list. Uses <div>/<span>
+    instead of <ul>/<li> to avoid interfering with the ability-box wrapper
+    that augments top-level <li> elements inside ul.changes."""
+    items_html = ''.join(f'<span class="show-list-item">{it}</span>' for it in items)
+    return (' <details class="show-list-inline">'
+            f'<summary>{summary} <span class="subnote-count">({len(items)})</span></summary>'
+            f'<div class="show-list-body">{items_html}</div></details>')
+
+
 def _component_cell(name, cost, mark=None):
     slug = ITEM_SLUG.get(name, name.lower().replace(' ', '_').replace("'", ''))
     if name.lower() == 'recipe':
@@ -2385,6 +2396,45 @@ ul.subnote-items > li {
   font-size: 13px;
 }
 ul.subnote-items > li::before {
+  content: "•  ";
+  color: #6e7681;
+}
+
+/* Inline 'Show list (N)' toggle embedded at the end of a sentence inside an
+   ability-row li. Keeps the trigger compact and lets the expanded list sit
+   directly under the sentence, still inside the same ability box. */
+.show-list-inline {
+  display: inline-block;
+  vertical-align: baseline;
+  margin-left: 4px;
+}
+.show-list-inline > summary {
+  display: inline-block;
+  list-style: none;
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 12.5px;
+  padding: 1px 6px;
+  border: 1px solid rgba(139, 148, 158, 0.3);
+  border-radius: 4px;
+  user-select: none;
+}
+.show-list-inline > summary::-webkit-details-marker { display: none; }
+.show-list-inline > summary:hover { color: #c9d1d9; border-color: rgba(139, 148, 158, 0.55); }
+.show-list-inline[open] > summary { color: #c9d1d9; }
+.show-list-inline > .show-list-body {
+  display: block;
+  margin: 6px 0 2px 6px;
+  padding: 0;
+}
+.show-list-inline > .show-list-body > .show-list-item {
+  display: block;
+  padding: 1px 0;
+  color: #8b949e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.show-list-inline > .show-list-body > .show-list-item::before {
   content: "•  ";
   color: #6e7681;
 }
@@ -6186,8 +6236,10 @@ W(components(('Blade of Alacrity', 1000), ('Broadsword', 1000),
 W(provides('+20 Damage, +12 Agility'))
 W(ul_open())
 W(li("Passive: Splitshot. Ranged Only. Ranged attacks have a 30% chance to fire additional projectiles at up to 2 nearby enemies that aren't the original attack target within 120 degree angle in front of the wearer and within attack range + 150. The additional projectiles deal 20 + 75% damage of a normal attack and do not trigger on hit effects. The primary attack deals 20 + full damage of a normal attack when the ability procs", t("NEW")))
+W(li("Doesn't work with other sources of secondary projectiles from hero abilities"
+     + show_list("Gyrocopter's Flak Cannon", "Medusa's Split Shot", "Muerta's Gunslinger"),
+     t("NEW")))
 W(ul_close())
-W(subnote("Doesn't work with other sources of secondary projectiles from hero abilities<br>* Gyrocopter's Flak Cannon<br>* Medusa's Split Shot<br>* Muerta's Gunslinger"))
 W(item_header("Hydras Breath", new="New Armaments Item"))
 W(components(("Specialist's Array", 2550), ('Dragon Lance', 1900), ('Orb of Venom', 350),
              recipe=('Recipe', 1100), total=5900))
