@@ -18,5 +18,3 @@ _ability_icons.txt
 # never committed to keep .git slim.
 patches/*.html
 calendar.html
-styles.css
-scripts.js

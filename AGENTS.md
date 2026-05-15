@@ -2,9 +2,8 @@
 
 ## ВАЖНО: source of truth
 
-`build_patch.py` — **главный файл патч-страниц**. CSS и JS для них встроены прямо в него.
-- `scripts.js` и `styles.css` — отдельные файлы для `index.html` и `calendar.html`. Редактировать их можно, они не перезаписываются.
-- Чтобы изменить стиль или поведение **патч-страниц** — редактируй `CSS`/`SCRIPT` строки внутри `build_patch.py`, а не `styles.css`/`scripts.js`.
+`build_patch.py` — **главный файл патч-страниц**. CSS и JS читаются с диска при старте: `styles.css` и `scripts.js` — это **source files**, редактируются напрямую.
+- `scripts.js` и `styles.css` — единственный источник правды для стилей и поведения всех страниц (включая `index.html` и `calendar.html`). Редактируй напрямую — IDE/linter работают нормально.
 - Сгенерированные HTML (`patches/7.41c.html` и т.д.) — результат запуска `python build_patch.py`, не редактируй вручную.
 - Все патч-файлы лежат в `patches/` (не в корне), поэтому их CSS/JS подключаются через `../styles.css`, `../scripts.js`.
 
