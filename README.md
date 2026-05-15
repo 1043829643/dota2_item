@@ -18,8 +18,8 @@ A static site that turns Valve's raw Dota 2 patch notes into a readable, filtera
 ```
 build_patch.py            ← generator. Contains HTML helpers, CSS, JS, and patch content
 generate_patch_code.py    ← KV → Python codegen. Run before integrating a new patch
-apply_stats_to_build.py   ← post-processor: t() → bstat_h() where stats DB knows the value
-check_icons.py            ← validates every ability icon URL against Valve CDN
+scripts/apply_stats.py    ← post-processor: t() → bstat_h() where stats DB knows the value
+scripts/check_icons.py    ← validates every ability icon URL against Valve CDN
 
 data/
   patchnotes_english.txt  ← raw Valve KV

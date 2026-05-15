@@ -14,7 +14,7 @@ try:
 except ImportError:
     print("pip install requests"); sys.exit(1)
 
-URLS_FILE = Path(__file__).parent / "_ability_icons.txt"
+URLS_FILE = Path(__file__).resolve().parent.parent / "_ability_icons.txt"
 INNATE_ICON = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png"
 
 if not URLS_FILE.exists():

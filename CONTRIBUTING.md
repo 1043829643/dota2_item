@@ -48,7 +48,7 @@ These are the rules CI validates and that reviewers will flag:
 - **Subnotes belong inside the row they explain.** A `W(subnote(...))` immediately after `W(ability_change(...))` renders OUTSIDE the swap card — that's a bug. Move it into `new.desc=[..., inline_note("...")]`.
 - **Trailing whitespace inside `W(li("text ", ...))` is rejected.**
 
-Full set of conventions: [CLAUDE.md](CLAUDE.md) (the project's working notebook of every rule discovered while building).
+Full set of conventions: [AGENTS.md](AGENTS.md) (the project's working notebook of every rule discovered while building).
 
 ## Commit hygiene
 

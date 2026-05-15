@@ -1,5 +1,5 @@
 """
-apply_stats_to_build.py — Патчит build_patch.py на месте: меняет
+scripts/apply_stats.py — Патчит build_patch.py на месте: меняет
 W(li("...", t("BUFF"/"NERF"))) на bstat_h(...) / b(...) везде, где:
   • описание содержит паттерн "increased/decreased by N"
   • герой/предмет известен из контекста (после W(hero_header(...)))
@@ -10,7 +10,7 @@ W(li("...", t("BUFF"/"NERF"))) на bstat_h(...) / b(...) везде, где:
 Workflow:
     python fetch_stats.py        (один раз — качает стоты)
     python upload_stats.py       (заливает в репо)
-    python apply_stats_to_build.py    ← этот скрипт
+    python scripts/apply_stats.py    ← этот скрипт
     python build_patch.py        (пересобрать HTML)
     git add -A && git commit && git push
 """
@@ -19,7 +19,7 @@ import re
 import sys
 from pathlib import Path
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent.parent  # repo root (parent of scripts/)
 sys.path.insert(0, str(_HERE))
 
 from generate_patch_code import (
