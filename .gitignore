@@ -8,3 +8,8 @@ _insert_patches.py
 
 # Список URL иконок — генерируется build_patch.py для check_icons.py
 _ability_icons.txt
+
+# IDE / editor local config
+.claude/
+.vscode/
+.idea/
