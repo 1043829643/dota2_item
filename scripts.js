@@ -51,6 +51,11 @@
   }
 
   // ---- HIDE ABSENT TAGS from toolbar ----
+  // The .legend-tags container is set to visibility: hidden by default in
+  // styles.css so the user doesn't see all 7 buttons appear and then watch
+  // the absent one(s) (e.g. QoL on a patch without QoL rows) disappear on
+  // Ctrl+F5. We compute presence, hide the absent buttons, THEN flip the
+  // container to visible — a single resolved render, no flash.
   const presentTags = new Set();
   document.querySelectorAll('[data-tag]').forEach(el => {
     (el.dataset.tag || '').split(' ').filter(Boolean).forEach(t => presentTags.add(t));
@@ -62,6 +67,9 @@
     if (!presentTags.has(btn.dataset.filter)) {
       btn.style.display = 'none';
     }
+  });
+  document.querySelectorAll('.legend-tags').forEach(bar => {
+    bar.style.visibility = 'visible';
   });
 
   // ---- BOLD NUMBERS AND VERSION IN PATCH-AGE ----

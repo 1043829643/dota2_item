@@ -72,8 +72,44 @@ nav.top-nav {
 .nav-context {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;                   /* extra gap between release-info and version-picker now that arrows flank the dropdown */
   margin-bottom: 8px;
+}
+/* Wraps the previous-arrow + version-dropdown + next-arrow into a single
+   horizontal control so all three sit on one baseline and the arrows
+   are clearly attached to the version button. */
+.version-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.version-nav-arrow {
+  color: #a8b3bd;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 38px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+.version-nav-arrow:hover {
+  background: rgba(0, 0, 0, 0.4);
+  color: #c9d1d9;
+}
+.version-nav-arrow.is-disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* RELEASE INFO + VERSION — одна высота */
@@ -558,6 +594,11 @@ span.cal-full-day.has-patch {
   flex-wrap: nowrap;          /* keep all tag buttons on one line */
   flex-shrink: 0;
   white-space: nowrap;
+  /* Hidden until scripts.js computes which tags are actually present in
+     this patch and hides the absent filter buttons (e.g. QoL on 7.41).
+     Prevents a "flash of all 7 buttons" before the absent ones get
+     style.display = 'none' applied. */
+  visibility: hidden;
 }
 .legend-tags strong {
   color: #c9d1d9;
@@ -1908,6 +1949,46 @@ ul.subnote-items > li::before {
   min-width: 56px;
   text-align: center;
   box-sizing: border-box;
+}
+/* Facet pill — replicates the dota2.com patch-page facet header:
+     - Background: 2-stop linear-gradient(to right, light, dark) in the
+       facet's themed color (injected inline from FACETS table).
+     - Text placement: right-aligned with extra LEFT padding, so the
+       facet name lands on the DARK end of the gradient where white text
+       reads cleanly even when the light end is bright (Yellow1, etc).
+   No overlay needed — Valve's gradient already does the contrast work. */
+.badge.facet-badge {
+  position: relative;
+  display: inline-block;
+  padding: 3px 7px 3px 14px;     /* more left pad pushes text toward dark side */
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  line-height: 1;
+  vertical-align: middle;
+  white-space: nowrap;
+  min-width: 0;
+  text-align: right;
+  color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  /* Transparent 1px border keeps total height (19px) matching the
+     adjacent tag-badges which carry their own 1px colored border.
+     `background-origin: border-box` makes the gradient span the FULL
+     box including the border area — without this default would be
+     `padding-box`, and the gradient would end 1px short of the right
+     edge, exposing a thin strip of the LIGHT (left) end of the gradient
+     via the default `background-repeat: repeat` wrap. */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-origin: border-box;
+  background-repeat: no-repeat;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  margin-right: 4px;
+  box-sizing: border-box;
+  /* Nudge up to share horizontal line of tag-badges. row-text inline
+     baseline vs li-grid centering yields a 2px offset otherwise. */
+  top: -2px;
 }
 /* When inside .badge-group → strip the box, become plain colored text.
    `display: inline` ensures baseline-alignment with surrounding text (was inline-flex
