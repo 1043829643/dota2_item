@@ -743,6 +743,51 @@ _NOW_REQUIRES_RE = re.compile(
 )
 
 
+# Two emission shapes for the same semantic case (net cost zero):
+#   A) "Recipe cost X from A to B. Total cost unchanged at C ..." — single string
+#   B) "Recipe cost X from A to B"  +  inline_note("Total cost unchanged ...")
+# Both should become t("MISC") + inline badge.
+_RECIPE_COST_UNCHANGED_INLINE_RE = re.compile(
+    r'^W\(li\("(Recipe cost (?:increased|decreased) from )(\d+)( to )(\d+)'
+    r'(\. Total cost unchanged[^"]*)",\s*'
+    r'b\(\d+,\s*\d+,\s*l=True\)\)\)$'
+)
+_RECIPE_COST_UNCHANGED_SPLIT_RE = re.compile(
+    r'^W\(li\("(Recipe cost (?:increased|decreased) from )(\d+)( to )(\d+)",\s*'
+    r'b\(\d+,\s*\d+,\s*l=True\),\s*'
+    r'extra=inline_note\("(Total cost unchanged[^"]*)"\)\)\)$'
+)
+
+
+def _postprocess_recipe_cost_zero_net(lines):
+    """Rewrite recipe-cost-changed-but-total-unchanged rows from badge-
+    as-tag form to t("MISC") + inline badge form. Net cost to the player
+    is zero (sub-component shift cancels), so the row shouldn't tally as
+    BUFF/NERF in the entity's dyn-cell. Per memory rule
+    sloppy_recipe_cost_zero_net_is_misc.
+    """
+    out = []
+    for line in lines:
+        m = _RECIPE_COST_UNCHANGED_INLINE_RE.match(line)
+        if m:
+            prefix, a, mid, b_val, tail = m.groups()
+            out.append(
+                f'W(li("{prefix}{a}{mid}{b_val} " + b({a}, {b_val}, l=True) + "{tail}", '
+                f't("MISC")))'
+            )
+            continue
+        m = _RECIPE_COST_UNCHANGED_SPLIT_RE.match(line)
+        if m:
+            prefix, a, mid, b_val, note_text = m.groups()
+            out.append(
+                f'W(li("{prefix}{a}{mid}{b_val} " + b({a}, {b_val}, l=True), '
+                f't("MISC"), extra=inline_note("{note_text}")))'
+            )
+            continue
+        out.append(line)
+    return out
+
+
 def _postprocess_drop_now_requires(lines):
     """When an item block emits auto_components_change(...), the OLD→NEW
     components panel renders the recipe diff visually. The "Now requires
@@ -869,6 +914,7 @@ def generate(version):
     out = _postprocess_scale_pill(out)
     out = _postprocess_properties_change(out)
     out = _postprocess_drop_now_requires(out)
+    out = _postprocess_recipe_cost_zero_net(out)
     out = _postprocess_rework_marker(out)
 
     return '\n'.join(out)
