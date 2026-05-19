@@ -420,11 +420,18 @@ def _render_hero(hero):
     for s in hero.get('subsections', []):
         if s.get('style') == 'hero_facet':
             facet_slug = s.get('facet')
-            out.append(f'W(subgroup("Facet: {s.get("title", facet_slug)}"))')
+            facet_title = s.get("title", facet_slug)
+            out.append(f'W(subgroup("Facet: {facet_title}"))')
             for a in s.get('abilities', []):
                 aid = a.get('ability_id')
                 aname, aslug = ABILS.get(aid, (f'ability_{aid}', f'ability_{aid}'))
-                out.append(f'W(ability("{aname}", slug="{aslug}"))')
+                # Skip ability_header when the ability's display name matches
+                # the facet title — the subgroup already names the entity, and
+                # Valve often serves identical icons for both, producing a
+                # redundant visual (e.g. Naga Siren Deluge facet → Deluge
+                # active ability).
+                if aname.lower() != facet_title.lower():
+                    out.append(f'W(ability("{aname}", slug="{aslug}"))')
                 # Each row gets facet_badge() prefix
                 body, _ = _emit_notes(a.get('ability_notes', []))
                 # Decorate first li with facet_badge
