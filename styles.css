@@ -155,11 +155,12 @@ nav.top-nav {
 /* Calendar variant — no dropdown; .release-info takes its place on the right.
    Override the fixed 38px height (designed for version+date only) so the
    3rd line (.patch-age) doesn't overflow above and below the box. */
-.nav-context-calendar {
+.nav-context-calendar,
+.nav-context-creeps {
   margin-left: auto;
   min-height: 38px;          /* match the version-dropdown height on patch pages
                                 so the toolbar doesn't shrink when you switch
-                                from a patch back to the calendar */
+                                from a patch back to the calendar / creeps */
 }
 .nav-context-calendar .release-info {
   align-items: center;
@@ -2715,3 +2716,66 @@ body.filter-active ul.subnotes { display: none; }
   .gradient-strip .seg { font-size: 8px; }
 }
 
+
+/* ============================================================
+   CREEPS TABLE PAGE — verbatim render of the team's neutral-creep
+   stats sheet. Single wide table, sticky header, monospace numbers,
+   tier-row tinting from the unicode dot indicator in column 1.
+   ============================================================ */
+.creeps-page {
+  max-width: none;
+  padding: 16px 20px 40px;
+}
+.creeps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #c9d1d9;
+  font-variant-numeric: tabular-nums;
+}
+.creeps-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #161b22;
+  color: #e6edf3;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 8px;
+  border-bottom: 1px solid rgba(139, 148, 158, 0.35);
+  white-space: nowrap;
+}
+.creeps-table tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(139, 148, 158, 0.12);
+  white-space: nowrap;
+}
+.creeps-table tbody tr:hover td {
+  background: rgba(56, 139, 253, 0.08);
+}
+/* First column (unicode tier dots) — fixed width, centered glyph. */
+.creeps-table th:first-child,
+.creeps-table td:first-child {
+  width: 1%;
+  text-align: center;
+  font-family: 'Segoe UI Symbol', 'Apple Color Emoji', monospace;
+  letter-spacing: 1px;
+}
+/* Per-tier row tint — lighter for top picks, darker for fallback. */
+.creeps-table tr.tier-1 td:first-child { color: #56d364; }   /* best pick — green */
+.creeps-table tr.tier-2 td:first-child { color: #d29922; }   /* situational — amber */
+.creeps-table tr.tier-3 td:first-child { color: #db6d28; }   /* rare/early — orange */
+.creeps-table tr.tier-4 td:first-child { color: #f85149; }   /* worst — red */
+/* Tier legend footer rows (no data, just label in column 3). */
+.creeps-table tr.creeps-footer td {
+  background: rgba(139, 148, 158, 0.06);
+  color: #8b949e;
+  font-style: italic;
+  border-bottom: none;
+}
+.creeps-table tr.creeps-footer td:nth-child(3) {
+  font-style: normal;
+  color: #c9d1d9;
+  font-weight: 600;
+  padding-left: 16px;
+}

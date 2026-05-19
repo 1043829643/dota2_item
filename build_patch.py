@@ -2949,27 +2949,29 @@ def _dropdown_options_html(current_version, patch_context=False):
 
 
 def _render_top_nav(active="changelogs", current_version=None, date=None, patch_context=False):
-    """Render the top nav. active in ('changelogs', 'calendar').
+    """Render the top nav. active in ('changelogs', 'calendar', 'creeps').
     patch_context=True when rendering inside a patch page (patches/ folder) —
     hrefs use ../ prefix for root files and plain filenames for sibling patches."""
     if patch_context:
         latest = PATCHES[0]['version'] + ".html" if PATCHES else "#"
         calendar_href = "../calendar.html"
+        creeps_href = "../creeps.html"
     else:
         latest = PATCHES[0]['filename'] if PATCHES else "#"
         calendar_href = "calendar.html"
+        creeps_href = "creeps.html"
     cls_changelogs = "active" if active == "changelogs" else ""
     cls_calendar  = "active" if active == "calendar" else ""
+    cls_creeps    = "active" if active == "creeps" else ""
 
     if current_version is not None and date is not None:
         age_line = _patch_age_line(current_version)
         age_html = f'<span class="patch-age">{age_line}</span>' if age_line else ''
-        if active == "calendar":
-            # Calendar page — no release-info widget (the calendar itself shows
-            # date+version), but we still emit an empty nav-context-calendar
-            # div so the toolbar reserves the same vertical space as on patch
-            # pages and the header doesn't jump on tab switch.
-            right_side = '\n    <div class="nav-context nav-context-calendar"></div>'
+        if active in ("calendar", "creeps"):
+            # Calendar / Creeps pages — no release-info widget. Empty nav-
+            # context div reserves the same vertical space as on patch pages
+            # so the header doesn't jump on tab switch.
+            right_side = f'\n    <div class="nav-context nav-context-{active}"></div>'
         else:
             options = _dropdown_options_html(current_version, patch_context=patch_context)
             # Prev/Next arrows flanking the version button — let the user
@@ -3023,6 +3025,7 @@ def _render_top_nav(active="changelogs", current_version=None, date=None, patch_
     <div class="nav-tabs">
       <a class="nav-tab {cls_changelogs}" href="{latest}">Changelogs</a>
       <a class="nav-tab {cls_calendar}" href="{calendar_href}">Calendar</a>
+      <a class="nav-tab {cls_creeps}" href="{creeps_href}">Creeps Table</a>
     </div>{right_side}
   </div>
 </nav>
@@ -3561,6 +3564,101 @@ def save_calendar_html():
     with open('calendar.html', 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"  → calendar.html: {len(html):,} bytes")
+
+
+def save_creeps_html():
+    """Generate creeps.html — verbatim render of data/creeps_raw.csv (the
+    neutral-creeps stats table sourced from the team's Google Sheet).
+
+    Preserves: header row exactly as authored, unicode tier dots
+    (⬤⭘⭘⭘ etc.) in the first column, Cyrillic column names, and the
+    trailing tier-key footer rows. Each row's first cell tier-dot value
+    decorates the <tr> with a class for theming (tier-1/2/3/4)."""
+    import csv as _csv
+
+    csv_path = _os.path.join(_os.path.dirname(__file__), 'data', 'creeps_raw.csv')
+    if not _os.path.exists(csv_path):
+        print(f"  ! creeps_raw.csv not found at {csv_path}, skipping creeps.html")
+        return
+
+    rows = []
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = _csv.reader(f)
+        for r in reader:
+            rows.append(r)
+    if not rows:
+        return
+
+    header = rows[0]
+    body = rows[1:]
+    nav = _render_top_nav(active="creeps", patch_context=False)
+
+    def tier_class(dots):
+        # ⬤ = filled, ⭘ = empty. Tier 1 = ⬤⭘⭘⭘ (top pick), Tier 4 = ⬤⬤⬤⬤ (worst).
+        # Count filled to derive class.
+        if not dots:
+            return ''
+        filled = dots.count('⬤')
+        return f'tier-{filled}' if filled else ''
+
+    def render_cell(text, header_cell=False):
+        text = (text or '').strip()
+        if not text:
+            return '<td>&nbsp;</td>' if not header_cell else '<th>&nbsp;</th>'
+        tag = 'th' if header_cell else 'td'
+        # Escape HTML-sensitive chars.
+        esc = (text
+               .replace('&', '&amp;')
+               .replace('<', '&lt;')
+               .replace('>', '&gt;'))
+        return f'<{tag}>{esc}</{tag}>'
+
+    header_html = '<tr>' + ''.join(render_cell(c, header_cell=True) for c in header) + '</tr>'
+
+    # Propagate tier from the explicit-dot row to subsequent rows in the
+    # same section (the sheet only marks the FIRST row of each tier block
+    # with dots; following rows inherit). Tracking lets row-level styling
+    # apply consistently across a tier even though the dot cell stays blank.
+    body_html_parts = []
+    current_tier = ''
+    for r in body:
+        padded = r + [''] * (len(header) - len(r))
+        explicit_tier = tier_class(padded[0])
+        if explicit_tier:
+            current_tier = explicit_tier
+        is_footer = (not padded[0].strip() and not padded[1].strip()
+                     and padded[2].strip().startswith('ТИР'))
+        if is_footer:
+            current_tier = ''  # legend rows reset propagation
+            tr_cls = ' class="creeps-footer"'
+        else:
+            tr_cls = f' class="{current_tier}"' if current_tier else ''
+        cells = ''.join(render_cell(c) for c in padded)
+        body_html_parts.append(f'<tr{tr_cls}>{cells}</tr>')
+    body_html = '\n'.join(body_html_parts)
+
+    html = (
+        '<!DOCTYPE html>\n'
+        '<html lang="ru">\n'
+        '<head>\n'
+        '<meta charset="UTF-8">\n'
+        '<title>Sloppy — Creeps Table</title>\n'
+        f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
+        '</head>\n'
+        '<body>\n'
+        f'{nav}\n'
+        '<div class="container creeps-page">\n'
+        '<table class="creeps-table">\n'
+        f'<thead>{header_html}</thead>\n'
+        f'<tbody>\n{body_html}\n</tbody>\n'
+        '</table>\n'
+        '</div>\n'
+        f'<script src="scripts.js?v={_ASSET_VERSION}"></script>\n'
+        '</body>\n</html>\n'
+    )
+    with open('creeps.html', 'w', encoding='utf-8') as f:
+        f.write(html)
+    print(f"  → creeps.html: {len(html):,} bytes")
 
 
 # ============================================================
@@ -15235,6 +15333,7 @@ write_footer()
 save_html('patches/7.08.html')
 
 save_calendar_html()
+save_creeps_html()
 
 # Write ability-icon URL list for the validator (check_icons.py)
 import json as _json_dump
