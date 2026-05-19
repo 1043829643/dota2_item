@@ -459,6 +459,137 @@ def _render_neutral_creep(creep):
     return out
 
 
+# ---------- POST-PROCESSING ----------
+
+_AGHS_LINE_RE = re.compile(
+    r'^W\(li\("Now upgraded with Aghanim\'s (Scepter|Shard)",\s*'
+    r't\("(?:NEW|MISC|REWORK)"\),\s*'
+    r'extra=inline_note\("(.+?)"\)\)\)$'
+)
+
+
+def _postprocess_aghs_merge(lines):
+    """Collapse the v2-emitted aghs upgrade row +its inline-note description
+    into a single canonical "Aghanim's X: <description>" li with the NEW
+    tag (per memory rule sloppy_aghs_upgrade_merge). The walker has
+    already folded the indent N+1 description into the parent's
+    inline_note, so the merge is a one-line text rewrite.
+    """
+    out = []
+    for line in lines:
+        m = _AGHS_LINE_RE.match(line)
+        if m:
+            kind, desc = m.group(1), m.group(2)
+            out.append(f'W(li("Aghanim\'s {kind}: {desc}", t("NEW")))')
+        else:
+            out.append(line)
+    return out
+
+
+_PER_LEVEL_FORMULA_RE = re.compile(
+    r'(?P<base>\d+(?:\.\d+)?)(?P<pct>%?)\s*\+\s*(?P<inc>\d+(?:\.\d+)?)\2'
+    r'\s+per level(?: up)?\b'
+)
+
+
+def _postprocess_scale_pill(lines):
+    """Detect "A% + B% per level" / "A + B per level up" formula patterns
+    in W(li(...)) text and emit a scale_pill(...) wrapping. The trigger
+    is splice-injected into the li text and the table is attached as
+    extra= (or merged into the existing inline_note as a sibling).
+
+    Each match gets a unique module-scoped variable in the generated
+    source so the trigger and table share the same _formula_id_counter
+    increment (calling scale_pill() twice would mint two ids and break
+    the trigger→table linkage).
+    """
+    out = []
+    counter = 0
+    for line in lines:
+        if not line.startswith('W(li("'):
+            out.append(line)
+            continue
+        m = _PER_LEVEL_FORMULA_RE.search(line)
+        if not m:
+            out.append(line)
+            continue
+        base_s = m.group('base')
+        inc_s = m.group('inc')
+        pct = m.group('pct')
+        formula_text = m.group(0)
+        # Linear formula L → base + inc * L (per memory rule
+        # sloppy_per_level_formula). Build a string lambda that survives
+        # round-trip into emitted source code.
+        counter += 1
+        var = f'_pill{counter}'
+        out.append(
+            f'{var} = scale_pill('
+            f'"{formula_text}", '
+            f'lambda L: {base_s} + {inc_s}*L, '
+            f'levels=[1,5,10,15,20,25,30])'
+        )
+        # Replace the formula substring inside the li text with the
+        # trigger HTML (formed by an f-string concatenation at runtime).
+        # The simplest patch: split the original li at the formula match
+        # and rebuild with `f"...{var[0]}..."`.
+        replaced = (line[:m.start()] + '" + ' + var + '[0] + "' + line[m.end():])
+        # If the line already has extra=inline_note(...), we keep that
+        # and ALSO append the formula table via a second extra; but li()
+        # only accepts a single extra. Cheapest valid output: concatenate
+        # the table into a wrapping <span>:
+        if 'extra=inline_note(' in replaced:
+            # Wrap existing inline_note with table concatenation.
+            replaced = re.sub(
+                r'extra=inline_note\("(.+?)"\)',
+                lambda mm: f'extra=inline_note("{mm.group(1)}") + {var}[1]',
+                replaced, count=1,
+            )
+        else:
+            replaced = re.sub(r'\)\)$', f', extra={var}[1]))', replaced, count=1)
+        out.append(replaced)
+    return out
+
+
+_REWORK_TRIGGERS = (
+    'Innate ability reworked',
+    'Ability reworked',
+)
+
+
+def _postprocess_rework_marker(lines):
+    """Add a TODO breadcrumb above W(ability(...)) blocks whose first li
+    matches an "Innate ability reworked" / "Ability reworked" trigger.
+    Building the full ability_change() swap card from the datafeed alone
+    is unsafe (OLD-pane desc lives in the previous patch's tooltip, not
+    in this patch's notes), so we mark the spot for manual conversion
+    per memory rule sloppy_innate_rework_pattern.
+    """
+    out = []
+    pending_ability_idx = None
+    for line in lines:
+        if line.startswith('W(ability('):
+            pending_ability_idx = len(out)
+            out.append(line)
+            continue
+        if pending_ability_idx is not None and line.startswith('W(li("'):
+            if any(trig in line for trig in _REWORK_TRIGGERS):
+                # Inject a comment right above the ability header.
+                out.insert(
+                    pending_ability_idx,
+                    '# v2-todo: convert to ability_change(old=..., new=..., '
+                    'summary="Innate reworked." / "Ability reworked.", tag="rework") '
+                    '— lift OLD desc from prior patchnotes'
+                )
+            pending_ability_idx = None
+        elif pending_ability_idx is not None and (
+            line.startswith('W(ability(') or line.startswith('W(hero_header(')
+            or line.startswith('# ')
+        ):
+            pending_ability_idx = None
+        out.append(line)
+    return out
+
+
 # ---------- TOP-LEVEL ----------
 
 def generate(version):
@@ -506,6 +637,14 @@ def generate(version):
         out.append('W(section("Hero Updates"))')
         for hero in sorted(d['heroes'], key=lambda h: HEROES.get(h['hero_id'], ('', ''))[0]):
             out.extend(_render_hero(hero))
+
+    # Post-process passes that operate on the full emitted line list:
+    # 1. Collapse aghs upgrade-row + description into canonical merged li.
+    # 2. Auto-emit scale_pill(...) for per-level formula text.
+    # 3. Drop a v2-todo breadcrumb above ability blocks tagged "reworked".
+    out = _postprocess_aghs_merge(out)
+    out = _postprocess_scale_pill(out)
+    out = _postprocess_rework_marker(out)
 
     return '\n'.join(out)
 
