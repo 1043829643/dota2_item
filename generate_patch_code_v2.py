@@ -103,22 +103,41 @@ def _strip_html(s):
 
 # Phrases that LOCK the tag regardless of other signals (Sloppy memory rules).
 # Order: longer / more specific patterns first.
+# IMPORTANT: BUFF-override patterns must come BEFORE DEL patterns since
+# 'no longer has a penalty' should NOT be DEL.
 CANONICAL_TAGS = [
+    # BUFF first — removing a penalty / restriction is positive (memory rule
+    # sloppy_no_longer_penalty_is_buff). Tightly anchored so legitimate DEL
+    # phrasings don't accidentally match.
+    (re.compile(r'\bno longer has (?:an? |the )?\w+ (?:penalty|restriction|drawback|downside|debuff slow)\b', re.I), 'BUFF'),
+    (re.compile(r'\bno longer (?:reduces|decreases) ', re.I),       'BUFF'),
+    (re.compile(r'\bno longer requires (?:a |an )?(?:skill point|mana|charge)', re.I), 'BUFF'),
+    # NEW — new mechanic / capability added
     (re.compile(r'\bAdded to Captains Mode\b', re.I),               'NEW'),
-    (re.compile(r'\bNow can be toggled while silenced\b', re.I),    'MISC'),
     (re.compile(r'\bCan now be disassembled\b', re.I),              'NEW'),
-    (re.compile(r'\bNo longer applied by illusions\b', re.I),       'DEL'),
-    (re.compile(r'\bNo longer affects? ', re.I),                    'DEL'),
-    (re.compile(r'\bNo longer upgraded with Aghanim', re.I),        'DEL'),
-    (re.compile(r"\bNo longer.*'s? ability\b", re.I),               'DEL'),
-    (re.compile(r'\bNo longer has', re.I),                          'DEL'),
-    (re.compile(r'\bRemoved ', re.I),                               'DEL'),
-    (re.compile(r'\bReplaced with\b', re.I),                        'REWORK'),
+    (re.compile(r'^Now (?:also )?(?:passively |actively )?(?:grants|provides|gains?|adds?|applies?|deals?|increases|fires?|spawns?|summons?)', re.I), 'NEW'),
+    (re.compile(r'^Added\b', re.I),                                 'NEW'),
+    # MISC — mechanic toggle, classification change, polish
+    (re.compile(r'\bNow can be toggled while silenced\b', re.I),    'MISC'),
+    (re.compile(r'\bClassified as\b', re.I),                        'MISC'),
+    # DEL — explicit removal / no-longer-targets / no-longer-applies
+    (re.compile(r'\bcan no longer (?:target|be cast|be used|trigger)', re.I), 'NERF'),
+    (re.compile(r'\bno longer applied by illusions\b', re.I),       'DEL'),
+    (re.compile(r'\bno longer (?:applies?|affects?) ', re.I),       'DEL'),
+    (re.compile(r'\bno longer upgraded with Aghanim', re.I),        'DEL'),
+    (re.compile(r"\bno longer.*'s? ability\b", re.I),               'DEL'),
+    (re.compile(r'\bno longer (?:provides|grants|deals|fires|spawns|summons|adds|increases|works|considered)\b', re.I), 'DEL'),
+    (re.compile(r'\bno longer levels with\b', re.I),                'REWORK'),  # memory rule: structural
+    (re.compile(r'^No longer has\b', re.I),                         'DEL'),
+    (re.compile(r'\bRemoved\b', re.I),                              'DEL'),
+    # REWORK
+    (re.compile(r'\breplaced with\b', re.I),                        'REWORK'),
     (re.compile(r'\breworked\b', re.I),                             'REWORK'),
     (re.compile(r'\brescaled\b', re.I),                             'REWORK'),
     (re.compile(r'\bchanged from\b', re.I),                         'REWORK'),
+    # General "Now ..." → NEW unless context says otherwise
+    (re.compile(r'^Now also\b', re.I),                              'NEW'),
     (re.compile(r'^Now ', re.I),                                    'NEW'),
-    (re.compile(r'^Now also ', re.I),                               'NEW'),
 ]
 
 # Cost / regen-style "lower-is-buff" keywords. When the row text matches one
@@ -261,6 +280,28 @@ def _emit_notes(notes, ul_open_called=False):
                 lines.append(f'W(subgroup("{stripped}"))')
             continue
 
+        # L2 row with short header-like text AND followed by L3 children
+        # → treat as subgroup (e.g. "Items", "Heroes", "Neutral Creeps"
+        # inside Invulnerability Targeting). Detection: short text (≤3
+        # words, no period) AND next note has lvl > this lvl.
+        clean = _strip_html(txt).strip()
+        next_lvl = notes[i + 1].get('indent_level', 1) if i + 1 < len(notes) else 0
+        is_short_header = (
+            lvl >= 2
+            and len(clean.split()) <= 3
+            and not clean.endswith('.')
+            and not clean.endswith(':')
+            and next_lvl > lvl
+        )
+        if is_short_header:
+            if open_ul:
+                lines.append('W(ul_close())')
+                open_ul = False
+            lines.append(f'W(subgroup("{clean}"))')
+            last_indent = lvl
+            pending_parent_text = None
+            continue
+
         # Indent N+1 with previous N row → fold as inline_note on previous.
         if lvl > last_indent and lvl > 1 and lines and pending_parent_text:
             esc = txt.replace('"', '\\"')
@@ -338,8 +379,14 @@ def _render_item(item, neutral=False):
         return out
     name, slug = ITEMS.get(aid, (f'item_{aid}', f'item_{aid}'))
     deco = _entity_title_decoration(item)
+    # Detect "Recipe changed" — first note with "Recipe changed" text →
+    # decorate item_header(changed=True) and drop that row.
+    notes = list(item.get('ability_notes', []))
+    if notes and re.search(r'\brecipe changed\b', _strip_html(notes[0].get('note', '')), re.I):
+        deco = deco + ', changed=True' if deco else ', changed=True'
+        notes = notes[1:]
     out.append(f'W(item_header("{name}"{deco}))')
-    body, _ = _emit_notes(item.get('ability_notes', []))
+    body, _ = _emit_notes(notes)
     out.extend(body)
     return out
 
