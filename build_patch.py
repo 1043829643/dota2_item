@@ -2949,17 +2949,20 @@ def _dropdown_options_html(current_version, patch_context=False):
 
 
 def _render_top_nav(active="changelogs", current_version=None, date=None, patch_context=False):
-    """Render the top nav. active in ('changelogs', 'calendar', 'creeps').
+    """Render the top nav. active in ('main', 'changelogs', 'calendar', 'creeps').
     patch_context=True when rendering inside a patch page (patches/ folder) —
     hrefs use ../ prefix for root files and plain filenames for sibling patches."""
     if patch_context:
         latest = PATCHES[0]['version'] + ".html" if PATCHES else "#"
+        main_href = "../index.html"
         calendar_href = "../calendar.html"
         creeps_href = "../creeps.html"
     else:
         latest = PATCHES[0]['filename'] if PATCHES else "#"
+        main_href = "index.html"
         calendar_href = "calendar.html"
         creeps_href = "creeps.html"
+    cls_main      = "active" if active == "main" else ""
     cls_changelogs = "active" if active == "changelogs" else ""
     cls_calendar  = "active" if active == "calendar" else ""
     cls_creeps    = "active" if active == "creeps" else ""
@@ -3037,6 +3040,7 @@ def _render_top_nav(active="changelogs", current_version=None, date=None, patch_
     return f'''<nav class="top-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
+      <a class="nav-tab {cls_main}" href="{main_href}">Main</a>
       <a class="nav-tab {cls_changelogs}" href="{latest}">Changelogs</a>
       <a class="nav-tab {cls_calendar}" href="{calendar_href}">Calendar</a>
       <a class="nav-tab {cls_creeps}" href="{creeps_href}">Creeps Table</a>
@@ -3055,7 +3059,7 @@ def write_head(version, date):
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dota Patch Notes - {version}</title>
+<title>Sloppy - {version} Changelog</title>
 <link rel="stylesheet" href="../styles.css?v={_ASSET_VERSION}">
 </head>
 <body>
@@ -3564,7 +3568,7 @@ def save_calendar_html():
     html = (
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         '<meta charset="UTF-8">\n'
-        '<title>Dota Patch Calendar</title>\n'
+        '<title>Sloppy - Calendar</title>\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n<body>\n\n'
         + nav
@@ -3578,6 +3582,31 @@ def save_calendar_html():
     with open('calendar.html', 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"  → calendar.html: {len(html):,} bytes")
+
+
+def save_index_html():
+    """Generate index.html — the Main landing tab. Currently a placeholder
+    that just renders the unified top-nav; reserved for a hub/about page
+    later. Title and structure mirror the other tabs so the header stays
+    in step."""
+    nav = _render_top_nav(active="main", patch_context=False)
+    html = (
+        '<!DOCTYPE html>\n'
+        '<html lang="en">\n'
+        '<head>\n'
+        '<meta charset="UTF-8">\n'
+        '<title>Sloppy</title>\n'
+        f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
+        '</head>\n'
+        '<body>\n'
+        f'{nav}\n'
+        '<div class="container main-page"></div>\n'
+        f'<script src="scripts.js?v={_ASSET_VERSION}"></script>\n'
+        '</body>\n</html>\n'
+    )
+    with open('index.html', 'w', encoding='utf-8') as f:
+        f.write(html)
+    print(f"  → index.html: {len(html):,} bytes")
 
 
 def save_creeps_html():
@@ -3976,7 +4005,7 @@ def save_creeps_html():
         '<html lang="ru">\n'
         '<head>\n'
         '<meta charset="UTF-8">\n'
-        '<title>Sloppy — Creeps Table</title>\n'
+        '<title>Sloppy - Creeps Table</title>\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'
@@ -15670,6 +15699,7 @@ W(ul_close())
 write_footer()
 save_html('patches/7.08.html')
 
+save_index_html()
 save_calendar_html()
 save_creeps_html()
 

@@ -24,13 +24,32 @@ body {
   padding: 24px 28px 80px;
 }
 
-/* TOP NAV (full-width, sits above container) */
+/* TOP NAV (full-width, sits above container)
+   Dark-glass effect — translucent slab with cool-tinted backdrop blur,
+   a faint cyan rim at the top edge (condensation catching light) and a
+   subtle drop shadow below so the bar reads as a thin sheet floating
+   over the page rather than a flat band. */
 nav.top-nav {
   background:
-    linear-gradient(180deg, rgba(120, 130, 142, 0.18) 0%, rgba(60, 68, 78, 0.18) 100%),
-    #2a2f37;
-  border-bottom: 1px solid #3a4048;
+    /* freshness — soft cool highlight along the top 30%, fades to nothing */
+    linear-gradient(180deg,
+      rgba(170, 220, 240, 0.07) 0%,
+      rgba(170, 220, 240, 0.0)  32%),
+    /* main glass body — translucent dark with a hint of blue */
+    linear-gradient(180deg,
+      rgba(28, 36, 46, 0.78) 0%,
+      rgba(18, 24, 32, 0.86) 100%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid rgba(170, 220, 240, 0.12);
+  box-shadow:
+    /* 1px crisp inner highlight at the very top edge — the glass rim */
+    inset 0 1px 0 rgba(190, 225, 240, 0.14),
+    /* gentle ambient drop below the bar */
+    0 4px 18px rgba(0, 0, 0, 0.35);
   width: 100%;
+  position: relative;
+  z-index: 10;
 }
 .nav-inner {
   width: 100%;
