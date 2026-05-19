@@ -17,6 +17,12 @@ CDN = "https://cdn.steamstatic.com/apps/dota2/images/dota_react/units/"
 units = json.loads((ROOT / "data" / "stats" / "7.41c" / "units.json").read_text(encoding='utf-8'))
 slugs = sorted(k for k in units if k.startswith('npc_dota_neutral_'))
 
+# Hero-summoned units we surface alongside neutrals in the creeps table.
+# Add new entries here whenever the table grows.
+slugs += [
+    'npc_dota_dark_troll_warlord_skeleton_warrior',
+]
+
 missing = [s for s in slugs if not (UNITS_DIR / f"{s}.png").exists()]
 print(f"Total neutrals: {len(slugs)}  Missing locally: {len(missing)}")
 
