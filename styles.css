@@ -2795,6 +2795,14 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table .lvl-cell.sticky-col {
   background: #11161d;   /* keep the level cell's faint blue-tint readable */
 }
+/* When scrolled sideways, cast a shadow off the right edge of the last
+   pinned column (Юнит) so it's clear the identity block stays fixed while
+   the rest of the table slides underneath. */
+.creeps-scroll.scrolled .creeps-table td.col-name.sticky-col,
+.creeps-scroll.scrolled .creeps-table th.col-name.sticky-col {
+  box-shadow: 6px 0 8px -4px rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(170, 220, 240, 0.55);
+}
 /* Dedicated icon column — fixed-size portrait, centered. Vertical-align
    middle on the parent <td> keeps the image baseline-aligned with the
    sibling cells without flexbox (which previously made the wildkin row

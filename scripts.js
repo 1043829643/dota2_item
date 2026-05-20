@@ -921,5 +921,15 @@
 
   applyLeftOffsets();
   window.addEventListener('resize', applyLeftOffsets, { passive: true });
+
+  // Toggle a `scrolled` class on the scroll container when shifted right,
+  // so CSS can draw a shadow on the pinned columns' right edge — making it
+  // obvious they stay put while the rest scrolls underneath.
+  const scroller = table.closest('.creeps-scroll');
+  if (scroller) {
+    const onScroll = () => scroller.classList.toggle('scrolled', scroller.scrollLeft > 0);
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
 })();
 
