@@ -2821,6 +2821,29 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table tr.tier-break td {
   border-top: 2px solid rgba(170, 220, 240, 0.28);
 }
+/* "Copied" toast — fixed-positioned near the clicked icon, fades in
+   quickly then drifts up and out. JS positions it and toggles
+   .is-visible; the transition handles the fade + lift. */
+.copy-toast {
+  position: fixed;
+  transform: translate(-50%, -100%) translateY(4px);
+  z-index: 1100;
+  pointer-events: none;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #e6edf3;
+  background: rgba(13, 17, 23, 0.92);
+  border: 1px solid rgba(170, 220, 240, 0.35);
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.35s ease;
+}
+.copy-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -100%) translateY(-4px);
+}
 .creeps-table thead th {
   position: sticky;
   top: 0;

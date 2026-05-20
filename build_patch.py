@@ -3960,7 +3960,6 @@ def save_creeps_html():
         ('lvl',          'Ур.'),
         ('icon',         ''),
         ('name',         'Крип'),
-        ('createhero',   '-createhero'),
         ('hp',           'ХП'),
         ('hp_regen',     'ХП/сек'),
         ('mp',           'МП'),
@@ -4093,9 +4092,15 @@ def save_creeps_html():
                 cells.append(f'<td class="lvl-cell"{attr}>{_esc(v)}</td>')
             elif k == 'icon':
                 if v:
+                    # Clicking the icon copies the dev-console spawn command
+                    # "-createhero <name> neutral" to the clipboard (handled
+                    # in scripts.js via the data-cmd attribute).
+                    cmd = f'-createhero {d.get("createhero", "")} neutral'
                     cells.append(
                         f'<td class="creep-icon-cell">'
-                        f'<img src="{_esc(v)}" alt="" loading="lazy" '
+                        f'<img class="creep-copy" src="{_esc(v)}" alt="" '
+                        f'loading="lazy" data-cmd="{_esc(cmd)}" '
+                        f'title="{_esc(cmd)}" '
                         f'onerror="this.style.visibility=\'hidden\'"></td>'
                     )
                 else:

@@ -690,3 +690,61 @@
   dynInit();
 })();
 
+// ---- CREEPS TABLE: click icon → copy "-createhero <name> neutral" ----
+(function() {
+  const icons = document.querySelectorAll('.creep-copy[data-cmd]');
+  if (!icons.length) return;
+
+  // One reusable toast element appended to body.
+  let toast = null;
+  let hideTimer = null;
+  function showToast(x, y) {
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'copy-toast';
+      toast.textContent = 'Copied';
+      document.body.appendChild(toast);
+    }
+    toast.style.left = x + 'px';
+    toast.style.top = y + 'px';
+    // restart the fade animation
+    toast.classList.remove('is-visible');
+    void toast.offsetWidth; // force reflow so re-adding the class re-triggers
+    toast.classList.add('is-visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => toast.classList.remove('is-visible'), 900);
+  }
+
+  async function copyCmd(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // Fallback for non-secure contexts (file://, http on some browsers)
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+      return ok;
+    }
+  }
+
+  icons.forEach(img => {
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', async (e) => {
+      const cmd = img.getAttribute('data-cmd');
+      if (!cmd) return;
+      const ok = await copyCmd(cmd);
+      if (ok) {
+        const r = img.getBoundingClientRect();
+        showToast(r.left + r.width / 2, r.top - 6);
+      }
+    });
+  });
+})();
+
