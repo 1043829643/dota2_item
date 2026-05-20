@@ -2790,6 +2790,12 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table .creep-icon-cell img {
   width: 48px;
   height: 27px;
+  /* Override the global `img { max-width: 100% }` rule — otherwise the
+     auto-sized icon column (its <th> is empty, so it starts ~0px wide)
+     caps the image width to the collapsed cell, leaving a 3px-wide
+     vertical sliver. max-width: none lets the explicit 48px win and the
+     column then grows to fit. */
+  max-width: none;
   object-fit: cover;
   border-radius: 4px;
   background: rgba(139, 148, 158, 0.15);
