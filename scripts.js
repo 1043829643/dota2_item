@@ -888,3 +888,38 @@
   window.addEventListener('scroll', hide, { passive: true });
 })();
 
+// ---- CREEPS TABLE: pin identity columns on horizontal scroll ----
+(function() {
+  const table = document.querySelector('.creeps-table');
+  if (!table) return;
+  const firstRow = table.querySelector('tbody tr');
+  if (!firstRow) return;
+
+  // Body identity cells are the first three: lvl(0), icon(1), name(2).
+  // The header has only two cells over them: lvl th(0) + Юнит th(1,
+  // colspan=2). Compute cumulative left offsets from the body widths and
+  // apply them to both the body sticky cells and the header sticky cells.
+  function applyLeftOffsets() {
+    const tds = [...firstRow.children];
+    if (tds.length < 3) return;
+    const wLvl  = tds[0].getBoundingClientRect().width;
+    const wIcon = tds[1].getBoundingClientRect().width;
+    const lefts = [0, wLvl, wLvl + wIcon];           // lvl, icon, name
+
+    // Body rows
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      const c = tr.children;
+      if (c[0]) c[0].style.left = lefts[0] + 'px';
+      if (c[1]) c[1].style.left = lefts[1] + 'px';
+      if (c[2]) c[2].style.left = lefts[2] + 'px';
+    });
+    // Header: lvl th at 0, Юнит th (covers icon+name) at wLvl.
+    const headStickies = table.querySelectorAll('thead th.sticky-col');
+    if (headStickies[0]) headStickies[0].style.left = '0px';
+    if (headStickies[1]) headStickies[1].style.left = wLvl + 'px';
+  }
+
+  applyLeftOffsets();
+  window.addEventListener('resize', applyLeftOffsets, { passive: true });
+})();
+

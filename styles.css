@@ -2778,6 +2778,23 @@ body.filter-active ul.subnotes { display: none; }
   background: rgba(170, 220, 240, 0.05);
   border-right: 1px solid rgba(170, 220, 240, 0.18);
 }
+/* Identity columns (Ур. / icon / Юнит) pinned to the left on horizontal
+   scroll. scripts.js sets per-cell `left`; we provide position:sticky +
+   an opaque background so scrolled cells pass underneath cleanly. */
+.creeps-table .sticky-col {
+  position: sticky;
+  z-index: 3;
+  background: #0e1217;
+}
+.creeps-table thead .sticky-col {
+  z-index: 6;            /* corner cells: above both sticky axes */
+}
+.creeps-table tbody tr:hover .sticky-col {
+  background: #161d27;   /* match the row-hover tint, stay opaque */
+}
+.creeps-table .lvl-cell.sticky-col {
+  background: #11161d;   /* keep the level cell's faint blue-tint readable */
+}
 /* Dedicated icon column — fixed-size portrait, centered. Vertical-align
    middle on the parent <td> keeps the image baseline-aligned with the
    sibling cells without flexbox (which previously made the wildkin row

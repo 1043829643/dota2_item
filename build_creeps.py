@@ -508,8 +508,18 @@ def save_creeps_html():
                               # row inherits — e.g. the 'ranged' lane
                               # creep sits on row '5', so we must record
                               # level 5 even though we drop the row).
+    # CSV column index of "Тип атаки" — the curated attack type. The game
+    # files don't expose CombatClassAttack for neutrals, so the CSV is the
+    # authoritative source (ranged ≠ Pierce reliably, e.g. Dark Troll
+    # Summoner is ranged but deals "Обычный").
+    try:
+        CSV_ATK_IDX = next(i for i, h in enumerate(csv_rows[0])
+                           if 'Тип атаки' in h)
+    except StopIteration:
+        CSV_ATK_IDX = None
+
     for r in body_rows:
-        padded = r + [''] * (max(0, 4 - len(r)))
+        padded = r + [''] * (max(0, 28 - len(r)))
         csv_lvl = padded[1].strip()
         createhero = padded[3].strip()
         if csv_lvl:
@@ -547,6 +557,13 @@ def save_creeps_html():
         data['createhero'] = createhero
         data['name'] = display_name
         data['icon'] = icon_path
+        # Override the heuristic attack type with the curated CSV value
+        # (strip trailing */** footnote markers). Falls back to the
+        # heuristic when the CSV cell is blank.
+        if CSV_ATK_IDX is not None and CSV_ATK_IDX < len(padded):
+            csv_atk = padded[CSV_ATK_IDX].strip().rstrip('*').strip()
+            if csv_atk:
+                data['attack_type'] = csv_atk
         rendered.append({'data': data, 'tier_break': is_break,
                           'level': level_for_row, 'npc_key': npc_key})
     # No rowspan merge: every row carries its own level cell so the table
@@ -564,9 +581,14 @@ def save_creeps_html():
     # group the table into logical sections (identity | survivability |
     # offense | economy | utility | abilities).
     SEP_AFTER = {'lvl', 'name', 'ehp_mag', 'bat', 'aggro'}
+    # Identity columns pinned to the left edge during horizontal scroll
+    # (scripts.js computes their cumulative left offsets after layout).
+    STICKY_COLS = {'lvl', 'icon', 'name'}
 
     def _col_cls(k, value=''):
         cls = [f'col-{k}']
+        if k in STICKY_COLS:
+            cls.append('sticky-col')
         if k in SEP_AFTER:
             cls.append('col-sep')
         if k == 'attack_type':
