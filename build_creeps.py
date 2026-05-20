@@ -477,20 +477,10 @@ def save_creeps_html():
         data['icon'] = icon_path
         rendered.append({'data': data, 'tier_break': is_break,
                           'level': level_for_row})
-
-    # Pass 2: assign rowspan counts to each level group. The FIRST row
-    # of each level group gets rowspan=N, the rest get span=0 (skipped
-    # in render).
-    i = 0
-    while i < len(rendered):
-        lvl = rendered[i]['level']
-        j = i + 1
-        while j < len(rendered) and rendered[j]['level'] == lvl:
-            j += 1
-        rendered[i]['lvl_rowspan'] = j - i
-        for k in range(i + 1, j):
-            rendered[k]['lvl_rowspan'] = 0
-        i = j
+    # No rowspan merge: every row carries its own level cell so the table
+    # can be re-sorted by any column. scripts.js collapses repeated level
+    # numbers in the current row order (showing the number once per run +
+    # a divider) to keep the grouped look in the default/level-sorted view.
 
     # ---- HTML emission ----
     nav = _site.render_top_nav('creeps', _latest_href(), patch_context=False)
@@ -514,8 +504,14 @@ def save_creeps_html():
                 cls.append('atk-pierce')
         return ' '.join(cls)
 
+    # Header: each th is a sort button. data-col carries the column key,
+    # and a ▾ indicator span flips to ▲/▼ in scripts.js. The icon column
+    # (empty label) is not sortable.
     thead_cells = ''.join(
-        f'<th class="{_col_cls(k)}">{_esc(label)}</th>'
+        (f'<th class="{_col_cls(k)}"></th>' if not label
+         else f'<th class="{_col_cls(k)} sortable" data-col="{k}">'
+              f'<span class="th-label">{_esc(label)}</span>'
+              f'<span class="sort-ind"></span></th>')
         for k, label in COLUMNS
     )
 
@@ -527,14 +523,13 @@ def save_creeps_html():
         for k, _ in COLUMNS:
             v = d.get(k, '')
             if k == 'lvl':
-                # Vertical-merge level cells via rowspan. Only the first
-                # row of each level group emits a <td>; subsequent rows
-                # in the same level skip the cell entirely.
-                span = row.get('lvl_rowspan', 1)
-                if span == 0:
-                    continue
-                attr = f' rowspan="{span}"' if span > 1 else ''
-                cells.append(f'<td class="lvl-cell {_col_cls(k)}"{attr}>{_esc(v)}</td>')
+                # Per-row level cell (no rowspan). data-lvl lets scripts.js
+                # collapse repeated numbers within a run and draw a divider
+                # at group starts, in whatever order the table is sorted.
+                cells.append(
+                    f'<td class="lvl-cell {_col_cls(k)}" '
+                    f'data-lvl="{_esc(v)}">{_esc(v)}</td>'
+                )
             elif k == 'icon':
                 if v:
                     # Clicking the icon copies the dev-console spawn command

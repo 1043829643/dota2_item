@@ -2828,6 +2828,25 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table td.col-sep {
   border-right: 2px solid rgba(170, 220, 240, 0.30);
 }
+/* Sortable headers — click to sort. The ▾ indicator brightens to ▲/▼ on
+   the active column. */
+.creeps-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.creeps-table th.sortable:hover {
+  background: #1d2530;
+}
+.creeps-table th.sortable .sort-ind {
+  margin-left: 3px;
+  font-size: 9px;
+  opacity: 0.35;
+}
+.creeps-table th.sortable .sort-ind::after { content: '⇕'; }
+.creeps-table th.sort-desc .sort-ind { opacity: 1; color: #79c0ff; }
+.creeps-table th.sort-desc .sort-ind::after { content: '▼'; }
+.creeps-table th.sort-asc .sort-ind { opacity: 1; color: #79c0ff; }
+.creeps-table th.sort-asc .sort-ind::after { content: '▲'; }
 /* Per-column value tints. */
 .creeps-table td.col-hp_regen { color: #9ae66e; }   /* light green (салатовый) */
 .creeps-table td.col-gold     { color: #e3b341; }   /* gold (золотой) */

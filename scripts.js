@@ -756,3 +756,79 @@
   });
 })();
 
+// ---- CREEPS TABLE: sortable columns ----
+(function() {
+  const table = document.querySelector('.creeps-table');
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  const headers = [...table.querySelectorAll('thead th.sortable')];
+  if (!tbody || !headers.length) return;
+
+  const allTh = [...table.querySelectorAll('thead th')];
+  const colIndex = {};
+  allTh.forEach((th, i) => { if (th.dataset.col) colIndex[th.dataset.col] = i; });
+
+  // Sort value for a cell: prefer the numeric data-lvl on the level
+  // column (its text gets blanked by collapseLevels), else parse the
+  // first number out of the text (handles "240", "+0,5", "3-5",
+  // "1400/800", "0%", "Ближняя (100)"), else fall back to lowercased
+  // text. Empty cells return null and always sink to the bottom.
+  function cellVal(tr, idx) {
+    const td = tr.children[idx];
+    if (!td) return null;
+    if (td.dataset.lvl !== undefined && td.dataset.lvl !== '') {
+      return parseFloat(td.dataset.lvl);
+    }
+    const t = td.textContent.trim();
+    if (!t || t === '-' || t === ' ') return null;
+    const m = t.replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+    return m ? parseFloat(m[0]) : t.toLowerCase();
+  }
+
+  // Show the level number once per consecutive run; blank the repeats and
+  // draw the group divider (tier-break) at each run start. Works in any
+  // row order, so the grouped look survives sorting by level.
+  function collapseLevels(rows) {
+    let prev = null;
+    rows.forEach(tr => {
+      const cell = tr.querySelector('.lvl-cell');
+      if (!cell) return;
+      const lvl = cell.dataset.lvl;
+      if (lvl !== prev) { cell.textContent = lvl; tr.classList.add('tier-break'); }
+      else { cell.textContent = ''; tr.classList.remove('tier-break'); }
+      prev = lvl;
+    });
+  }
+
+  let sortCol = null, sortDir = -1;  // -1 = descending (largest first)
+
+  function applySort(col, dir) {
+    const idx = colIndex[col];
+    const rows = [...tbody.querySelectorAll('tr')];
+    rows.sort((a, b) => {
+      const va = cellVal(a, idx), vb = cellVal(b, idx);
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;          // empties always last
+      if (vb === null) return -1;
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+    rows.forEach(tr => tbody.appendChild(tr));
+    collapseLevels(rows);
+  }
+
+  headers.forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortDir = -sortDir;   // toggle on repeat click
+      else { sortCol = col; sortDir = -1; }      // first click = largest first
+      headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+      applySort(col, sortDir);
+    });
+  });
+
+  // Initial pass: collapse the default (level-grouped) order.
+  collapseLevels([...tbody.querySelectorAll('tr')]);
+})();
+
