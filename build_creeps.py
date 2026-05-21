@@ -463,10 +463,12 @@ def save_creeps_html():
         ('name',         'Юнит'),
         ('hp',           'HP'),
         ('hp_regen',     'HP/sec'),
-        ('ehp_phys',     'EHP (физ)'),
-        ('ehp_mag',      'EHP (маг)'),
+        # '\n' splits into a main line + a small sub-line in the header,
+        # shrinking these EHP columns (see _label_html).
+        ('ehp_phys',     'EHP\nфиз'),
+        ('ehp_mag',      'EHP\nмаг'),
         ('mp',           'MP'),
-        ('mp_regen',     'МП/сек'),
+        ('mp_regen',     'MP/sec'),
         ('armor',        'Броня'),
         ('armor_pct',    'Броня (%)'),
         ('magres',       'Магрез'),
@@ -580,7 +582,7 @@ def save_creeps_html():
     # Columns that get a vertical separator on their RIGHT edge — they
     # group the table into logical sections (identity | survivability |
     # offense | economy | utility | abilities).
-    SEP_AFTER = {'lvl', 'name', 'ehp_mag', 'bat', 'aggro'}
+    SEP_AFTER = {'lvl', 'name', 'mp_regen', 'bat', 'aggro'}
     # Identity columns pinned to the left edge during horizontal scroll
     # (scripts.js computes their cumulative left offsets after layout).
     STICKY_COLS = {'lvl', 'icon', 'name'}
@@ -598,6 +600,15 @@ def save_creeps_html():
                 cls.append('atk-pierce')
         return ' '.join(cls)
 
+    def _label_html(label):
+        """Header label HTML. A '\\n' splits it into a main line + a small
+        sub-line below (used by EHP columns: "EHP" over a tiny "физ"/"маг"
+        so the column stays narrow)."""
+        if '\n' in label:
+            main, sub = label.split('\n', 1)
+            return (f'{_esc(main)}<span class="th-sub">{_esc(sub)}</span>')
+        return _esc(label)
+
     # Header: each sortable th carries data-col (key) and data-idx (its
     # body-cell index, so the sort logic survives the colspan on Юнит).
     # The "Юнит" header spans the icon + name columns (colspan=2) so it
@@ -613,7 +624,7 @@ def save_creeps_html():
             thead_list.append(
                 f'<th class="{_col_cls(k)} sortable" colspan="2" '
                 f'data-col="{k}" data-idx="{name_idx}">'
-                f'<span class="th-label">{_esc(label)}</span>'
+                f'<span class="th-label">{_label_html(label)}</span>'
                 f'<span class="sort-ind"></span></th>'
             )
         elif not label:
@@ -622,7 +633,7 @@ def save_creeps_html():
             thead_list.append(
                 f'<th class="{_col_cls(k)} sortable" data-col="{k}" '
                 f'data-idx="{i}">'
-                f'<span class="th-label">{_esc(label)}</span>'
+                f'<span class="th-label">{_label_html(label)}</span>'
                 f'<span class="sort-ind"></span></th>'
             )
     thead_cells = ''.join(thead_list)
