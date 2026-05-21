@@ -576,7 +576,7 @@ def save_creeps_html():
         ('magres',       'Магрез'),
         # Урон (мин)/(макс) hidden — values still pulled into row data for the
         # future extended-columns toggle. Only the computed average is shown.
-        ('dmg_avg',      'Ср. урон'),
+        ('dmg_avg',      'Атака'),
         ('as',           'АС'),
         ('t_per_attack', 't/1 удар'),
         ('bat',          'BAT'),

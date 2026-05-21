@@ -2889,10 +2889,12 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table th.sort-asc .sort-ind { opacity: 1; color: #79c0ff; }
 .creeps-table th.sort-desc .sort-ind::after { content: '↓'; }
 .creeps-table th.sort-asc .sort-ind::after { content: '↑'; }
-/* Cells with a recorded change history get a help cursor hinting that hover
-   shows the changelog. No underline — kept visually identical to other cells. */
+/* Stat cells with a recorded change history get a dotted underline cue +
+   help cursor, hinting that hover shows the changelog. */
 .creeps-table td.has-history {
   cursor: help;
+  text-decoration: underline dotted rgba(170, 220, 240, 0.5);
+  text-underline-offset: 3px;
 }
 /* Per-stat changelog tooltip — body-level (escapes the .creeps-scroll
    overflow clip), positioned by scripts.js above the hovered cell.
@@ -2921,7 +2923,6 @@ body.filter-active ul.subnotes { display: none; }
 .stat-hist-tip .stat-chg-patch {
   font-weight: 600;
   color: #79c0ff;
-  text-decoration: underline;
   font-variant-numeric: tabular-nums;
 }
 .stat-hist-tip .stat-chg-line {
