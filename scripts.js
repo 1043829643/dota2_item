@@ -922,13 +922,42 @@
   applyLeftOffsets();
   window.addEventListener('resize', applyLeftOffsets, { passive: true });
 
-  // Toggle a `scrolled` class on the scroll container when shifted right,
-  // so CSS can draw a shadow on the pinned columns' right edge — making it
-  // obvious they stay put while the rest scrolls underneath.
+  // Overlay frame around the pinned identity block, shown while scrolled.
+  // It lives in .creeps-page (non-scrolling), so its border + shadow keep
+  // repainting during scroll — unlike box-shadow on the sticky cells,
+  // which Chrome drops mid-scroll.
   const scroller = table.closest('.creeps-scroll');
+  const page = table.closest('.creeps-page');
+  const frame = page && page.querySelector('.sticky-frame');
+
+  function positionFrame() {
+    if (!frame || !scroller) return;
+    const firstTds = [...firstRow.children];
+    if (firstTds.length < 3) return;
+    const pageR  = page.getBoundingClientRect();
+    const tableR = table.getBoundingClientRect();
+    // The pinned cells sit at fixed screen x (left:0..). Measure the lvl
+    // cell's left and the name cell's right to span the whole block.
+    const lvlR  = firstTds[0].getBoundingClientRect();
+    const nameR = firstTds[2].getBoundingClientRect();
+    frame.style.left   = (lvlR.left  - pageR.left) + 'px';
+    frame.style.width  = (nameR.right - lvlR.left) + 'px';
+    frame.style.top    = (tableR.top - pageR.top) + 'px';
+    frame.style.height = tableR.height + 'px';
+  }
+
   if (scroller) {
-    const onScroll = () => scroller.classList.toggle('scrolled', scroller.scrollLeft > 0);
+    const onScroll = () => {
+      const scrolled = scroller.scrollLeft > 0;
+      scroller.classList.toggle('scrolled', scrolled);
+      if (frame) {
+        if (scrolled) { positionFrame(); frame.classList.add('visible'); }
+        else { frame.classList.remove('visible'); }
+      }
+    };
     scroller.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => { positionFrame(); onScroll(); },
+                            { passive: true });
     onScroll();
   }
 })();

@@ -690,6 +690,11 @@ def save_creeps_html():
         '<body>\n'
         f'{nav}\n'
         '<div class="container creeps-page">\n'
+        # Overlay frame outlining the pinned identity block during scroll.
+        # Lives OUTSIDE .creeps-scroll (which scrolls) so it never hits the
+        # Chrome bug where box-shadow/border on position:sticky cells fails
+        # to repaint mid-scroll. scripts.js positions + toggles it.
+        '<div class="sticky-frame" aria-hidden="true"></div>\n'
         '<div class="creeps-scroll">\n'
         '<table class="creeps-table">\n'
         f'<thead><tr>{thead_cells}</tr></thead>\n'
