@@ -476,7 +476,8 @@ def save_creeps_html():
             armor_pct, ehp_phys = '', 0
         ehp_mag = round(hp / max(0.01, 1 - magres / 100)) if hp else 0
         dmg_avg = (dmg_min + dmg_max) / 2 if (dmg_min or dmg_max) else 0
-        gold_avg = (gold_min + gold_max) / 2 if gold_min or gold_max else 0
+        # Average gold rounded UP (45.5 → 46).
+        gold_avg = -(-(gold_min + gold_max) // 2) if gold_min or gold_max else 0
         t_per_attack = bat * 100 / ats if ats else bat
 
         # Ability dnames (skip hidden marker abilities and blanks)
@@ -570,7 +571,7 @@ def save_creeps_html():
         gmx = _raw_at('BountyGoldMax', version, npc_key)
         if gmn is None and gmx is None:
             return None
-        return _fmt_num(((gmn or 0) + (gmx or 0)) / 2)
+        return _fmt_num(-(-((gmn or 0) + (gmx or 0)) // 2))  # round up
 
     def _ehp_phys_vf(version, npc_key):
         hp = _raw_at('StatusHealth', version, npc_key)
