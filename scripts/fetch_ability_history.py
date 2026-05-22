@@ -92,26 +92,28 @@ def parse_abilities(text, wanted):
         depth = lines[j].count("{") - lines[j].count("}")
         j += 1
         entry = {}
-        in_av_depth = None       # brace depth at which AbilityValues opened
-        av_entered = False       # have we actually descended into the block?
+        mode = None              # None | 'av' (AbilityValues) | 'sp' (AbilitySpecial)
+        base_depth = None        # depth at which the special block opened
+        entered = False          # have we actually descended into the block?
         pending = None           # AV child key awaiting its { value X }
         while j < n and depth > 0:
             line = lines[j]
             opens = line.count("{")
             closes = line.count("}")
-            if in_av_depth is None:
+            if mode is None:
                 if depth == 1:
                     kv = KV_RE.match(line)
                     bare = BARE_RE.match(line)
                     if kv and kv.group(1) in TOP_FIELDS:
                         entry[kv.group(1)] = kv.group(2)
                     elif bare and bare.group(1) == "AbilityValues":
-                        in_av_depth = depth  # children live at depth+1
-                        av_entered = False
-            else:
-                # Inside AbilityValues.
-                if depth == in_av_depth + 1:
-                    av_entered = True
+                        mode, base_depth, entered, pending = "av", depth, False, None
+                    elif bare and bare.group(1) == "AbilitySpecial":
+                        # legacy (pre-7.36): numbered subblocks with var_type
+                        mode, base_depth, entered = "sp", depth, False
+            elif mode == "av":
+                if depth == base_depth + 1:
+                    entered = True
                     kv = KV_RE.match(line)
                     bare = BARE_RE.match(line)
                     if kv:
@@ -120,16 +122,23 @@ def parse_abilities(text, wanted):
                     elif bare:
                         pending = bare.group(1)
                     # brace-only lines ({ / }) leave `pending` untouched
-                elif depth == in_av_depth + 2 and pending:
+                elif depth == base_depth + 2 and pending:
                     kv = KV_RE.match(line)
                     if kv and kv.group(1) == "value":
                         entry["av_" + pending] = kv.group(2)
                         pending = None
+            elif mode == "sp":
+                if depth >= base_depth + 1:
+                    entered = True
+                # The real value sits inside the numbered subblock (depth+2),
+                # alongside a var_type line we skip.
+                if depth == base_depth + 2:
+                    kv = KV_RE.match(line)
+                    if kv and kv.group(1) != "var_type":
+                        entry["av_" + kv.group(1)] = kv.group(2)
             depth += opens - closes
-            if in_av_depth is not None and av_entered and depth <= in_av_depth:
-                in_av_depth = None
-                av_entered = False
-                pending = None
+            if mode is not None and entered and depth <= base_depth:
+                mode, base_depth, entered, pending = None, None, False, None
             j += 1
         out[slug] = entry
         i = j
