@@ -883,8 +883,9 @@
     const good = lowerBetter ? pct < 0 : pct > 0;
     const cls = pct === 0 ? 'flat' : (good ? 'up' : 'down');
     const sign = pct > 0 ? '+' : '';
-    const txt = sign + (Math.abs(pct % 1) < 0.05 ? pct.toFixed(0) : pct.toFixed(1)) + '%';
-    return ' <span class="stat-pct ' + cls + '">' + txt + '</span>';
+    let num = pct.toFixed(1);
+    if (num.endsWith('.0')) num = num.slice(0, -2);  // 50.0 → 50, 1900.0 → 1900
+    return ' <span class="stat-pct ' + cls + '">' + sign + num + '%</span>';
   }
   function chgHead(patch, date) {
     return '<div class="stat-chg-head"><span class="chg-patch">' + patch

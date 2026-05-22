@@ -2750,7 +2750,11 @@ body.filter-active ul.subnotes { display: none; }
 /* Horizontal-scroll wrapper so a narrow viewport scrolls within the
    table region instead of breaking page layout. */
 .creeps-scroll {
-  overflow-x: auto;
+  /* Bounded height makes this the scroll container (both axes), so the
+     column header can stick to its top on vertical scroll while horizontal
+     scroll still works. ~88px reserves the top nav + page padding. */
+  overflow: auto;
+  max-height: calc(100vh - 88px);
 }
 .creeps-table {
   /* table-layout: auto lets the browser size each column to the widest
@@ -3000,7 +3004,7 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table thead th {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 5;            /* above body pinned identity cols (z-index 3) */
   background: #161b22;
   color: #e6edf3;
   font-weight: 600;
