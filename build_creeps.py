@@ -903,6 +903,9 @@ def save_creeps_html():
     ]
     COLUMNS = [(k, label) for _cat, cols in CATEGORIES for (k, label, _m) in cols]
     COL_MODE = {k: m for _cat, cols in CATEGORIES for (k, _l, m) in cols}
+    _CAT_SLUG = {'Basic': 'basic', 'Vitality': 'vitality', 'Attack': 'attack',
+                 'Bounty': 'bounty', 'Other': 'other', 'Abilities': 'abilities'}
+    COL_CAT = {k: _CAT_SLUG[cat] for cat, cols in CATEGORIES for (k, _l, _m) in cols}
     COL_WIDTHS = {
         'lvl': 30, 'icon': 56, 'name': 170, 'createhero': 130,
         'hp': 50, 'hp_regen': 52, 'mp': 50, 'mp_regen': 52,
@@ -1040,19 +1043,20 @@ def save_creeps_html():
     for i, (k, label) in enumerate(COLUMNS):
         if k == 'icon':
             continue  # folded into the colspan=2 Юнит header
+        cat = COL_CAT.get(k, '')
         if k == 'name':
             thead_list.append(
                 f'<th class="{_col_cls(k)} sortable" colspan="2" '
-                f'data-col="{k}" data-idx="{name_idx}">'
+                f'data-col="{k}" data-idx="{name_idx}" data-cat="{cat}">'
                 f'<span class="th-label">{_label_html(label)}</span>'
                 f'<span class="sort-ind"></span></th>'
             )
         elif not label:
-            thead_list.append(f'<th class="{_col_cls(k)}"></th>')
+            thead_list.append(f'<th class="{_col_cls(k)}" data-cat="{cat}"></th>')
         else:
             thead_list.append(
                 f'<th class="{_col_cls(k)} sortable" data-col="{k}" '
-                f'data-idx="{i}">'
+                f'data-idx="{i}" data-cat="{cat}">'
                 f'<span class="th-label">{_label_html(label)}</span>'
                 f'<span class="sort-ind"></span></th>'
             )
@@ -1061,11 +1065,9 @@ def save_creeps_html():
     # Super-category row: one cell per category, colspan = its leaf columns.
     # Each category has at least one Standard column, so the cell always shows;
     # when Expanded columns under it are hidden, the cell shrinks naturally.
-    _cat_slug = {'Basic': 'basic', 'Vitality': 'vitality', 'Attack': 'attack',
-                 'Bounty': 'bounty', 'Other': 'other', 'Abilities': 'abilities'}
     cat_cells = ''.join(
-        f'<th class="cat-head cat-{_cat_slug.get(cat, "x")}" '
-        f'colspan="{len(cols)}">{_esc(cat)}</th>'
+        f'<th class="cat-head cat-{_CAT_SLUG.get(cat, "x")}" '
+        f'data-cat="{_CAT_SLUG.get(cat, "x")}" colspan="{len(cols)}">{_esc(cat)}</th>'
         for cat, cols in CATEGORIES
     )
 
@@ -1151,12 +1153,13 @@ def save_creeps_html():
         f'{nav}\n'
         '<div class="container creeps-page">\n'
         # View toggle: Standard (default) hides the Expanded-only columns.
-        '<div class="creeps-toolbar">'
-        '<span class="view-label">View:</span>'
-        '<div class="view-toggle" role="group">'
-        '<button type="button" class="view-btn is-active" data-view="standard">Standard</button>'
-        '<button type="button" class="view-btn" data-view="expanded">Expanded</button>'
-        '</div></div>\n'
+        # Styled like the calendar mode-select.
+        '<div class="cal-toggle-bar">'
+        '<strong>View</strong>'
+        '<select class="cal-mode-select" id="view-mode">'
+        '<option value="standard">Standard</option>'
+        '<option value="expanded">Expanded</option>'
+        '</select></div>\n'
         # Overlay frame outlining the pinned identity block during scroll.
         # Lives OUTSIDE .creeps-scroll (which scrolls) so it never hits the
         # Chrome bug where box-shadow/border on position:sticky cells fails

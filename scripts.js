@@ -1047,16 +1047,34 @@
     scroller.addEventListener('scroll', onScrollRaf, { passive: true });
     window.addEventListener('resize', onScrollRaf, { passive: true });
 
-    // View toggle: Standard hides .col-exp columns, Expanded shows all.
-    const viewBtns = document.querySelectorAll('.view-btn');
-    viewBtns.forEach(btn => btn.addEventListener('click', () => {
-      const expanded = btn.dataset.view === 'expanded';
-      table.classList.toggle('mode-standard', !expanded);
-      table.classList.toggle('mode-expanded', expanded);
-      viewBtns.forEach(b => b.classList.toggle('is-active', b === btn));
-      applyLeftOffsets();   // column widths changed → recompute pinned offsets
-      onScroll();
-    }));
+    // Super-category header colspans must equal the number of CURRENTLY
+    // visible leaf columns in each category — otherwise the static (Expanded)
+    // colspans misalign with the collapsed columns in Standard view.
+    function recomputeCatColspans() {
+      document.querySelectorAll('.cat-head[data-cat]').forEach(head => {
+        let span = 0;
+        document.querySelectorAll('.col-row th[data-cat="' + head.dataset.cat + '"]')
+          .forEach(th => { if (th.offsetParent !== null) span += th.colSpan || 1; });
+        head.colSpan = span || 1;
+      });
+    }
+
+    // View toggle (Standard / Expanded) via the calendar-style select.
+    const viewSel = document.getElementById('view-mode');
+    if (viewSel) {
+      const applyView = () => {
+        const expanded = viewSel.value === 'expanded';
+        table.classList.toggle('mode-standard', !expanded);
+        table.classList.toggle('mode-expanded', expanded);
+        recomputeCatColspans();
+        applyLeftOffsets();   // column widths changed → recompute pinned offsets
+        onScroll();
+      };
+      viewSel.addEventListener('change', applyView);
+      applyView();            // initial pass (Standard)
+    } else {
+      recomputeCatColspans();
+    }
     onScroll();
   }
 })();
