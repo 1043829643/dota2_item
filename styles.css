@@ -2927,6 +2927,9 @@ body.filter-active ul.subnotes { display: none; }
   align-items: baseline;
   gap: 14px;
   font-variant-numeric: tabular-nums;
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(139, 148, 158, 0.14);
 }
 .stat-hist-tip .chg-patch { font-weight: 600; color: #79c0ff; }
 .stat-hist-tip .chg-date { color: #8b949e; font-size: 10px; }
