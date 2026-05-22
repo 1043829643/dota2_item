@@ -2879,10 +2879,10 @@ body.filter-active ul.subnotes { display: none; }
 /* Standard view hides Expanded-only columns. Super-category headers span all
    their columns; the colspan shrinks automatically as hidden cells collapse. */
 .creeps-table.mode-standard .col-exp { display: none; }
-/* Super-category header row. */
+/* Super-category header row — NOT sticky: it scrolls away on vertical scroll,
+   only the column-name row stays pinned. */
 .creeps-table thead tr.cat-row th.cat-head {
-  top: 0;
-  z-index: 6;
+  position: static;
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2892,8 +2892,8 @@ body.filter-active ul.subnotes { display: none; }
   padding: 3px 4px;
   border-bottom: 1px solid rgba(139, 148, 158, 0.30);
 }
-/* Column-name row sits BELOW the category row when both stick. */
-.creeps-table thead tr.col-row th { top: 19px; }
+/* Column-name row is the only sticky header — pins to the top on scroll. */
+.creeps-table thead tr.col-row th { top: 0; }
 .creeps-table thead tr.cat-row .cat-head + .cat-head { border-left: 2px solid rgba(170, 220, 240, 0.22); }
 .creeps-table .creep-icon-cell img {
   width: 48px;
