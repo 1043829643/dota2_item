@@ -3274,8 +3274,15 @@ body.filter-active ul.subnotes { display: none; }
   font-size: 8.5px;
   font-weight: 400;
   color: #8b949e;
-  vertical-align: sub;
   margin-left: 1px;
+  /* Nudge down like a subscript via relative offset + zero line-height so the
+     sub-label does NOT grow the header's line box. vertical-align:sub would
+     enlarge the row only where EHP columns appear (Expanded), making the whole
+     header taller than in Standard — the cause of the height "jump" on toggle. */
+  display: inline-block;
+  position: relative;
+  top: 2px;
+  line-height: 0;
 }
 .creeps-table tbody td {
   padding: 5px 8px;
