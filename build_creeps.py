@@ -481,14 +481,14 @@ def save_creeps_html():
         gold_avg = -(-(gold_min + gold_max) // 2) if gold_min or gold_max else 0
         t_per_attack = bat * 100 / ats if ats else bat
 
-        # Ability dnames (skip hidden marker abilities and blanks)
+        # Abilities as (slug, dname) pairs (skip hidden markers/blanks).
         abilities = []
         for i in range(1, 6):
             slug = npc.get(f'Ability{i}', '').strip()
             if not slug or slug in ABILITY_SKIP:
                 continue
-            abilities.append(_ability_dname(slug))
-        abilities += [''] * (3 - len(abilities)) if len(abilities) < 3 else []
+            abilities.append((slug, _ability_dname(slug)))
+        abilities += [('', '')] * (3 - len(abilities)) if len(abilities) < 3 else []
 
         return {
             'hp':            _fmt_num(hp) if hp else '',
@@ -527,9 +527,9 @@ def save_creeps_html():
             'bound_radius':  _fmt_num(bound_radius) if bound_radius else '',
             # Melee units have ProjectileSpeed 0 → show a dash, not blank.
             'projectile':    _fmt_num(projectile) if projectile else ('-' if npc else ''),
-            'ability1':      abilities[0] if len(abilities) > 0 else '',
-            'ability2':      abilities[1] if len(abilities) > 1 else '',
-            'ability3':      abilities[2] if len(abilities) > 2 else '',
+            'ability1':      abilities[0][1], 'ability1_slug': abilities[0][0],
+            'ability2':      abilities[1][1], 'ability2_slug': abilities[1][0],
+            'ability3':      abilities[2][1], 'ability3_slug': abilities[2][0],
         }
 
     def _resolve(createhero):
@@ -1073,9 +1073,16 @@ def save_creeps_html():
         for cat, cols in CATEGORIES
     )
 
+    _ABIL_ICON_DIR = _os.path.join(_HERE, 'icons', 'abilities')
+
+    def _has_abil_icon(slug):
+        return bool(slug) and _os.path.exists(
+            _os.path.join(_ABIL_ICON_DIR, slug + '.png'))
+
     def _cell_inner(k, v, d):
-        """Inner HTML for a data cell. Attack Range gets a glass melee/ranged
-        icon badge to the right of the number."""
+        """Inner HTML for a data cell. Attack Range → number + glass badge.
+        Ability cells → the ability ICON (changelog style, smaller); the name
+        is shown on hover. Falls back to the name text when no icon exists."""
         if k == 'attack_range' and v:
             typ = 'ranged' if d.get('attack_range_ranged') else 'melee'
             # Fixed-width number keeps every badge at the same x position.
@@ -1083,6 +1090,14 @@ def save_creeps_html():
                     f'<span class="atk-badge atk-{typ}">'
                     f'<img src="icons/ui/atk_{typ}.png" alt="{typ}" '
                     f'loading="lazy"></span>')
+        if k in ('ability1', 'ability2', 'ability3'):
+            if not v:
+                return '&nbsp;'
+            slug = d.get(k + '_slug', '')
+            if _has_abil_icon(slug):
+                return (f'<img class="abil-ico" src="icons/abilities/{slug}.png" '
+                        f'alt="{_esc(v)}" loading="lazy">')
+            return _esc(v)   # no icon on CDN → keep the name text
         return _esc(v) if v else '&nbsp;'
 
     body_parts = []
@@ -1136,6 +1151,9 @@ def save_creeps_html():
                 if hist:
                     extra = f' data-hist="{_esc(payload)}"'
                     cls += ' has-history'
+                # Ability cells carry the name for the hover tooltip header.
+                if k in COL_CHANGELOG and v:
+                    extra += f' data-name="{_esc(v)}"'
                 cells.append(
                     f'<td class="{cls}"{extra}>{_cell_inner(k, v, d)}</td>'
                 )

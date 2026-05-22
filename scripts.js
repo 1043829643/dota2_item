@@ -849,7 +849,7 @@
 
 // ---- CREEPS TABLE: per-stat changelog tooltip (HP / Armor / Mana / Magres) ----
 (function() {
-  const cells = document.querySelectorAll('td[data-hist]');
+  const cells = document.querySelectorAll('td[data-hist], td[data-name]');
   if (!cells.length) return;
 
   let tip = null;
@@ -921,7 +921,8 @@
 
   function show(td) {
     const entries = (td.dataset.hist || '').split(';').filter(Boolean);
-    if (!entries.length) return;
+    const name = td.dataset.name || '';
+    if (!entries.length && !name) return;
     const el = ensureTip();
     // Group changes from the same patch under one header.
     const groups = [];
@@ -932,7 +933,9 @@
       else groups.push({ patch: ep.patch, date: ep.date, lines: [ep.line] });
     });
     groups.reverse();  // newest patch on top, oldest at the bottom
-    el.innerHTML = groups.map(g =>
+    // Ability name as a centered header above the changelog (if any).
+    const nameHtml = name ? '<div class="abil-tip-name">' + name + '</div>' : '';
+    el.innerHTML = nameHtml + groups.map(g =>
       '<div class="stat-chg">' + chgHead(g.patch, g.date)
       + g.lines.map(l => '<div class="stat-chg-line">' + l + '</div>').join('')
       + '</div>'

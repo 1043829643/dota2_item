@@ -2876,6 +2876,25 @@ body.filter-active ul.subnotes { display: none; }
   display: block;
   opacity: 0.9;
 }
+/* Ability cell icon — changelog style (45px there), smaller here. */
+.creeps-table .abil-ico {
+  width: 26px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: inline-block;
+  vertical-align: middle;
+  border: 1px solid rgba(170, 220, 240, 0.18);
+}
+/* Ability name header inside the changelog tooltip (centered). */
+.stat-hist-tip .abil-tip-name {
+  text-align: center;
+  font-weight: 600;
+  color: #e6edf3;
+  padding-bottom: 3px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid rgba(139, 148, 158, 0.25);
+}
 /* Standard view hides Expanded-only columns. Super-category headers span all
    their columns; the colspan shrinks automatically as hidden cells collapse. */
 .creeps-table.mode-standard .col-exp { display: none; }
