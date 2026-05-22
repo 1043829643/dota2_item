@@ -25,6 +25,8 @@
 "VisionNighttimeRange":"600"
 },
 "npc_dota_neutral_alpha_wolf":{
+"Ability1":"alpha_wolf_critical_strike",
+"Ability2":"alpha_wolf_command_aura",
 "ArmorPhysical":"3",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.33",
@@ -49,6 +51,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_big_thunder_lizard":{
+"Ability1":"big_thunder_lizard_slam",
+"Ability2":"big_thunder_lizard_frenzy",
 "ArmorPhysical":"2",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.5",
@@ -74,6 +78,9 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_black_dragon":{
+"Ability1":"black_dragon_fireball",
+"Ability2":"black_dragon_splash_attack",
+"Ability3":"black_dragon_dragonhide_aura",
 "ArmorPhysical":"3",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.94",
@@ -123,6 +130,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_centaur_khan":{
+"Ability1":"centaur_khan_war_stomp",
 "ArmorPhysical":"4",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -147,6 +155,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_centaur_outrunner":{
+"Ability1":"mudgolem_cloak_aura",
 "ArmorPhysical":"1",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.5",
@@ -195,6 +204,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_dark_troll_warlord":{
+"Ability1":"dark_troll_warlord_ensnare",
+"Ability2":"dark_troll_warlord_raise_dead",
 "ArmorPhysical":"1",
 "AttackAcquisitionRange":"250",
 "AttackAnimationPoint":"0.3",
@@ -244,6 +255,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_enraged_wildkin":{
+"Ability1":"enraged_wildkin_tornado",
+"Ability2":"enraged_wildkin_toughness_aura",
 "ArmorPhysical":"4",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -316,6 +329,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_forest_troll_high_priest":{
+"Ability1":"forest_troll_high_priest_heal",
+"Ability2":"forest_troll_high_priest_mana_aura",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.3",
@@ -340,6 +355,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_ghost":{
+"Ability1":"ghost_frost_attack",
 "ArmorPhysical":"1",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.3",
@@ -388,6 +404,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_gnoll_assassin":{
+"Ability1":"gnoll_assassin_envenomed_weapon",
 "ArmorPhysical":"1",
 "AttackAcquisitionRange":"800",
 "AttackAnimationPoint":"0.4",
@@ -412,6 +429,7 @@
 "VisionNighttimeRange":"400"
 },
 "npc_dota_neutral_granite_golem":{
+"Ability1":"granite_golem_hp_aura",
 "ArmorPhysical":"8",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -461,6 +479,7 @@
 "VisionNighttimeRange":"1800"
 },
 "npc_dota_neutral_harpy_storm":{
+"Ability1":"harpy_storm_chain_lightning",
 "ArmorPhysical":"2",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.3",
@@ -534,6 +553,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_kobold_taskmaster":{
+"Ability1":"kobold_taskmaster_speed_aura",
 "ArmorPhysical":"1",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.38",
@@ -582,6 +602,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_mud_golem":{
+"Ability1":"mud_golem_hurl_boulder",
+"Ability2":"mud_golem_rock_destroy",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -607,6 +629,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_mud_golem_split":{
+"Ability1":"mud_golem_hurl_boulder",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -632,6 +655,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_mud_golem_split_doom":{
+"Ability1":"mud_golem_hurl_boulder",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -657,6 +681,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_ogre_magi":{
+"Ability1":"ogre_magi_frost_armor",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -705,6 +730,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_polar_furbolg_champion":{
+"Ability1":"mudgolem_cloak_aura",
 "ArmorPhysical":"3",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -729,6 +755,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_polar_furbolg_ursa_warrior":{
+"Ability1":"polar_furbolg_ursa_warrior_thunder_clap",
+"Ability2":"centaur_khan_endurance_aura",
 "ArmorPhysical":"4",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.3",
@@ -753,6 +781,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_prowler_acolyte":{
+"Ability1":"spawnlord_aura",
 "ArmorPhysical":"10",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.83",
@@ -777,6 +806,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_prowler_shaman":{
+"Ability1":"spawnlord_master_stomp",
+"Ability2":"spawnlord_master_freeze",
 "ArmorPhysical":"11",
 "AttackAcquisitionRange":"500",
 "AttackAnimationPoint":"0.83",
@@ -826,6 +857,8 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_satyr_hellcaller":{
+"Ability1":"satyr_hellcaller_shockwave",
+"Ability2":"satyr_hellcaller_unholy_aura",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.3",
@@ -850,6 +883,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_satyr_soulstealer":{
+"Ability1":"satyr_soulstealer_mana_burn",
 "ArmorPhysical":"1",
 "AttackAcquisitionRange":"300",
 "AttackAnimationPoint":"0.3",
@@ -874,6 +908,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_satyr_trickster":{
+"Ability1":"satyr_trickster_purge",
 "ArmorPhysical":"0",
 "AttackAcquisitionRange":"280",
 "AttackAnimationPoint":"0.3",
@@ -898,6 +933,7 @@
 "VisionNighttimeRange":"800"
 },
 "npc_dota_neutral_small_thunder_lizard":{
+"Ability1":"big_thunder_lizard_wardrums_aura",
 "ArmorPhysical":"2",
 "AttackAcquisitionRange":"800",
 "AttackAnimationPoint":"0.5",

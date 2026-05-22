@@ -132,6 +132,7 @@ def save_creeps_html():
         'VisionDaytimeRange', 'VisionNighttimeRange',
         'AttackAnimationPoint', 'MovementTurnRate', 'ProjectileSpeed',
         'BoundsHullName', 'RingRadius',
+        'Ability1', 'Ability2', 'Ability3', 'Ability4', 'Ability5',
     )
     import re as _re_hist
     STATS_DIR = _os.path.join(_HERE, "data", "stats")
@@ -375,13 +376,49 @@ def save_creeps_html():
             return _fmt_num(rng)
         return f'Ближняя ({rng})' if rng else ''
 
-    def _hull_label(s):
-        """DOTA_HULL_SIZE_HERO → "Hero". Collision-size category from the
-        BoundsHullName KV value."""
-        s = (s or '').strip()
-        if not s:
-            return ''
-        return s.replace('DOTA_HULL_SIZE_', '').replace('_', ' ').title()
+    # Hull → (collision size, bound radius). Values per Liquipedia/Unit_Size,
+    # cross-checked in-game via cl_dumpentity (CCollisionProperty m_vecMaxs):
+    # a neutral with no explicit BoundsHullName reports ±24 → DOTA_HULL_SIZE_HERO.
+    HULL_BOUNDS = {
+        'DOTA_HULL_SIZE_HERO':      (27, 24),
+        'DOTA_HULL_SIZE_BIG_HERO':  (43, 40),
+        'DOTA_HULL_SIZE_LARGE':     (41, 40),
+        'DOTA_HULL_SIZE_REGULAR':   (36, 16),
+        'DOTA_HULL_SIZE_SIEGE':     (40, 16),
+        'DOTA_HULL_SIZE_SMALL':     (18, 8),
+        'DOTA_HULL_SIZE_SMALLEST':  (4, 2),
+        'DOTA_HULL_SIZE_HUGE':      (80, 80),
+        'DOTA_HULL_SIZE_FILLER':    (112, 96),
+        'DOTA_HULL_SIZE_TOWER':     (144, 144),
+        'DOTA_HULL_SIZE_BARRACKS':  (160, 144),
+    }
+    # npc_dota_creep_neutral inherits HERO from npc_dota_units_base (the base
+    # class is engine-internal / absent from npc_units.txt), so neutrals
+    # without an explicit hull resolve to HERO. Verified in-game via
+    # cl_dumpentity (CCollisionProperty m_vecMaxs) across 5 units: Kobold,
+    # Ogre, Granite Golem, Black Dragon all = ±24 (HERO) regardless of model
+    # scale; only skeleton_warrior overrides to SMALL (±8).
+    # NOTE: HERO default is NEUTRAL-ONLY. Summons / non-neutral units have
+    # different hulls — a future summons table must NOT reuse this default;
+    # resolve their hull explicitly or per-unit.
+    NEUTRAL_DEFAULT_HULL = 'DOTA_HULL_SIZE_HERO'
+    # MovementTurnRate default from npc_dota_units_base = 0.5. 35/49 neutrals
+    # explicitly override to 0.9 (so base ≠ 0.9); the 14 that don't are the
+    # heavy/slow creeps (golems, frogs, ancients, thunder lizard, warpine) →
+    # they inherit 0.5. Inferred (turn rate isn't readable via cl_dumpentity),
+    # but the explicit-0.9 pattern + slow-creep grouping make it solid.
+    NEUTRAL_DEFAULT_TURN_RATE = 0.5
+
+    def _hull_for(npc):
+        return (npc.get('BoundsHullName') or NEUTRAL_DEFAULT_HULL) if npc else None
+
+    def _hull_collision(npc):
+        h = _hull_for(npc)
+        return HULL_BOUNDS.get(h, (None, None))[0] if h else None
+
+    def _hull_bound(npc):
+        h = _hull_for(npc)
+        return HULL_BOUNDS.get(h, (None, None))[1] if h else None
 
     def _row_data(npc_key, createhero):
         """Compute the full set of overlay values for one creep. Returns
@@ -409,10 +446,12 @@ def save_creeps_html():
         vis_night = npc.get('VisionNighttimeRange', '')
         aggro = npc.get('AttackAcquisitionRange', '')
         ap = _safe_float(npc.get('AttackAnimationPoint'))
-        turn_rate = _safe_float(npc.get('MovementTurnRate'))
+        _tr = npc.get('MovementTurnRate')
+        turn_rate = (_safe_float(_tr) if _tr is not None
+                     else (NEUTRAL_DEFAULT_TURN_RATE if npc else 0))
         projectile = _safe_int(npc.get('ProjectileSpeed'))
-        bound_radius = _safe_int(npc.get('RingRadius'))
-        collision = _hull_label(npc.get('BoundsHullName', ''))
+        collision = _hull_collision(npc)
+        bound_radius = _hull_bound(npc)
 
         # Derived
         # Damage Factor formula: (0.06 × armor) / (1 + 0.06 × |armor|).
@@ -469,9 +508,10 @@ def save_creeps_html():
             'aggro':         aggro,
             'ap':            _fmt_num(ap) if ap else '',
             'turn_rate':     _fmt_num(turn_rate) if turn_rate else '',
-            'collision_size': collision,
+            'collision_size': _fmt_num(collision) if collision else '',
             'bound_radius':  _fmt_num(bound_radius) if bound_radius else '',
-            'projectile':    _fmt_num(projectile) if projectile else '',
+            # Melee units have ProjectileSpeed 0 → show a dash, not blank.
+            'projectile':    _fmt_num(projectile) if projectile else ('-' if npc else ''),
             'ability1':      abilities[0] if len(abilities) > 0 else '',
             'ability2':      abilities[1] if len(abilities) > 1 else '',
             'ability3':      abilities[2] if len(abilities) > 2 else '',
@@ -554,11 +594,50 @@ def save_creeps_html():
         return '{}/{}'.format(_fmt_num(d) if d is not None else '?',
                               _fmt_num(n) if n is not None else '?')
 
-    def _collision_vf(version, npc_key):
-        h = _raw_at('BoundsHullName', version, npc_key)
-        if h is None:
+    def _hull_vf(idx):
+        """History valuefn for hull-derived collision (idx 0) / bound (idx 1).
+        Unit present that patch → hull (explicit or HERO default) → value."""
+        def f(version, npc_key):
+            if _raw_at('StatusHealth', version, npc_key) is None:
+                return None  # unit doesn't exist this patch
+            hull = _raw_at('BoundsHullName', version, npc_key) or NEUTRAL_DEFAULT_HULL
+            v = HULL_BOUNDS.get(hull, (None, None))[idx]
+            return _fmt_num(v) if v is not None else None
+        return f
+
+    def _projectile_vf(version, npc_key):
+        s = _raw_at('ProjectileSpeed', version, npc_key)
+        if s is None:
             return None
-        return _hull_label(h) or None
+        return _fmt_num(s) if s else '-'
+
+    def _turn_rate_vf(version, npc_key):
+        if _raw_at('StatusHealth', version, npc_key) is None:
+            return None  # unit doesn't exist this patch
+        tr = _raw_at('MovementTurnRate', version, npc_key)
+        return _fmt_num(tr if tr is not None else NEUTRAL_DEFAULT_TURN_RATE)
+
+    def _abilities_at(version, npc_key):
+        """Filtered ability dnames for a neutral at a patch (same filter as
+        _row_data: skip hidden markers). Mirrors the displayed slot order."""
+        out = []
+        for i in range(1, 6):
+            slug = _raw_at(f'Ability{i}', version, npc_key)
+            if not slug or slug in ABILITY_SKIP:
+                continue
+            out.append(_ability_dname(slug))
+        return out
+
+    def _ability_slot_vf(slot):
+        """History valuefn for the displayed ability cell at `slot` (0-based).
+        Returns the dname occupying that slot at a patch, or None when the
+        unit doesn't exist / has no ability there."""
+        def f(version, npc_key):
+            if _raw_at('StatusHealth', version, npc_key) is None:
+                return None  # unit doesn't exist this patch
+            abils = _abilities_at(version, npc_key)
+            return abils[slot] if slot < len(abils) else None
+        return f
 
     COL_HIST = {
         'hp':            _raw_vf('StatusHealth'),
@@ -581,10 +660,13 @@ def save_creeps_html():
         't_per_attack':  _t_per_attack_vf,
         'vision':        _vision_vf,
         'ap':            _raw_vf('AttackAnimationPoint'),
-        'turn_rate':     _raw_vf('MovementTurnRate'),
-        'bound_radius':  _raw_vf('RingRadius'),
-        'projectile':    _raw_vf('ProjectileSpeed'),
-        'collision_size': _collision_vf,
+        'turn_rate':     _turn_rate_vf,
+        'bound_radius':  _hull_vf(1),
+        'projectile':    _projectile_vf,
+        'collision_size': _hull_vf(0),
+        'ability1':      _ability_slot_vf(0),
+        'ability2':      _ability_slot_vf(1),
+        'ability3':      _ability_slot_vf(2),
     }
 
     # ---- Read CSV ----
@@ -593,32 +675,32 @@ def save_creeps_html():
 
     # ---- Column structure ----
     COLUMNS = [
-        ('lvl',          'Ур.'),
+        ('lvl',          'Lvl'),
         ('icon',         ''),
-        ('name',         'Юнит'),
+        ('name',         'Unit'),
         ('hp',           'HP'),
         ('hp_regen',     'HP/sec'),
         # EHP физ/маг hidden — still computed into row data for the future
         # extended-columns toggle.
         ('mp',           'MP'),
         ('mp_regen',     'MP/sec'),
-        ('armor',        'Броня'),
-        ('armor_pct',    'Броня (%)'),
-        ('magres',       'Магрез'),
+        ('armor',        'Armor'),
+        ('armor_pct',    'Armor (%)'),
+        ('magres',       'Mag. resist'),
         # Урон (мин)/(макс) hidden — values still pulled into row data for the
         # future extended-columns toggle. Only the computed average is shown.
-        ('dmg_avg',      'Атака'),
+        ('dmg_avg',      'Attack Dmg'),
         ('as',           'AS'),
-        ('t_per_attack', 't/1 удар'),
+        ('t_per_attack', 'Time to hit'),
         ('bat',          'BAT'),
         ('ms',           'MS'),
         # Золото shows the average; min/max stay in row data for the extended
         # toggle (separate min/max gold columns later).
-        ('gold',         'Золото'),
-        ('xp',           'Опыт'),
-        ('attack_range', 'Дальность атаки'),
-        ('attack_type',  'Тип атаки'),
-        ('vision',       'Обзор'),
+        ('gold',         'Gold'),
+        ('xp',           'XP'),
+        ('attack_range', 'Attack Range'),
+        ('attack_type',  'Attack Type'),
+        ('vision',       'Vision'),
         # «Дальность агра» (aggro) hidden — kept in row data for the extended
         # toggle. New movement/projectile columns slot in after Обзор.
         ('ap',             'AP'),
@@ -626,9 +708,9 @@ def save_creeps_html():
         ('collision_size', 'Collision Size'),
         ('bound_radius',   'Bound Radius'),
         ('projectile',     'Projectile Speed'),
-        ('ability1',     'Способность 1'),
-        ('ability2',     'Способность 2'),
-        ('ability3',     'Способность 3'),
+        ('ability1',     'Ability 1'),
+        ('ability2',     'Ability 2'),
+        ('ability3',     'Ability 3'),
     ]
     COL_WIDTHS = {
         'lvl': 30, 'icon': 56, 'name': 170, 'createhero': 130,

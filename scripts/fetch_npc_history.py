@@ -55,6 +55,7 @@ NPC_FIELDS = (
     "CombatClassAttack", "CombatClassDefend", "AttackCapabilities",
     "AttackAnimationPoint", "MovementTurnRate", "ProjectileSpeed",
     "BoundsHullName", "RingRadius",
+    "Ability1", "Ability2", "Ability3", "Ability4", "Ability5",
 )
 HEAD_RE = re.compile(
     r'^\s*"(npc_dota_(?:neutral_[a-z0-9_]+'
