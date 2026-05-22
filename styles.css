@@ -2755,6 +2755,10 @@ body.filter-active ul.subnotes { display: none; }
      scroll still works. ~88px reserves the top nav + page padding. */
   overflow: auto;
   max-height: calc(100vh - 88px);
+  /* Hug the table width (cap at the container) so a narrow Standard-view
+     table doesn't leave a big empty strip / abrupt right edge on wide screens. */
+  width: max-content;
+  max-width: 100%;
 }
 .creeps-table {
   /* table-layout: auto lets the browser size each column to the widest

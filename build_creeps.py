@@ -185,13 +185,28 @@ def save_creeps_html():
     # Per-patch neutral ability balance data (from npc_abilities.json, written
     # by scripts/fetch_ability_history.py). _abil_by_patch[version][slug] =
     # {field: value} — used for the ability-cell value changelog.
+    def _norm_abil_fields(fields):
+        """Collapse `av_X_tooltip` (display-only mirror) onto `av_X` so a value
+        moving from a flat tooltip to a real per-level field (e.g. Mud Golem
+        Shard Split in 7.33: shard_damage_tooltip 9 → shard_damage 12/16/20/28)
+        registers as one change instead of an add+remove that we skip."""
+        out = {}
+        for k, val in fields.items():
+            base = k[:-len('_tooltip')] if k.endswith('_tooltip') else k
+            # Prefer the real field over the tooltip mirror when both exist.
+            if base in out and k.endswith('_tooltip'):
+                continue
+            out[base] = val
+        return out
+
     _abil_by_patch = {}
     for _v in _patches_chrono:
         _ap_path = _os.path.join(STATS_DIR, _v, "npc_abilities.json")
         if not _os.path.exists(_ap_path):
             continue
         try:
-            _abil_by_patch[_v] = _json.loads(open(_ap_path, encoding="utf-8").read())
+            _raw_ab = _json.loads(open(_ap_path, encoding="utf-8").read())
+            _abil_by_patch[_v] = {s: _norm_abil_fields(f) for s, f in _raw_ab.items()}
         except Exception:
             _abil_by_patch[_v] = {}
 
