@@ -753,44 +753,49 @@ def save_creeps_html():
     _FIRST_PATCH = _patches_chrono[0] if _patches_chrono else None
 
     def _ability_changelog(npc_key, slot):
-        """Combined changelog for the ability cell at `slot`. Returns typed
-        entries scripts.js renders:
-          (patch, date, 'A', name)            — ability added
-          (patch, date, 'R', name)            — ability removed
-          (patch, date, 'P', old, new)        — ability replaced
+        """Changelog for the ability cell at `slot`, tracked by the ability's
+        IDENTITY (set membership) — NOT by slot position, so reordering slots
+        (e.g. Thunderhide moving Slam slot 3→1) no longer reads as
+        replaced/removed. Returns typed entries:
+          (patch, date, 'A', name)            — this ability was added
           (patch, date, 'F', label, old, new) — value change (cooldown, …)
-        The baseline (ability present at the FIRST tracked patch, 7.08) emits
-        nothing; a unit introduced later (e.g. frogs in 7.38) shows ADDED."""
+        The current ability occupying the slot is tracked across patches by
+        whether it is among the neutral's abilities. Baseline (present at the
+        FIRST tracked patch) emits nothing; an ability that first appears later
+        (frogs in 7.38, or a rename) shows ADDED."""
         if not npc_key:
             return []
+        # The ability currently shown in this slot (latest patch with the unit).
+        cur_slug = None
+        for v in reversed(_patches_chrono):
+            if _raw_at('StatusHealth', v, npc_key) is None:
+                continue
+            slugs = _ability_slugs_at(v, npc_key)
+            cur_slug = slugs[slot] if slot < len(slugs) else None
+            break
+        if not cur_slug:
+            return []
         entries = []
-        prev_slug = None
+        prev_present = False
         prev_fields = None
         started = False
         for v in _patches_chrono:
             if _raw_at('StatusHealth', v, npc_key) is None:
                 continue  # unit absent this patch
-            slugs = _ability_slugs_at(v, npc_key)
-            cur = slugs[slot] if slot < len(slugs) else None
-            cur_fields = _abil_by_patch.get(v, {}).get(cur, {}) if cur else {}
+            present = cur_slug in _ability_slugs_at(v, npc_key)
+            fields = _abil_by_patch.get(v, {}).get(cur_slug, {}) if present else {}
             dt = PATCH_DATES.get(v, '')
             if not started:
                 started = True
                 if v == _FIRST_PATCH:
-                    # data baseline (was already there at 7.08) — adopt silently
-                    prev_slug, prev_fields = cur, cur_fields
+                    # data baseline — adopt silently (was there since 7.08)
+                    prev_present, prev_fields = present, fields
                     continue
-                # unit introduced mid-history → prev_slug stays None → ADDED below
-            if prev_slug != cur:
-                if not prev_slug and cur:
-                    entries.append((v, dt, 'A', _ability_dname(cur)))
-                elif prev_slug and not cur:
-                    entries.append((v, dt, 'R', _ability_dname(prev_slug)))
-                else:
-                    entries.append((v, dt, 'P', _ability_dname(prev_slug),
-                                    _ability_dname(cur)))
-            if cur and cur == prev_slug and prev_fields:
-                for fld, val in cur_fields.items():
+                # else first appearance is mid-history → fall through to ADDED
+            if present and not prev_present:
+                entries.append((v, dt, 'A', _ability_dname(cur_slug)))
+            if present and prev_present and prev_fields:
+                for fld, val in fields.items():
                     old = prev_fields.get(fld)
                     if old is None or old == val:
                         continue
@@ -799,12 +804,10 @@ def save_creeps_html():
                     else:
                         of_, nf_ = _slash(old), _slash(val)
                         pol = 'lo' if _abil_lower_better(fld) else 'hi'
-                    # Skip no-op diffs that only differ before formatting
-                    # (e.g. "6.0" → "6", or "6 6 6" → "6").
-                    if of_ == nf_:
+                    if of_ == nf_:   # no-op once formatted (e.g. "6.0"→"6")
                         continue
                     entries.append((v, dt, 'F', _abil_field_label(fld), of_, nf_, pol))
-            prev_slug, prev_fields = cur, cur_fields
+            prev_present, prev_fields = present, fields
         return entries
 
     COL_HIST = {
