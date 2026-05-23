@@ -2920,6 +2920,13 @@ body.filter-active ul.subnotes { display: none; }
   display: inline-block;
   line-height: 0;
 }
+/* Vertical divider after every column (both Tables — Neutral Creeps + Unit
+   Abilities). The heavier col-sep dividers (set on category starts) stay
+   visible over this lighter base. */
+.creeps-table th,
+.creeps-table td { border-left: 1px solid rgba(170, 220, 240, 0.12); }
+.creeps-table th:first-child,
+.creeps-table td:first-child { border-left: none; }
 /* Unit Abilities page table — reuses .creeps-table sticky/scroll machinery. */
 .unit-abilities-table .ua-ability { text-align: left; }
 .unit-abilities-table .ua-ability-inner {
@@ -2929,15 +2936,37 @@ body.filter-active ul.subnotes { display: none; }
   white-space: nowrap;
 }
 .unit-abilities-table .ua-ability-name { font-weight: 600; color: #e6edf3; }
-/* Type — colour-coded text. */
-.unit-abilities-table .ua-type-active  { color: #6f9fd8; }   /* dim blue */
-.unit-abilities-table .ua-type-passive { color: #a98cd0; }   /* dim purple */
-.unit-abilities-table .ua-type-aura    { color: #c9a227; }   /* dark gold */
-/* Damage Type — tinted cell. */
-.unit-abilities-table td.dt-magical   { background: rgba(70, 130, 200, 0.20); }
-.unit-abilities-table td.dt-physical  { background: rgba(150, 45, 45, 0.22); }
-.unit-abilities-table td.dt-hpremoval { background: rgba(190, 160, 45, 0.20); }
-.unit-abilities-table td.dt-pure      { background: rgba(200, 200, 210, 0.10); }
+/* Type — plain coloured fills (no glass effect). */
+.unit-abilities-table td.ua-type-active  { background: rgba(80, 155, 230, 0.22); color: #d2e6ff; }
+.unit-abilities-table td.ua-type-passive { background: rgba(170, 110, 215, 0.22); color: #e8d3f5; }
+.unit-abilities-table td.ua-type-aura    { background: rgba(225, 180, 80, 0.22); color: #f4e3b3; }
+/* Damage Type — colour-coded text. */
+.unit-abilities-table td.dt-magical   { color: #5fb1ff; }   /* brighter blue */
+.unit-abilities-table td.dt-physical  { color: #e1716a; }   /* brighter bordeaux */
+.unit-abilities-table td.dt-hpremoval { color: #c4c6cc; }   /* brighter grey */
+.unit-abilities-table td.dt-pure      { color: #ead992; }
+/* "Only Auras" view filter — hide non-aura rows + irrelevant columns. */
+.unit-abilities-table.filter-auras tbody tr:not(.ua-row-aura) { display: none; }
+.unit-abilities-table.filter-auras th[data-col="dmg_type"],
+.unit-abilities-table.filter-auras td[data-col="dmg_type"],
+.unit-abilities-table.filter-auras th[data-col="damage"],
+.unit-abilities-table.filter-auras td[data-col="damage"],
+.unit-abilities-table.filter-auras th[data-col="manacost"],
+.unit-abilities-table.filter-auras td[data-col="manacost"],
+.unit-abilities-table.filter-auras th[data-col="cooldown"],
+.unit-abilities-table.filter-auras td[data-col="cooldown"],
+.unit-abilities-table.filter-auras th[data-col="cast_range"],
+.unit-abilities-table.filter-auras td[data-col="cast_range"],
+.unit-abilities-table.filter-auras th[data-col="dispel"],
+.unit-abilities-table.filter-auras td[data-col="dispel"] { display: none; }
+/* Auras Only: the empty Effect 1-3 columns take up the slack so the Ability
+   column doesn't get over-wide with whitespace. */
+.unit-abilities-table.filter-auras th[data-col="effect"],
+.unit-abilities-table.filter-auras td[data-col="effect"],
+.unit-abilities-table.filter-auras th[data-col="effect2"],
+.unit-abilities-table.filter-auras td[data-col="effect2"],
+.unit-abilities-table.filter-auras th[data-col="effect3"],
+.unit-abilities-table.filter-auras td[data-col="effect3"] { min-width: 180px; }
 /* Flag glyphs (Stackable / Dispellable) — colours scoped to .ua-flag so the
    column headers (th.ua-dispel etc.) stay default-coloured. */
 .unit-abilities-table .ua-flag { font-size: 15px; font-weight: 700; line-height: 1; display: inline-block; }
@@ -2958,14 +2987,7 @@ body.filter-active ul.subnotes { display: none; }
 /* "Ability" header centred; Type values left-aligned so the words line up. */
 .unit-abilities-table th.ua-ability { text-align: center; }
 .unit-abilities-table th.ua-type,
-.unit-abilities-table td.ua-type {
-  white-space: nowrap;
-  width: 130px;            /* even, consistent column width */
-}
-/* Type cell fill by effect: Damage → bordeaux/red, Buff → green, Debuff → dim purple. */
-.unit-abilities-table td.ua-type-damage { background: rgba(170, 55, 50, 0.22); }
-.unit-abilities-table td.ua-type-buff   { background: rgba(80, 175, 95, 0.20); }
-.unit-abilities-table td.ua-type-debuff { background: rgba(150, 95, 185, 0.18); }
+.unit-abilities-table td.ua-type { white-space: nowrap; }
 /* Coloured yes/no text for Aura, Aura Stack, Dispellable. */
 .unit-abilities-table .ua-yn { font-weight: 600; font-size: 11px; }
 .unit-abilities-table .ua-yn-yes    { color: #6aa775; }   /* muted green */
@@ -3029,8 +3051,8 @@ body.filter-active ul.subnotes { display: none; }
 .unit-abilities-table tr.ua-dup .ua-unit img { visibility: hidden; }
 /* Highlight the row jumped to from an ability-icon link: a strong flash that
    gradually fades and settles at 10% opacity (stays marked). */
-.unit-abilities-table tr:target { box-shadow: inset 3px 0 0 #d2af5f; }
-.unit-abilities-table tr:target td {
+.creeps-table tr:target { box-shadow: inset 3px 0 0 #d2af5f; }
+.creeps-table tr:target td {
   animation: ua-flash 2.6s ease-out forwards;
 }
 @keyframes ua-flash {
@@ -3400,7 +3422,7 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table td.atk-pierce   { color: #b18cd9; }   /* "Проникающий" — muted purple */
 /* Tier-break: thicker top border between level groups (Ур. changes). */
 .creeps-table tr.tier-break td {
-  border-top: 2px solid rgba(170, 220, 240, 0.28);
+  border-top: 2px solid rgba(170, 220, 240, 0.55);
 }
 /* "Copied" toast — fixed-positioned near the clicked icon, fades in
    quickly then drifts up and out. JS positions it and toggles

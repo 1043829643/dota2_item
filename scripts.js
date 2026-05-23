@@ -921,6 +921,52 @@
   // Initial pass: collapse/group the default order + merge ability runs.
   groupRows([...tbody.querySelectorAll('tr')]);
   mergeAbilityRuns([...tbody.querySelectorAll('tr')]);
+
+  // Unit Abilities VIEW filter (Standard | Only Auras). Toggles a class on
+  // the table; CSS hides non-aura rows. Also reorders columns: in "Only Auras"
+  // the order is Lvl/Unit/Ability, then Aura Stack/Radius/Duration, then the
+  // rest (Type/AS Effect/MS Effect), then Effect 1-3.
+  const uaView = document.getElementById('ua-view-mode');
+  if (uaView) {
+    const STD_ORDER = ['lvl', 'unit', 'ability', 'type', 'dmg_type', 'damage',
+      'manacost', 'cooldown', 'duration', 'cast_range', 'aoe', 'stackable',
+      'dispel', 'as_effect', 'ms_effect', 'effect', 'effect2', 'effect3'];
+    // Auras view: visible columns first (their target order), then the
+    // hidden-by-CSS columns at the end so DOM child count stays in sync.
+    const AURA_ORDER = ['lvl', 'unit', 'ability', 'type', 'aoe', 'stackable',
+      'duration', 'as_effect', 'ms_effect', 'effect', 'effect2', 'effect3',
+      'dmg_type', 'damage', 'manacost', 'cooldown', 'cast_range', 'dispel'];
+    const headRow = table.querySelector('thead .col-row')
+      || table.querySelector('thead tr');
+
+    function reorderCells(order) {
+      const reorderOne = (parent) => {
+        order.forEach(k => {
+          const cell = [...parent.children].find(c => c.dataset.col === k);
+          if (cell) parent.appendChild(cell);
+        });
+      };
+      if (headRow) reorderOne(headRow);
+      tbody.querySelectorAll('tr').forEach(reorderOne);
+      // Refresh colIndex (used by cellVal) for the new column positions.
+      Object.keys(colIndex).forEach(k => delete colIndex[k]);
+      if (headRow) {
+        [...headRow.children].forEach((th, i) => {
+          if (th.dataset.col) colIndex[th.dataset.col] = i;
+        });
+      }
+    }
+
+    const applyUaView = () => {
+      const auras = uaView.value === 'auras';
+      table.classList.toggle('filter-auras', auras);
+      reorderCells(auras ? AURA_ORDER : STD_ORDER);
+      groupRows(auras
+        ? [...tbody.querySelectorAll('tr.ua-row-aura')]
+        : [...tbody.querySelectorAll('tr')]);
+    };
+    uaView.addEventListener('change', applyUaView);
+  }
 })();
 
 // ---- CREEPS TABLE: per-stat changelog tooltip (HP / Armor / Mana / Magres) ----
@@ -1203,3 +1249,25 @@
   }
 })();
 
+
+// ---- Centre the row jumped to via #anchor (cross-page or same-page) ----
+// Default anchor behaviour scrolls the target to the top of the viewport,
+// which on the Tables pages often parks it under the sticky header or hides
+// it inside the inner-scroll box. Re-centre it once the DOM/layout settles.
+(function() {
+  function centerHash() {
+    const h = location.hash.slice(1);
+    if (!h) return;
+    const el = document.getElementById(decodeURIComponent(h));
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+    });
+  }
+  window.addEventListener('hashchange', centerHash);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', centerHash);
+  } else {
+    centerHash();
+  }
+})();

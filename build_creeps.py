@@ -423,7 +423,7 @@ def save_creeps_html():
         'hellcaller':           {'hp_regen': ('+', 3)},      # Unholy Aura
         'skeleton_warrior':     {'dmg': ('+', 2)},           # Rally
         'taskmaster':           {'ms': ('+', 12)},           # Speed Aura
-        'priest':               {'mp_regen': ('+', 1.75)},   # Mana Aura
+        'soulstealer':          {'mp_regen': ('+', 1.75)},   # Mana Aura (Mindstealer)
         'outrunner':            {'magres': ('+', 20)},       # Cloak Aura (creep value)
         'prowler_acolyte':      {'hp_regen': ('+', 9)},      # Spawnlord HP-reg aura
         'alpha':                {'dmg': ('*', 1.2)},         # Command Aura +20%
@@ -870,7 +870,11 @@ def save_creeps_html():
             return True
         if fld.startswith('av_'):
             n = fld[3:]
-            return 'cooldown' in n or 'manacost' in n or 'mana_cost' in n
+            # Slows/penalties are stored as negative numbers; a MORE-negative
+            # value = stronger slow = buff for the caster, so a numeric drop
+            # counts as buff.
+            return ('cooldown' in n or 'manacost' in n or 'mana_cost' in n
+                    or 'slow' in n or 'penalty' in n or 'reduction' in n)
         return False
 
     def _slash(s):
@@ -1351,7 +1355,8 @@ def save_creeps_html():
                 )
             else:
                 cells.append(f'<td class="{_col_cls(k, v)}">{_cell_inner(k, v, d)}</td>')
-        body_parts.append(f'<tr{tr_cls}>{"".join(cells)}</tr>')
+        rid = f' id="unit-{_esc((d.get("createhero") or "").strip())}"'
+        body_parts.append(f'<tr{rid}{tr_cls}>{"".join(cells)}</tr>')
 
     html = (
         '<!DOCTYPE html>\n'
@@ -1539,10 +1544,12 @@ def save_creeps_html():
             except Exception:
                 return False
         cd, mc = g('AbilityCooldown'), g('AbilityManaCost')
-        # "Aura" is pulled out of the Type text into its own column.
-        t_raw = TYPE_MANUAL.get(slug, '')
-        is_aura = 'Aura' in t_raw
-        typ = t_raw.replace(' Aura', '')
+        # Type heuristic: aura by slug or manual override (e.g. Rally — slug
+        # has no "aura" token), active by cd/mc/cast-range presence, else passive.
+        MANUAL_AURAS = {'hill_troll_rally'}
+        typ = ('Aura' if ('aura' in slug or slug in MANUAL_AURAS)
+               else ('Active' if (_posnum(cd) or _posnum(mc) or g('AbilityCastRange'))
+                     else 'Passive'))
         as_fields = (('av_speed_bonus', '+{}'), ('av_bonus_attack_speed', '+{}'),
                      ('av_bonus_aspd', '+{}'), ('av_attackspeed_bonus', '+{}'),
                      ('av_attackspeed_slow', '{}'))
@@ -1559,7 +1566,6 @@ def save_creeps_html():
             stack = ''
         props = {
             'type': typ,
-            'aura': 'Yes' if is_aura else 'No',
             'dmg_type': DMGTYPE_MANUAL.get(slug, ''),
             'damage': _prog(g('av_damage') or g('AbilityDamage')),
             'aoe': _prog(g('av_radius')),
@@ -1580,16 +1586,17 @@ def save_creeps_html():
 
     UA_COLS = [
         ('lvl', 'Lvl'), ('unit', 'Unit'), ('ability', 'Ability'),
-        ('type', 'Type'), ('aura', 'Aura'), ('damage', 'Damage'),
+        ('type', 'Type'), ('dmg_type', 'Damage Type'), ('damage', 'Damage'),
         ('manacost', 'Manacost'), ('cooldown', 'Cooldown'),
         ('duration', 'Duration'), ('cast_range', 'Cast Range'),
         ('aoe', 'Radius'), ('stackable', 'Aura Stack'),
-        ('dispel', 'Dispellable'), ('as_effect', 'AS Effect'),
-        ('ms_effect', 'MS Effect'),
+        ('dispel', 'Dispellable'),
+        ('as_effect', 'AS Effect'), ('ms_effect', 'MS Effect'),
+        ('effect', 'Effect'), ('effect2', 'Effect 2'), ('effect3', 'Effect 3'),
     ]
     UA_STICKY = {'lvl', 'unit', 'ability'}
     # Vertical section dividers (left border) after Ability, Type and Damage.
-    UA_SEP = {'type', 'aura', 'manacost'}
+    UA_SEP = {'type', 'dmg_type', 'manacost'}
     PROP_COLS = [k for k, _ in UA_COLS
                  if k not in ('lvl', 'unit', 'ability')]
 
@@ -1608,29 +1615,20 @@ def save_creeps_html():
 
     def _prop_cell(pk, val):
         # Type → colour-coded text. Damage Type → tinted cell (dash if none).
-        # Stackable / Dispellable → glyph icons.
+        # Stackable / Dispellable → glyph icons. Every <td> carries data-col so
+        # the view-toggle JS can reorder columns by key.
         sep = ' col-sep' if pk in UA_SEP else ''
+        dc = f' data-col="{pk}"'
         if pk == 'type':
             if not val:
-                return f'<td class="ua-type{sep}"><span class="ua-dash">—</span></td>'
-            low = val.lower()
-            # Colour by effect: any Damage → red/bordeaux, Debuff → dim purple,
-            # Buff → green. (check 'debuff' before 'buff' — substring).
-            if 'damage' in low:
-                cat = 'ua-type-damage'
-            elif 'debuff' in low:
-                cat = 'ua-type-debuff'
-            elif 'buff' in low:
-                cat = 'ua-type-buff'
-            else:
-                cat = ''
-            return f'<td class="ua-type {cat}{sep}">{_esc(val)}</td>'
-        if pk == 'aura':
-            if val == 'Yes':
-                g, rank = '<span class="ua-yn ua-yn-yes">yes</span>', 2
-            else:
-                g, rank = '<span class="ua-yn ua-yn-no">no</span>', 1
-            return f'<td class="ua-aura{sep}" data-sort="{rank}">{g}</td>'
+                return f'<td class="ua-type{sep}"{dc}>&nbsp;</td>'
+            return f'<td class="ua-type ua-type-{val.lower()}{sep}"{dc}>{_esc(val)}</td>'
+        if pk == 'dmg_type':
+            if not val:
+                return (f'<td class="ua-dmg_type{sep}"{dc}>'
+                        f'<span class="ua-dash">—</span></td>')
+            return (f'<td class="ua-dmg_type {DMG_TYPE_CLS.get(val, "")}{sep}"{dc}>'
+                    f'{_esc(val)}</td>')
         # Coloured yes/no text. Sort rank: dash (0) < no (1) < yes (2).
         _YES = '<span class="ua-yn ua-yn-yes">yes</span>'
         _NO = '<span class="ua-yn ua-yn-no">no</span>'
@@ -1641,7 +1639,7 @@ def save_creeps_html():
                 g, rank = _NO, 1
             else:
                 g, rank = '<span class="ua-dash">—</span>', 0
-            return f'<td class="ua-stackable{sep}" data-sort="{rank}">{g}</td>'
+            return f'<td class="ua-stackable{sep}"{dc} data-sort="{rank}">{g}</td>'
         if pk == 'dispel':
             if val == 'Yes':
                 g, rank = '<span class="ua-yn ua-yn-yes" title="Any dispel">yes</span>', 2
@@ -1652,8 +1650,8 @@ def save_creeps_html():
                 g, rank = _NO, 1
             else:
                 g, rank = '<span class="ua-dash">—</span>', 0
-            return f'<td class="ua-dispel{sep}" data-sort="{rank}">{g}</td>'
-        return f'<td class="ua-{pk}{sep}">{_esc(val) or "&nbsp;"}</td>'
+            return f'<td class="ua-dispel{sep}"{dc} data-sort="{rank}">{g}</td>'
+        return f'<td class="ua-{pk}{sep}"{dc}>{_esc(val) or "&nbsp;"}</td>'
 
     ua_rows = []
     for row in rendered:
@@ -1662,8 +1660,9 @@ def save_creeps_html():
         ch = (d.get('createhero') or '').strip()
         icon = d.get('icon')
         unit_img = (
+            f'<a class="unit-link" href="creeps.html#unit-{_esc(ch)}">'
             f'<img class="creep-copy" src="{_esc(icon)}" alt="" loading="lazy" '
-            f'onerror="this.style.visibility=\'hidden\'">' if icon else '')
+            f'onerror="this.style.visibility=\'hidden\'"></a>' if icon else '')
         slugs = [(kk, d.get(kk + '_slug', ''), d.get(kk, ''))
                  for kk in ('ability1', 'ability2', 'ability3')
                  if d.get(kk + '_slug', '')]
@@ -1677,17 +1676,19 @@ def save_creeps_html():
             # tear a rowspanned group apart and dump continuation cells into
             # the wrong columns. Self-contained rows always stay aligned.
             cells = [
-                f'<td class="ua-lvl lvl-cell sticky-col" '
+                f'<td class="ua-lvl lvl-cell sticky-col" data-col="lvl" '
                 f'data-lvl="{_esc(lvl)}">{_esc(lvl)}</td>',
-                f'<td class="ua-unit creep-icon-cell sticky-col" '
+                f'<td class="ua-unit creep-icon-cell sticky-col" data-col="unit" '
                 f'data-sort="{_esc(d.get("name", ""))}">{unit_img}</td>',
-                f'<td class="ua-ability sticky-col"><span class="ua-ability-inner">'
-                f'{aico}<span class="ua-ability-name">{_esc(name)}</span></span></td>',
+                f'<td class="ua-ability sticky-col" data-col="ability">'
+                f'<span class="ua-ability-inner">{aico}'
+                f'<span class="ua-ability-name">{_esc(name)}</span></span></td>',
             ]
             for pk in PROP_COLS:
                 cells.append(_prop_cell(pk, p[pk]))
+            aura_cls = ' class="ua-row-aura"' if p['type'] == 'Aura' else ''
             ua_rows.append(
-                f'<tr id="{_esc(ch)}-{slug}" data-unit="{_esc(ch)}">'
+                f'<tr id="{_esc(ch)}-{slug}" data-unit="{_esc(ch)}"{aura_cls}>'
                 f'{"".join(cells)}</tr>')
 
     ua_html = (
@@ -1698,6 +1699,13 @@ def save_creeps_html():
         f'{nav}\n'
         f'{_subnav("abilities")}\n'
         '<div class="container creeps-page">\n'
+        '<div class="cal-toggle-bar">'
+        '<strong>View</strong>'
+        '<select class="cal-mode-select" id="ua-view-mode">'
+        '<option value="standard">Standard</option>'
+        '<option value="auras">Auras</option>'
+        '<option value="levelups">Level-Ups</option>'
+        '</select></div>\n'
         '<div class="sticky-frame" aria-hidden="true"></div>\n'
         '<div class="sticky-frame-top" aria-hidden="true"></div>\n'
         '<div class="creeps-scroll">\n'
