@@ -969,6 +969,15 @@
     };
     uaView.addEventListener('change', applyUaView);
   }
+
+  // Upgrades — binary switch. Toggles `.show-upgrades` on the UA table;
+  // CSS draws a soft rounded outline + faint fill on every `td.leveled`.
+  const uaUpg = document.getElementById('ua-upgrades-mode');
+  if (uaUpg && table) {
+    const apply = () => table.classList.toggle('show-upgrades', uaUpg.checked);
+    uaUpg.addEventListener('change', apply);
+    apply();
+  }
 })();
 
 // ---- CREEPS TABLE: per-stat changelog tooltip (HP / Armor / Mana / Magres) ----
@@ -1300,18 +1309,43 @@
 })();
 
 // ---- Centre the row jumped to via #anchor (cross-page or same-page) ----
-// Default anchor behaviour scrolls the target to the top of the viewport,
-// which on the Tables pages often parks it under the sticky header or hides
-// it inside the inner-scroll box. Re-centre it once the DOM/layout settles.
+// The Tables pages have an inner `.creeps-scroll` overflow box AND the page
+// itself scrolls — `el.scrollIntoView({block:'center'})` only centres within
+// the immediate scroll parent (usually the inner box), leaving the row near
+// the top of the viewport. Manually centre on BOTH axes: scroll the inner
+// container so the row is mid-box, then scroll the window so the box's
+// mid-point aligns with the viewport centre.
 (function() {
   function centerHash() {
     const h = location.hash.slice(1);
     if (!h) return;
     const el = document.getElementById(decodeURIComponent(h));
     if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-    });
+    // Double rAF: lets table layout, sticky header, and any view-toggle
+    // reorderings settle before measuring rects.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const inner = el.closest('.creeps-scroll');
+      if (inner) {
+        const ir = inner.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        // Account for the sticky <thead> overlapping the inner box's top —
+        // subtract its height so the row centres in the VISIBLE area below
+        // the frozen header, not in the raw box.
+        const thead = inner.querySelector('thead');
+        const headH = thead ? thead.getBoundingClientRect().height : 0;
+        const visibleTop = ir.top + headH;
+        const visibleCenter = visibleTop + (ir.bottom - visibleTop) / 2;
+        const elCenter = er.top + er.height / 2;
+        inner.scrollTop += (elCenter - visibleCenter);
+      }
+      // Now align the row with the window viewport centre (page-level scroll).
+      const er2 = el.getBoundingClientRect();
+      const targetY = er2.top + er2.height / 2;
+      window.scrollBy({
+        top: targetY - window.innerHeight / 2,
+        behavior: 'smooth',
+      });
+    }));
   }
   window.addEventListener('hashchange', centerHash);
   if (document.readyState === 'loading') {

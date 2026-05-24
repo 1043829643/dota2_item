@@ -325,10 +325,23 @@ nav.top-nav {
   display: flex;
   align-items: center;
   gap: 10px;
+  /* Lock height + bottom margin so the toolbar occupies exactly the same
+     vertical slot on every page — even when one page (Unit Abilities) adds
+     an extra control (the Upgrades switch) that's the same height but
+     could otherwise cause a layout jiggle if its baseline differs by a px. */
+  min-height: 32px;
   margin-bottom: 16px;
   padding-left: 0;
   font-size: 13px;
   color: #8b949e;
+}
+/* The View group (label + select) is wrapped in its own inline-flex so its
+   width is independent of whatever follows in the toolbar. Same width on
+   every page → the "View" label sits at the same X regardless of context. */
+.cal-toggle-bar .view-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 .cal-toggle-bar strong {
   color: #c9d1d9;
@@ -342,6 +355,9 @@ nav.top-nav {
   border: 1px solid #30363d;
   color: #c9d1d9;
   padding: 5px 28px 5px 12px;
+  /* Fixed width so the View select on every page is the same size regardless
+     of which option label is longest (Expanded vs. Auras vs. Standard). */
+  min-width: 130px;
   border-radius: 5px;
   font-family: inherit;
   font-size: 12.5px;
@@ -355,13 +371,14 @@ nav.top-nav {
 .cal-mode-select:hover {
   border-color: #58a6ff;
 }
-/* Right-of-VIEW Upgrades toggle on the Unit Abilities page. Inert (no JS
-   handler yet) — visual placeholder for the per-7.5-min upgrade simulation. */
+/* "Upgrades" binary switch — iOS-style toggle, defaults ON. When ON, the
+   table gains .show-upgrades and each <span class="upg-val"> inside a
+   leveled cell renders with a subtle dotted underline so the per-tier
+   numbers self-identify without an outline around the cell. */
 .ua-upgrades-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 8px;
   padding: 5px 10px;
   background: #161b22;
   border: 1px solid #30363d;
@@ -372,7 +389,6 @@ nav.top-nav {
   user-select: none;
 }
 .ua-upgrades-toggle:hover { border-color: #58a6ff; }
-/* iOS-style switch: hidden checkbox + visual <span> track-and-knob. */
 .ua-upgrades-toggle .ua-switch-input {
   position: absolute;
   opacity: 0;
@@ -400,9 +416,7 @@ nav.top-nav {
   border-radius: 50%;
   transition: transform 150ms ease, background 150ms ease;
 }
-.ua-upgrades-toggle .ua-switch-input:checked + .ua-switch {
-  background: #2f81f7;
-}
+.ua-upgrades-toggle .ua-switch-input:checked + .ua-switch { background: #2f81f7; }
 .ua-upgrades-toggle .ua-switch-input:checked + .ua-switch::after {
   transform: translateX(14px);
   background: #fff;
@@ -410,6 +424,18 @@ nav.top-nav {
 .ua-upgrades-toggle .ua-switch-input:focus-visible + .ua-switch {
   outline: 2px solid #58a6ff;
   outline-offset: 2px;
+}
+/* Marker for leveled cells when Upgrades is ON:
+   - faint sky-blue fill (almost translucent) so the cell stands out from the
+     row without looking heavy;
+   - soft rounded outline (1.5px) inset so the corners pull in slightly from
+     the cell edge — reads as a "highlighted" tile rather than a hard frame.
+   The native `border-left` from the column divider stays underneath; the
+   inset shadow sits on top and visually "owns" the cell. */
+.unit-abilities-table.show-upgrades td.leveled {
+  background: rgba(120, 200, 235, 0.08);
+  box-shadow: inset 0 0 0 1.5px rgba(120, 200, 235, 0.55);
+  border-radius: 6px;
 }
 
 /* YEAR BLOCK (shared between modes, collapsible) */
@@ -2831,7 +2857,14 @@ body.filter-active ul.subnotes { display: none; }
      centered horizontally, so visual alignment stays clean across the
      auto-sized columns. */
   table-layout: auto;
-  border-collapse: collapse;
+  /* `separate` (not `collapse`) so each cell owns its own borders. With
+     `collapse` the shared column dividers sit on the table layer and bleed
+     through sticky columns when scrolling horizontally — sticky cells'
+     backgrounds couldn't cover them. `border-spacing: 0` keeps the visual
+     result identical to the old collapsed layout (each column has a single
+     left border from the cell itself). */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 11.5px;
   color: #c9d1d9;
   font-variant-numeric: tabular-nums;
@@ -3149,6 +3182,17 @@ body.filter-active ul.subnotes { display: none; }
 .qhint-tip .ua-yn-yes    { color: #6aa775; }
 .qhint-tip .ua-yn-no     { color: #c97f78; }
 .qhint-tip .ua-yn-strong { color: #c4ad5e; }
+/* Damage-type colour swatches inside the Damage header tooltip — mirror the
+   in-table `td.dt-*` palette so the words match the actual cell numbers. */
+.qhint-tip .dt-magical   { color: #5fb1ff; font-weight: 600; }
+.qhint-tip .dt-physical  { color: #e1716a; font-weight: 600; }
+.qhint-tip .dt-hpremoval { color: #8aab7a; font-weight: 600; }
+.qhint-tip .dt-pure      { color: #ead992; font-weight: 600; }
+/* "Aura" word inside the Through BKB header tooltip — same warm-yellow tone
+   as the Aura cell type tag (.ua-type-aura) so the legend reads at a glance. */
+.qhint-tip .hint-aura { color: #f4e3b3; font-weight: 600; }
+/* (Legacy `.show-upgrades` rule lived here — replaced by the segmented
+    tier control + table[data-tier="all"] selector further below.) */
 /* Aura Stack "yes" — green rounded diamond made of stacked tiles. The wrapper
    is NOT rotated and carries a screen-space top-fade mask, so the upper part
    of the icon fades out (weaker colour). ::after = front tile, ::before =
@@ -3194,10 +3238,22 @@ body.filter-active ul.subnotes { display: none; }
    icon and drop the top border so the unit's rows read as one block. */
 .unit-abilities-table tr.ua-dup .ua-unit img { visibility: hidden; }
 /* Highlight the row jumped to from an ability-icon link: a strong flash that
-   gradually fades and settles at 10% opacity (stays marked). */
+   gradually fades and settles at 10% opacity (stays marked). Sticky cells
+   need a SOLID tinted background — a 10% rgba on transparent shows the rows
+   underneath when scrolling horizontally — so they get their own opaque
+   end-state via `tr:target .sticky-col` below. */
 .creeps-table tr:target { box-shadow: inset 3px 0 0 #d2af5f; }
-.creeps-table tr:target td {
+.creeps-table tr:target td:not(.sticky-col) {
   animation: ua-flash 2.6s ease-out forwards;
+}
+/* Lvl/Unit/Ability sticky cells: opaque mustard-tinted dark (matches the
+   `row-marked` palette), so horizontal scrolling never lets the row behind
+   leak through the pinned column. */
+.creeps-table tr:target .sticky-col {
+  background-color: #1d1b14;
+}
+.creeps-table tr:target .lvl-cell.sticky-col {
+  background-color: #221e15;   /* match the lvl-cell tint shift used elsewhere */
 }
 @keyframes ua-flash {
   0%   { background: rgba(210, 175, 95, 0.5); }

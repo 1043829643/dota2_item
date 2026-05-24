@@ -30,7 +30,7 @@ NAV_TABS = [
     ("main",       "Main",         "index.html"),
     ("changelogs", "Changelogs",   None),
     ("calendar",   "Calendar",     "calendar.html"),
-    ("creeps",     "Tables",       "creeps.html"),
+    ("creeps",     "Materials",    "creeps.html"),
 ]
 
 

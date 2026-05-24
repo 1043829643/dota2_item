@@ -360,6 +360,62 @@ def save_creeps_html():
         'spawnlord_master_freeze',         # Petrify (Prowler Shaman)
     }
 
+    # Through-BKB lookup — kept separate from ABIL_MANUAL so the Through BKB
+    # column has a single source of truth. Anything not listed renders "—".
+    THROUGH_BKB = {
+        # Pierces magic immunity:
+        'spawnlord_master_freeze':              'yes',  # Petrify
+        # Pierces magic immunity (additional yes-cases):
+        'forest_troll_high_priest_heal':        'yes',  # Heal
+        'frogmen_water_bubble_small':           'yes',  # Water Bubble (Small)
+        'frogmen_water_bubble_medium':          'yes',  # Water Bubble (Medium)
+        'frogmen_water_bubble_large':           'yes',  # Water Bubble (Large)
+        'big_thunder_lizard_frenzy':            'yes',  # Frenzy
+        # Blocked by BKB:
+        'enraged_wildkin_tornado':              'no',   # Tornado
+        'kobold_disarm':                        'no',   # Steal Weapon
+        'berserker_troll_break':                'no',   # Break
+        'gnoll_assassin_envenomed_weapon':      'no',   # Envenomed Weapon
+        'fel_beast_haunt':                      'no',   # Vex
+        'ogre_bruiser_ogre_smash':              'no',   # Ogre Smash!
+        'satyr_trickster_purge':                'no',   # Purge
+        'giant_wolf_intimidate':                'no',   # Intimidate
+        'dark_troll_warlord_ensnare':           'no',   # Ensnare
+        'ghost_frost_attack':                   'no',   # Frost Attack
+        'black_drake_magic_amplification_aura': 'no',   # Magic Amplification Aura
+        'ogre_magi_frost_armor':                'no',   # Ice Armor
+        'mud_golem_hurl_boulder':               'no',   # Hurl Boulder
+        'frogmen_arm_of_the_deep':              'no',   # Arm of the Deep
+        'frogmen_tendrils_of_the_deep':         'no',   # Tendrils of the Deep
+        'satyr_soulstealer_mana_burn':          'no',   # Mana Burn
+        'centaur_khan_war_stomp':               'no',   # War Stomp
+        'polar_furbolg_ursa_warrior_thunder_clap': 'no',  # Thunder Clap
+        'enraged_wildkin_hurricane':            'no',   # Hurricane
+        'warpine_raider_seed_shot':             'no',   # Seed Shot
+        'frogmen_congregation_of_the_deep':     'no',   # Congregations of the Deep
+        'ancient_rock_golem_weakening_aura':    'no',   # Weakening Aura
+        'satyr_hellcaller_shockwave':           'no',   # Shockwave
+        'spawnlord_master_stomp':               'no',   # Desecrate
+        'black_dragon_fireball':                'no',   # Fireball
+        'harpy_storm_chain_lightning':          'no',   # Chain Lightning
+        'big_thunder_lizard_slam':              'no',   # Slam
+        'ice_shaman_incendiary_bomb':           'no',   # Icefire Bomb
+    }
+    # Per-cell `?` hints in the Through BKB column. Keyed by ability slug.
+    THROUGH_BKB_TIPS = {
+        'ogre_magi_frost_armor': (
+            'Can be cast on an ally under BKB, '
+            "but the slow on an enemy under BKB doesn't work"),
+        'forest_troll_high_priest_heal':
+            'Can be cast on an ally under BKB',
+        'satyr_trickster_purge': (
+            'Can be cast on an ally under BKB, '
+            "but the effect on an enemy under BKB doesn't work"),
+        'enraged_wildkin_hurricane': (
+            'Can be cast on an ally under BKB, '
+            "but the effect on an enemy under BKB doesn't work"),
+    }
+
     def _autocast_snake_svg() -> str:
         """Animated golden ring used as the autocast marker on ability icons."""
         _r = ('<rect x="1.5" y="1.5" width="25" height="25" '
@@ -1383,11 +1439,14 @@ def save_creeps_html():
         # View toggle: Standard (default) hides the Expanded-only columns.
         # Styled like the calendar mode-select.
         '<div class="cal-toggle-bar">'
+        '<span class="view-group">'
         '<strong>View</strong>'
         '<select class="cal-mode-select" id="view-mode">'
         '<option value="standard">Standard</option>'
         '<option value="expanded">Expanded</option>'
-        '</select></div>\n'
+        '</select>'
+        '</span>'
+        '</div>\n'
         # Overlay frame outlining the pinned identity block during scroll.
         # Lives OUTSIDE .creeps-scroll (which scrolls) so it never hits the
         # Chrome bug where box-shadow/border on position:sticky cells fails
@@ -1416,7 +1475,12 @@ def save_creeps_html():
     # fields) so a patch that changes an ability updates here automatically.
     # Effect / Effect 2 / Effect 3 and Stackable aren't present in our data
     # files, so they render blank (would need a manual/external source).
-    CUR_VER = '7.41c'
+    # Current patch — pick the chronologically newest version with extracted
+    # ability data. `_patches_chrono` is already sorted via `_ver_key`; fall
+    # back to '7.41c' if it's empty (e.g. clean checkout without stats dump).
+    CUR_VER = next((v for v in reversed(_patches_chrono)
+                    if v in _abil_by_patch), '7.41c')
+    print(f"  unit_abilities source patch: {CUR_VER}")
     cur_ab = _abil_by_patch.get(CUR_VER, {})
     DMG_TYPE = {'DAMAGE_TYPE_MAGICAL': 'Magical', 'DAMAGE_TYPE_PHYSICAL': 'Physical',
                 'DAMAGE_TYPE_PURE': 'Pure', 'DAMAGE_TYPE_HP_REMOVAL': 'HP Removal'}
@@ -1578,7 +1642,6 @@ def save_creeps_html():
             'duration': _val_qhint(
                 '10 (15)',
                 "Channeling duration is 10 seconds + 5 if it's ended or cancelled"),
-            'through_bkb': 'no',
             'as_effect': '-15', 'ms_effect': '-15',
             'effect': 'AoE damage',
             'effect2': '300/300 vision',
@@ -1595,14 +1658,26 @@ def save_creeps_html():
             # HP Removal is rare enough on neutrals to flag in the cell itself
             # (it bypasses magic immunity, ignores magic resist, can't kill etc).
             'damage': _dmg_qhint('0/20/40/80 per sec.', 'HP Removal damage type'),
+            'duration': _val_qhint(
+                '2 or 20', 'Lasts much longer on creeps (20)'),
             'effect': 'Damage over time',
             'effect2': 'Reduces regeneration by 75/80/85/90%'},
         'fel_beast_haunt': {
             'effect': 'Silences 1 target'},
         'harpy_scout_take_off': {
+            # Toggle ability: 20 to activate, then 4% of max MP per second
+            # while active (av_cost_per_second:"4").
+            'manacost': _val_qhint(
+                '20 + 4%',
+                'Activation cost 20, plus 4% of max MP per second while active'),
             'effect': 'Takes off and gives 1200/800 vision',
             'effect2': 'Slows itself while active'},
         'ogre_bruiser_ogre_smash': {
+            # av_damage_pct:"8" — bonus 8% of target's current HP, not surfaced
+            # in any other column.
+            'damage': _dmg_qhint(
+                '200/250/300/400 + 8%',
+                "Adds 8% of the target's current HP to the damage"),
             'effect': 'AoE damage', 'effect2': 'Stun'},
         'kobold_taskmaster_speed_aura': {
             'effect': 'Movement speed bonus'},
@@ -1616,6 +1691,10 @@ def save_creeps_html():
         'frogmen_riverborn_aura': {
             'effect': 'Outgoing damage +10/12/14/16%'},
         'satyr_trickster_purge': {
+            # Slow decays from -50% to -10% over 5 seconds; not in any av_* field.
+            'ms_effect': _val_qhint(
+                '-50 to -10',
+                'Movement slow decays by 10% each second over 5 seconds'),
             'effect': 'Dispel', 'effect2': 'Movement slow'},
         'giant_wolf_intimidate': {
             'effect': 'Reduces attack damage by 60%'},
@@ -1624,6 +1703,7 @@ def save_creeps_html():
         'ghost_frost_attack': {
             'effect': 'Slows attack and movement'},
         'harpy_storm_chain_lightning': {
+            'cast_range': _val_qhint('900', 'Bounces range is 500'),
             'effect': 'Damage to multiple targets'},
         'black_drake_magic_amplification_aura': {
             'effect': 'Increases magic damage taken by enemies'},
@@ -1635,7 +1715,8 @@ def save_creeps_html():
             'effect2': 'Shield slows attackers on hit'},
         'mud_golem_hurl_boulder': {
             # 75 hero / 150 creep; pretty form with hint icon for the split.
-            'damage': _dmg_qhint('75 / 150', 'To creeps / heroes'),
+            'damage': _dmg_qhint(
+                '75 or 150', 'Deals double the damage to creeps (150)'),
             'effect': 'Stuns 1 target'},
         'mud_golem_rock_destroy': {
             'effect': 'Spawns golems on death',
@@ -1682,8 +1763,11 @@ def save_creeps_html():
         'enraged_wildkin_toughness_aura': {
             'effect': '+3 armor'},
         'enraged_wildkin_hurricane': {
+            # No av_duration in KV; the knockback travel time is fixed at 0.5s.
+            'duration': '0.5',
             'effect': 'Knockback in any direction'},
         'warpine_raider_seed_shot': {
+            'cast_range': _val_qhint('575', 'Bounces range is 500'),
             'effect': 'Damage to multiple targets',
             'effect2': 'Movement slow'},
         'frogmen_congregation_of_the_deep': {
@@ -1701,6 +1785,12 @@ def save_creeps_html():
         'satyr_hellcaller_unholy_aura': {
             'effect': '+3/5/7/11 HP/sec regen'},
         'satyr_hellcaller_shockwave': {
+            # av_radius_start:"180", av_radius_end:"200" — cone widens.
+            # av_distance:"1380" + av_speed:"900"; effective max range ~1580.
+            'aoe': _val_qhint(
+                '180', '200 at the end (cone widens along the path)'),
+            'cast_range': _val_qhint(
+                '700', 'Max travel distance is 1580'),
             'effect': 'AoE damage with a projectile'},
         'dark_troll_warlord_raise_dead': {
             'effect': 'Summons 3 skeletons', 'effect2': 'Skeletons have an aura'},
@@ -1710,7 +1800,8 @@ def save_creeps_html():
         'spawnlord_master_freeze': {
             # av_damage:"100" with av_tick_interval:"0.1" is mislabeled in KV —
             # the in-game tooltip and old sheet both say 100/sec, so force it.
-            'damage': '100 per sec.',
+            'damage': _dmg_qhint(
+                '100 per sec.', 'Deals damage in 0.1 seconds intervals'),
             'effect': 'Immobilizes', 'effect2': 'Damage over time'},
         'black_dragon_dragonhide_aura': {
             'effect': '+3 armor'},
@@ -1720,6 +1811,9 @@ def save_creeps_html():
             'damage': '85 per sec.',
             'effect': 'AoE damage', 'effect2': 'Flying vision 300/300'},
         'black_dragon_splash_attack': {
+            # av_range:"250" is the splash radius, but our auto-derive reads
+            # av_radius only.
+            'aoe': '250',
             'effect': 'AoE damage applied by attacks'},
         'granite_golem_hp_aura': {
             'effect': '+16/17/18/19% max HP increase'},
@@ -1838,7 +1932,8 @@ def save_creeps_html():
             'ms_effect': ms_eff,
             'effect': '', 'effect2': '', 'effect3': '',
             'dispel': DISPEL_MANUAL.get(slug) or DISPEL.get(g('SpellDispellableType'), ''),
-            'through_bkb': '',  # manual-only column
+            'through_bkb': THROUGH_BKB.get(slug, ''),
+            '_through_bkb_tip': THROUGH_BKB_TIPS.get(slug, ''),
             'stackable': stack,
             'lvl_up': 'Yes' if leveled else 'No',
         }
@@ -1847,6 +1942,24 @@ def save_creeps_html():
         if typ == 'Aura' and not props['duration']:
             props['duration'] = '0.5'
         props.update(ABIL_MANUAL.get(slug, {}))
+        # Mark cells that carry a per-level progression (3+ slash-separated
+        # numeric tokens) — surfaced as a blue outline when the Upgrades view
+        # toggle is on. 3+ tokens, not 2+, to avoid false positives like
+        # "1200/800 vision" (those are independent values, not a level table).
+        # Allow a leading minus so negative progressions (e.g. Frost Attack's
+        # "-25/-28/-31/-37" AS/MS slow) are detected as leveled.
+        _LVL_RE = re.compile(r'-?\d+(?:\.\d+)?(?:/-?\d+(?:\.\d+)?){2,}')
+        leveled = set()
+        for _k, _v in props.items():
+            if _k.startswith('_'):
+                continue
+            if isinstance(_v, str) and _v.startswith('\x01'):
+                _text = re.sub(r'<[^>]+>', '', _v[1:])
+            else:
+                _text = str(_v or '')
+            if _LVL_RE.search(_text):
+                leveled.add(_k)
+        props['_leveled'] = leveled
         return props
 
     UA_COLS = [
@@ -1866,6 +1979,20 @@ def save_creeps_html():
     # Values support inline HTML (rendered via innerHTML in scripts.js).
     UA_HEAD_HINTS = {
         'duration': 'All these auras have linger duration of 0.5 seconds',
+        'damage': (
+            '<div class="qh-line">Numbers in color mean different damage types: '
+            '<span class="dt-magical">magical</span>, '
+            '<span class="dt-physical">physical</span>, '
+            '<span class="dt-hpremoval">HP removal</span>.</div>'
+        ),
+        'through_bkb': (
+            '<div class="qh-line">If an ability doesn\'t pierce BKB but '
+            'also deals damage on top of its effect, the damage still goes '
+            'through — reduced by the magic resistance BKB provides.</div>'
+            '<div class="qh-line"><span class="hint-aura">Aura</span>: all '
+            'positive auras keep working on allies under BKB, but negative '
+            'auras don\'t affect enemies under the same effect.</div>'
+        ),
         'dispel': (
             '<div class="qh-line">'
             '<span class="ua-yn ua-yn-strong">Yes</span>'
@@ -1907,6 +2034,10 @@ def save_creeps_html():
         # Damage Type column). Stackable / Dispellable → glyph icons. Every
         # <td> carries data-col so the view-toggle JS can reorder columns by key.
         sep = ' col-sep' if pk in UA_SEP else ''
+        # Cells with per-level progression get a `leveled` marker class; the
+        # Upgrades view toggle (.show-upgrades) draws a blue outline on them.
+        if pk in (props or {}).get('_leveled', ()):
+            sep += ' leveled'
         dc = f' data-col="{pk}"'
         if pk == 'type':
             if not val:
@@ -1946,6 +2077,7 @@ def save_creeps_html():
                 g, rank = '<span class="ua-dash">—</span>', 0
             return f'<td class="ua-dispel{sep}"{dc} data-sort="{rank}">{g}</td>'
         # Through BKB: same yes/no glyphs as Dispellable. Sorted yes(2) > no(1) > —(0).
+        # Optional per-cell tooltip via `_through_bkb_tip` in props (THROUGH_BKB_TIPS).
         if pk == 'through_bkb':
             v = (val or '').strip().lower()
             if v == 'yes':
@@ -1954,6 +2086,12 @@ def save_creeps_html():
                 g, rank = _NO, 1
             else:
                 g, rank = '<span class="ua-dash">—</span>', 0
+            tip = (props or {}).get('_through_bkb_tip', '')
+            if tip:
+                t = _attr_esc(tip)
+                qh = (f'<span class="qhint" tabindex="0" role="button" '
+                      f'aria-label="{t}" data-tooltip="{t}">?</span>')
+                g = f'<span class="cell-wrap">{g}{qh}</span>'
             return f'<td class="ua-through_bkb{sep}"{dc} data-sort="{rank}">{g}</td>'
         # Raw-HTML sentinel: ABIL_MANUAL values prefixed with \x01 bypass _esc
         # so we can inline <img> / <span> markup (used for Mana Burn's Int icon).
@@ -2038,15 +2176,20 @@ def save_creeps_html():
         f'{_subnav("abilities")}\n'
         '<div class="container creeps-page">\n'
         '<div class="cal-toggle-bar">'
+        '<span class="view-group">'
         '<strong>View</strong>'
         '<select class="cal-mode-select" id="ua-view-mode">'
         '<option value="standard">Standard</option>'
         '<option value="auras">Auras</option>'
         '</select>'
-        # Upgrades switch (placeholder — not wired up yet).
-        '<label class="ua-upgrades-toggle" title="Apply per-7.5-min creep upgrades">'
+        '</span>'
+        # Upgrades — binary switch. ON marks every per-level progression
+        # value in the table with a dotted underline (each "40/36/32/26"
+        # number gets the marker), so leveled cells self-identify through
+        # their own content rather than via an Excel-style outline.
+        '<label class="ua-upgrades-toggle" title="Mark cells whose values upgrade per neutral tier">'
         '<span class="ua-upgrades-label">Upgrades</span>'
-        '<input type="checkbox" id="ua-upgrades-mode" class="ua-switch-input">'
+        '<input type="checkbox" id="ua-upgrades-mode" class="ua-switch-input" checked>'
         '<span class="ua-switch" aria-hidden="true"></span>'
         '</label>'
         '</div>\n'
