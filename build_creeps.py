@@ -1580,78 +1580,78 @@ def save_creeps_html():
                 "Channeling duration is 10 seconds + 5 if it's ended or cancelled"),
             'through_bkb': 'no',
             'as_effect': '-15', 'ms_effect': '-15',
-            'effect': 'Урон по области',
-            'effect2': '300/300 обзор',
-            'effect3': 'Замедление'},
+            'effect': 'AoE damage',
+            'effect2': '300/300 vision',
+            'effect3': 'Slow'},
         'kobold_tunneler_prospecting': {
-            'effect': '+20/25/30/40 золота в минуту (аура)'},
+            'effect': '+20/25/30/40 gold per minute'},
         'kobold_disarm': {
-            'effect': 'Дизарм 1 цели', 'effect2': 'Требует 3 удара'},
+            'effect': 'Disarms 1 target', 'effect2': 'Requires 3 attacks'},
         'hill_troll_rally': {
-            'effect': '+2 урона союзникам (аура)'},
+            'effect': '+2 attack damage to allies'},
         'berserker_troll_break': {
-            'effect': 'Истощение 1 цели'},
+            'effect': 'Break on 1 target'},
         'gnoll_assassin_envenomed_weapon': {
             # HP Removal is rare enough on neutrals to flag in the cell itself
             # (it bypasses magic immunity, ignores magic resist, can't kill etc).
             'damage': _dmg_qhint('0/20/40/80 per sec.', 'HP Removal damage type'),
-            'effect': 'Периодический урон',
-            'effect2': 'Снижение регенерации на 75/80/85/90%'},
+            'effect': 'Damage over time',
+            'effect2': 'Reduces regeneration by 75/80/85/90%'},
         'fel_beast_haunt': {
-            'effect': 'Безмолвие 1 цели'},
+            'effect': 'Silences 1 target'},
         'harpy_scout_take_off': {
-            'effect': 'Взлетает и даёт обзор 1200/800',
-            'effect2': 'Замедляет себя во время действия'},
+            'effect': 'Takes off and gives 1200/800 vision',
+            'effect2': 'Slows itself while active'},
         'ogre_bruiser_ogre_smash': {
-            'effect': 'Урон по области', 'effect2': 'Оглушение'},
+            'effect': 'AoE damage', 'effect2': 'Stun'},
         'kobold_taskmaster_speed_aura': {
-            'effect': 'Скорость передвижения (аура)'},
+            'effect': 'Movement speed bonus'},
         'forest_troll_high_priest_heal_amp_aura': {
-            'effect': 'Увеличение хила союзников на 15% (аура)'},
+            'effect': 'Increases healing on allies by 15%'},
         'forest_troll_high_priest_heal': {
-            'effect': 'Лечение +100 ХП'},
+            'effect': 'Heals +100 HP'},
         'mudgolem_cloak_aura': {
-            'effect': 'Маг. резист героям +10/12/14/16% (аура)',
-            'effect2': 'Маг. резист юнитам +20/24/28/32% (аура)'},
+            'effect': 'Magic resist for heroes +10/12/14/16%',
+            'effect2': 'Magic resist for units +20/24/28/32%'},
         'frogmen_riverborn_aura': {
-            'effect': 'Исходящий урон +10/12/14/16%'},
+            'effect': 'Outgoing damage +10/12/14/16%'},
         'satyr_trickster_purge': {
-            'effect': 'Диспел', 'effect2': 'Замедление передвижения'},
+            'effect': 'Dispel', 'effect2': 'Movement slow'},
         'giant_wolf_intimidate': {
-            'effect': 'Снижение атаки на 60%'},
+            'effect': 'Reduces attack damage by 60%'},
         'dark_troll_warlord_ensnare': {
-            'effect': 'Накладывает корни', 'effect2': 'True Sight над целью'},
+            'effect': 'Roots the target', 'effect2': 'True Sight on the target'},
         'ghost_frost_attack': {
-            'effect': 'Замедление атаки и МС'},
+            'effect': 'Slows attack and movement'},
         'harpy_storm_chain_lightning': {
-            'effect': 'Урон по нескольким целям'},
+            'effect': 'Damage to multiple targets'},
         'black_drake_magic_amplification_aura': {
-            'effect': 'Увеличение урона от магии (любого) на врагах (аура)'},
+            'effect': 'Increases magic damage taken by enemies'},
         'spawnlord_aura': {
-            'effect': '+9/10/11/12% к вампиризму',
-            'effect2': '+9/10/11/12 к регенерации здоровья'},
+            'effect': '+9/10/11/12% lifesteal',
+            'effect2': '+9/10/11/12 HP regen'},
         'ogre_magi_frost_armor': {
-            'effect': '+4/5/6/8 брони',
-            'effect2': 'Щит замедляет атакующих при атаке'},
+            'effect': '+4/5/6/8 armor',
+            'effect2': 'Shield slows attackers on hit'},
         'mud_golem_hurl_boulder': {
             # 75 hero / 150 creep; pretty form with hint icon for the split.
             'damage': _dmg_qhint('75 / 150', 'To creeps / heroes'),
-            'effect': 'Оглушение 1 цели'},
+            'effect': 'Stuns 1 target'},
         'mud_golem_rock_destroy': {
-            'effect': 'Создаёт големов при смерти',
-            'effect2': 'Големы имеют Hurl Boulder'},
+            'effect': 'Spawns golems on death',
+            'effect2': 'Golems have Hurl Boulder'},
         'frogmen_arm_of_the_deep': {
-            'effect': 'Оглушение по области', 'effect2': 'Урон по области'},
+            'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'frogmen_tendrils_of_the_deep': {
-            'effect': 'Оглушение по области', 'effect2': 'Урон по области'},
+            'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'frogmen_water_bubble_small': {
-            'effect': '100/120/140/160 магического барьера'},
+            'effect': '100/120/140/160 magic barrier'},
         'frogmen_water_bubble_medium': {
-            'effect': '150/180/210/240 магического барьера'},
+            'effect': '150/180/210/240 magic barrier'},
         'centaur_khan_endurance_aura': {
-            'effect': 'Увеличение скорости атаки (аура)'},
+            'effect': 'Attack speed bonus'},
         'furbolg_enrage_attack_speed': {
-            'effect': 'Увеличение скорости атаки на время'},
+            'effect': 'Attack speed bonus over time'},
         'satyr_soulstealer_mana_burn': {
             # Burn = flat + Int multiplier. Raw HTML so we can inline the
             # intelligence icon; sentinel `\x01` lets _prop_cell skip _esc.
@@ -1663,71 +1663,79 @@ def save_creeps_html():
                        '<span class="dmg-line2">+ 200/250/350/400%'
                        '<img class="stat-ico" src="icons/intelligence.webp" '
                        'alt="Int"></span></span>'),
-            'effect': 'Сжигание маны', 'effect2': 'Урон за сожжённую ману'},
+            'effect': 'Mana burn', 'effect2': 'Damage for burnt mana'},
         'forest_troll_high_priest_mana_aura': {
-            'effect': '2 МП per sec. реген (аура)'},
+            'effect': '2 MP/sec regen'},
         'alpha_wolf_command_aura': {
-            'effect': '+20% увеличение урона (аура)'},
+            'effect': '+20% damage increase'},
         'alpha_wolf_critical_strike': {
-            'effect': '20% шанс крита на 200/225/250/300%'},
+            'effect': '20% chance to crit for 200/225/250/300%'},
         'centaur_khan_war_stomp': {
-            'effect': 'Оглушение по области', 'effect2': 'Урон по области'},
+            'duration': _val_qhint(
+                '1.6 or 3',
+                'Lasts longer on creeps (3)'),
+            'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'polar_furbolg_ursa_warrior_thunder_clap': {
-            'effect': 'Урон по области', 'effect2': 'Замедление по области'},
+            'effect': 'AoE damage', 'effect2': 'AoE slow'},
         'furbolg_enrage_damage': {
-            'effect': '+60% увеличение урона на время'},
+            'effect': '+60% damage increase over time'},
         'enraged_wildkin_toughness_aura': {
-            'effect': '+3 брони (аура)'},
+            'effect': '+3 armor'},
         'enraged_wildkin_hurricane': {
-            'effect': 'Отталкивание цели в любую сторону'},
+            'effect': 'Knockback in any direction'},
         'warpine_raider_seed_shot': {
-            'effect': 'Урон по нескольким целям',
-            'effect2': 'Замедление передвижения'},
+            'effect': 'Damage to multiple targets',
+            'effect2': 'Movement slow'},
         'frogmen_congregation_of_the_deep': {
-            'effect': 'Оглушение по области', 'effect2': 'Урон по области'},
+            'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'ancient_rock_golem_weakening_aura': {
-            'effect': '-3/4/5/6 брони (аура)'},
+            'effect': '-3/4/5/6 armor'},
         'frostbitten_golem_time_warp_aura': {
-            'effect': '8/9/10/11% перезарядки (аура)'},
+            'effect': '8/9/10/11% cooldown reduction'},
         'big_thunder_lizard_wardrums_aura': {
-            'effect': 'Увеличение скорости атаки (аура)',
-            'effect2': 'Точность (аура)'},
+            'effect': 'Attack speed bonus',
+            'effect2': 'Accuracy'},
         'frogmen_water_bubble_large': {
-            'effect': '210/240/270/300 магического барьера',
-            'effect2': '50% от взрыва барьера в лечение'},
+            'effect': '210/240/270/300 magic barrier',
+            'effect2': '50% of the barrier burst is healed'},
         'satyr_hellcaller_unholy_aura': {
-            'effect': '+3/5/7/11 ХП per sec. реген (аура)'},
+            'effect': '+3/5/7/11 HP/sec regen'},
         'satyr_hellcaller_shockwave': {
-            'effect': 'Урон по области (снаряд)'},
+            'effect': 'AoE damage with a projectile'},
         'dark_troll_warlord_raise_dead': {
-            'effect': 'Призыв 3 скелетов', 'effect2': 'У скелетов аура'},
+            'effect': 'Summons 3 skeletons', 'effect2': 'Skeletons have an aura'},
         'spawnlord_master_stomp': {
-            'effect': 'Снижает базовую (белую) броню на 50%',
-            'effect2': 'Наносит урон'},
+            'effect': 'Reduces base (white) armor by 50%',
+            'effect2': 'Deals damage'},
         'spawnlord_master_freeze': {
             # av_damage:"100" with av_tick_interval:"0.1" is mislabeled in KV —
             # the in-game tooltip and old sheet both say 100/sec, so force it.
             'damage': '100 per sec.',
-            'effect': 'Обездвиживает', 'effect2': 'Периодический урон'},
+            'effect': 'Immobilizes', 'effect2': 'Damage over time'},
         'black_dragon_dragonhide_aura': {
-            'effect': '+3 брони (аура)'},
+            'effect': '+3 armor'},
         'black_dragon_fireball': {
             # av_damage:"85" is mislabeled — actual game effect is 85/sec
             # (total 722.5 over 8s); av_damage path takes priority, so override.
             'damage': '85 per sec.',
-            'effect': 'Урон по области', 'effect2': 'Летающий обзор 300/300'},
+            'effect': 'AoE damage', 'effect2': 'Flying vision 300/300'},
         'black_dragon_splash_attack': {
-            'effect': 'Урон по области от атак'},
+            'effect': 'AoE damage applied by attacks'},
         'granite_golem_hp_aura': {
-            'effect': '+16/17/18/19% увеличение макс. ХП (аура)'},
+            'effect': '+16/17/18/19% max HP increase'},
         'big_thunder_lizard_slam': {
-            'effect': 'Урон по области', 'effect2': 'Замедление по области'},
+            'duration': _val_qhint(
+                '2/2.25/2.5/3 or 4',
+                'Scaling duration on heroes. Lasts longer on creeps (4)'),
+            'effect': 'AoE damage', 'effect2': 'AoE slow'},
         'big_thunder_lizard_frenzy': {
-            'effect': 'Увеличение скорости атаки на 1 союзную цель'},
+            'effect': 'Attack speed bonus on 1 ally'},
         'ice_shaman_incendiary_bomb': {
             # av_burn_damage = 50, av_building_damage_pct = 25 → 12.5 to buildings.
-            'damage': _dmg_qhint('50 per sec. / 12.5 per sec.', 'To units / structures'),
-            'effect': 'Периодический урон на 1 цель (включая здания)'},
+            'damage': _dmg_qhint(
+                '50 or 12.5 per sec.',
+                'Deals 25% of the damage to structures (12.5/sec before resistances).'),
+            'effect': 'Damage over time on 1 target (including buildings)'},
     }
 
     def _abil_props(slug):
