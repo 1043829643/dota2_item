@@ -425,6 +425,21 @@ nav.top-nav {
   outline: 2px solid #58a6ff;
   outline-offset: 2px;
 }
+/* Inline link inside an Effect cell — used when an effect mentions another
+   ability or unit by name (Hurl Boulder, Rally, Skeleton Warrior, …) and
+   should jump to its row. Subtle cyan tone + dotted underline so it reads
+   as interactive without screaming. */
+.unit-abilities-table .ua-inline-link {
+  color: #79d6cf;
+  text-decoration: underline dotted rgba(121, 214, 207, 0.55);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.unit-abilities-table .ua-inline-link:hover {
+  color: #a6f2ec;
+  text-decoration-color: #a6f2ec;
+}
 /* Marker for leveled cells when Upgrades is ON:
    - faint sky-blue fill (almost translucent) so the cell stands out from the
      row without looking heavy;
@@ -2845,6 +2860,12 @@ body.filter-active ul.subnotes { display: none; }
   overflow: auto;
   width: 100%;
   max-height: calc(100vh - 150px);
+  /* Paint containment only — `layout` and `style` containment can prevent
+     useful browser optimisations inside large tables. Adding
+     `will-change: scroll-position` hints the browser to GPU-accelerate the
+     scroll, drastically reducing repaints under heavy table content. */
+  contain: paint;
+  will-change: scroll-position;
 }
 .creeps-table {
   /* width:max-content + min-width:100% = stretch evenly to fill the container
@@ -2857,14 +2878,13 @@ body.filter-active ul.subnotes { display: none; }
      centered horizontally, so visual alignment stays clean across the
      auto-sized columns. */
   table-layout: auto;
-  /* `separate` (not `collapse`) so each cell owns its own borders. With
-     `collapse` the shared column dividers sit on the table layer and bleed
-     through sticky columns when scrolling horizontally — sticky cells'
-     backgrounds couldn't cover them. `border-spacing: 0` keeps the visual
-     result identical to the old collapsed layout (each column has a single
-     left border from the cell itself). */
-  border-collapse: separate;
-  border-spacing: 0;
+  /* `collapse` — significantly faster than `separate` on a wide table
+     (~1600 cells on Creeps page). The sticky-bleed regression `separate`
+     was meant to fix is handled below via a full-area `box-shadow: inset
+     0 0 0 9999px var(--sticky-bg)` on sticky cells: the inset draws on
+     the cell's paint layer (above the table's collapsed-border layer)
+     and fills the whole inner area, masking any seam during scroll. */
+  border-collapse: collapse;
   font-size: 11.5px;
   color: #c9d1d9;
   font-variant-numeric: tabular-nums;
@@ -2890,16 +2910,20 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table .sticky-col {
   position: sticky;
   z-index: 3;
-  background: #0e1217;
+  --sticky-bg: #0e1217;
+  background: var(--sticky-bg);
+  /* Full-area inset shadow paints over any collapsed-border seam that
+     would otherwise bleed through this cell during horizontal scroll. */
+  box-shadow: inset 0 0 0 9999px var(--sticky-bg);
 }
 .creeps-table thead .sticky-col {
   z-index: 6;            /* corner cells: above both sticky axes */
 }
 .creeps-table tbody tr:hover .sticky-col {
-  background: #161d27;   /* match the row-hover tint, stay opaque */
+  --sticky-bg: #161d27;   /* match the row-hover tint, stay opaque */
 }
 .creeps-table .lvl-cell.sticky-col {
-  background: #11161d;   /* keep the level cell's faint blue-tint readable */
+  --sticky-bg: #11161d;   /* keep the level cell's faint blue-tint readable */
 }
 /* Overlay frame outlining the pinned identity block while scrolled.
    Drawn as a separate absolutely-positioned element in .creeps-page
@@ -3250,10 +3274,10 @@ body.filter-active ul.subnotes { display: none; }
    `row-marked` palette), so horizontal scrolling never lets the row behind
    leak through the pinned column. */
 .creeps-table tr:target .sticky-col {
-  background-color: #1d1b14;
+  --sticky-bg: #1d1b14;
 }
 .creeps-table tr:target .lvl-cell.sticky-col {
-  background-color: #221e15;   /* match the lvl-cell tint shift used elsewhere */
+  --sticky-bg: #221e15;   /* match the lvl-cell tint shift used elsewhere */
 }
 @keyframes ua-flash {
   0%   { background: rgba(210, 175, 95, 0.5); }
@@ -3708,8 +3732,8 @@ body.filter-active ul.subnotes { display: none; }
   background: rgba(210, 175, 95, 0.16);
 }
 /* Marked-row sticky identity cells stay opaque, tinted to match the 10% mark. */
-.creeps-table tbody tr.row-marked .sticky-col { background: #1d1b14; }
-.creeps-table tbody tr.row-marked:hover .sticky-col { background: #242117; }
+.creeps-table tbody tr.row-marked .sticky-col { --sticky-bg: #1d1b14; }
+.creeps-table tbody tr.row-marked:hover .sticky-col { --sticky-bg: #242117; }
 /* First column (unicode tier dots) — centered glyph, smaller letter-spacing. */
 .creeps-table th:first-child,
 .creeps-table td:first-child {

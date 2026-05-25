@@ -508,9 +508,18 @@ def save_creeps_html():
         'granite':              {'hp': ('+', 16)},           # Granite Aura
     }
 
+    # Display-name overrides — when Valve's canonical dname diverges from the
+    # team's preferred terminology (e.g. Valve calls it "Ice Armor", we use
+    # "Frost Armor" to match the creep's "Frostmage" name).
+    ABILITY_NAME_OVERRIDES = {
+        'ogre_magi_frost_armor': 'Frost Armor',
+    }
+
     def _ability_dname(slug):
         if not slug or slug in ABILITY_SKIP:
             return ''
+        if slug in ABILITY_NAME_OVERRIDES:
+            return ABILITY_NAME_OVERRIDES[slug]
         entry = abil_slim.get(slug)
         if entry and entry.get('dname'):
             return entry['dname']
@@ -1642,7 +1651,7 @@ def save_creeps_html():
             'duration': _val_qhint(
                 '10 (15)',
                 "Channeling duration is 10 seconds + 5 if it's ended or cancelled"),
-            'as_effect': '-15', 'ms_effect': '-15',
+            'as_effect': '-15%', 'ms_effect': '-15%',
             'effect': 'AoE damage',
             'effect2': '300/300 vision',
             'effect3': 'Slow'},
@@ -1661,16 +1670,20 @@ def save_creeps_html():
             'duration': _val_qhint(
                 '2 or 20', 'Lasts much longer on creeps (20)'),
             'effect': 'Damage over time',
-            'effect2': 'Reduces regeneration by 75/80/85/90%'},
+            'effect2': 'Reduces HP regeneration by 75/80/85/90%'},
         'fel_beast_haunt': {
-            'effect': 'Silences 1 target'},
+            'effect': 'Silences 1 target',
+            'effect2': 'Projectile Speed is 500/600/700/800'},
         'harpy_scout_take_off': {
             # Toggle ability: 20 to activate, then 4% of max MP per second
             # while active (av_cost_per_second:"4").
             'manacost': _val_qhint(
                 '20 + 4%',
                 'Activation cost 20, plus 4% of max MP per second while active'),
-            'effect': 'Takes off and gives 1200/800 vision',
+            'ms_effect': _val_qhint(
+                '-50/40/30/10%',
+                'The unit itself is slowed while the ability is active'),
+            'effect': 'Gives flying movement with 1200/800 vision',
             'effect2': 'Slows itself while active'},
         'ogre_bruiser_ogre_smash': {
             # av_damage_pct:"8" — bonus 8% of target's current HP, not surfaced
@@ -1680,50 +1693,99 @@ def save_creeps_html():
                 "Adds 8% of the target's current HP to the damage"),
             'effect': 'AoE damage', 'effect2': 'Stun'},
         'kobold_taskmaster_speed_aura': {
+            'ms_effect': '+12/13/14/16%',
             'effect': 'Movement speed bonus'},
         'forest_troll_high_priest_heal_amp_aura': {
             'effect': 'Increases healing on allies by 15%'},
         'forest_troll_high_priest_heal': {
             'effect': 'Heals +100 HP'},
         'mudgolem_cloak_aura': {
-            'effect': 'Magic resist for heroes +10/12/14/16%',
-            'effect2': 'Magic resist for units +20/24/28/32%'},
+            'effect': 'Magic resistance for heroes +10/12/14/16%',
+            'effect2': 'Magic resistance for units +20/24/28/32%'},
         'frogmen_riverborn_aura': {
+            'ms_effect': '+10/12/14/16%',
             'effect': 'Outgoing damage +10/12/14/16%'},
         'satyr_trickster_purge': {
             # Slow decays from -50% to -10% over 5 seconds; not in any av_* field.
             'ms_effect': _val_qhint(
-                '-50 to -10',
+                '-50% to -10%',
                 'Movement slow decays by 10% each second over 5 seconds'),
             'effect': 'Dispel', 'effect2': 'Movement slow'},
         'giant_wolf_intimidate': {
             'effect': 'Reduces attack damage by 60%'},
         'dark_troll_warlord_ensnare': {
+            # No entry in 7.41c npc_abilities.json — fill from in-game tooltip.
+            'manacost': '75', 'cooldown': '15', 'duration': '1.75',
+            'cast_range': '550/625/700/825',
             'effect': 'Roots the target', 'effect2': 'True Sight on the target'},
         'ghost_frost_attack': {
-            'effect': 'Slows attack and movement'},
+            'effect': 'Slows both attack and movement speed'},
         'harpy_storm_chain_lightning': {
+            # KV has AbilityManaCost 60, but in-game tooltip / user verifies 50.
+            'manacost': '50',
+            # av_initial_damage carries the bounce damage; av_damage_percent_loss
+            # is the per-bounce falloff (25/20/15/10%).
+            'damage': _dmg_qhint(
+                '120/170/220/270',
+                'Each bounce reduces damage by 25/20/15/10%'),
             'cast_range': _val_qhint('900', 'Bounces range is 500'),
             'effect': 'Damage to multiple targets'},
         'black_drake_magic_amplification_aura': {
-            'effect': 'Increases magic damage taken by enemies'},
+            # KV has av_radius 1200, but in-game tooltip / user verifies 800.
+            'aoe': '800',
+            'effect': _val_qhint(
+                'Increases all spell damage taken by enemies by 5/6/7/9%',
+                "Amplifies any damage type if it's spell damage")},
         'spawnlord_aura': {
             'effect': '+9/10/11/12% lifesteal',
             'effect2': '+9/10/11/12 HP regen'},
         'ogre_magi_frost_armor': {
+            # Slug missing from 7.41c npc_abilities.json — fill from in-game.
+            'manacost': '40', 'cooldown': '5', 'duration': '45',
+            'cast_range': '800',
+            'as_effect': '-22/24/26/30%', 'ms_effect': '-22/24/26/30%',
             'effect': '+4/5/6/8 armor',
-            'effect2': 'Shield slows attackers on hit'},
+            'effect2': _val_qhint(
+                'Shield slows attackers on hit',
+                'The slow applies to towers as well')},
         'mud_golem_hurl_boulder': {
             # 75 hero / 150 creep; pretty form with hint icon for the split.
             'damage': _dmg_qhint(
                 '75 or 150', 'Deals double the damage to creeps (150)'),
-            'effect': 'Stuns 1 target'},
+            'effect': 'Single target stun'},
         'mud_golem_rock_destroy': {
-            'effect': 'Spawns golems on death',
-            'effect2': 'Golems have Hurl Boulder'},
+            # av_radius describes the death stun (internal tech) — blank to
+            # match the old sheet. av_duration in KV is 2 (the death stun),
+            # but the SHARD LIFETIME the user cares about is 60s.
+            'aoe': '', 'duration': '60',
+            # Property 1: spawns-on-death + qhint with shard tier stats. Each
+            # row of the qhint is its own .qh-line so the tooltip renders
+            # multiline. Marked `leveled` because the qhint shows progressions.
+            'effect': (
+                '\x01<span class="cell-wrap">'
+                'Spawns Golems on death 2/2/3/3'
+                '<span class="qhint" tabindex="0" role="button" '
+                'aria-label="Shard stats per tier" data-tooltip="'
+                '&lt;div class=&quot;qh-line&quot;&gt;HP = 250/280/310/370&lt;/div&gt;'
+                '&lt;div class=&quot;qh-line&quot;&gt;Attack damage = 12/16/20/28&lt;/div&gt;'
+                '&lt;div class=&quot;qh-line&quot;&gt;Quantity = 2/2/3/3&lt;/div&gt;'
+                "&lt;div class=&quot;qh-line&quot;&gt;Hurl Boulder is the same as Mud Golem's&lt;/div&gt;"
+                '&lt;div class=&quot;qh-line&quot;&gt;When Devoured, Doom will also spawn 2/2/3/3 small Golems but with his own model&lt;/div&gt;'
+                '">?</span></span>'),
+            'effect2': (
+                '\x01Golems have <a class="ua-inline-link" '
+                'href="unit_abilities.html#mud-mud_golem_hurl_boulder">'
+                'Hurl Boulder</a>'),
+        },
         'frogmen_arm_of_the_deep': {
+            # av_radius missing in KV; the actual stun radius is the
+            # av_projectile_width (100). Tentacles also extend +100 further.
+            'aoe': '100',
+            'cast_range': _val_qhint('275', '375 with tentacles radius'),
             'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'frogmen_tendrils_of_the_deep': {
+            'aoe': '100',
+            'cast_range': _val_qhint('300', '400 with tentacles radius'),
             'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'frogmen_water_bubble_small': {
             'effect': '100/120/140/160 magic barrier'},
@@ -1771,6 +1833,10 @@ def save_creeps_html():
             'effect': 'Damage to multiple targets',
             'effect2': 'Movement slow'},
         'frogmen_congregation_of_the_deep': {
+            # AbilityCastRange=0 (self-cast); effective tentacle reach is the
+            # av_range (300) +100 spread = 400.
+            'aoe': '100',
+            'cast_range': _val_qhint('300', '400 with tentacles radius'),
             'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'ancient_rock_golem_weakening_aura': {
             'effect': '-3/4/5/6 armor'},
@@ -1793,7 +1859,15 @@ def save_creeps_html():
                 '700', 'Max travel distance is 1580'),
             'effect': 'AoE damage with a projectile'},
         'dark_troll_warlord_raise_dead': {
-            'effect': 'Summons 3 skeletons', 'effect2': 'Skeletons have an aura'},
+            'effect': (
+                '\x01Summons 3 <a class="ua-inline-link" '
+                'href="creeps.html#unit-skeleton_warrior">'
+                'Skeleton Warriors</a>'),
+            'effect2': (
+                '\x01Skeletons have <a class="ua-inline-link" '
+                'href="unit_abilities.html#skeleton_warrior-hill_troll_rally">'
+                'Rally</a> aura'),
+        },
         'spawnlord_master_stomp': {
             'effect': 'Reduces base (white) armor by 50%',
             'effect2': 'Deals damage'},
@@ -1905,11 +1979,13 @@ def save_creeps_html():
         else:
             cast_range = cr
 
+        # Flat-AS bonuses keep no suffix; AS slow and all MS values are %.
         as_fields = (('av_speed_bonus', '+{}'), ('av_bonus_attack_speed', '+{}'),
                      ('av_bonus_aspd', '+{}'), ('av_attackspeed_bonus', '+{}'),
-                     ('av_attackspeed_slow', '{}'))
-        ms_fields = (('av_bonus_movement_speed', '+{}'), ('av_movespeed_slow', '{}'),
-                     ('av_move_speed_penalty', '{}'))
+                     ('av_attackspeed_slow', '{}%'))
+        ms_fields = (('av_bonus_movement_speed', '+{}%'),
+                     ('av_movespeed_slow', '{}%'),
+                     ('av_move_speed_penalty', '{}%'))
         as_eff = ' '.join(lbl.format(_prog(g(k))) for k, lbl in as_fields if g(k))
         ms_eff = ' '.join(lbl.format(_prog(g(k))) for k, lbl in ms_fields if g(k))
         leveled = any(len(str(v).split()) > 1 for v in a.values())
@@ -1970,7 +2046,7 @@ def save_creeps_html():
         ('aoe', 'Radius'), ('stackable', 'Aura Stack'),
         ('dispel', 'Dispellable'), ('through_bkb', 'Through BKB'),
         ('as_effect', 'AS Effect'), ('ms_effect', 'MS Effect'),
-        ('effect', 'Effect'), ('effect2', 'Effect 2'), ('effect3', 'Effect 3'),
+        ('effect', 'Property'), ('effect2', 'Property 2'), ('effect3', 'Property 3'),
     ]
     UA_STICKY = {'lvl', 'unit', 'ability'}
     # Vertical section dividers (left border) after Ability, Type and Damage.
@@ -1978,7 +2054,7 @@ def save_creeps_html():
     # Column-header tooltips surfaced via a `?` badge next to the header label.
     # Values support inline HTML (rendered via innerHTML in scripts.js).
     UA_HEAD_HINTS = {
-        'duration': 'All these auras have linger duration of 0.5 seconds',
+        'duration': 'Most of the auras have linger duration of 0.5 seconds',
         'damage': (
             '<div class="qh-line">Numbers in color mean different damage types: '
             '<span class="dt-magical">magical</span>, '
@@ -2179,8 +2255,8 @@ def save_creeps_html():
         '<span class="view-group">'
         '<strong>View</strong>'
         '<select class="cal-mode-select" id="ua-view-mode">'
-        '<option value="standard">Standard</option>'
-        '<option value="auras">Auras</option>'
+        '<option value="standard">Neutral (all)</option>'
+        '<option value="auras">Neutral (auras)</option>'
         '</select>'
         '</span>'
         # Upgrades — binary switch. ON marks every per-level progression
