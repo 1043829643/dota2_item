@@ -192,12 +192,13 @@ nav.top-nav {
    crisp at any size. Direction modifier class swaps the SVG. */
 .version-nav-arrow {
   display: inline-block;
-  width: 24px;
-  height: 34px;
+  width: 30px;
+  height: 48px;
   background: rgba(0, 0, 0, 0.28);
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 10px 14px;
+  background-size: 14px 18px;
+  image-rendering: pixelated;
   border-radius: 5px;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   text-decoration: none;
@@ -205,11 +206,14 @@ nav.top-nav {
   user-select: none;
   transition: background 0.15s, filter 0.15s, transform 0.12s;
 }
+/* Pixel-art chunky arrows — drawn as a staircase of 2×2 cells (shape-rendering
+   keeps the edges crisp at any scale). Yellow accent matches the "sikle" tag
+   in the header brand. */
 .version-nav-arrow.is-prev {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M10.5 3 L5 8 L10.5 13" stroke="%23c9d1d9" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 18" shape-rendering="crispEdges"><g fill="%23e3c46a"><rect x="10" y="0" width="2" height="2"/><rect x="8" y="2" width="4" height="2"/><rect x="6" y="4" width="6" height="2"/><rect x="4" y="6" width="8" height="2"/><rect x="2" y="8" width="10" height="2"/><rect x="4" y="10" width="8" height="2"/><rect x="6" y="12" width="6" height="2"/><rect x="8" y="14" width="4" height="2"/><rect x="10" y="16" width="2" height="2"/></g></svg>');
 }
 .version-nav-arrow.is-next {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M5.5 3 L11 8 L5.5 13" stroke="%23c9d1d9" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 18" shape-rendering="crispEdges"><g fill="%23e3c46a"><rect x="2" y="0" width="2" height="2"/><rect x="2" y="2" width="4" height="2"/><rect x="2" y="4" width="6" height="2"/><rect x="2" y="6" width="8" height="2"/><rect x="2" y="8" width="10" height="2"/><rect x="2" y="10" width="8" height="2"/><rect x="2" y="12" width="6" height="2"/><rect x="2" y="14" width="4" height="2"/><rect x="2" y="16" width="2" height="2"/></g></svg>');
 }
 .version-nav-arrow:hover {
   background-color: rgba(0, 0, 0, 0.45);
@@ -231,20 +235,22 @@ nav.top-nav {
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   background: rgba(0, 0, 0, 0.28);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   border: 1px solid transparent;
-  padding: 0 12px;
-  height: 38px;
+  padding: 0 16px;
+  height: 48px;
   border-radius: 6px;
 }
 .nav-context .release-date {
   color: #c9d1d9;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  line-height: 1.15;
+  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 .nav-context .release-version {
   color: #79c0ff;
@@ -265,7 +271,7 @@ nav.top-nav {
    and switching tabs doesn't make the toolbar jump. */
 .nav-context-flat {
   margin-left: auto;
-  min-height: 38px;
+  min-height: 48px;
 }
 .nav-context-calendar .release-info {
   align-items: center;
@@ -275,30 +281,31 @@ nav.top-nav {
 }
 .nav-context .patch-age {
   color: #a8b3bd;
-  font-size: 10.5px;
+  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-size: 17px;
   font-weight: 400;
-  letter-spacing: 0.15px;
+  letter-spacing: 0.3px;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  line-height: 1.05;
 }
 .nav-context .version {
   color: #c9d1d9;
-  font-size: 20px;
-  font-weight: 700;
+  font-family: 'Jersey 10', 'Courier New', monospace;
+  font-size: 34px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   background: rgba(0, 0, 0, 0.28);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   border: 1px solid transparent;
-  padding: 0 14px;
-  height: 38px;
+  padding: 0 18px;
+  height: 48px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  font-family: inherit;
   line-height: 1;
   transition: background 0.15s;
 }
@@ -306,7 +313,7 @@ nav.top-nav {
   background: rgba(0, 0, 0, 0.4);
 }
 .nav-context .version-chev {
-  font-size: 11px;
+  font-size: 14px;
   color: #a8b3bd;
   line-height: 1;
   margin-top: 2px;
@@ -586,6 +593,12 @@ nav.top-nav {
   font-size: 20px;
   padding: 14px 20px;
 }
+/* The select is the only child of the label inside the current-year block;
+   re-zero the inner padding so the chevron ::after, anchored at
+   "right: 14px" of the label, aligns with the select's own right padding. */
+.cal-year-block.is-current > .cal-year-label {
+  padding: 14px 0 14px 20px;
+}
 .cal-year-block.is-current .cal-mode-full,
 .cal-year-block.is-current .cal-mode-compact {
   padding: 0 20px 18px;
@@ -615,18 +628,12 @@ nav.top-nav {
   font-weight: 700;
   letter-spacing: 0.5px;
   cursor: pointer;
-  padding: 6px 22px;
+  padding: 6px 16px;
   text-align: center;
   text-align-last: center;
   direction: ltr;
   appearance: none;
   -webkit-appearance: none;
-  background-image:
-    linear-gradient(180deg, rgba(38, 46, 56, 0.95) 0%, rgba(26, 34, 42, 0.95) 100%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 10'><path fill='%23ffffff' stroke='%23ffffff' stroke-width='1' d='M1 2l6 6 6-6z'/></svg>");
-  background-repeat: no-repeat, no-repeat;
-  background-position: 0 0, right 12px center;
-  background-size: 100% 100%, 14px 10px;
   box-shadow:
     inset 0 1px 0 rgba(190, 225, 240, 0.10),
     0 2px 6px rgba(0, 0, 0, 0.35);
@@ -653,10 +660,23 @@ nav.top-nav {
 }
 .cal-year-block.is-current .cal-year-label {
   cursor: default;
+  position: relative;
+  display: inline-block;
 }
+/* Chevron painted as the wrapper's ::after — same `▾` unicode glyph as the
+   Changelogs version dropdown so the two controls look identical. Sits over
+   the right padding of the select; pointer-events:none lets clicks through. */
 .cal-year-block.is-current .cal-year-label::after {
-  /* Drop the collapse chevron — block no longer collapses. */
-  content: none;
+  content: '▾';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a8b3bd;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
 }
 .cal-year-summary {
   display: flex;

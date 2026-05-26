@@ -3020,7 +3020,7 @@ def write_head(version, date):
 <title>Sloppy - {version} Changelog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">
 <link rel="stylesheet" href="../styles.css?v={_ASSET_VERSION}">
 </head>
 <body>
@@ -3584,7 +3584,7 @@ def save_calendar_html():
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
-        'href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap">\n'
+        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n<body>\n\n'
         + nav
@@ -3612,9 +3612,12 @@ def save_index_html():
     # excluded since we're already on it.
     tiles = [
         ('Advanced Patch Reader', latest_href,
-         'Patch-by-patch changelogs with dynamics tracking.'),
+         'Patch-by-patch changelogs with dynamics tracking. Inspect '
+         'percentage deltas on every numeric change, browse a cleaner '
+         'visual layout for new abilities and reworks, and filter changes '
+         'by tags.'),
         ('Calendar', 'calendar.html',
-         'Timeline of every Dota 2 patch release.'),
+         'Timeline of every Dota 2 patch release since 7.08.'),
         ('Materials', 'creeps.html',
          'Neutral creeps, unit abilities, and other game data.'),
     ]
@@ -3634,7 +3637,7 @@ def save_index_html():
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
-        'href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap">\n'
+        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'
