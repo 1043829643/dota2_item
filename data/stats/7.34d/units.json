@@ -1406,8 +1406,8 @@
   },
   "npc_dota_wraith_king_skeleton_warrior": {
     "ArmorPhysical": 3,
-    "AttackDamageMin": 29,
-    "AttackDamageMax": 34,
+    "AttackDamageMin": 32,
+    "AttackDamageMax": 37,
     "AttackRate": 1.2,
     "AttackRange": 115,
     "MovementSpeed": 350,
