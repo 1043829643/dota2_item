@@ -1405,7 +1405,7 @@
     "StatusMana": 200
   },
   "npc_dota_wraith_king_skeleton_warrior": {
-    "ArmorPhysical": 1,
+    "ArmorPhysical": 3,
     "AttackDamageMin": 32,
     "AttackDamageMax": 37,
     "AttackRate": 1.2,
@@ -1484,12 +1484,12 @@
   },
   "npc_dota_warlock_minor_imp": {
     "ArmorPhysical": 1,
-    "AttackDamageMin": 17,
-    "AttackDamageMax": 18,
+    "AttackDamageMin": 10,
+    "AttackDamageMax": 11,
     "AttackRate": 2,
-    "AttackRange": 100,
-    "MovementSpeed": 350,
-    "StatusHealth": 300,
+    "AttackRange": 80,
+    "MovementSpeed": 320,
+    "StatusHealth": 30,
     "StatusMana": 0
   },
   "npc_dota_warlock_golem": {
@@ -1502,35 +1502,10 @@
     "StatusHealth": 1400,
     "StatusMana": 0
   },
-  "npc_dota_scout_hawk": {
-    "ArmorPhysical": 0,
-    "MovementSpeed": 270,
-    "StatusHealth": 50
-  },
-  "npc_dota_greater_hawk": {
-    "ArmorPhysical": 5,
-    "MovementSpeed": 400,
-    "StatusHealth": 100
-  },
   "npc_dota_beastmaster_hawk": {
     "ArmorPhysical": 5,
     "MovementSpeed": 300,
     "StatusHealth": 150
-  },
-  "npc_dota_beastmaster_hawk_2": {
-    "ArmorPhysical": 5,
-    "MovementSpeed": 340,
-    "StatusHealth": 200
-  },
-  "npc_dota_beastmaster_hawk_3": {
-    "ArmorPhysical": 5,
-    "MovementSpeed": 380,
-    "StatusHealth": 250
-  },
-  "npc_dota_beastmaster_hawk_4": {
-    "ArmorPhysical": 5,
-    "MovementSpeed": 420,
-    "StatusHealth": 300
   },
   "npc_dota_beastmaster_boar": {
     "ArmorPhysical": 0,
@@ -1854,7 +1829,7 @@
     "MovementSpeed": 325
   },
   "npc_dota_lone_druid_bear1": {
-    "ArmorPhysical": 3,
+    "ArmorPhysical": 0,
     "AttackDamageMin": 28,
     "AttackDamageMax": 28,
     "AttackRate": 1.75,
@@ -1864,21 +1839,18 @@
     "StatusMana": 300
   },
   "npc_dota_lone_druid_bear2": {
-    "ArmorPhysical": 4,
     "AttackRate": 1.65,
     "MovementSpeed": 360,
     "StatusHealth": 1400,
     "StatusMana": 300
   },
   "npc_dota_lone_druid_bear3": {
-    "ArmorPhysical": 5,
     "AttackRate": 1.55,
     "MovementSpeed": 380,
     "StatusHealth": 1700,
     "StatusMana": 300
   },
   "npc_dota_lone_druid_bear4": {
-    "ArmorPhysical": 6,
     "AttackRate": 1.45,
     "MovementSpeed": 400,
     "StatusHealth": 2000,
@@ -2600,5 +2572,11 @@
     "AttackRange": 0,
     "MovementSpeed": 0,
     "StatusHealth": 100
+  },
+  "npc_dota_unit_tidehunter_anchor": {
+    "ArmorPhysical": 5,
+    "MovementSpeed": 0,
+    "StatusHealth": 32,
+    "StatusMana": 0
   }
 }
