@@ -426,7 +426,14 @@ def b(old, new, l=False):
     If all per-level badges turn out identical, collapses to a single badge.
     Determines OVERALL buff/nerf tag for filtering:
       - avg of signed per-level %s; sign decides
-      - if avg rounds to 0 → use last non-zero level"""
+      - if avg rounds to 0 → use last non-zero level
+
+    Sign convention: the `+`/`-` reflects the RAW numeric direction
+    (`+` when new > old, `-` when new < old). The badge COLOUR reflects
+    player benefit (`l=True` flips green/red). So a cost going 600 → 700
+    renders as `+17%` red — sign matches the arithmetic, colour matches
+    the impact on the player.
+    """
     if not isinstance(old, (list, tuple)):
         old = [old]
     if not isinstance(new, (list, tuple)):
@@ -475,7 +482,9 @@ def b(old, new, l=False):
                 keys.append(("neutral", "0%"))
                 signed_pcts.append(0)
                 continue
-            sign = "+" if is_buff else "-"
+            # Sign follows the RAW numeric direction; colour (via gradient_class)
+            # reflects player benefit. See docstring.
+            sign = "+" if n > o else "-"
             display = f"{sign}{small}%"
             cls = gradient_class(1, is_buff)  # weakest gradient
             signed_pcts.append(small if is_buff else -small)
@@ -484,7 +493,7 @@ def b(old, new, l=False):
             continue
         magnitude = abs(pct)
         signed_pcts.append(magnitude if is_buff else -magnitude)
-        sign = "+" if is_buff else "-"
+        sign = "+" if n > o else "-"
         cls = gradient_class(magnitude, is_buff)
         display = f"{sign}{magnitude}%"
         parts.append(f'<span class="badge {cls}">{display}</span>')
@@ -541,7 +550,9 @@ def _compute_pct(old_v, new_v, l):
         return ("neutral", "0%", 0, "")
     is_buff = (new_v < old_v) if l else (new_v > old_v)
     magnitude = abs(pct)
-    sign = "+" if is_buff else "-"
+    # Sign reflects raw arithmetic direction; colour (via gradient_class)
+    # reflects player benefit. See b()'s docstring for the rationale.
+    sign = "+" if new_v > old_v else "-"
     cls = gradient_class(magnitude, is_buff)
     return (cls, f"{sign}{magnitude}%", magnitude if is_buff else -magnitude,
             "buff" if is_buff else "nerf")
@@ -3619,7 +3630,7 @@ def save_index_html():
          'by tags.'),
         ('Calendar', 'calendar.html',
          'Timeline of every Dota 2 patch release since 7.08.'),
-        ('Materials', 'creeps.html',
+        ('Materials', 'materials.html',
          'Neutral creeps, unit abilities, and other game data.'),
     ]
     tile_html = ''.join(

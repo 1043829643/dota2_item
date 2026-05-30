@@ -1220,18 +1220,13 @@ def save_creeps_html():
     # a divider) to keep the grouped look in the default/level-sorted view.
 
     # ---- HTML emission ----
-    nav = _site.render_top_nav('creeps', _latest_href(), patch_context=False)
-
-    def _subnav(active):
-        """Secondary tab strip under the main nav, switching between the
-        Creeps Table and its Unit Abilities companion page."""
-        items = [('creeps.html', 'Neutral Creeps', 'creeps'),
-                 ('unit_abilities.html', 'Unit Abilities', 'abilities')]
-        pills = ''.join(
-            f'<a class="creeps-subtab{" active" if active == key else ""}" '
-            f'href="{href}">{label}</a>'
-            for href, label, key in items)
-        return f'<div class="creeps-subnav">{pills}</div>'
+    # Materials sub-tabs are embedded directly into the site header now
+    # (subtabs_active), so there's no separate strip below it to freeze on
+    # scroll. Build one nav per page with the correct active sub-tab.
+    nav = _site.render_top_nav('materials', _latest_href(),
+                               patch_context=False, subtabs_active='creeps')
+    nav_ua = _site.render_top_nav('materials', _latest_href(),
+                                  patch_context=False, subtabs_active='abilities')
     # No colgroup: table-layout: auto lets the browser size each column
     # to fit content (and each header) on one line. Headers and cells
     # are explicitly centred via CSS so the auto-width math doesn't have
@@ -1448,7 +1443,6 @@ def save_creeps_html():
         '</head>\n'
         '<body>\n'
         f'{nav}\n'
-        f'{_subnav("creeps")}\n'
         '<div class="container creeps-page">\n'
         # View toggle: Standard (default) hides the Expanded-only columns.
         # Styled like the calendar mode-select.
@@ -1478,9 +1472,21 @@ def save_creeps_html():
         f'<script src="scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    with open('creeps.html', 'w', encoding='utf-8') as f:
+    with open('materials.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"  -> creeps.html: {len(html):,} bytes")
+    print(f"  -> materials.html: {len(html):,} bytes")
+    # Backward-compat redirect: any old bookmark / external link to /creeps.html
+    # bounces to /materials.html. Removed once we're confident no traffic
+    # references the old URL.
+    with open('creeps.html', 'w', encoding='utf-8') as f:
+        f.write(
+            '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+            '<meta http-equiv="refresh" content="0; url=materials.html">'
+            '<link rel="canonical" href="materials.html">'
+            '<title>Sloppy — moved</title></head><body>'
+            '<p>This page moved to <a href="materials.html">materials.html</a>.</p>'
+            '</body></html>'
+        )
 
     # ---- Unit Abilities companion page ----
     # One row per (creep, ability), mirroring the Creeps Table's Lvl + Unit
@@ -1867,7 +1873,7 @@ def save_creeps_html():
             '_force_leveled': ('effect',),
             'effect': (
                 '\x01<span class="cell-wrap">Summons 3 <a class="ua-inline-link" '
-                'href="creeps.html#unit-skeleton_warrior">'
+                'href="materials.html#unit-skeleton_warrior">'
                 'Skeleton Warriors</a>'
                 '<span class="qhint" tabindex="0" role="button" '
                 'aria-label="HP = 250/275/300/375, attack damage = 12/15/18/21" '
@@ -2230,7 +2236,7 @@ def save_creeps_html():
         ch = (d.get('createhero') or '').strip()
         icon = d.get('icon')
         unit_img = (
-            f'<a class="unit-link" href="creeps.html#unit-{_esc(ch)}">'
+            f'<a class="unit-link" href="materials.html#unit-{_esc(ch)}">'
             f'<img class="creep-copy" src="{_esc(icon)}" alt="" loading="lazy" '
             f'onerror="this.style.visibility=\'hidden\'"></a>' if icon else '')
         slugs = [(kk, d.get(kk + '_slug', ''), d.get(kk, ''))
@@ -2300,8 +2306,7 @@ def save_creeps_html():
         'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
         f'<link rel="stylesheet" href="styles.css?v={ASSET_VERSION}">\n'
         '</head>\n<body>\n'
-        f'{nav}\n'
-        f'{_subnav("abilities")}\n'
+        f'{nav_ua}\n'
         '<div class="container creeps-page">\n'
         '<div class="cal-toggle-bar">'
         '<span class="view-group">'

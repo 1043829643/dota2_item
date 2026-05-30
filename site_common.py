@@ -42,11 +42,22 @@ NAV_TABS = [
     ("main",       "Main",         "index.html"),
     ("changelogs", "Changelogs",   None),
     ("calendar",   "Calendar",     "calendar.html"),
-    ("creeps",     "Materials",    "creeps.html"),
+    ("materials",  "Materials",    "materials.html"),
 ]
 
 
-def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None):
+# Sub-tabs for the Materials section. Single source of truth. Tuple is
+# (key, label, href). Embedded directly into the site header on those pages
+# (no separate subnav strip) so nothing extra freezes on scroll.
+MATERIALS_SUBTABS = [
+    ("creeps",     "Neutral Creeps", "materials.html"),
+    ("abilities",  "Unit Abilities", "unit_abilities.html"),
+    ("mana_items", "Mana Items",     "mana_items.html"),
+]
+
+
+def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None,
+                   subtabs_active=None):
     """Render the shared top nav.
 
     active        — one of the NAV_TABS keys ('main'/'changelogs'/...).
@@ -58,6 +69,9 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
                     release-info) for patch pages. When None, a flat
                     placeholder reserves the SAME height so the header
                     doesn't jump between tabs.
+    subtabs_active — when set (one of MATERIALS_SUBTABS keys), the Materials
+                    sub-tabs render INSIDE the header (right side) instead of
+                    a separate strip below it.
     """
     prefix = "../" if patch_context else ""
     # Header now carries a brand block (helmet logo + pixel-font title) instead
@@ -70,6 +84,20 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
         f'<span class="nav-brand-sikle">sikle</span></span>'
         f'</a>'
     )
+    if subtabs_active is not None:
+        # Materials pages: tabs sit BELOW the brand, flush with the header's
+        # bottom edge (browser-tab style). nav-inner switches to a column.
+        pills = ''.join(
+            f'<a class="nav-subtab{" active" if subtabs_active == key else ""}" '
+            f'href="{prefix}{href}">{label}</a>'
+            for key, label, href in MATERIALS_SUBTABS)
+        return f'''<nav class="top-nav has-subtabs">
+  <div class="nav-inner nav-inner-stacked">
+    {brand}
+    <div class="nav-subtabs">{pills}</div>
+  </div>
+</nav>
+'''
     if picker_html:
         right_side = picker_html
     else:

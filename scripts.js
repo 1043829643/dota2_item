@@ -1047,6 +1047,9 @@
     } else if (kind === 'F') {
       line = '<span class="chg-label">' + p[3] + ':</span> ' + p[4] + ' → '
            + p[5] + pctHtml(p[4], p[5], p[6] === 'lo');
+    } else if (kind === 'N') {
+      // No-percentage value change (computed columns): show old → new only.
+      line = p[3] + ' → ' + p[4];
     } else {
       // 'V' stat value (patch|date|V|old|new|pol), or legacy patch|date|old|new
       const isV = kind === 'V';
@@ -1084,9 +1087,26 @@
     let left = r.left + r.width / 2 - tr.width / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
     el.style.left = left + 'px';
-    // Prefer above the cell; flip below when it would clip the top of the view.
-    let top = r.top - tr.height - 8;
-    if (top < 8) top = r.bottom + 8;
+    // Vertical placement: prefer above the cell, flip below if it would clip
+    // the top. For tall tooltips (taller than the space on either side —
+    // e.g. Guardian Greaves' long changelog) clamp into the viewport so the
+    // box never runs off-screen; the CSS max-height + overflow lets the
+    // overflow scroll. Always keep an 8px margin top and bottom.
+    const margin = 8;
+    const spaceAbove = r.top - margin;
+    const spaceBelow = window.innerHeight - r.bottom - margin;
+    let top;
+    if (tr.height <= spaceAbove) {
+      top = r.top - tr.height - margin;            // fits above
+    } else if (tr.height <= spaceBelow) {
+      top = r.bottom + margin;                     // fits below
+    } else {
+      // Doesn't fit either side — pin to whichever side has more room and
+      // let it clamp to the viewport edge (CSS caps its height).
+      top = spaceAbove >= spaceBelow ? margin : (r.bottom + margin);
+    }
+    top = Math.max(margin, Math.min(top, window.innerHeight - tr.height - margin));
+    if (top < margin) top = margin;                // last-resort clamp
     el.style.top = top + 'px';
   }
   function hide() { if (tip) tip.classList.remove('is-visible'); }
@@ -1094,11 +1114,20 @@
   // Event delegation (not per-cell binding): cells can be removed/re-inserted
   // by the ability-merge logic, so listeners bound at load would be lost on
   // the restored cells. Delegation on the table covers any current cell.
-  const SEL = 'td[data-hist], td[data-name]';
-  const tbl = document.querySelector('.creeps-table');
+  const SEL = 'td[data-hist], td[data-name], .mr-const[data-hist]';
+  // Bind to every table OR standalone history-chip that may carry data-hist:
+  // creeps-table (neutral creeps), mr-table (mana items), and the constants
+  // chips in the page blurb.
+  const targets = [
+    ...document.querySelectorAll('.creeps-table, .mr-table'),
+    ...document.querySelectorAll('.mr-const[data-hist]'),
+  ];
   let curTd = null;
-  if (tbl) {
+  targets.forEach(tbl => {
     tbl.addEventListener('mouseover', e => {
+      // A `?` qhint badge inside a history cell has its own tooltip — let it
+      // win and suppress the cell's changelog popup while hovering it.
+      if (e.target.closest('.qhint')) { if (curTd) { curTd = null; hide(); } return; }
       const td = e.target.closest(SEL);
       if (td && td !== curTd) { curTd = td; show(td); }
     });
@@ -1108,8 +1137,42 @@
       const to = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(SEL);
       if (to !== td) { curTd = null; hide(); }
     });
-  }
+  });
   window.addEventListener('scroll', hide, { passive: true });
+})();
+
+// ---- CREEPS / UNIT ABILITIES: size the scroll box to fit the viewport ----
+// The table lives in a height-capped .creeps-scroll box (needed because a
+// wide table requires its own horizontal scroll, which inherently clips
+// vertically too). If the box is taller than the space below the toolbar,
+// the PAGE scrolls and drags the toolbar up — the float/overlap glitch.
+// Sizing the box so it ends at the viewport bottom keeps the page static:
+// nav + toolbar stay put, only the box scrolls internally (sticky thead).
+(function() {
+  const box = document.querySelector('.creeps-page .creeps-scroll');
+  if (!box) return;
+  const catRow = box.querySelector('table thead tr.cat-row');
+  function size() {
+    // Distance from the document top to the box (stable regardless of how
+    // far the page is currently scrolled).
+    const docTop = box.getBoundingClientRect().top + window.scrollY;
+    const h = window.innerHeight - docTop - 12;   // 12px breathing room
+    box.style.maxHeight = Math.max(220, h) + 'px';
+    // Two-row sticky header (Neutral Creeps): pin the column row exactly
+    // under the category row. offsetHeight is the integer rendered height
+    // (incl. border) → no fractional gap. Unit Abilities has no .cat-row →
+    // 0 so its single header row pins flush at the top.
+    document.documentElement.style.setProperty(
+      '--cat-row-h', (catRow ? catRow.offsetHeight : 0) + 'px');
+  }
+  size();
+  window.addEventListener('resize', size, { passive: true });
+  // Recompute after images (the helmet logo grows the nav) finish loading —
+  // an early measurement underestimates the nav height and lets the box run
+  // past the viewport, which makes the page scroll and the toolbar drift.
+  window.addEventListener('load', size);
+  const logo = document.querySelector('.nav-brand-logo');
+  if (logo && !logo.complete) logo.addEventListener('load', size);
 })();
 
 // ---- CREEPS TABLE: pin identity columns on horizontal scroll ----
@@ -1149,25 +1212,21 @@
   applyLeftOffsets();
   window.addEventListener('resize', applyLeftOffsets, { passive: true });
 
-  // Click a cell to toggle a persistent highlight on its row (same soft
-  // mustard tint as the ability-link :target jump). Clicking an icon or link
-  // keeps its own behaviour. Click the row again to clear.
+  // Click a cell to mark its row (single-select, no animation). Clicking
+  // another row moves the mark; clicking the marked row again clears it.
+  // Matches the simpler highlight behaviour used by the Mana Items table —
+  // multi-select + fade-flash earlier here was hard to read once a few
+  // rows were marked.
   const tbody = table.querySelector('tbody');
   if (tbody) {
     tbody.addEventListener('click', e => {
       if (e.target.closest('a, img')) return;
       const tr = e.target.closest('tr');
       if (!tr) return;
-      const on = tr.classList.toggle('row-marked');
-      // One-shot flash only on the click that turns it ON. The persistent
-      // .row-marked has no animation, so re-sorting (which moves the row in
-      // the DOM) won't replay the flash.
-      tr.classList.remove('row-flash');
-      if (on) {
-        void tr.offsetWidth;             // restart the animation cleanly
-        tr.classList.add('row-flash');
-        setTimeout(() => tr.classList.remove('row-flash'), 2700);
-      }
+      const was = tr.classList.contains('row-marked');
+      tbody.querySelectorAll('tr.row-marked').forEach(r =>
+        r.classList.remove('row-marked', 'row-flash'));
+      if (!was) tr.classList.add('row-marked');
     });
   }
 
@@ -1187,11 +1246,11 @@
     const pageR  = page.getBoundingClientRect();
     const scrR   = scroller.getBoundingClientRect();
     const nameR  = firstTds[2].getBoundingClientRect();  // right edge of pinned block
-    // Only the column-name row is sticky now (the category row scrolls away),
-    // so dividers offset by the col-row height, not the whole thead.
+    // Only the column-name row is sticky (the category row scrolls away),
+    // so dividers offset by the col-row height.
     const colRow = table.querySelector('.col-row');
     const headH  = colRow ? colRow.getBoundingClientRect().height
-                          : table.tHead.getBoundingClientRect().height;
+                          : (table.tHead ? table.tHead.getBoundingClientRect().height : 0);
     // Vertical divider: at the right edge of the frozen lvl/unit columns,
     // starting BELOW the sticky column header and spanning the rest of height.
     if (frame) {
@@ -1214,6 +1273,10 @@
       const sx = scroller.scrollLeft > 0;
       const sy = scroller.scrollTop > 0;
       scroller.classList.toggle('scrolled', sx);
+      // Drop the category row the instant the table scrolls vertically, so
+      // only the column-name row stays pinned (one header) — no half-clipped
+      // category sliver under the toolbar.
+      table.classList.toggle('cat-row-hidden', sy);
       positionFrames();
       if (frame) frame.classList.toggle('visible', sx);
       if (frameTop) frameTop.classList.toggle('visible', sy);
@@ -1379,7 +1442,11 @@
       colCells.length = 0;
     };
     table.addEventListener('mouseover', e => {
-      const cell = e.target.closest('td,th');
+      // Only TD cells trigger / receive the cross-highlight. Hovering a TH
+      // (header) shouldn't sweep the row beneath it and shouldn't paint
+      // the column band — the heatmap on data cells is the only visual
+      // intent there.
+      const cell = e.target.closest('td');
       if (!cell || !table.contains(cell)) return;
       const row = cell.parentElement;
       if (row.tagName !== 'TR') return;
@@ -1389,7 +1456,8 @@
       clear();
       activeRow = row;
       row.classList.add('cross-row');
-      table.querySelectorAll('tr').forEach(tr => {
+      // Walk only TBODY rows — TH cells in thead never get cross-col.
+      table.querySelectorAll('tbody tr').forEach(tr => {
         const c = tr.cells && tr.cells[idx];
         if (c) {
           c.classList.add('cross-col');
@@ -1407,4 +1475,253 @@
   } else {
     wireAllTables();
   }
+})();
+
+// ---- MANA ITEMS: sticky stack offsets (nav → toolbar → thead) ----
+// Measures the live heights of the sticky site nav and the toolbar, then
+// writes them to CSS vars so the toolbar pins under the nav and the table
+// headers pin under the toolbar — regardless of nav/toolbar height changes.
+(function() {
+  const table = document.querySelector('.mr-table');
+  if (!table) return;
+  const nav = document.querySelector('nav.top-nav');
+  const toolbar = document.querySelector('.mr-toolbar');
+  function recalc() {
+    const navH = nav ? nav.getBoundingClientRect().height : 96;
+    const barH = toolbar ? toolbar.getBoundingClientRect().height : 32;
+    const root = document.documentElement.style;
+    root.setProperty('--site-nav-h', navH + 'px');
+    root.setProperty('--mr-thead-top', (navH + barH) + 'px');
+  }
+  recalc();
+  window.addEventListener('resize', recalc, { passive: true });
+})();
+
+// ---- MANA REGEN TABLE: simple sortable ----
+// Plain sort by data-sort attribute on each <td>. No row grouping / level
+// collapse / ability merging — the table is flat, so the existing creeps
+// sort would over-engineer it.
+(function() {
+  const tables = document.querySelectorAll('.mr-table');
+  tables.forEach(table => {
+    const tbody = table.querySelector('tbody');
+    const headers = [...table.querySelectorAll('thead th.sortable')];
+    if (!tbody || !headers.length) return;
+
+    function cellVal(tr, colIdx) {
+      const td = tr.children[colIdx];
+      if (!td) return null;
+      if (td.dataset.sort !== undefined && td.dataset.sort !== '') {
+        const n = parseFloat(td.dataset.sort);
+        return isNaN(n) ? td.dataset.sort.toLowerCase() : n;
+      }
+      const t = td.textContent.trim();
+      if (!t) return null;
+      const m = t.replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+      return m ? parseFloat(m[0]) : t.toLowerCase();
+    }
+
+    // Snapshot the server-rendered order so the neutral state can restore it.
+    const originalOrder = [...tbody.querySelectorAll('tr')];
+    // The default-sorted column is marked .sort-desc in the markup, so the
+    // 3-state cycle starts already on that column at "descending".
+    let sortCol = headers.findIndex(th =>
+      th.classList.contains('sort-asc') || th.classList.contains('sort-desc'));
+    if (sortCol === -1) sortCol = null;
+    // sortState: 0 = neutral, 1 = descending, 2 = ascending.
+    let sortState = sortCol !== null
+      ? (headers[sortCol].classList.contains('sort-asc') ? 2 : 1)
+      : 0;
+
+    function sortBy(colIdx, dir) {
+      const rows = [...tbody.querySelectorAll('tr')];
+      rows.sort((a, b) => {
+        const va = cellVal(a, colIdx);
+        const vb = cellVal(b, colIdx);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;          // empties sink
+        if (vb == null) return -1;
+        if (typeof va === 'number' && typeof vb === 'number') {
+          return dir === 'asc' ? va - vb : vb - va;
+        }
+        const sa = String(va), sb = String(vb);
+        return dir === 'asc' ? sa.localeCompare(sb) : sb.localeCompare(sa);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    }
+
+    headers.forEach((th, i) => {
+      th.addEventListener('click', () => {
+        // 3-state cycle per header: neutral → descending → ascending → neutral.
+        if (sortCol === i) sortState = (sortState + 1) % 3;
+        else { sortCol = i; sortState = 1; }   // first click = descending
+        headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        if (sortState === 0) {
+          // Neutral — restore the original server-rendered order.
+          sortCol = null;
+          originalOrder.forEach(r => tbody.appendChild(r));
+        } else {
+          const dir = sortState === 1 ? 'desc' : 'asc';
+          th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+          sortBy(i, dir);
+        }
+        // Heatmap follows the new row order / visible set.
+        window.dispatchEvent(new CustomEvent('mr:filter-changed'));
+      });
+    });
+  });
+})();
+
+// ---- MANA ITEMS: "Hide active" toggle ----
+// Hides every <tr.mr-active-row> when checked. Heatmap recomputes via the
+// shared `mr:filter-changed` channel so column gradients reflect the
+// currently-visible row set.
+(function() {
+  const toggle = document.getElementById('mr-hide-active');
+  if (!toggle) return;
+  const apply = () => {
+    document.querySelectorAll('.mr-active-row').forEach(tr => {
+      tr.classList.toggle('mr-hide-active', toggle.checked);
+    });
+    window.dispatchEvent(new CustomEvent('mr:filter-changed'));
+  };
+  toggle.addEventListener('change', apply);
+})();
+
+// ---- MANA ITEMS: per-column conditional formatting ----
+// For every column whose <th data-direction> is set, scan all visible cells
+// and paint a faint pastel gradient — green at the "good" end, red at the
+// "bad" end. Pure visual aid; doesn't alter values or sort order.
+(function() {
+  const table = document.querySelector('.mr-table');
+  if (!table) return;
+  const headers = [...table.querySelectorAll('thead th')];
+
+  function applyHeatmap() {
+    // Respect the on-page Heatmap switch — when off, all cells stay flat.
+    // (The toggle IIFE separately strips any inline backgrounds we set.)
+    const toggle = document.getElementById('mr-heatmap-toggle');
+    if (toggle && !toggle.checked) return;
+    const rows = [...table.querySelectorAll('tbody tr')];
+    headers.forEach((th, colIdx) => {
+      const direction = th.dataset.direction;
+      if (!direction) return;
+      // Gather numeric data-sort values for visible non-dash cells. Rows
+      // hidden by the price filter (.mr-filtered-out) are also excluded so
+      // colours always reflect the current visible set.
+      const cells = [];
+      rows.forEach(tr => {
+        if (tr.hasAttribute('hidden')) return;
+        if (tr.classList.contains('mr-filtered-out')) return;
+        if (tr.classList.contains('mr-hide-active')) return;
+        const td = tr.children[colIdx];
+        if (!td) return;
+        td.style.backgroundColor = '';        // reset previous paint
+        if (td.querySelector('.ua-dash')) return;
+        const v = parseFloat(td.dataset.sort);
+        if (isNaN(v) || v === 0) return;
+        cells.push({ td, v });
+      });
+      if (cells.length < 2) return;
+      // Rank-percentile mapping: each cell's colour is decided by its rank
+      // within the column, not its raw value. Eliminates the previous problem
+      // where a single outlier (Dagon 5's 25.5k cost-per-regen) compressed
+      // every other value into the same green band — now mid-tier rows get
+      // mid-tier colours regardless of how far the worst outlier sits.
+      const sorted = cells.slice().sort((a, b) => a.v - b.v);
+      const rankMap = new Map();
+      sorted.forEach((c, i) => rankMap.set(c, i));
+      const last = sorted.length - 1;
+      cells.forEach(c => {
+        let t = rankMap.get(c) / last;     // [0, 1] by rank
+        if (direction === 'lower') t = 1 - t;
+        // 0 → red, 60 → amber, 120 → green. Keep saturation + alpha
+        // moderate so cross-hover darkening still reads on top.
+        const hue = Math.round(t * 120);
+        c.td.style.backgroundColor =
+          `hsla(${hue}, 60%, 50%, 0.22)`;
+      });
+    });
+  }
+  applyHeatmap();
+  // Filter / sort events from sibling IIFEs trigger a recompute.
+  window.addEventListener('mr:filter-changed', applyHeatmap);
+})();
+
+// ---- MANA ITEMS: click row to highlight (yellow). Click again to deselect. ----
+(function() {
+  const table = document.querySelector('.mr-table');
+  if (!table) return;
+  table.addEventListener('click', e => {
+    const tr = e.target.closest('tbody tr');
+    if (!tr || !table.contains(tr)) return;
+    const was = tr.classList.contains('mr-row-selected');
+    table.querySelectorAll('tr.mr-row-selected').forEach(r =>
+      r.classList.remove('mr-row-selected'));
+    if (!was) tr.classList.add('mr-row-selected');
+  });
+})();
+
+// ---- MANA ITEMS: Price min/max filter ----
+(function() {
+  const table = document.querySelector('.mr-table');
+  if (!table) return;
+  const minIn = document.getElementById('mr-price-min');
+  const maxIn = document.getElementById('mr-price-max');
+  const clear = document.getElementById('mr-price-clear');
+  if (!minIn || !maxIn) return;
+  // Find the Price column index from the header (data-col="cost").
+  const headers = [...table.querySelectorAll('thead th')];
+  const priceIdx = headers.findIndex(th => th.dataset.col === 'cost');
+  if (priceIdx < 0) return;
+
+  function applyFilter() {
+    const lo = parseFloat(minIn.value);
+    const hi = parseFloat(maxIn.value);
+    const hasLo = !isNaN(lo);
+    const hasHi = !isNaN(hi);
+    // Show the X only when at least one bound is set — otherwise the
+    // combo widget reads as a simple "Price from–to" placeholder pair.
+    clear.hidden = !(hasLo || hasHi);
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      const td = tr.children[priceIdx];
+      const v = td ? parseFloat(td.dataset.sort) : NaN;
+      let keep = true;
+      if (!isNaN(v)) {
+        if (hasLo && v < lo) keep = false;
+        if (hasHi && v > hi) keep = false;
+      }
+      tr.classList.toggle('mr-filtered-out', !keep);
+    });
+    // Heatmap re-applies over the new visible set.
+    window.dispatchEvent(new CustomEvent('mr:filter-changed'));
+  }
+  minIn.addEventListener('input', applyFilter);
+  maxIn.addEventListener('input', applyFilter);
+  clear.addEventListener('click', () => {
+    minIn.value = '';
+    maxIn.value = '';
+    applyFilter();
+  });
+})();
+
+// ---- MANA ITEMS: Heatmap on/off toggle + recompute on filter change ----
+(function() {
+  const table = document.querySelector('.mr-table');
+  const toggle = document.getElementById('mr-heatmap-toggle');
+  if (!table || !toggle) return;
+  function applyOrClear() {
+    if (toggle.checked) {
+      // Recompute by dispatching a synthetic event the heatmap IIFE
+      // listens to. (The heatmap IIFE re-runs its applyHeatmap each
+      // time a filter/sort changes — we route through it here too.)
+      window.dispatchEvent(new CustomEvent('mr:filter-changed'));
+    } else {
+      // Strip all backgroundColor inline styles set by the heatmap.
+      table.querySelectorAll('tbody td').forEach(td => {
+        td.style.backgroundColor = '';
+      });
+    }
+  }
+  toggle.addEventListener('change', applyOrClear);
 })();

@@ -39,6 +39,11 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python build_creeps.py
 
+      - name: Build mana items table
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python build_mana_items.py
+
       - name: Audit — BAT rows must use l=True
         run: |
           python - <<'PY'

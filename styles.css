@@ -51,8 +51,12 @@ nav.top-nav {
     /* gentle ambient drop below the bar */
     0 4px 18px rgba(0, 0, 0, 0.35);
   width: 100%;
-  position: relative;
-  z-index: 10;
+  /* Pin to the viewport top so the brand + version picker stay visible
+     while the page (and sticky table headers below) scroll. Stack-order:
+     site nav (z 100) → subnav (z 90) → toolbar (z 80) → table thead. */
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .nav-inner {
   width: 100%;
@@ -416,15 +420,39 @@ nav.top-nav {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* Lock height + bottom margin so the toolbar occupies exactly the same
-     vertical slot on every page — even when one page (Unit Abilities) adds
-     an extra control (the Upgrades switch) that's the same height but
-     could otherwise cause a layout jiggle if its baseline differs by a px. */
-  min-height: 28px;
+  /* Fixed height (not min-height) so the toolbar occupies the EXACT same
+     vertical slot on every page. All child controls are 32px tall + border-
+     box (rules below) so the bar measures identically whether a page shows
+     a select, toggles, or the price range. */
+  height: 32px;
   margin-bottom: 8px;
   padding-left: 0;
   font-size: 13px;
   color: #8b949e;
+}
+/* One height for every toolbar control so the bar never measures differently
+   between Neutral Creeps / Unit Abilities / Mana Items. */
+.cal-toggle-bar .cal-mode-select,
+.cal-toggle-bar .ua-upgrades-toggle,
+.cal-toggle-bar .mr-price-range {
+  height: 32px;
+  box-sizing: border-box;
+}
+/* Creeps / Unit Abilities toolbar — same painted gap as Mana Items
+   (14px above buttons isn't needed since there's no description, but the 8px
+   below matches). Opaque bg + z-index above the table so nothing shows
+   through the strip between the toolbar and the scroll box's header. */
+.creeps-page > .cal-toggle-bar:not(.mr-toolbar) {
+  margin-bottom: 0;
+  /* content-box so the 14/8 padding ADDS to the 32px height (→ 54px total),
+     identical to Mana Items. Without it the global border-box rule folds the
+     padding into 32px and the toolbar stays shorter. */
+  box-sizing: content-box;
+  padding-top: 14px;
+  padding-bottom: 8px;
+  background: #0a0e13;
+  position: relative;
+  z-index: 6;
 }
 /* The View group (label + select) is wrapped in its own inline-flex so its
    width is independent of whatever follows in the toolbar. Same width on
@@ -540,8 +568,18 @@ nav.top-nav {
    inset shadow sits on top and visually "owns" the cell. */
 .unit-abilities-table.show-upgrades td.leveled {
   background: rgba(120, 200, 235, 0.08);
-  box-shadow: inset 0 0 0 1.5px rgba(120, 200, 235, 0.55);
+  position: relative;
+}
+/* Frame drawn as an inset pseudo-element (3px in from every edge) instead of
+   an edge-flush box-shadow, so the row-select gold frame at the cell border
+   has clearance and doesn't sit half-hidden behind this blue outline. */
+.unit-abilities-table.show-upgrades td.leveled::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1.5px solid rgba(120, 200, 235, 0.55);
   border-radius: 6px;
+  pointer-events: none;
 }
 
 /* YEAR BLOCK (shared between modes, collapsible) */
@@ -855,21 +893,30 @@ span.cal-patch {
 }
 
 /* Universal table cross-highlight — applies to every <table> on every page.
-   On hover of any cell, the entire row + entire column get a soft tint; the
-   pivot cell (intersection) gets a brighter one. Background is a layered
-   "tint over whatever the cell already has" so coloured cells stay coloured.
-   Wired up in scripts.js → wireCrossHover(). */
+   On hover of any cell, the entire row + entire column get an equal DARK
+   tint; the pivot cell (intersection) is darker still with a cyan rim.
+   Wired up in scripts.js → wireCrossHover(). TH cells are never tagged by
+   the JS so header rows stay clean.
+
+   IMPORTANT: the hovered row is BOTH .cross-row AND the :hover target, so a
+   table's row-hover background tint would otherwise lighten the horizontal
+   band and make it read paler than the vertical column. We zero out the
+   hover tint on .cross-row rows (below) so both axes darken equally. */
 table tr.cross-row > td,
-table tr.cross-row > th,
-table td.cross-col,
-table th.cross-col {
-  background-image: linear-gradient(rgba(170, 220, 240, 0.08),
-                                    rgba(170, 220, 240, 0.08));
+table td.cross-col {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.34),
+                                    rgba(0, 0, 0, 0.34));
 }
-table tr.cross-row > td.cross-col,
-table tr.cross-row > th.cross-col {
-  background-image: linear-gradient(rgba(170, 220, 240, 0.18),
-                                    rgba(170, 220, 240, 0.18));
+table tr.cross-row > td.cross-col {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.50),
+                                    rgba(0, 0, 0, 0.50));
+  box-shadow: inset 0 0 0 1px rgba(170, 220, 240, 0.55);
+}
+/* Kill per-table row-hover tints on the cross-row so the horizontal band
+   darkens by the same amount as the vertical column. */
+.creeps-table tbody tr.cross-row:hover,
+.mr-table tbody tr.cross-row:hover {
+  background: transparent;
 }
 .cal-full-day.has-patch {
   font-weight: 700;
@@ -3224,28 +3271,36 @@ body.filter-active ul.subnotes { display: none; }
   opacity: 0.9;
 }
 /* Secondary tab strip under the main nav (Creeps Table | Unit Abilities). */
-.creeps-subnav {
-  display: flex;
+/* Materials sub-tabs: stacked UNDER the brand, flush with the header's
+   bottom edge (browser-tab look). The header switches to a vertical layout
+   on these pages so the brand sits on top and the tabs hang off the bottom. */
+.nav-inner-stacked {
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
-  padding: 10px 20px 0;
-  max-width: 1600px;
-  margin: 0 auto;
+  padding-bottom: 0;   /* tabs touch the bottom border */
 }
-.creeps-subnav .creeps-subtab {
-  font-size: 12px;
+.nav-subtabs {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+}
+.nav-subtab {
+  font-size: 13px;
   font-weight: 600;
   color: #9fb0c0;
   text-decoration: none;
-  padding: 5px 12px;
-  border-radius: 6px 6px 0 0;
+  padding: 7px 16px;
   border: 1px solid transparent;
   border-bottom: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 7px 7px 0 0;   /* rounded top — sits on the bottom border */
+  margin-bottom: -1px;          /* overlap the nav's 1px bottom border */
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.creeps-subnav .creeps-subtab:hover { color: #e6edf3; background: #1d2530; }
-.creeps-subnav .creeps-subtab.active {
+.nav-subtab:hover { color: #e6edf3; background: rgba(48, 54, 61, 0.45); }
+.nav-subtab.active {
   color: #e6edf3;
-  background: #11161d;
+  background: #0a0e13;          /* matches the page bg → tab merges downward */
   border-color: rgba(170, 220, 240, 0.18);
 }
 /* Ability-icon link on the Creeps Table — no underline, inherits layout. */
@@ -3321,7 +3376,8 @@ body.filter-active ul.subnotes { display: none; }
 .unit-abilities-table .ua-stack-glyph { font-size: 8px; }
 /* Cell dashes — half size. */
 .unit-abilities-table .ua-dash,
-.creeps-table .ua-dash { color: #6e7681; font-size: 0.5em; }
+.creeps-table .ua-dash,
+.mr-table .ua-dash { color: #6e7681; font-size: 0.4em; }
 /* "Ability" header centred; Type values left-aligned so the words line up. */
 .unit-abilities-table th.ua-ability { text-align: center; }
 .unit-abilities-table th.ua-type,
@@ -3707,8 +3763,10 @@ body.filter-active ul.subnotes { display: none; }
 /* Standard view hides Expanded-only columns. Super-category headers span all
    their columns; the colspan shrinks automatically as hidden cells collapse. */
 .creeps-table.mode-standard .col-exp { display: none; }
-/* Super-category header row — NOT sticky: it scrolls away on vertical scroll,
-   only the column-name row stays pinned. */
+/* Only ONE header row is pinned: the column-name row. The category row
+   (Basic/Vitality/…) is a normal row that scrolls away and clips cleanly at
+   the scroll-box top (no sliver now that the toolbar above is opaque and
+   gap-free). */
 .creeps-table thead tr.cat-row th.cat-head {
   position: static;
   font-size: 10px;
@@ -3720,8 +3778,17 @@ body.filter-active ul.subnotes { display: none; }
   padding: 3px 4px;
   border-bottom: 1px solid rgba(139, 148, 158, 0.30);
 }
-/* Column-name row is the only sticky header — pins to the top on scroll. */
-.creeps-table thead tr.col-row th { top: 0; }
+/* Column-name row — the only sticky header. Bottom line via box-shadow not
+   border-bottom (Chrome drops collapsed borders on sticky cells mid-scroll). */
+.creeps-table thead tr.col-row th {
+  top: 0;
+  border-bottom: none;
+  box-shadow: inset 0 -1px 0 rgba(139, 148, 158, 0.45);
+}
+/* While the table is scrolled vertically, the category row is removed so the
+   column-name row is the single clean pinned header (no clipped sliver). JS
+   toggles .cat-row-hidden on scrollTop > 0. */
+.creeps-table.cat-row-hidden thead tr.cat-row { display: none; }
 .creeps-table thead tr.cat-row .cat-head + .cat-head { border-left: 2px solid rgba(170, 220, 240, 0.22); }
 .creeps-table .creep-icon-cell img {
   width: 48px;
@@ -3787,10 +3854,20 @@ body.filter-active ul.subnotes { display: none; }
 }
 /* Sort indicator — thin line arrows (↕ / ↑ / ↓) instead of heavy filled
    triangles, for a more refined look. Dim until the column is active. */
-.creeps-table th.sortable .sort-ind {
+/* Sort indicator centering — shared by Neutral Creeps, Unit Abilities and
+   Mana Items so all three behave identically. The bare ↕/↑/↓ glyphs hang
+   low on the baseline; vertical-align: middle + a small upward nudge pulls
+   them onto the header text's optical centre. */
+.creeps-table th.sortable .sort-ind,
+.mr-table thead th.sortable .sort-ind {
   margin-left: 3px;
   font-size: 10px;
   opacity: 0.4;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+  position: relative;
+  top: -0.12em;
 }
 .creeps-table th.sortable .sort-ind::after { content: '↕'; }
 .creeps-table th.sort-desc .sort-ind,
@@ -3799,7 +3876,8 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table th.sort-asc .sort-ind::after { content: '↑'; }
 /* Stat cells with a recorded change history get a dotted underline cue +
    help cursor, hinting that hover shows the changelog. */
-.creeps-table td.has-history {
+.creeps-table td.has-history,
+.mr-table td.has-history {
   cursor: help;
   text-decoration: underline dotted rgba(170, 220, 240, 0.5);
   text-underline-offset: 3px;
@@ -3821,6 +3899,12 @@ body.filter-active ul.subnotes { display: none; }
   font-size: 11.5px;
   color: #c9d1d9;
   text-align: center;
+  /* Tall histories (e.g. Guardian Greaves) would overflow the viewport.
+     Cap height and let the tooltip scroll internally; JS clamps the top so
+     the box never runs off-screen. pointer-events stays none so the wheel
+     scrolls the page, not the tip — fine, the cap keeps it readable. */
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
 }
 .stat-hist-tip.is-visible { display: block; }
 .stat-hist-tip .stat-chg { padding: 3px 0; }
@@ -3953,22 +4037,35 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table tbody tr:hover {
   background: rgba(56, 139, 253, 0.08);
 }
-/* Click-toggled persistent row mark — soft mustard, same as the :target jump.
-   Also on the row so it sits below cell colours. */
-.creeps-table tbody tr.row-marked {
-  background: rgba(210, 175, 95, 0.1);   /* persistent, no animation */
+/* Click-toggled row mark — matches the Mana Items style: gold inset frame
+   around the whole row + soft tint, no fade animation. Single-select
+   (clicking another row moves the mark). */
+.creeps-table tbody tr.row-marked > td {
+  box-shadow:
+    inset 0  2px 0 rgba(231, 196, 106, 0.95),
+    inset 0 -2px 0 rgba(231, 196, 106, 0.95);
+  background-image: linear-gradient(rgba(231, 196, 106, 0.12),
+                                    rgba(231, 196, 106, 0.12));
 }
-/* One-shot flash on the click that marks the row (removed by JS after it
-   plays), so re-sorting the table doesn't replay it. */
-.creeps-table tbody tr.row-flash {
-  animation: ua-flash 2.6s ease-out;
+.creeps-table tbody tr.row-marked > td:first-child {
+  box-shadow:
+    inset  2px  0  0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
 }
-.creeps-table tbody tr.row-marked:hover {
-  background: rgba(210, 175, 95, 0.16);
+.creeps-table tbody tr.row-marked > td:last-child {
+  box-shadow:
+    inset -2px  0  0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
 }
-/* Marked-row sticky identity cells stay opaque, tinted to match the 10% mark. */
-.creeps-table tbody tr.row-marked .sticky-col { --sticky-bg: #1d1b14; }
-.creeps-table tbody tr.row-marked:hover .sticky-col { --sticky-bg: #242117; }
+/* Sticky identity cells inside a marked row pick up the same tint without
+   the inset frame (the frame would double-paint through the sticky cell). */
+.creeps-table tbody tr.row-marked .sticky-col { --sticky-bg: #2b251a; }
+.creeps-table tbody tr.row-marked:hover .sticky-col { --sticky-bg: #34291e; }
+/* Legacy .row-flash class (one-shot fade) is no longer applied by JS but
+   the keyframes still live below — harmless dead CSS, retained so any
+   third-party styling doesn't break. */
 /* First column (unicode tier dots) — centered glyph, smaller letter-spacing. */
 .creeps-table th:first-child,
 .creeps-table td:first-child {
@@ -4035,3 +4132,253 @@ body.filter-active ul.subnotes { display: none; }
   color: #79c0ff;
   font-weight: 600;
 }
+
+/* ───────────────────────── MANA REGEN TABLE ───────────────────────────── */
+.mr-blurb {
+  /* No bottom margin — the sticky toolbar's padding-top (14px) provides the
+     description→buttons gap so it's identical resting vs scrolled. */
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #8b949e;
+  max-width: 920px;
+}
+.mr-blurb strong { color: #c9d1d9; font-weight: 600; }
+.mr-blurb code {
+  background: rgba(110, 118, 129, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #c9d1d9;
+}
+.mr-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Match the Neutral Creeps / Unit Abilities tables exactly (11.5px). */
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.mr-table thead th,
+.mr-table tbody td {
+  /* Faint vertical separator on the left edge — matches Neutral Creeps /
+     Unit Abilities table convention. Skipped on the first column below. */
+  border-left: 1px solid rgba(170, 220, 240, 0.12);
+}
+.mr-table thead th:first-child,
+.mr-table tbody td:first-child {
+  border-left: none;
+}
+.mr-table thead th {
+  /* Typography matched 1:1 to .creeps-table thead th — inherits the 11.5px
+     table font size (no override), same weight, colour, padding, casing,
+     line-height so all three tables share one header design. */
+  background: #161b22;
+  color: #e6edf3;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px 6px;
+  line-height: 1.2;
+  /* Cyan bottom rim + drop shadow drawn via box-shadow, NOT border-bottom:
+     Chrome drops collapsed borders on sticky cells mid-scroll (the line
+     vanished). An inset box-shadow repaints reliably while stuck. */
+  box-shadow:
+    inset 0 -2px 0 rgba(120, 200, 235, 0.85),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  /* Page-level sticky stack: site nav → toolbar → these headers. The `top`
+     offset (nav height + toolbar height) is measured + set in scripts.js as
+     --mr-thead-top so it tracks the real rendered heights. Subnav and the
+     description above are left in normal flow, so they scroll away. */
+  top: var(--mr-thead-top, 130px);
+  z-index: 4;
+  white-space: nowrap;
+}
+/* Toolbar pins right under the site nav. The painted background extends a
+   bit BELOW the buttons (padding-bottom) so that when the headers pin under
+   it there's a visible gap — not the buttons sitting flush on the table.
+   JS measures the toolbar's full height (incl. this padding) into
+   --mr-thead-top, so the headers pin exactly at the painted bottom edge. */
+.mr-toolbar {
+  position: sticky;
+  top: var(--site-nav-h, 96px);
+  z-index: 5;
+  background: #0a0e13;
+  box-sizing: content-box;
+  /* Painted padding above + below the buttons so the scrolled gaps match the
+     resting layout exactly: 14px above (= the description→buttons gap, with
+     .mr-blurb margin-bottom zeroed), 8px below (= buttons→table gap). */
+  margin-bottom: 0;
+  padding: 14px 0 8px;
+}
+/* OPAQUE hover background — a translucent one let table rows scrolling
+   beneath the sticky header bleed through. This is the #161b22 base blended
+   with the old rgba(48,54,61,0.5) tint, fully opaque. */
+.mr-table thead th:hover { background: #232930; }
+/* Sort indicator — identical glyph + dim/active logic to the creeps-table
+   convention: ↕ (neutral, dim), ↓ (desc, active), ↑ (asc, active). */
+/* (sort-ind centering is defined once in the shared rule above.) */
+/* Denser divider splitting raw stats (Price…Mana regen) from the computed
+   columns (Cost per regen onward). */
+.mr-table thead th.mr-col-cost_per_regen,
+.mr-table tbody td.mr-sep {
+  border-left: 2px solid rgba(170, 220, 240, 0.40);
+}
+.mr-table thead th.sortable .sort-ind::after { content: '↕'; }
+.mr-table thead th.sort-desc .sort-ind,
+.mr-table thead th.sort-asc  .sort-ind { opacity: 1; color: #79c0ff; }
+.mr-table thead th.sort-desc .sort-ind::after { content: '↓'; }
+.mr-table thead th.sort-asc  .sort-ind::after { content: '↑'; }
+.mr-table tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  text-align: center;
+  color: #c9d1d9;
+}
+.mr-table tbody tr:hover { background: rgba(48, 54, 61, 0.3); }
+/* Item-name cell: icon stays in a fixed-width left column so every icon
+   lines up vertically. Name + dropdown arrow share the right region as
+   an inline flex group — the arrow sits flush against the name so it
+   reads as "expand THIS item" rather than floating at the cell edge. */
+.mr-table .mr-name {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  min-width: 230px;
+}
+.mr-name-body {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mr-name-text {
+  text-align: left;
+  white-space: nowrap;
+}
+.mr-name-text { color: #e6edf3; font-weight: 500; }
+
+/* Engine-constant inline chip (+12 max mana, +0.05 mana regen per Int).
+   Visually it's just a bold value with the same dotted-underline cue used
+   by `.has-history` table cells — hover triggers the stat-hist-tip popup
+   driven by data-hist. Per-patch source: Liquipedia's
+   /Intelligence/Changelogs (hardcoded engine constants are not in our
+   scraped patchnotes_english.txt). */
+.mr-const {
+  font-weight: 600;
+  color: #c9d1d9;
+}
+.mr-const.has-history {
+  cursor: help;
+  text-decoration: underline dotted rgba(170, 220, 240, 0.5);
+  text-underline-offset: 3px;
+}
+/* Match the patch-page convention for item icons (rectangular 50×36 cover) */
+.mr-ico {
+  width: 36px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(170, 220, 240, 0.18);
+}
+.mr-ico-blank {
+  background: rgba(110, 118, 129, 0.15);
+  border: 1px solid rgba(110, 118, 129, 0.3);
+  box-shadow: none;
+}
+.mr-dash { color: #6e7681; }
+
+/* Mana-regen multiplier chip (Kaya = +30%, etc). Sits inline next to the
+   flat regen number. */
+.mr-mult-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: rgba(170, 220, 240, 0.12);
+  border: 1px solid rgba(170, 220, 240, 0.32);
+  border-radius: 10px;
+  font-size: 10.5px;
+  color: #79c0ff;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* "Hide Active" toolbar toggle uses the existing ua-upgrades-toggle pill
+   styling; rows tagged .mr-active-row collapse via display: none. */
+.mr-table tbody tr.mr-active-row.mr-hide-active { display: none; }
+.mr-active-row .mr-name-text { color: #a8b3bd; font-style: italic; }
+
+/* Price range combo — one bordered container holds both inputs + the
+   clear-X so they read as a single control. Inputs are borderless inside
+   (focus ring is drawn on the parent). */
+.mr-price-range {
+  display: inline-flex;
+  align-items: center;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  transition: border-color 0.12s;
+}
+.mr-price-range:focus-within { border-color: #58a6ff; }
+.mr-price-input {
+  width: 56px;
+  background: transparent;
+  border: none;
+  color: #c9d1d9;
+  padding: 4px 6px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+}
+.mr-price-input::placeholder { color: #6e7681; }
+.mr-price-input::-webkit-outer-spin-button,
+.mr-price-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mr-price-input { -moz-appearance: textfield; }
+.mr-price-sep { color: #6e7681; font-size: 12px; padding: 0 2px; user-select: none; }
+/* X button — flush against the right edge of the combo, no own border.
+   `hidden` attr on render hides it until at least one bound is set; JS
+   un-hides on input. */
+.mr-price-clear {
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s;
+  border-left: 1px solid #30363d;
+}
+.mr-price-clear:hover { color: #f85149; }
+.mr-price-clear[hidden] { display: none; }
+.mr-table tbody tr.mr-filtered-out { display: none; }
+
+/* Clicked-row highlight — yellow outline around the ENTIRE row, not each
+   cell. Achieved with inset box-shadows on the TDs: top / bottom on all
+   cells, left edge on the first cell, right edge on the last cell —
+   together they form one continuous gold frame around the row. */
+.mr-table tbody tr.mr-row-selected > td {
+  box-shadow:
+    inset 0  2px 0 rgba(231, 196, 106, 0.95),
+    inset 0 -2px 0 rgba(231, 196, 106, 0.95);
+  background-image: linear-gradient(rgba(231, 196, 106, 0.10),
+                                    rgba(231, 196, 106, 0.10));
+}
+.mr-table tbody tr.mr-row-selected > td:first-child {
+  box-shadow:
+    inset  2px  0  0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
+}
+.mr-table tbody tr.mr-row-selected > td:last-child {
+  box-shadow:
+    inset -2px  0  0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
+}
+.mr-table tbody tr.mr-row-selected .mr-name-text { color: #fff8e0; }
