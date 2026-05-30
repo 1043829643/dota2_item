@@ -103,6 +103,8 @@ jobs:
           cp index.html _site/
           cp calendar.html _site/
           cp creeps.html _site/
+          cp materials.html _site/
+          cp mana_items.html _site/
           cp unit_abilities.html _site/
           cp styles.css _site/
           cp scripts.js _site/
