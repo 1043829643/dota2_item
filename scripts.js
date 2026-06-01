@@ -1755,7 +1755,10 @@
     const book = document.querySelector('.inv-book');
     if (!book) return;
     const nav = document.querySelector('nav.top-nav');
-    const M = 12, EDGE = 6;                          // gaps: between items / page edge
+    const EDGE = 6;                                  // gap from the page edge
+    // Inter-name gap shrinks as the count grows, so more names pack in (the
+    // Telegram bot can feed many without them feeling sparse).
+    const M = Math.max(3, Math.round(14 - sigs.length * 0.05));
     // clientWidth/Height = the visible area WITHOUT the scrollbar (matches the
     // fixed signature layer), so a word never lands under the scrollbar.
     const W = document.documentElement.clientWidth;
@@ -1796,6 +1799,14 @@
         sig.style.left = (cx - w0 / 2) + 'px';   // element top-left from centre
         sig.style.top = (cy - h0 / 2) + 'px';
         sig.style.visibility = 'visible';
+        // Bulletproof: check the ACTUAL rendered (tilted) box — if it pokes past
+        // the page (e.g. the font measured narrower than it renders), reject and
+        // keep trying, so a name can never be clipped at the edge.
+        const rr = sig.getBoundingClientRect();
+        if (rr.left < 2 || rr.top < 2 || rr.right > W - 2 || rr.bottom > H - 2) {
+          sig.style.visibility = 'hidden';
+          continue;
+        }
         placed.push(r);
         done = true;
       }
@@ -1803,10 +1814,17 @@
     });
   }
 
-  // Wait for the pixel font so widths are measured correctly.
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
-  else if (document.readyState === 'complete') place();
-  else window.addEventListener('load', place);
+  // Make sure the pixel font is actually loaded before measuring widths —
+  // otherwise names get sized with the fallback font and render wider (which
+  // pushed near-edge names past the right side).
+  function run() {
+    const ready = (document.fonts && document.fonts.load)
+      ? document.fonts.load('20px "Jersey 10"').catch(() => {})
+      : Promise.resolve();
+    Promise.resolve(ready).then(place);
+  }
+  if (document.readyState === 'complete') run();
+  else window.addEventListener('load', run);
   let t;
   window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(place, 200); }, { passive: true });
 
