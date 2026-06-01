@@ -3121,7 +3121,7 @@ def write_head(version, date):
 <body>
 
 {nav}
-<a class="nav-back-arrow" href="../calendar.html" aria-label="Back to calendar" title="Back to calendar">←</a>
+<a class="nav-back-arrow" href="../calendar.html" aria-label="Back to calendar" title="Back to calendar"></a>
 <div class="toolbar">
   <div class="toolbar-inner">
     <div class="legend-stack">
@@ -3155,7 +3155,7 @@ with open(JS_TEXT, encoding="utf-8") as _f:
 def write_footer():
     """Render close-block + back-to-top button + script tag + closing tags."""
     W(_close_block())
-    W('<button class="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top:0, behavior:\'smooth\'})">↑</button>')
+    W('<button class="back-to-top" aria-label="Back to top" title="Back to top" onclick="window.scrollTo({top:0, behavior:\'smooth\'})"></button>')
     W(f'<script src="../scripts.js?v={_ASSET_VERSION}"></script>')
     W('</div></body></html>')
 

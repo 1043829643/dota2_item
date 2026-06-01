@@ -477,39 +477,59 @@ body:has(.creeps-page) nav.top-nav {
   color: rgba(88, 166, 255, 0.6);
 }
 
-/* NAV BACK ARROW — отдельная стрелка слева, как back-to-top, только в другую сторону */
-.nav-back-arrow {
+/* NAV BACK ARROW + BACK-TO-TOP — pixel-art chevrons on an index-style gold /
+   leather circle (matches the inventory landing page). Arrows are gold (#e3c46a)
+   PNGs at icons/ui/gothic/arrow_left|up.png. Both float in the BOTTOM corners so
+   neither overlaps the toolbar tags (the back arrow used to sit at top-left, over
+   the tag block). url() is relative to styles.css (repo root) → works on every
+   page regardless of depth. */
+.nav-back-arrow,
+.back-to-top {
   position: fixed;
-  top: 82px;
-  left: 22px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: rgba(22, 27, 34, 0.92);
-  border: 1px solid rgba(121, 192, 255, 0.45);
-  color: #79c0ff;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-  transition: all 0.18s ease;
-  z-index: 100;
-  font-family: inherit;
+  bottom: 22px;
+  width: 42px;
+  height: 42px;
+  box-sizing: border-box;
   padding: 0;
-  padding-bottom: 3px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 50%;
+  border: 2px solid #e3c46a;
+  box-shadow:
+    inset 0 1px 0 rgba(190, 225, 240, 0.10),
+    0 5px 16px rgba(0, 0, 0, 0.55);
+  background-repeat: no-repeat;
+  background-position: center;
+  image-rendering: pixelated;
+  display: none;
+  cursor: pointer;
+  text-decoration: none;
+  z-index: 100;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
-.nav-back-arrow:hover {
-  background: rgba(121, 192, 255, 0.2);
-  border-color: #79c0ff;
-  transform: translateX(-2px);
+.nav-back-arrow {
+  left: 22px;
+  background-image:
+    url('icons/ui/gothic/arrow_left.png'),
+    linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+  background-size: auto 22px, cover;
 }
-.nav-back-arrow.visible {
-  display: flex;
+.back-to-top {
+  right: 22px;
+  background-image:
+    url('icons/ui/gothic/arrow_up.png'),
+    linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+  background-size: 22px auto, cover;
+}
+.nav-back-arrow.visible,
+.back-to-top.visible { display: block; }
+.nav-back-arrow:hover,
+.back-to-top:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.18);
+  box-shadow:
+    inset 0 1px 0 rgba(190, 225, 240, 0.14),
+    0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
 /* CALENDAR PAGE */
@@ -3088,38 +3108,8 @@ ul.changes li > .badge-group {
 img { max-width: 100%; }
 
 /* BACK TO TOP — fixed bottom-right */
-.back-to-top {
-  position: fixed;
-  bottom: 22px;
-  right: 22px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: rgba(22, 27, 34, 0.92);
-  border: 1px solid rgba(121, 192, 255, 0.45);
-  color: #79c0ff;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-  transition: all 0.18s ease;
-  z-index: 100;
-  font-family: inherit;
-  padding: 0;
-  padding-bottom: 3px;
-}
-.back-to-top:hover {
-  background: rgba(121, 192, 255, 0.2);
-  border-color: #79c0ff;
-  transform: translateY(-2px);
-}
-.back-to-top.visible {
-  display: flex;
-}
+/* .back-to-top is styled together with .nav-back-arrow near the top of this file
+   (shared pixel-chevron gold/leather buttons). */
 
 /* AGHANIM'S SCEPTER / SHARD ROWS — light blue stripe (begins AT the icon, never
    covers the tag column) + small icon prefix sitting in the gap between tag
