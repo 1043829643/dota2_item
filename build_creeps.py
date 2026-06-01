@@ -670,6 +670,11 @@ def save_creeps_html():
             if not slug or slug in ABILITY_SKIP:
                 continue
             abilities.append((slug, _ability_dname(slug)))
+        # Riverborn Aura is shared by every frog unit — pin it to the first
+        # ability slot so the aura lines up in ONE column across all frogmen
+        # (consistent column-highlight / sort). Their unique ability shifts to
+        # slot 2. Stable sort keeps the rest of the order intact.
+        abilities.sort(key=lambda sd: 0 if sd[0] == 'frogmen_riverborn_aura' else 1)
         abilities += [('', '')] * (3 - len(abilities)) if len(abilities) < 3 else []
 
         result = {
@@ -1223,10 +1228,17 @@ def save_creeps_html():
     # Materials sub-tabs are embedded directly into the site header now
     # (subtabs_active), so there's no separate strip below it to freeze on
     # scroll. Build one nav per page with the correct active sub-tab.
+    # subnav_in_header=False: the sub-tab bar is placed INSIDE the scroll box
+    # (below) so it scrolls away with the table like Mana Items, instead of
+    # staying pinned under the nav.
     nav = _site.render_top_nav('materials', _latest_href(),
-                               patch_context=False, subtabs_active='creeps')
+                               patch_context=False, subtabs_active='creeps',
+                               subnav_in_header=False)
     nav_ua = _site.render_top_nav('materials', _latest_href(),
-                                  patch_context=False, subtabs_active='abilities')
+                                  patch_context=False, subtabs_active='abilities',
+                                  subnav_in_header=False)
+    subnav_creeps = _site.render_materials_subnav('creeps')
+    subnav_abilities = _site.render_materials_subnav('abilities')
     # No colgroup: table-layout: auto lets the browser size each column
     # to fit content (and each header) on one line. Headers and cells
     # are explicitly centred via CSS so the auto-width math doesn't have
@@ -1362,7 +1374,7 @@ def save_creeps_html():
             ua_canonical = {'frogmen_riverborn_aura': 'tad'}
             target_ch = ua_canonical.get(slug, ch)
             return (f'<a class="abil-link" '
-                    f'href="unit_abilities.html#{target_ch}-{slug}">{inner}</a>'
+                    f'href="neutral_abilities.html#{target_ch}-{slug}">{inner}</a>'
                     if slug else inner)
         return _esc(v) if v else '<span class="ua-dash">—</span>'
 
@@ -1444,9 +1456,26 @@ def save_creeps_html():
         '<body>\n'
         f'{nav}\n'
         '<div class="container creeps-page">\n'
-        # View toggle: Standard (default) hides the Expanded-only columns.
-        # Styled like the calendar mode-select.
-        '<div class="cal-toggle-bar">'
+        # Overlay frame outlining the pinned identity block during scroll.
+        # Lives OUTSIDE .creeps-scroll (which scrolls) so it never hits the
+        # Chrome bug where box-shadow/border on position:sticky cells fails
+        # to repaint mid-scroll. scripts.js positions + toggles it.
+        '<div class="sticky-frame" aria-hidden="true"></div>\n'
+        '<div class="sticky-frame-top" aria-hidden="true"></div>\n'
+        '<div class="creeps-scroll">\n'
+        # Sub-tab bar + blurb + toolbar all live INSIDE the scroll box (above
+        # the table) so they scroll away with the page just like the Mana Items
+        # layout — only the site nav and the sticky table headers remain pinned.
+        # They're sticky-left so they stay put during horizontal scroll.
+        f'{subnav_creeps}'
+        '<p class="mr-blurb inbox-bar">Stats and abilities of every neutral '
+        'camp creep in Dota 2 — pulled from the current patch\'s KV files. '
+        'Hover any cell with the dotted underline to see its change history '
+        'across patches. Click a column header to sort. The '
+        '<strong>View</strong> toggle switches between <em>Standard</em> '
+        '(essentials only) and <em>Expanded</em> (every numeric column — EHP, '
+        'armour %, gold range, collision, projectile speed, etc.).</p>\n'
+        '<div class="cal-toggle-bar inbox-bar">'
         '<span class="view-group">'
         '<strong>View</strong>'
         '<select class="cal-mode-select" id="view-mode">'
@@ -1455,13 +1484,6 @@ def save_creeps_html():
         '</select>'
         '</span>'
         '</div>\n'
-        # Overlay frame outlining the pinned identity block during scroll.
-        # Lives OUTSIDE .creeps-scroll (which scrolls) so it never hits the
-        # Chrome bug where box-shadow/border on position:sticky cells fails
-        # to repaint mid-scroll. scripts.js positions + toggles it.
-        '<div class="sticky-frame" aria-hidden="true"></div>\n'
-        '<div class="sticky-frame-top" aria-hidden="true"></div>\n'
-        '<div class="creeps-scroll">\n'
         '<table class="creeps-table mode-standard">\n'
         f'<thead><tr class="cat-row">{cat_cells}</tr>'
         f'<tr class="col-row">{thead_cells}</tr></thead>\n'
@@ -1488,7 +1510,7 @@ def save_creeps_html():
             '</body></html>'
         )
 
-    # ---- Unit Abilities companion page ----
+    # ---- Neutral Abilities companion page ----
     # One row per (creep, ability), mirroring the Creeps Table's Lvl + Unit
     # identity columns (Unit shows just the hover-zoom icon). Property columns
     # come from the CURRENT patch's npc_abilities.json (av_* + standard KV
@@ -1500,7 +1522,7 @@ def save_creeps_html():
     # back to '7.41c' if it's empty (e.g. clean checkout without stats dump).
     CUR_VER = next((v for v in reversed(_patches_chrono)
                     if v in _abil_by_patch), '7.41c')
-    print(f"  unit_abilities source patch: {CUR_VER}")
+    print(f"  neutral_abilities source patch: {CUR_VER}")
     cur_ab = _abil_by_patch.get(CUR_VER, {})
     DMG_TYPE = {'DAMAGE_TYPE_MAGICAL': 'Magical', 'DAMAGE_TYPE_PHYSICAL': 'Physical',
                 'DAMAGE_TYPE_PURE': 'Pure', 'DAMAGE_TYPE_HP_REMOVAL': 'HP Removal'}
@@ -1783,7 +1805,7 @@ def save_creeps_html():
                 '">?</span></span>'),
             'effect2': (
                 '\x01Golems have <a class="ua-inline-link" '
-                'href="unit_abilities.html#mud-mud_golem_hurl_boulder">'
+                'href="neutral_abilities.html#mud-mud_golem_hurl_boulder">'
                 'Hurl Boulder</a>'),
         },
         'frogmen_arm_of_the_deep': {
@@ -1881,7 +1903,7 @@ def save_creeps_html():
                 '>?</span></span>'),
             'effect2': (
                 '\x01Skeletons have <a class="ua-inline-link" '
-                'href="unit_abilities.html#skeleton_warrior-hill_troll_rally">'
+                'href="neutral_abilities.html#skeleton_warrior-hill_troll_rally">'
                 'Rally</a> aura'),
         },
         'spawnlord_master_stomp': {
@@ -2217,7 +2239,9 @@ def save_creeps_html():
         with open(_ae_path, encoding='utf-8-sig', errors='replace') as _f:
             _ae_text = _f.read()
         for _m in re.finditer(
-            r'"DOTA_Tooltip_ability_([a-z0-9_]+?)_Description"\s+"((?:[^"\\]|\\.)+)"',
+            # Case-insensitive: Valve mixes `ability_` and `Ability_` (capital A)
+            # in the key names — same key, different casing.
+            r'"DOTA_Tooltip_[Aa]bility_([a-z0-9_]+?)_Description"\s+"((?:[^"\\]|\\.)+)"',
             _ae_text,
         ):
             _slug, _desc = _m.group(1), _m.group(2)
@@ -2298,7 +2322,7 @@ def save_creeps_html():
 
     ua_html = (
         '<!DOCTYPE html>\n<html lang="ru">\n<head>\n<meta charset="UTF-8">\n'
-        '<title>Sloppy - Unit Abilities</title>\n'
+        '<title>Sloppy - Neutral Abilities</title>\n'
         + _site.favicon_links() +
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
@@ -2308,12 +2332,26 @@ def save_creeps_html():
         '</head>\n<body>\n'
         f'{nav_ua}\n'
         '<div class="container creeps-page">\n'
-        '<div class="cal-toggle-bar">'
+        '<div class="sticky-frame" aria-hidden="true"></div>\n'
+        '<div class="sticky-frame-top" aria-hidden="true"></div>\n'
+        '<div class="creeps-scroll">\n'
+        # Sub-tab bar + blurb + toolbar live INSIDE the scroll box so they
+        # scroll away with the table (Mana Items behaviour); sticky-left keeps
+        # them put during horizontal scroll.
+        f'{subnav_abilities}'
+        '<p class="mr-blurb inbox-bar">Every ability owned by a neutral camp '
+        'creep — one row per (creep, ability). Hover any cell with the dotted '
+        'underline to see how its value changed across patches. The '
+        '<strong>View</strong> dropdown filters the table: <em>Standard</em> '
+        'lists all abilities, <em>Auras</em> shows only the aura-type ones. '
+        'The <strong>Upgrades</strong> toggle dots numbers that progress per '
+        'neutral tier (e.g. 40/36/32/26).</p>\n'
+        '<div class="cal-toggle-bar inbox-bar">'
         '<span class="view-group">'
         '<strong>View</strong>'
         '<select class="cal-mode-select" id="ua-view-mode">'
-        '<option value="standard">Neutral (all)</option>'
-        '<option value="auras">Neutral (auras)</option>'
+        '<option value="standard">Standard</option>'
+        '<option value="auras">Auras</option>'
         '</select>'
         '</span>'
         # Upgrades — binary switch. ON marks every per-level progression
@@ -2326,9 +2364,6 @@ def save_creeps_html():
         '<span class="ua-switch" aria-hidden="true"></span>'
         '</label>'
         '</div>\n'
-        '<div class="sticky-frame" aria-hidden="true"></div>\n'
-        '<div class="sticky-frame-top" aria-hidden="true"></div>\n'
-        '<div class="creeps-scroll">\n'
         '<table class="creeps-table unit-abilities-table">\n'
         f'<thead><tr class="col-row">{ua_head_html}</tr></thead>\n'
         f'<tbody>\n{chr(10).join(ua_rows)}\n</tbody>\n'
@@ -2336,9 +2371,22 @@ def save_creeps_html():
         f'<script src="scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    with open('unit_abilities.html', 'w', encoding='utf-8') as f:
+    with open('neutral_abilities.html', 'w', encoding='utf-8') as f:
         f.write(ua_html)
-    print(f"  -> unit_abilities.html: {len(ua_html):,} bytes")
+    print(f"  -> neutral_abilities.html: {len(ua_html):,} bytes")
+    # Tiny redirect for the old URL so existing links (including from
+    # generated patch pages, bookmarks, external references) don't 404.
+    redirect_html = (
+        '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+        '<meta http-equiv="refresh" content="0; url=neutral_abilities.html">'
+        '<link rel="canonical" href="neutral_abilities.html">'
+        '<title>Sloppy - moved</title></head><body>'
+        '<p>This page moved to <a href="neutral_abilities.html">'
+        'neutral_abilities.html</a>.</p></body></html>'
+    )
+    with open('unit_abilities.html', 'w', encoding='utf-8') as f:
+        f.write(redirect_html)
+    print(f"  -> unit_abilities.html: {len(redirect_html)} bytes (redirect)")
 
 if __name__ == "__main__":
     save_creeps_html()

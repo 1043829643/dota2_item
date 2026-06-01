@@ -2902,6 +2902,39 @@ def _parse_date(dmy):
     return _D(int(y), int(m), int(d))
 
 
+def _patch_meta_parts(version):
+    """Return (prev_part, age_part) — two short labelled strings used by the
+    toolbar patch-info row.
+
+    prev_part  →  "+29 days after 7.41b"   (empty if no previous patch)
+    age_part   →  "Live 25 days"  on the newest patch,
+                  "Ran 29 days"   on every older one.
+    """
+    from datetime import date as _D
+    today = _D.today()
+    sorted_releases = sorted(RELEASE_HISTORY, key=lambda p: _parse_date(p["date"]))
+    for i, p in enumerate(sorted_releases):
+        if p["version"] != version:
+            continue
+        cur_date = _parse_date(p["date"])
+        prev_part = ""
+        if i > 0:
+            prev = sorted_releases[i - 1]
+            n = (cur_date - _parse_date(prev["date"])).days
+            prev_part = f'<b>{n}</b> days after <b>{prev["version"]}</b>'
+        if i < len(sorted_releases) - 1:
+            nxt = sorted_releases[i + 1]
+            n = (_parse_date(nxt["date"]) - cur_date).days
+            age_part = f'Ran: <b>{n}</b> days'
+        else:
+            n = (today - cur_date).days
+            unit = "day" if n == 1 else "days"
+            age_part = (f'Live: <b>{n}</b> {unit}' if n > 0
+                        else 'Released today')
+        return prev_part, age_part
+    return "", ""
+
+
 def _patch_age_line(version):
     """Build the small subtitle under the release date.
 
@@ -2994,12 +3027,11 @@ def _render_top_nav(active="changelogs", current_version=None, date=None, patch_
         prev_arrow = _nav_arrow(older, "Older")
         next_arrow = _nav_arrow(newer, "Newer")
 
+        # Patch info (date + age) was previously in this header block — it has
+        # moved to the .toolbar below so the header stays compact. Only the
+        # arrows + version dropdown remain on the right.
         picker_html = f'''
     <div class="nav-context nav-context-picker">
-      <div class="release-info">
-        <span class="release-date">{date}</span>
-        {age_html}
-      </div>
       <div class="version-picker">
         {prev_arrow}
         <div class="version-dropdown">
@@ -3024,6 +3056,19 @@ def write_head(version, date):
     _State.current_patch_version = version
     _State.current_entity_key = None
     nav = _render_top_nav(active="changelogs", current_version=version, date=date, patch_context=True)
+    # Patch info block in the toolbar — three discrete labelled facts on a
+    # single right-aligned row: release date, gap from the previous patch,
+    # how long this version has been live (or how long it ran). Plain text,
+    # no pill / no border.
+    prev_part, age_part = _patch_meta_parts(version)
+    parts = [f'<span class="ti-released">Released: <b>{date}</b></span>']
+    if prev_part:
+        parts.append(f'<span class="ti-after">{prev_part}</span>')
+    if age_part:
+        parts.append(f'<span class="ti-live">{age_part}</span>')
+    patch_info_html = (
+        '<div class="toolbar-patch-info">' + ''.join(parts) + '</div>'
+    )
     W(f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3038,27 +3083,29 @@ def write_head(version, date):
 
 {nav}
 <a class="nav-back-arrow" href="../calendar.html" aria-label="Back to calendar" title="Back to calendar">←</a>
-<div class="container">
-
 <div class="toolbar">
-  <div class="legend-stack">
-    <div class="legend-tags">
-      <strong>Tags:</strong>
-      <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
-      <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
-      <button class="badge new filter-btn" data-filter="new">NEW</button>
-      <button class="badge del filter-btn" data-filter="del">DEL</button>
-      <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
-      <button class="badge misc filter-btn" data-filter="misc">MISC</button>
-      <button class="badge qol filter-btn" data-filter="qol">QoL</button>
+  <div class="toolbar-inner">
+    <div class="legend-stack">
+      <div class="legend-tags">
+        <strong>Tags:</strong>
+        <button class="badge buff-text filter-btn" data-filter="buff">BUFF</button>
+        <button class="badge nerf-text filter-btn" data-filter="nerf">NERF</button>
+        <button class="badge new filter-btn" data-filter="new">NEW</button>
+        <button class="badge del filter-btn" data-filter="del">DEL</button>
+        <button class="badge rework filter-btn" data-filter="rework">REWORK</button>
+        <button class="badge misc filter-btn" data-filter="misc">MISC</button>
+        <button class="badge qol filter-btn" data-filter="qol">QoL</button>
+      </div>
+      <div class="legend-categories"><!--CATEGORIES_BAR--></div>
     </div>
-    <div class="legend-categories"><!--CATEGORIES_BAR--></div>
-  </div>
-  <div class="search-box">
-    <input type="text" id="entity-search" placeholder="Search heroes, items, abilities…" autocomplete="off" spellcheck="false">
-    <div class="search-results" id="search-results"></div>
+    <div class="search-box">
+      <input type="text" id="entity-search" placeholder="Search heroes, items, abilities…" autocomplete="off" spellcheck="false">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    {patch_info_html}
   </div>
 </div>
+<div class="container">
 ''')
 
 
@@ -3309,7 +3356,7 @@ def _categories_bar_html():
             f'<button class="badge cat-filter-btn" data-category="{s["slug"]}">'
             f'{s["label"]}</button>'
         )
-    return '<strong>Categories:</strong>' + ''.join(btns)
+    return '<strong>Group:</strong>' + ''.join(btns)
 
 
 def save_html(filename):
@@ -3618,28 +3665,26 @@ def save_index_html():
     later. Title and structure mirror the other tabs so the header stays
     in step."""
     nav = _render_top_nav(active="main", patch_context=False)
-    latest_href = PATCHES[0]['filename'] if PATCHES else "#"
-    # Tile grid replacing the old header nav buttons. Order mirrors the
-    # previous header (changelogs → calendar → materials); "Main" itself is
-    # excluded since we're already on it.
-    tiles = [
-        ('Advanced Patch Reader', latest_href,
-         'Patch-by-patch changelogs with dynamics tracking. Inspect '
-         'percentage deltas on every numeric change, browse a cleaner '
-         'visual layout for new abilities and reworks, and filter changes '
-         'by tags.'),
-        ('Calendar', 'calendar.html',
-         'Timeline of every Dota 2 patch release since 7.08.'),
-        ('Materials', 'materials.html',
-         'Neutral creeps, unit abilities, and other game data.'),
+    # 5×5 retro-RPG inventory icons: each tile is a round pastel "disc" with
+    # a pixel-art item drawn on top. Disc colour and item icon are paired in
+    # a hand-shuffled order to keep neighbouring tiles visually distinct.
+    _TILE_PLAN = [
+        ('pink',     'sword'),  ('mint',    'potion'), ('beige',    'heart'),
+            ('lavender', 'shield'), ('salmon', 'gem'),
+        ('beige',    'gem'),    ('salmon',  'sword'),  ('olive',    'potion'),
+            ('pink',     'heart'),  ('mint',   'coin'),
+        ('lavender', 'sword'),  ('beige',   'potion'), ('mint',     'shield'),
+            ('salmon',   'gem'),    ('olive',  'heart'),
+        ('mint',     'gem'),    ('pink',    'coin'),   ('salmon',   'shield'),
+            ('beige',    'sword'),  ('lavender','potion'),
+        ('olive',    'gem'),    ('lavender','heart'),  ('pink',     'potion'),
+            ('mint',     'sword'),  ('beige',  'coin'),
     ]
-    tile_html = ''.join(
-        f'<a class="hub-tile" href="{href}">'
-        f'<span class="hub-tile-title">{label}</span>'
-        f'<span class="hub-tile-desc">{desc}</span>'
-        f'</a>'
-        for label, href, desc in tiles
+    tiles_html = ''.join(
+        f'<div class="zuma-tile tile-{c} icon-{ic}" data-i="{i}"></div>'
+        for i, (c, ic) in enumerate(_TILE_PLAN)
     )
+    grid_html = f'<div class="zuma-grid">{tiles_html}</div>'
     html = (
         '<!DOCTYPE html>\n'
         '<html lang="en">\n'
@@ -3655,7 +3700,7 @@ def save_index_html():
         '</head>\n'
         '<body>\n'
         f'{nav}\n'
-        f'<div class="container main-page"><div class="hub-tiles">{tile_html}</div></div>\n'
+        f'<div class="container main-page">{grid_html}</div>\n'
         f'<script src="scripts.js?v={_ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )

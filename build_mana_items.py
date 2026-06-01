@@ -615,10 +615,16 @@ def load_items() -> list[dict]:
                 f"{display_name} (Active)", total_regen,
                 is_active_sub=True, parent_slug=slug,
             ))
+        elif has_active:
+            # Active-only item (Soul Ring): its entire regen comes from the
+            # active (Sacrifice), so mark it as an Active row — it reads with
+            # the "(Active)" suffix and groups/filters with the other actives.
+            rows.append(make(
+                f"{display_name} (Active)", total_regen,
+                is_active_sub=True, parent_slug=slug,
+            ))
         else:
-            # Single-row item. For active-only items (Soul Ring) regen is
-            # the active contribution; for passive-only items it's the
-            # passive total.
+            # Single-row passive item: regen is the passive total.
             rows.append(make(display_name, total_regen))
 
     # Default sort: by mana regen (descending). Active sub-rows compete
@@ -686,12 +692,128 @@ def _has_icon(slug: str) -> bool:
     return (_HERE / "icons" / "items" / f"{short}.png").exists()
 
 
+def _clean_seg(s: str) -> str:
+    """Strip a tooltip segment to plain prose: drop tags and tidy whitespace.
+    %placeholder% tokens are KEPT — `scripts.js` colours them blue in the
+    tooltip so the reader sees "this slot would be a value at runtime"."""
+    s = re.sub(r"<[^>]+>", "", s)         # drop any tags
+    s = re.sub(r"\s+", " ", s)            # collapse whitespace
+    s = re.sub(r"\s+([:,.;])", r"\1", s)  # tidy spaces before punctuation
+    return s.strip()
+
+
+def _item_tooltip_html(raw: str) -> str:
+    """Build the icon hover-tip innerHTML from a Valve item description. Each
+    <h1>Active:/Passive:</h1> header starts its OWN line (bold label), so an
+    item with both passive and active effects shows them on separate rows."""
+    raw = raw.replace("\\n", " ").replace("<br>", " ")
+    # re.split with a captured group yields [pre, label, body, label, body, …].
+    segs = re.split(r"<h1>(.*?)</h1>", raw)
+    lines: list[str] = []
+    pre = _clean_seg(segs[0])
+    if pre:
+        lines.append(_esc(pre))
+    for i in range(1, len(segs), 2):
+        label = _clean_seg(segs[i]).rstrip(":")
+        body = _clean_seg(segs[i + 1]) if i + 1 < len(segs) else ""
+        if not (label or body):
+            continue
+        label_html = f"<b>{_esc(label)}:</b> " if label else ""
+        lines.append(label_html + _esc(body))
+    return "<br>".join(lines)
+
+
+_ITEM_DESC_CACHE: dict[str, str] | None = None
+
+
+def _load_item_descriptions(item_slugs: set[str] | None = None) -> dict[str, str]:
+    """Parse item effect descriptions from Valve's localization file once,
+    keyed by short slug (e.g. 'sheepstick') → ready tooltip innerHTML. Used for
+    the icon hover tooltip, mirroring the ability-icon hints on Neutral Creeps.
+
+    `item_slugs` (optional) — pass the set of short slugs we'll need tooltips
+    for, so items that have NO `_Description` key in Valve's loc (Khanda,
+    Phylactery, Aether Lens, Hurricane Pike, …) can have one synthesised from
+    their per-modifier effect descriptions and numbered Notes."""
+    global _ITEM_DESC_CACHE
+    if _ITEM_DESC_CACHE is not None:
+        return _ITEM_DESC_CACHE
+    out: dict[str, str] = {}
+    path = _HERE / "data" / "abilities_english.txt"
+    if path.exists():
+        text = path.read_text(encoding="utf-8-sig", errors="replace")
+        # Primary: items with a full `_Description`. Case-insensitive — Valve
+        # ships about a third of these keys with capital "Ability" (Khanda /
+        # Echo Sabre / Phylactery / Harpoon / Falcon Blade / Hurricane Pike).
+        for m in re.finditer(
+            r'"DOTA_Tooltip_[Aa]bility_item_([a-z0-9_]+?)_Description"\s+'
+            r'"((?:[^"\\]|\\.)+)"',
+            text,
+        ):
+            html = _item_tooltip_html(m.group(2))
+            if html and m.group(1) not in out:
+                out[m.group(1)] = html
+
+        # Fallback: items WITHOUT `_Description`. Synthesize from per-modifier
+        # `_Description` keys (real in-game effect text — e.g. for Khanda:
+        # "Movement slowed by …" + "Passives disabled.") plus any numbered
+        # Notes ("The slow debuff is dispellable."). Lore is intentionally
+        # ignored — it's flavor text, not mechanics.
+        if item_slugs:
+            # Longest slug first so 'angels_demise' claims modifier
+            # 'angels_demise_slow' before any shorter prefix could.
+            sorted_slugs = sorted(item_slugs, key=len, reverse=True)
+            synth: dict[str, list[str]] = {}
+            for m in re.finditer(
+                r'"DOTA_Tooltip_modifier_item_([a-z0-9_]+)_Description"\s+'
+                r'"((?:[^"\\]|\\.)+)"',
+                text, re.IGNORECASE,
+            ):
+                full = m.group(1)
+                for s in sorted_slugs:
+                    if s in out:
+                        continue
+                    if full == s or full.startswith(s + "_"):
+                        cleaned = _clean_seg(m.group(2))
+                        if cleaned:
+                            synth.setdefault(s, []).append(cleaned)
+                        break
+            for m in re.finditer(
+                r'"DOTA_Tooltip_[Aa]bility_item_([a-z0-9_]+?)_Note\d+"\s+'
+                r'"((?:[^"\\]|\\.)+)"',
+                text,
+            ):
+                slug = m.group(1)
+                if slug in item_slugs and slug not in out:
+                    cleaned = _clean_seg(m.group(2))
+                    if cleaned:
+                        synth.setdefault(slug, []).append(cleaned)
+            for slug, parts in synth.items():
+                if parts:
+                    out[slug] = "<br>".join(_esc(p) for p in parts)
+    _ITEM_DESC_CACHE = out
+    return out
+
+
 def _icon_html(slug: str) -> str:
     short = slug.replace("item_", "")
     if _has_icon(slug):
-        return (f'<img class="mr-ico" src="icons/items/{short}.png" '
-                f'alt="" loading="lazy">')
-    return '<span class="mr-ico mr-ico-blank"></span>'
+        img = (f'<img class="mr-ico" src="icons/items/{short}.png" '
+               f'alt="" loading="lazy">')
+    else:
+        img = '<span class="mr-ico mr-ico-blank"></span>'
+    # Hover tooltip with the item's effect description (reuses the global
+    # .abil-ico-hint → qhint-tip JS handler, which renders data-tooltip as HTML
+    # so the <b>/<br> line breaks survive). aria-label gets a flat-text variant.
+    html = _load_item_descriptions().get(short)
+    if html:
+        tip = html.replace('"', "&quot;")
+        plain = (html.replace("<br>", " · ")
+                     .replace("<b>", "").replace("</b>", "")
+                     .replace('"', "&quot;"))
+        return (f'<span class="abil-ico-hint" tabindex="0" role="button" '
+                f'aria-label="{plain}" data-tooltip="{tip}">{img}</span>')
+    return img
 
 
 # Intelligence engine-constant history (hardcoded in the Source 2 engine,
@@ -734,18 +856,21 @@ def _full(v: float) -> str:
 def _encode_hist(hist: list, pol: str, value_fmt, kind: str = "V") -> str:
     """Turn a mixed history list into the data-hist payload string the
     stat-hist-tip JS reads. Supports ('V', patch, date, old, new) value
-    changes, ('A', patch, date) introduction markers, and — via `kind="N"`
-    — a no-percentage value change (used for the computed columns whose
-    ratios make a % delta meaningless and whose values can cross 1000,
-    which would break the JS pct parser)."""
+    changes, ('A', patch, date) introduction markers, and — via `kind="C"` —
+    a computed column: the pretty short display is sent for old/new, plus the
+    RAW numeric old/new (comma-free, dot-decimal) so the JS computes a correct
+    % delta. (The short display alone can't drive the %: values ≥1000 are
+    rendered as thousands "5,0" while smaller ones stay plain "714", so the two
+    sides aren't on the same scale.)"""
     parts = []
     for e in hist:
         if e[0] == "A":
             _, p, d = e
             parts.append(f"{p}|{d}|A|New item")
-        elif kind == "N":
+        elif kind == "C":
             _, p, d, o, n = e
-            parts.append(f"{p}|{d}|N|{value_fmt(o)}|{value_fmt(n)}")
+            parts.append(
+                f"{p}|{d}|C|{value_fmt(o)}|{value_fmt(n)}|{o:g}|{n:g}|{pol}")
         else:
             _, p, d, o, n = e
             parts.append(f"{p}|{d}|V|{value_fmt(o)}|{value_fmt(n)}|{pol}")
@@ -778,7 +903,8 @@ def _metric_cell(r: dict, col_key: str, value: float, display: str,
     formatted inner HTML; `value` the numeric sort key; `pol` the buff
     polarity for the tooltip colour ('hi' = higher better, 'lo' = lower);
     `css` an extra class (e.g. the section-divider marker). `computed=True`
-    columns use the short notation in the tooltip and skip the % delta."""
+    columns use the short notation in the tooltip AND a % delta computed from
+    the raw values (kind="C")."""
     sort_val = value if sort_val is None else sort_val
     cls = f' class="{css}"' if css else ''
     slug = r["slug"].replace("__active", "")
@@ -786,8 +912,9 @@ def _metric_cell(r: dict, col_key: str, value: float, display: str,
     if not hist:
         return f'<td{cls} data-sort="{sort_val}">{display}</td>'
     if computed:
-        # Short notation in the tooltip (e.g. 288,3 / 714.2); no % delta.
-        payload = _encode_hist(hist, pol, lambda v: _short_plain(v), kind="N")
+        # Short notation in the tooltip (e.g. 288,3 / 5,0) plus a % delta
+        # derived from the raw values carried alongside.
+        payload = _encode_hist(hist, pol, lambda v: _short_plain(v), kind="C")
     else:
         payload = _encode_hist(hist, pol, lambda v: f"{v:g}")
     name = _esc(r["name"].replace(" (Active)", ""))
@@ -809,6 +936,12 @@ def render_html(rows: list[dict], cost_hist: dict[str, list] | None = None,
     cpr_hist = cpr_hist or {}
     rpg_hist = rpg_hist or {}
     m60_hist = m60_hist or {}
+    # Prime the tooltip cache with the actual set of item slugs in this run, so
+    # items missing Valve's `_Description` (Khanda, Phylactery, …) can fall back
+    # to per-modifier descriptions + Notes.
+    _load_item_descriptions({
+        r["slug"].replace("item_", "").replace("__active", "") for r in rows
+    })
     nav = _site.render_top_nav('materials', _latest_href(),
                                patch_context=False, subtabs_active='mana_items')
 

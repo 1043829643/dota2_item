@@ -864,6 +864,9 @@
         const td = rows[i].children[idx];
         const name = td && td.dataset.name;
         if (!name) { i++; continue; }
+        // Shared auras stay per-unit: each frog keeps its own cell so a row
+        // click highlights it (merging would rowspan 4 frogs into one block).
+        if (name === 'Riverborn Aura') { i++; continue; }
         let j = i + 1;
         while (j < rows.length && rows[j].children[idx] &&
                rows[j].children[idx].dataset.name === name) j++;
@@ -1050,6 +1053,10 @@
     } else if (kind === 'N') {
       // No-percentage value change (computed columns): show old → new only.
       line = p[3] + ' → ' + p[4];
+    } else if (kind === 'C') {
+      // Computed column: pretty short display (p3→p4) with a % delta derived
+      // from the raw values (p5, p6) so scaling never skews it. p7 = polarity.
+      line = p[3] + ' → ' + p[4] + pctHtml(p[5], p[6], p[7] === 'lo');
     } else {
       // 'V' stat value (patch|date|V|old|new|pol), or legacy patch|date|old|new
       const isV = kind === 'V';
@@ -1153,17 +1160,23 @@
   if (!box) return;
   const catRow = box.querySelector('table thead tr.cat-row');
   function size() {
-    // Distance from the document top to the box (stable regardless of how
-    // far the page is currently scrolled).
-    const docTop = box.getBoundingClientRect().top + window.scrollY;
-    const h = window.innerHeight - docTop - 12;   // 12px breathing room
-    box.style.maxHeight = Math.max(220, h) + 'px';
+    // CSS handles the box's max-height now: `calc(100vh - var(--site-nav-h)
+    // - 12px)` keeps it sized to fit the viewport regardless of scroll
+    // position, in concert with `position: sticky; top: var(--site-nav-h)`
+    // on the box itself. JS only updates --cat-row-h (which CSS calc can't
+    // measure — it depends on the rendered text height of the category row).
+    //
     // Two-row sticky header (Neutral Creeps): pin the column row exactly
-    // under the category row. offsetHeight is the integer rendered height
-    // (incl. border) → no fractional gap. Unit Abilities has no .cat-row →
-    // 0 so its single header row pins flush at the top.
+    // under the category row. Use the fractional rect height (rounded) for an
+    // accurate offset; the col-row CSS also pulls up 1px to mask any seam.
+    // Unit Abilities has no .cat-row → 0 so its single header row pins flush.
+    // Math.floor (not round): pairs with the col-row's -2px pull-up so the
+    // col-row always starts at least 2px BEFORE the cat-row's true bottom,
+    // guaranteeing the two sticky rows overlap regardless of fractional
+    // heights — kills the scroll-time gap where body cells showed through.
     document.documentElement.style.setProperty(
-      '--cat-row-h', (catRow ? catRow.offsetHeight : 0) + 'px');
+      '--cat-row-h',
+      (catRow ? Math.floor(catRow.getBoundingClientRect().height) : 0) + 'px');
   }
   size();
   window.addEventListener('resize', size, { passive: true });
@@ -1237,7 +1250,6 @@
   const scroller = table.closest('.creeps-scroll');
   const page = table.closest('.creeps-page');
   const frame = page && page.querySelector('.sticky-frame');       // vertical
-  const frameTop = page && page.querySelector('.sticky-frame-top'); // horizontal
 
   function positionFrames() {
     if (!scroller || !page) return;
@@ -1246,40 +1258,32 @@
     const pageR  = page.getBoundingClientRect();
     const scrR   = scroller.getBoundingClientRect();
     const nameR  = firstTds[2].getBoundingClientRect();  // right edge of pinned block
-    // Only the column-name row is sticky (the category row scrolls away),
-    // so dividers offset by the col-row height.
-    const colRow = table.querySelector('.col-row');
-    const headH  = colRow ? colRow.getBoundingClientRect().height
-                          : (table.tHead ? table.tHead.getBoundingClientRect().height : 0);
+    // Anchor to the thead's LIVE bottom edge rather than a fixed header height:
+    // the blurb + toolbar now sit inside the scroll box above the table, so the
+    // thead isn't at the box top at rest — measuring its real bottom keeps the
+    // divider correct both at rest and once the header pins under the nav.
+    const headBottom = table.tHead
+      ? table.tHead.getBoundingClientRect().bottom
+      : scrR.top;
     // Vertical divider: at the right edge of the frozen lvl/unit columns,
     // starting BELOW the sticky column header and spanning the rest of height.
     if (frame) {
       frame.style.left   = (nameR.right - pageR.left) + 'px';
-      frame.style.top    = (scrR.top - pageR.top + headH) + 'px';
-      frame.style.height = (scroller.clientHeight - headH) + 'px';
+      frame.style.top    = (headBottom - pageR.top) + 'px';
+      frame.style.height = (scrR.bottom - headBottom) + 'px';
       frame.style.width  = '0px';
-    }
-    // Horizontal divider: just under the sticky column header, across width.
-    if (frameTop) {
-      frameTop.style.left   = (scrR.left - pageR.left) + 'px';
-      frameTop.style.top    = (scrR.top - pageR.top + headH) + 'px';
-      frameTop.style.width  = scroller.clientWidth + 'px';
-      frameTop.style.height = '0px';
     }
   }
 
   if (scroller) {
     const onScroll = () => {
       const sx = scroller.scrollLeft > 0;
-      const sy = scroller.scrollTop > 0;
+      // Both header rows stay pinned. The blue scrolled-edge line is painted
+      // flush on the column-name row's bottom (box-shadow), so the horizontal
+      // overlay divider is no longer used (it sat a hair off → visible gap).
       scroller.classList.toggle('scrolled', sx);
-      // Drop the category row the instant the table scrolls vertically, so
-      // only the column-name row stays pinned (one header) — no half-clipped
-      // category sliver under the toolbar.
-      table.classList.toggle('cat-row-hidden', sy);
       positionFrames();
       if (frame) frame.classList.toggle('visible', sx);
-      if (frameTop) frameTop.classList.toggle('visible', sy);
     };
     // rAF-throttle: positionFrames() reads layout (getBoundingClientRect),
     // so running it on every raw scroll event caused jank.
@@ -1342,7 +1346,12 @@
     if (!text) return;
     // Tooltip content is author-written (UA_HEAD_HINTS / ABIL_MANUAL) — using
     // innerHTML lets header tooltips include coloured legend spans.
-    tip.innerHTML = text;
+    // Wrap %placeholder% variables (Valve description macros — values aren't
+    // resolved here) in a styled span so they read as "this is a variable
+    // name" rather than mystery raw text.
+    tip.innerHTML = text.replace(
+      /%([A-Za-z0-9_]+)%/g,
+      '<span class="abil-var">$1</span>');
     tip.classList.add('is-visible');
     // Position above the badge; flip below if it would overflow the viewport top.
     const r = target.getBoundingClientRect();
@@ -1391,6 +1400,15 @@
     if (!h) return;
     const el = document.getElementById(decodeURIComponent(h));
     if (!el) return;
+    // Give the jumped-to row the SAME selected style as a manual row click
+    // (gold frame), replacing the old yellow :target flash. Single-select:
+    // clear any previously marked row in the same table first.
+    if (el.tagName === 'TR') {
+      const tb = el.closest('tbody');
+      if (tb) tb.querySelectorAll('tr.row-marked').forEach(r =>
+        r.classList.remove('row-marked', 'row-flash'));
+      el.classList.add('row-marked');
+    }
     // Double rAF: lets table layout, sticky header, and any view-toggle
     // reorderings settle before measuring rects.
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -1477,24 +1495,22 @@
   }
 })();
 
-// ---- MANA ITEMS: sticky stack offsets (nav → toolbar → thead) ----
-// Measures the live heights of the sticky site nav and the toolbar, then
-// writes them to CSS vars so the toolbar pins under the nav and the table
-// headers pin under the toolbar — regardless of nav/toolbar height changes.
+// ---- SITE NAV HEIGHT → CSS variable (used by every sticky layer below) ----
+// The toolbar / view / blurb on table pages all scroll away with the page;
+// only the site nav + table category headers stay pinned. The thead pins
+// directly under the nav, so all we need to publish is its live height.
 (function() {
-  const table = document.querySelector('.mr-table');
-  if (!table) return;
   const nav = document.querySelector('nav.top-nav');
-  const toolbar = document.querySelector('.mr-toolbar');
+  if (!nav) return;
   function recalc() {
-    const navH = nav ? nav.getBoundingClientRect().height : 96;
-    const barH = toolbar ? toolbar.getBoundingClientRect().height : 32;
+    const navH = nav.getBoundingClientRect().height;
     const root = document.documentElement.style;
     root.setProperty('--site-nav-h', navH + 'px');
-    root.setProperty('--mr-thead-top', (navH + barH) + 'px');
+    root.setProperty('--mr-thead-top', navH + 'px');
   }
   recalc();
   window.addEventListener('resize', recalc, { passive: true });
+  window.addEventListener('load', recalc);
 })();
 
 // ---- MANA REGEN TABLE: simple sortable ----

@@ -21,7 +21,7 @@ body {
 .container {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 24px 28px 80px;
+  padding: 0 28px 80px;       /* flush top — content starts right under toolbar */
 }
 .container.calendar-page {
   padding-top: 8px;
@@ -58,13 +58,31 @@ nav.top-nav {
   top: 0;
   z-index: 100;
 }
+/* Table pages (Neutral Creeps / Unit Abilities / Mana Items, all wrap their
+   content in .creeps-page) keep the glass LOOK (cool top rim + gradient body)
+   but make it fully OPAQUE — same gradient with alpha forced to 1 — so a
+   scrolling table never shows through. Unified across all three tables. */
+body:has(.creeps-page) nav.top-nav {
+  background:
+    linear-gradient(180deg,
+      rgba(170, 220, 240, 0.07) 0%,
+      rgba(170, 220, 240, 0.0)  32%),
+    linear-gradient(180deg, #1c242e 0%, #121820 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 .nav-inner {
   width: 100%;
   padding: 6px 24px 0 10px;
-  display: flex;
-  justify-content: space-between;
+  /* Three-column grid: brand left, tabs centred in the middle column, picker
+     right. Symmetric 1fr/auto/1fr columns put the tab row at the geometric
+     centre of the header WITHOUT overlapping the brand or the version picker
+     (which the old `position: absolute` centring did when the picker grew). */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
+  position: relative;
 }
 .nav-tabs {
   display: flex;
@@ -76,17 +94,18 @@ nav.top-nav {
 .nav-brand {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   text-decoration: none;
   color: #e6edf3;
-  padding: 6px 4px 10px;
+  padding: 2px 4px 4px;
   margin-bottom: -2px;
+  justify-self: start;
   transition: opacity 0.15s;
 }
 .nav-brand:hover { opacity: 0.85; }
 .nav-brand-logo {
-  width: 80px;
-  height: 80px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
   /* Source PNG has a solid black background; `screen` blends black → fully
      transparent against the dark nav bar, keeping the bright pixels intact. */
@@ -95,7 +114,7 @@ nav.top-nav {
 }
 .nav-brand-text {
   font-family: 'Jersey 10', 'Courier New', monospace;
-  font-size: 28px;
+  font-size: 22px;
   letter-spacing: 1px;
   line-height: 1;
   color: #d8e2ec;
@@ -106,50 +125,81 @@ nav.top-nav {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 
-/* Main hub tile grid — destinations that used to live in the header. */
-.hub-tiles {
+/* Main page 5×5 grid — retro roguelike inventory icons. Each tile is a round
+   pastel "disc" with a thick dark pixel outline, soft inner highlight at the
+   top-left and a deeper shadow at the bottom-right, plus a chunky pixel-art
+   item drawn on top of the disc as an SVG background. Hover lifts the disc.
+   Disc colour palette and items inspired by the reference roguelike sprite
+   sheet provided. */
+.zuma-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  max-width: 960px;
-  margin: 56px auto;
-  padding: 0 24px;
-}
-.hub-tile {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(5, 76px);
+  grid-template-rows: repeat(5, 76px);
   gap: 10px;
-  padding: 22px 22px 24px;
-  background: linear-gradient(180deg,
-    rgba(32, 42, 54, 0.85) 0%,
-    rgba(22, 30, 40, 0.92) 100%);
-  border: 1px solid rgba(170, 220, 240, 0.14);
-  border-radius: 10px;
-  text-decoration: none;
-  color: #e6edf3;
+  justify-content: center;
+  width: max-content;
+  margin: 48px auto;
+}
+.zuma-tile {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 3px solid #2a1410;            /* thick dark pixel outline */
+  /* Round-button bevel: top-left highlight + bottom-right shadow give the */
+  /* convex pressable look you see on the reference icons.                */
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.10),
-    0 3px 14px rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    inset 4px 4px 0 -1px rgba(255, 255, 255, 0.32),
+    inset -4px -4px 0 -1px rgba(0, 0, 0, 0.28),
+    0 3px 0 rgba(0, 0, 0, 0.45);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 60% 60%;
+  image-rendering: pixelated;
+  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1),
+              filter 0.18s ease,
+              box-shadow 0.18s ease;
 }
-.hub-tile:hover {
-  transform: translateY(-2px);
-  border-color: rgba(170, 220, 240, 0.32);
+.zuma-tile:hover {
+  transform: translateY(-4px);
+  filter: brightness(1.10) saturate(1.08);
+  z-index: 2;
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.18),
-    0 6px 22px rgba(0, 0, 0, 0.45);
+    inset 4px 4px 0 -1px rgba(255, 255, 255, 0.4),
+    inset -4px -4px 0 -1px rgba(0, 0, 0, 0.22),
+    0 9px 0 rgba(0, 0, 0, 0.35),
+    0 12px 18px rgba(0, 0, 0, 0.45);
 }
-.hub-tile-title {
-  font-family: 'Jersey 10', 'Courier New', monospace;
-  font-size: 26px;
-  color: #d8e2ec;
-  letter-spacing: 1px;
-  line-height: 1;
+
+/* Pastel disc backgrounds matched to the reference sheet's flat palette. */
+.tile-pink     { background-color: #e87d8a; }
+.tile-salmon   { background-color: #efa68d; }
+.tile-mint     { background-color: #aedcd2; }
+.tile-beige    { background-color: #ecd5a3; }
+.tile-lavender { background-color: #b9a8d4; }
+.tile-olive    { background-color: #b6c785; }
+
+/* Pixel-art item icons drawn as inline-SVG data URIs. Each icon is rendered
+   crisp-edges (no anti-aliasing) so the pixel-art quality survives any
+   scaling — fills are white so they stay readable on every disc colour. */
+.icon-sword {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="%23ffffff"><rect x="7" y="2" width="2" height="9"/><rect x="5" y="10" width="6" height="1"/></g><rect x="7" y="11" width="2" height="3" fill="%232a1410"/></svg>');
 }
-.hub-tile-desc {
-  font-size: 13px;
-  color: #98a2b0;
-  line-height: 1.5;
+.icon-potion {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="2" width="4" height="2" fill="%232a1410"/><rect x="5" y="4" width="6" height="1" fill="%23ffffff"/><rect x="4" y="5" width="8" height="8" fill="%23ffffff"/><rect x="5" y="13" width="6" height="1" fill="%23ffffff"/></svg>');
+}
+.icon-heart {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="%23ffffff"><rect x="3" y="4" width="3" height="1"/><rect x="10" y="4" width="3" height="1"/><rect x="2" y="5" width="5" height="2"/><rect x="9" y="5" width="5" height="2"/><rect x="2" y="7" width="12" height="2"/><rect x="3" y="9" width="10" height="1"/><rect x="4" y="10" width="8" height="1"/><rect x="5" y="11" width="6" height="1"/><rect x="6" y="12" width="4" height="1"/><rect x="7" y="13" width="2" height="1"/></g></svg>');
+}
+.icon-shield {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="%23ffffff"><rect x="4" y="3" width="8" height="1"/><rect x="3" y="4" width="10" height="6"/><rect x="4" y="10" width="8" height="2"/><rect x="6" y="12" width="4" height="1"/></g><rect x="7" y="6" width="2" height="4" fill="%232a1410"/><rect x="6" y="7" width="4" height="2" fill="%232a1410"/></svg>');
+}
+.icon-gem {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="%23ffffff"><rect x="6" y="3" width="4" height="1"/><rect x="4" y="4" width="8" height="2"/><rect x="3" y="6" width="10" height="2"/><rect x="4" y="8" width="8" height="1"/><rect x="5" y="9" width="6" height="1"/><rect x="6" y="10" width="4" height="1"/><rect x="7" y="11" width="2" height="1"/></g></svg>');
+}
+.icon-coin {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="%23ffffff"><rect x="5" y="3" width="6" height="1"/><rect x="4" y="4" width="8" height="1"/><rect x="3" y="5" width="10" height="6"/><rect x="4" y="11" width="8" height="1"/><rect x="5" y="12" width="6" height="1"/></g><rect x="7" y="6" width="2" height="4" fill="%232a1410"/></svg>');
 }
 
 .nav-tab {
@@ -196,8 +246,8 @@ nav.top-nav {
    crisp at any size. Direction modifier class swaps the SVG. */
 .version-nav-arrow {
   display: inline-block;
-  width: 30px;
-  height: 48px;
+  width: 26px;
+  height: 38px;
   background: rgba(0, 0, 0, 0.28);
   background-repeat: no-repeat;
   background-position: center;
@@ -239,31 +289,31 @@ nav.top-nav {
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   background: rgba(0, 0, 0, 0.28);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   border: 1px solid transparent;
-  padding: 0 16px;
-  height: 48px;
+  padding: 0 12px;
+  height: 38px;
   border-radius: 6px;
 }
 .nav-context .release-date {
   color: #c9d1d9;
   font-family: 'Jersey 25', 'Courier New', monospace;
-  font-size: 22px;
+  font-size: 17px;
   font-weight: 400;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 .nav-context .release-version {
   color: #79c0ff;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;
   line-height: 1.1;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 /* Calendar variant — no dropdown; .release-info takes its place on the right.
    Override the fixed 38px height (designed for version+date only) so the
@@ -274,9 +324,13 @@ nav.top-nav {
    no per-tab CSS — so the header height stays identical across pages
    and switching tabs doesn't make the toolbar jump. */
 .nav-context-flat {
-  margin-left: auto;
-  min-height: 48px;
+  /* Reserve picker height on non-patch pages so all tabs sit on one baseline,
+     even when the right side has no content. Grid layout handles horizontal
+     placement — no `margin-left: auto` needed. */
+  justify-self: end;
+  min-height: 38px;
 }
+.nav-context-picker { justify-self: end; }
 .nav-context-calendar .release-info {
   align-items: center;
   padding: 6px 18px;
@@ -286,7 +340,7 @@ nav.top-nav {
 .nav-context .patch-age {
   color: #a8b3bd;
   font-family: 'Jersey 25', 'Courier New', monospace;
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.3px;
   font-variant-numeric: tabular-nums;
@@ -295,15 +349,15 @@ nav.top-nav {
 .nav-context .version {
   color: #c9d1d9;
   font-family: 'Jersey 10', 'Courier New', monospace;
-  font-size: 34px;
+  font-size: 24px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.8px;
   background: rgba(0, 0, 0, 0.28);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   border: 1px solid transparent;
-  padding: 0 18px;
-  height: 48px;
+  padding: 0 14px;
+  height: 38px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
@@ -315,6 +369,14 @@ nav.top-nav {
 }
 .nav-context .version:hover {
   background: rgba(0, 0, 0, 0.4);
+}
+/* Non-clickable version display on non-patch pages. Same look as the dropdown
+   button on patch pages, but no chevron, no hover, no cursor. */
+.nav-context .version.version-static {
+  cursor: default;
+}
+.nav-context .version.version-static:hover {
+  background: rgba(0, 0, 0, 0.28);
 }
 .nav-context .version-chev {
   font-size: 14px;
@@ -438,21 +500,29 @@ nav.top-nav {
   height: 32px;
   box-sizing: border-box;
 }
-/* Creeps / Unit Abilities toolbar — same painted gap as Mana Items
-   (14px above buttons isn't needed since there's no description, but the 8px
-   below matches). Opaque bg + z-index above the table so nothing shows
-   through the strip between the toolbar and the scroll box's header. */
-.creeps-page > .cal-toggle-bar:not(.mr-toolbar) {
-  margin-bottom: 0;
-  /* content-box so the 14/8 padding ADDS to the 32px height (→ 54px total),
-     identical to Mana Items. Without it the global border-box rule folds the
-     padding into 32px and the toolbar stays shorter. */
-  box-sizing: content-box;
-  padding-top: 14px;
-  padding-bottom: 8px;
-  background: #0a0e13;
-  position: relative;
+/* Blurb + toolbar now live INSIDE the .creeps-scroll box (above the table) so
+   they scroll away with it, exactly like the Mana Items page — only the site
+   nav + sticky table headers stay pinned. They're sticky-left so they don't
+   slide off when the table scrolls horizontally, with an opaque background so
+   the table never shows through them. */
+.creeps-scroll > .inbox-bar {
+  position: sticky;
+  left: 0;
   z-index: 6;
+  background: #0a0e13;
+  /* As block children of the scroll box, these are already the box's VISIBLE
+     width (percentages/auto resolve against the padding box, not the wide
+     table's scroll width), so sticky-left keeps them filling the viewport. */
+  box-sizing: border-box;
+}
+.creeps-scroll > .mr-blurb.inbox-bar {
+  margin: 0;
+  padding: 22px 28px 0;
+}
+.creeps-scroll > .cal-toggle-bar.inbox-bar {
+  height: auto;
+  margin: 0;
+  padding: 14px 28px 16px;
 }
 /* The View group (label + select) is wrapped in its own inline-flex so its
    width is independent of whatever follows in the toolbar. Same width on
@@ -645,7 +715,15 @@ nav.top-nav {
    left edge (same -140px shift as .is-current). Scoped to .calendar so the
    shared .cal-toggle-bar class on other pages (creeps / unit_abilities) stays
    in place. */
-.calendar > .cal-toggle-bar { margin-left: -140px; }
+.calendar > .cal-toggle-bar {
+  margin-left: -140px;
+  /* Same breathing room as the table pages: 28px above the Compact toggle,
+     14px below, content-box so the 32px control height isn't eaten. */
+  box-sizing: content-box;
+  padding-top: 28px;
+  padding-bottom: 14px;
+  margin-bottom: 0;
+}
 @media (max-width: 1400px) {
   /* Stop the breakout when the viewport can't comfortably host it. */
   .cal-year-block.is-current { margin-left: 0; margin-right: 0; }
@@ -966,18 +1044,59 @@ span.cal-full-day.has-patch {
 .calendar.mode-compact .cal-mode-full { display: none; }
 .calendar.mode-full .cal-mode-compact { display: none; }
 
-/* TOOLBAR (legend tags + search in one row) */
+/* TOOLBAR — full viewport-width strip below the site header. Holds the tag
+   filter row + categories + search box + patch-info block (date + age). */
 .toolbar {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #161b22;
+  border-top: 1px solid #30363d;
+  border-bottom: 1px solid #30363d;
+  font-size: 13px;
+  color: #8b949e;
+}
+.toolbar-inner {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 6px 0 24px;
-  padding: 8px 14px;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  padding: 8px 28px;
+}
+/* Collapsed search by default — the input shows as a 36px-wide pill with
+   just the magnifier glyph visible. Clicking / focusing expands it to a
+   usable width, then collapses back when focus leaves and it's empty. */
+.toolbar .search-box {
+  flex: 0 0 auto;
+}
+/* Patch info — three labelled facts on the right of the toolbar. No pill,
+   no border: plain inline text with bullet separators between the parts. */
+.toolbar-patch-info {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 12.5px;
+  color: #98a2b0;
+  flex-shrink: 0;
+}
+.toolbar-patch-info > span { padding: 0 10px; }
+.toolbar-patch-info > span:first-child { padding-left: 0; }
+.toolbar-patch-info > span:last-child { padding-right: 0; }
+.toolbar-patch-info > span + span {
+  border-left: 1px solid rgba(170, 220, 240, 0.18);
+}
+.toolbar-patch-info b {
+  color: #e6edf3;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.toolbar-patch-info .ti-released b {
   font-size: 13px;
-  color: #8b949e;
+  letter-spacing: 0.2px;
 }
 .patch-age .age-sep {
   margin: 0 8px;
@@ -1028,6 +1147,34 @@ span.cal-full-day.has-patch {
   outline: none;
   border-color: #58a6ff;
   box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+/* Inside the patch toolbar the search starts COLLAPSED: a 38px capsule
+   showing only the magnifier icon. Focus or hover expands it to a usable
+   width; the SVG icon shifts to keep it crisp on both sizes. */
+.toolbar .search-box input {
+  width: 38px;
+  padding: 6px 0 6px 32px;
+  cursor: pointer;
+  color: transparent;
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="%2398a2b0" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4 L13.6 13.6" stroke-linecap="round"/></svg>');
+  background-repeat: no-repeat;
+  background-position: 9px center;
+  background-size: 16px 16px;
+  transition: width 0.18s ease, padding 0.18s ease, color 0.15s ease,
+              border-color 0.15s, box-shadow 0.15s;
+}
+.toolbar .search-box input::placeholder { color: transparent; }
+.toolbar .search-box input:focus,
+.toolbar .search-box input:not(:placeholder-shown) {
+  width: 360px;
+  padding: 6px 12px 6px 32px;
+  cursor: text;
+  color: #c9d1d9;
+}
+.toolbar .search-box input:focus::placeholder,
+.toolbar .search-box input:not(:placeholder-shown)::placeholder {
+  color: #6e7681;
 }
 .search-results {
   display: none;
@@ -3115,19 +3262,19 @@ body.filter-active ul.subnotes { display: none; }
 /* Horizontal-scroll wrapper so a narrow viewport scrolls within the
    table region instead of breaking page layout. */
 .creeps-scroll {
-  /* Horizontal scroll only — no bounded height, so the table flows at full
-     height and the PAGE scrolls vertically (no inner vertical scrollbar, no
-     abrupt bottom clip). overflow-x:auto implies overflow-y:auto, but with no
-     height limit nothing overflows vertically so no vertical bar appears. */
   /* The table is wider than the viewport (horizontal scroll needed), and a
      horizontal-scroll container unavoidably becomes a vertical scroll
-     container too — which broke the page wheel and the sticky header. So make
-     THIS region the scroller: a capped height with its own scrollbars. The
-     sticky <thead> then pins reliably to the top of this box, horizontal
-     scroll is contained, and the mouse wheel scrolls the table vertically. */
+     container too. So make THIS box the scroller: capped height + sticky
+     under the site nav. Once the user page-scrolls past the blurb/toolbar
+     above, the whole scroll box pins flush under the nav — there's no gap
+     between the nav and the table headers (no leftover toolbar/view bar
+     hanging between them). Inside the box the <thead> is still sticky at
+     top:0 of the box, so the column headers always sit just under the nav. */
   overflow: auto;
   width: 100%;
-  max-height: calc(100vh - 150px);
+  position: sticky;
+  top: var(--site-nav-h, 96px);
+  max-height: calc(100vh - var(--site-nav-h, 96px) - 12px);
   /* Paint containment only — `layout` and `style` containment can prevent
      useful browser optimisations inside large tables. Adding
      `will-change: scroll-position` hints the browser to GPU-accelerate the
@@ -3185,7 +3332,7 @@ body.filter-active ul.subnotes { display: none; }
   box-shadow: inset 0 0 0 9999px var(--sticky-bg);
 }
 .creeps-table thead .sticky-col {
-  z-index: 6;            /* corner cells: above both sticky axes */
+  z-index: 51;           /* corner cells: above both sticky axes + hover-zoom */
 }
 .creeps-table tbody tr:hover .sticky-col {
   --sticky-bg: #161d27;   /* match the row-hover tint, stay opaque */
@@ -3230,10 +3377,10 @@ body.filter-active ul.subnotes { display: none; }
   padding: 2px 4px;
   vertical-align: middle;
 }
-/* Raise the icon cell above the sticky header on hover so the zoomed
-   portrait sits on top (the cell is already position:sticky, which
-   establishes a stacking context — bump its z-index rather than the
-   inner <img>, avoiding any positioning side-effects on the image). */
+/* Raise the icon cell on hover so the zoomed portrait sits above the other
+   body cells (the cell is already position:sticky, which establishes a
+   stacking context — bump its z-index rather than the inner <img>). Stays
+   BELOW the pinned header (z 10/11) so a hovered top row never covers it. */
 .creeps-table .creep-icon-cell:hover {
   z-index: 9;
 }
@@ -3270,20 +3417,75 @@ body.filter-active ul.subnotes { display: none; }
   display: block;
   opacity: 0.9;
 }
-/* Secondary tab strip under the main nav (Creeps Table | Unit Abilities). */
-/* Materials sub-tabs: stacked UNDER the brand, flush with the header's
-   bottom edge (browser-tab look). The header switches to a vertical layout
-   on these pages so the brand sits on top and the tabs hang off the bottom. */
-.nav-inner-stacked {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding-bottom: 0;   /* tabs touch the bottom border */
+/* Header centre tabs (Main / Patch Reader / Calendar / Materials) — laid out
+   in the middle grid column of .nav-inner, so they're always centred between
+   brand (left) and the picker / context block (right) without overlapping
+   either. Each tab is a 48px-tall pill matching the version picker height,
+   so the row sits on one baseline. Font matches the brand block. */
+.nav-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: center;
 }
-.nav-subtabs {
+.nav-tab {
+  font-family: 'Jersey 10', 'Courier New', monospace;
+  font-size: 18px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: #d8e2ec;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  text-decoration: none;
+  height: 38px;                 /* matches the version picker on patch pages */
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  background: rgba(170, 220, 240, 0.06);
+  border: 1px solid rgba(170, 220, 240, 0.14);
+  transition: background 0.15s ease, color 0.15s ease,
+              border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.nav-tab:hover {
+  color: #ffffff;
+  background: rgba(170, 220, 240, 0.13);
+  border-color: rgba(170, 220, 240, 0.28);
+}
+/* Active tab — gold "sikle" text colour + a pressed-into-the-header look via
+   a darker recessed background and an inset top shadow. */
+.nav-tab.active {
+  color: #e3c46a;
+  background: rgba(0, 0, 0, 0.32);
+  border-color: rgba(227, 196, 106, 0.32);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Materials sub-tabs — flat row of three browser-tab pills, hung BELOW the
+   main header on a thin bar (so the header itself stays compact). */
+.materials-subnav {
+  background: #11161d;
+  border-bottom: 1px solid rgba(170, 220, 240, 0.18);
+  width: 100%;
+}
+.materials-subnav-inner {
+  padding: 0 10px;        /* flush-left, same left padding as the brand block */
   display: flex;
   gap: 4px;
   align-items: flex-end;
+  min-height: 36px;
+}
+/* When the sub-tab bar sits INSIDE the table scroll box (Neutral Creeps /
+   Neutral Abilities), it scrolls away vertically with the table but stays
+   pinned to the left edge during horizontal scroll — same treatment as the
+   blurb + toolbar. On Mana Items it stays in the page header and scrolls away
+   via the page itself. */
+.creeps-scroll > .materials-subnav {
+  position: sticky;
+  left: 0;
+  z-index: 7;
 }
 .nav-subtab {
   font-size: 13px;
@@ -3293,14 +3495,14 @@ body.filter-active ul.subnotes { display: none; }
   padding: 7px 16px;
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: 7px 7px 0 0;   /* rounded top — sits on the bottom border */
-  margin-bottom: -1px;          /* overlap the nav's 1px bottom border */
+  border-radius: 7px 7px 0 0;   /* rounded top — sits on the subnav's bottom border */
+  margin-bottom: -1px;          /* overlap the 1px bottom border */
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .nav-subtab:hover { color: #e6edf3; background: rgba(48, 54, 61, 0.45); }
 .nav-subtab.active {
   color: #e6edf3;
-  background: #0a0e13;          /* matches the page bg → tab merges downward */
+  background: #0a0e13;          /* matches the page background → tab merges into page */
   border-color: rgba(170, 220, 240, 0.18);
 }
 /* Ability-icon link on the Creeps Table — no underline, inherits layout. */
@@ -3390,8 +3592,9 @@ body.filter-active ul.subnotes { display: none; }
 /* Continuation rows of a multi-ability unit: no top border so the Lvl + Unit
    cells read as one merged cell (icon shown only on the first row). */
 .unit-abilities-table td.ua-merge { border-top: none; }
-/* Raise the hovered sticky identity cell above the sticky header so its
-   zoomed icon isn't covered/clipped by neighbouring rows or the header. */
+/* Raise the hovered sticky identity cell so its zoomed icon sits above
+   neighbouring rows. Stays BELOW the pinned header (z 50/51/52) so a hovered
+   row near the top can't paint over the header. */
 .creeps-table .creep-icon-cell:hover,
 .unit-abilities-table td.ua-ability:hover { z-index: 40; }
 .unit-abilities-table td.ua-effect,
@@ -3497,6 +3700,9 @@ body.filter-active ul.subnotes { display: none; }
 .qhint-tip .ua-yn-yes    { color: #6aa775; }
 .qhint-tip .ua-yn-no     { color: #c97f78; }
 .qhint-tip .ua-yn-strong { color: #c4ad5e; }
+/* Valve description variables (%hero_stun_duration% etc.) — values aren't
+   resolved here, so just colour the placeholder name to mark it as "variable". */
+.qhint-tip .abil-var { color: #79c0ff; }
 /* Damage-type colour swatches inside the Damage header tooltip — mirror the
    in-table `td.dt-*` palette so the words match the actual cell numbers. */
 .qhint-tip .dt-magical   { color: #5fb1ff; font-weight: 600; }
@@ -3552,28 +3758,10 @@ body.filter-active ul.subnotes { display: none; }
 /* Unit Abilities: duplicate (same-unit continuation) rows hide the repeated
    icon and drop the top border so the unit's rows read as one block. */
 .unit-abilities-table tr.ua-dup .ua-unit img { visibility: hidden; }
-/* Highlight the row jumped to from an ability-icon link: a strong flash that
-   gradually fades and settles at 10% opacity (stays marked). Sticky cells
-   need a SOLID tinted background — a 10% rgba on transparent shows the rows
-   underneath when scrolling horizontally — so they get their own opaque
-   end-state via `tr:target .sticky-col` below. */
-.creeps-table tr:target { box-shadow: inset 3px 0 0 #d2af5f; }
-.creeps-table tr:target td:not(.sticky-col) {
-  animation: ua-flash 2.6s ease-out forwards;
-}
-/* Lvl/Unit/Ability sticky cells: opaque mustard-tinted dark (matches the
-   `row-marked` palette), so horizontal scrolling never lets the row behind
-   leak through the pinned column. */
-.creeps-table tr:target .sticky-col {
-  --sticky-bg: #1d1b14;
-}
-.creeps-table tr:target .lvl-cell.sticky-col {
-  --sticky-bg: #221e15;   /* match the lvl-cell tint shift used elsewhere */
-}
-@keyframes ua-flash {
-  0%   { background: rgba(210, 175, 95, 0.5); }
-  100% { background: rgba(210, 175, 95, 0.1); }
-}
+/* The row jumped to from an ability link is marked via scripts.js with the
+   same `.row-marked` class as a manual click (gold frame) — see centerHash().
+   The old yellow `:target` flash was replaced so navigation and clicking
+   share one consistent selected style. */
 /* Camp-type marker (minimap creep-camp glyph: small/mid/big/ancient). */
 .creeps-table .camp-ico {
   width: 16px;
@@ -3763,32 +3951,53 @@ body.filter-active ul.subnotes { display: none; }
 /* Standard view hides Expanded-only columns. Super-category headers span all
    their columns; the colspan shrinks automatically as hidden cells collapse. */
 .creeps-table.mode-standard .col-exp { display: none; }
-/* Only ONE header row is pinned: the column-name row. The category row
-   (Basic/Vitality/…) is a normal row that scrolls away and clips cleanly at
-   the scroll-box top (no sliver now that the toolbar above is opaque and
-   gap-free). */
+/* BOTH header rows stay pinned: the category row (Basic/Vitality/…) sticks at
+   top:0, and the column-name row pins directly beneath it at --cat-row-h
+   (set by scripts.js from the category row's rendered height). */
 .creeps-table thead tr.cat-row th.cat-head {
-  position: static;
+  position: sticky;
+  top: 0;
+  z-index: 52;           /* above the column row so the col-row's gap-fill
+                            box-shadow tucks under it (see col-row below) */
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #9fb0c0;
   font-weight: 700;
-  background: #11161d;
+  /* Same colour as the column-name row below (base thead th = #161b22). A
+     single uniform header colour means there's NO colour boundary between the
+     two rows, so the zoom-dependent seam/gap is gone at every scale. The
+     category labels stay distinct through their uppercase dim styling. */
+  background: #161b22;
   padding: 3px 4px;
-  border-bottom: 1px solid rgba(139, 148, 158, 0.30);
+  /* Opaque lip extending 6px down past the edge: covers any sub-pixel sticky
+     positioning gap with the SAME colour, so nothing ever shows through at
+     scroll time regardless of zoom level. */
+  box-shadow: 0 6px 0 0 #161b22;
 }
-/* Column-name row — the only sticky header. Bottom line via box-shadow not
-   border-bottom (Chrome drops collapsed borders on sticky cells mid-scroll). */
+/* Column-name row — pinned under the category row. The blue scrolled-edge line
+   is painted flush on this row's bottom via box-shadow (matches the Mana Items
+   table; no separate overlay, so no gap). border-bottom is dropped because
+   Chrome drops collapsed borders on sticky cells mid-scroll. */
 .creeps-table thead tr.col-row th {
-  top: 0;
+  /* -2px pull-up paired with the JS Math.floor on --cat-row-h: guarantees the
+     column row starts ≥2px BEFORE the category row's real bottom, so the two
+     pinned rows always overlap and nothing leaks through at scroll time. */
+  top: calc(var(--cat-row-h, 0px) - 2px);
   border-bottom: none;
-  box-shadow: inset 0 -1px 0 rgba(139, 148, 158, 0.45);
+  /* box-shadows, in order:
+     1. blue scrolled-edge line, flush on the bottom (like Mana Items);
+     2. soft drop shadow onto the body below;
+     3. a 14px-tall OPAQUE block extending UPWARD in the header colour — fills
+        any sub-pixel/rounding gap between this row and the category row above
+        (which sits at z-index 52 and paints over the overlapping part). This
+        kills the band where body content showed through, regardless of how
+        --cat-row-h rounds. */
+  box-shadow:
+    inset 0 -2px 0 rgba(120, 200, 235, 0.85),
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 -14px 0 0 #161b22;
 }
-/* While the table is scrolled vertically, the category row is removed so the
-   column-name row is the single clean pinned header (no clipped sliver). JS
-   toggles .cat-row-hidden on scrollTop > 0. */
-.creeps-table.cat-row-hidden thead tr.cat-row { display: none; }
 .creeps-table thead tr.cat-row .cat-head + .cat-head { border-left: 2px solid rgba(170, 220, 240, 0.22); }
 .creeps-table .creep-icon-cell img {
   width: 48px;
@@ -3993,7 +4202,9 @@ body.filter-active ul.subnotes { display: none; }
 .creeps-table thead th {
   position: sticky;
   top: 0;
-  z-index: 5;            /* above body pinned identity cols (z-index 3) */
+  z-index: 50;           /* above body cells AND the hover-zoomed icon/ability
+                            (z 30/40 below), so a hovered row near the top never
+                            paints over the pinned header */
   background: #161b22;
   color: #e6edf3;
   font-weight: 600;
@@ -4135,13 +4346,13 @@ body.filter-active ul.subnotes { display: none; }
 
 /* ───────────────────────── MANA REGEN TABLE ───────────────────────────── */
 .mr-blurb {
-  /* No bottom margin — the sticky toolbar's padding-top (14px) provides the
-     description→buttons gap so it's identical resting vs scrolled. */
+  /* Spans the full page width on every table page (Neutral Creeps /
+     Neutral Abilities / Mana Items) — no max-width clamp. The toolbar's
+     padding-top below handles the gap to the View / Price controls. */
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 1.55;
   color: #8b949e;
-  max-width: 920px;
 }
 .mr-blurb strong { color: #c9d1d9; font-weight: 600; }
 .mr-blurb code {
@@ -4157,6 +4368,21 @@ body.filter-active ul.subnotes { display: none; }
   /* Match the Neutral Creeps / Unit Abilities tables exactly (11.5px). */
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+  /* Fixed layout: the Item column gets a set width, every numeric column then
+     splits the remaining page width EQUALLY (no auto-sized narrow/wide mix). */
+  table-layout: fixed;
+}
+/* Item column — wide enough for the icon + longest item name. */
+.mr-table .mr-col-name,
+.mr-table .mr-name {
+  width: 230px;
+}
+/* The seven numeric columns share the rest equally (table-layout: fixed gives
+   every width-less column an equal slice). Keep their text centred + clipped
+   cleanly if a header would otherwise overflow its equal slice. */
+.mr-table thead th:not(.mr-col-name) {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .mr-table thead th,
 .mr-table tbody td {
@@ -4192,7 +4418,9 @@ body.filter-active ul.subnotes { display: none; }
      --mr-thead-top so it tracks the real rendered heights. Subnav and the
      description above are left in normal flow, so they scroll away. */
   top: var(--mr-thead-top, 130px);
-  z-index: 4;
+  z-index: 35;           /* above the hover-zoomed item icon (z 30) so a
+                            top-row icon pop-out never paints over the header,
+                            but below toolbar/subnav/nav (z 80/90/100) */
   white-space: nowrap;
 }
 /* Toolbar pins right under the site nav. The painted background extends a
@@ -4201,16 +4429,19 @@ body.filter-active ul.subnotes { display: none; }
    JS measures the toolbar's full height (incl. this padding) into
    --mr-thead-top, so the headers pin exactly at the painted bottom edge. */
 .mr-toolbar {
-  position: sticky;
-  top: var(--site-nav-h, 96px);
+  /* Was position:sticky — user wants only the site nav and the table category
+     headers to stay pinned while scrolling. The Price filter + Hide Active
+     toggle now scroll away with the page. The table thead still sticks at
+     var(--mr-thead-top) so column names remain visible. */
+  position: relative;
   z-index: 5;
   background: #0a0e13;
   box-sizing: content-box;
-  /* Painted padding above + below the buttons so the scrolled gaps match the
-     resting layout exactly: 14px above (= the description→buttons gap, with
-     .mr-blurb margin-bottom zeroed), 8px below (= buttons→table gap). */
+  /* Unified breathing room: 28px above the toolbar + 14px below, matching
+     the Neutral Creeps / Neutral Abilities / Calendar pages. JS reads the
+     resulting total height into --mr-thead-top automatically. */
   margin-bottom: 0;
-  padding: 14px 0 8px;
+  padding: 28px 0 14px;
 }
 /* OPAQUE hover background — a translucent one let table rows scrolling
    beneath the sticky header bleed through. This is the #161b22 base blended
@@ -4283,6 +4514,19 @@ body.filter-active ul.subnotes { display: none; }
   border-radius: 3px;
   flex-shrink: 0;
   box-shadow: 0 0 0 1px rgba(170, 220, 240, 0.18);
+  transform-origin: center center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+/* Hover-zoom the item icon, mirroring the ability-icon pop-out (same scale +
+   centre origin as .abil-ico in the other tables) — symmetric expansion so it
+   doesn't dump itself onto the item name to the right. */
+.mr-ico:hover {
+  transform: scale(1.8);
+  position: relative;
+  z-index: 30;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(170, 220, 240, 0.4);
 }
 .mr-ico-blank {
   background: rgba(110, 118, 129, 0.15);

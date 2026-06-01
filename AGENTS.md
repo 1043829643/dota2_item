@@ -1,5 +1,14 @@
 # Sloppy — Dota 2 patch notes site
 
+## Старт сессии — прочитай это
+
+Чтобы сразу быть в контексте, в начале сессии прочитай:
+- `AGENTS.md` (этот файл) — общая структура, source of truth, запуск.
+- `docs/architecture.md`, `docs/workflow.md`, `docs/data-format.md` — конвейер **патч-страниц** (`build_patch.py`).
+- `docs/tables.md` — подсистема **таблиц** (Neutral Creeps + вложенная Neutral Abilities / Mana Items: `build_creeps.py`, `build_mana_items.py`, sticky/overlay-архитектура, история ячеек, грабли).
+
+Сайт = две подсистемы: (1) аннотированные патчноуты и (2) сортируемые таблицы под разделом Materials. Общие `styles.css` / `scripts.js`.
+
 ## ВАЖНО: source of truth
 
 `build_patch.py` — **главный файл патч-страниц**. CSS и JS читаются с диска при старте: `styles.css` и `scripts.js` — это **source files**, редактируются напрямую.

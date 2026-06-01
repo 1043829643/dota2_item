@@ -35,29 +35,42 @@ def compute_asset_version():
     return _hashlib.sha1((css + js).encode("utf-8")).hexdigest()[:10]
 
 
-# Single source of truth for the nav tabs. Tuple: (key, label, root_href).
-# `changelogs` is special — its href is the latest patch page, passed in
-# per-call (it isn't a fixed root file).
+def get_latest_version():
+    """Return the latest patch version string (e.g. '7.41c') from site_meta.json,
+    written by build_patch.py. Empty string if the meta hasn't been written yet."""
+    import json as _json
+    meta_path = _os.path.join(_HERE, "data", "site_meta.json")
+    try:
+        return _json.loads(open(meta_path, encoding="utf-8").read()).get(
+            "latest_patch_version", ""
+        )
+    except Exception:
+        return ""
+
+
+# Header tabs in the centre of the site nav. Tuple: (key, label, root_href).
+# `changelogs` (label: Patch Reader) is special — its href is the latest patch
+# page, passed in per-call (it isn't a fixed root file). "Main" lives in the
+# brand link on the left, so it's not duplicated here.
 NAV_TABS = [
     ("main",       "Main",         "index.html"),
-    ("changelogs", "Changelogs",   None),
+    ("changelogs", "Patch Reader", None),
     ("calendar",   "Calendar",     "calendar.html"),
     ("materials",  "Materials",    "materials.html"),
 ]
 
 
-# Sub-tabs for the Materials section. Single source of truth. Tuple is
-# (key, label, href). Embedded directly into the site header on those pages
-# (no separate subnav strip) so nothing extra freezes on scroll.
+# Materials sub-tabs — flat row rendered as a thin bar BELOW the main header
+# (so the header itself stays compact). Single source of truth.
 MATERIALS_SUBTABS = [
-    ("creeps",     "Neutral Creeps", "materials.html"),
-    ("abilities",  "Unit Abilities", "unit_abilities.html"),
-    ("mana_items", "Mana Items",     "mana_items.html"),
+    ("creeps",     "Neutral Creeps",    "materials.html"),
+    ("abilities",  "Neutral Abilities", "neutral_abilities.html"),
+    ("mana_items", "Mana Items",        "mana_items.html"),
 ]
 
 
 def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None,
-                   subtabs_active=None):
+                   subtabs_active=None, subnav_in_header=True):
     """Render the shared top nav.
 
     active        — one of the NAV_TABS keys ('main'/'changelogs'/...).
@@ -80,36 +93,63 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
         f'<a class="nav-brand" href="{prefix}index.html" aria-label="Home">'
         f'<img class="nav-brand-logo" src="{prefix}icons/header-helmet.png" '
         f'alt="" loading="eager">'
-        f'<span class="nav-brand-text">Dota-related stuff by '
-        f'<span class="nav-brand-sikle">sikle</span></span>'
+        f'<span class="nav-brand-text">'
+        f'<span class="nav-brand-sikle">sikle</span>\\dota.vpk'
+        f'</span>'
         f'</a>'
     )
-    if subtabs_active is not None:
-        # Materials pages: tabs sit BELOW the brand, flush with the header's
-        # bottom edge (browser-tab style). nav-inner switches to a column.
-        pills = ''.join(
-            f'<a class="nav-subtab{" active" if subtabs_active == key else ""}" '
-            f'href="{prefix}{href}">{label}</a>'
-            for key, label, href in MATERIALS_SUBTABS)
-        return f'''<nav class="top-nav has-subtabs">
-  <div class="nav-inner nav-inner-stacked">
-    {brand}
-    <div class="nav-subtabs">{pills}</div>
-  </div>
-</nav>
-'''
+    # Centre tabs: Patch Reader (→ latest patch) | Calendar | Materials. Shown
+    # on every page so navigation is one click from anywhere.
+    def _tab_href(key, href):
+        if key == "changelogs":
+            return latest_href
+        return prefix + href
+    centre = ''.join(
+        f'<a class="nav-tab{" active" if active == key else ""}" '
+        f'href="{_tab_href(key, href)}">{label}</a>'
+        for key, label, href in NAV_TABS)
+    centre_html = f'<div class="nav-tabs">{centre}</div>'
+
     if picker_html:
         right_side = picker_html
     else:
-        # Non-patch pages still reserve the nav-context height so the header
-        # doesn't jump between tabs.
+        # Non-patch pages: show the latest patch version as a NON-clickable
+        # display, styled like the dropdown button on patch pages so the
+        # right-side block looks consistent across the site.
+        latest_ver = get_latest_version()
+        ver_html = (f'<span class="version version-static">{latest_ver}</span>'
+                    if latest_ver else '')
         right_side = (
-            f'\n    <div class="nav-context nav-context-flat '
-            f'nav-context-{active}"></div>'
+            f'<div class="nav-context nav-context-flat '
+            f'nav-context-{active}">{ver_html}</div>'
         )
-    return f'''<nav class="top-nav">
+    header = f'''<nav class="top-nav">
   <div class="nav-inner">
-    {brand}{right_side}
+    {brand}
+    {centre_html}
+    {right_side}
   </div>
 </nav>
 '''
+    # On Materials pages, hang a thin sub-tab bar BELOW the header (NOT inside
+    # it — that would make the header tall). Flat row of three pills.
+    #   subnav_in_header=True  (Mana Items): the bar sits right under the nav
+    #     and scrolls away with the page.
+    #   subnav_in_header=False (Neutral Creeps / Abilities): the caller places
+    #     the bar INSIDE the inner scroll box itself (via render_materials_subnav)
+    #     so it scrolls away with the table — the page barely scrolls there.
+    if subtabs_active is not None and subnav_in_header:
+        header += render_materials_subnav(subtabs_active, prefix)
+    return header
+
+
+def render_materials_subnav(active, prefix=""):
+    """The Materials sub-tab bar (Neutral Creeps | Neutral Abilities | Mana
+    Items) as a standalone strip — so pages with an inner scroll box can drop
+    it inside that box rather than in the page header."""
+    subpills = ''.join(
+        f'<a class="nav-subtab{" active" if active == key else ""}" '
+        f'href="{prefix}{href}">{label}</a>'
+        for key, label, href in MATERIALS_SUBTABS)
+    return (f'<div class="materials-subnav"><div class="materials-subnav-inner">'
+            f'{subpills}</div></div>\n')
