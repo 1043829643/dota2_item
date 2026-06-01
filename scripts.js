@@ -1158,10 +1158,11 @@
 })();
 
 // ---- CREEPS / UNIT ABILITIES: size the scroll box to fit the viewport ----
-// Page-level scroll (like Mana Items): the .creeps-scroll wrapper no longer
-// caps height or scrolls. This only measures the category row's rendered
-// height into --cat-row-h, which the two-row sticky header offset (col-row top:
-// calc(--site-nav-h + --cat-row-h - 2px)) depends on — CSS calc can't read it.
+// The table lives in a height-capped .creeps-scroll box (the page is locked so
+// only this box scrolls — one scrollbar). CSS sets the box max-height; this only
+// measures the category row's rendered height into --cat-row-h, which the
+// two-row sticky header offset (col-row top: calc(--cat-row-h - 2px)) needs —
+// CSS calc can't read it.
 (function() {
   const box = document.querySelector('.creeps-page .creeps-scroll');
   if (!box) return;
@@ -1259,34 +1260,33 @@
   const frame = page && page.querySelector('.sticky-frame');       // vertical
 
   function positionFrames() {
-    if (!page) return;
+    if (!scroller || !page) return;
     const firstTds = [...firstRow.children];
     if (firstTds.length < 3) return;
-    // Page-level scroll: .sticky-frame is position:fixed, so everything is in
-    // viewport coordinates. nameR.right is the right edge of the frozen
-    // identity block (the sticky cells pin to the viewport's left during
-    // horizontal page scroll, so this stays put). headBottom is the thead's
-    // live bottom edge (it pins under the nav on vertical scroll).
-    const nameR  = firstTds[2].getBoundingClientRect();
+    const pageR  = page.getBoundingClientRect();
+    const scrR   = scroller.getBoundingClientRect();
+    const nameR  = firstTds[2].getBoundingClientRect();  // right edge of pinned block
+    // Anchor to the thead's LIVE bottom edge rather than a fixed header height:
+    // the blurb + toolbar sit inside the scroll box above the table, so the
+    // thead isn't at the box top at rest — measuring its real bottom keeps the
+    // divider correct both at rest and once the header pins under the nav.
     const headBottom = table.tHead
       ? table.tHead.getBoundingClientRect().bottom
-      : 0;
-    // Vertical divider: at the right edge of the frozen columns, from just
-    // below the pinned header down to the bottom of the viewport.
+      : scrR.top;
+    // Vertical divider: at the right edge of the frozen lvl/unit columns,
+    // starting BELOW the sticky column header and spanning the rest of height.
     if (frame) {
-      frame.style.left   = nameR.right + 'px';
-      frame.style.top    = headBottom + 'px';
-      frame.style.height = Math.max(0, window.innerHeight - headBottom) + 'px';
+      frame.style.left   = (nameR.right - pageR.left) + 'px';
+      frame.style.top    = (headBottom - pageR.top) + 'px';
+      frame.style.height = (scrR.bottom - headBottom) + 'px';
       frame.style.width  = '0px';
     }
   }
 
   if (scroller) {
     const onScroll = () => {
-      // Page-level scroll now: the frozen-column divider shows once the page is
-      // scrolled horizontally (there is content hidden to the left). The blue
-      // scrolled-edge line under the header is baked into the col-row box-shadow.
-      const sx = window.scrollX > 0;
+      const sx = scroller.scrollLeft > 0;
+      scroller.classList.toggle('scrolled', sx);
       positionFrames();
       if (frame) frame.classList.toggle('visible', sx);
     };
@@ -1300,8 +1300,7 @@
         try { onScroll(); } finally { ticking = false; }
       });
     };
-    // Page scrolls now (not the box) → listen on window for both axes.
-    window.addEventListener('scroll', onScrollRaf, { passive: true });
+    scroller.addEventListener('scroll', onScrollRaf, { passive: true });
     window.addEventListener('resize', onScrollRaf, { passive: true });
 
     // Super-category header colspans must equal the number of CURRENTLY

@@ -47,51 +47,29 @@ Note: KV engine slug ≠ in-game display name (e.g. `frostmourne` → "Curse of 
 
 ## Scroll / sticky architecture (the tricky part)
 
-**All three tables now scroll at the PAGE level** (like Mana Items always did) —
-rows slide under the translucent glass nav, the page's own scrollbar is the only
-vertical one, and a wide table scrolls horizontally at the page level. There is no
-inner scroll box anymore.
+**Neutral Creeps & Unit Abilities** scroll inside an inner box `.creeps-scroll`
+within a non-scrolling `.creeps-page`. This exists to:
+- freeze identity columns on the LEFT (`.sticky-col`, JS sets per-cell `left`), and
+- draw frozen-pane dividers as **overlay divs** (`.sticky-frame` vertical) because
+  **Chrome drops `box-shadow`/`border` on `position:sticky` cells mid-scroll**.
 
-- **Mana Items** has no wrapper — the table sits directly in `.creeps-page`.
-- **Neutral Creeps & Unit Abilities** keep the `.creeps-scroll` wrapper in the DOM
-  (the View toggle + the frozen-column overlay JS key off it), but it is **no longer
-  a scroll container**: it sets only `width:100%` — **NO `overflow` / `contain` /
-  `max-height`** (any of those would clip the wide table and re-introduce a second
-  inner scrollbar). History: it used to be a height-capped `overflow:auto` box; we
-  flipped to page-scroll on user request (2026-06-01).
-- **Wide tables must shrink-to-fit, not grow.** `.creeps-table` defaults to
-  `width: max-content; min-width: 100%` — great for Neutral Creeps (Standard fills,
-  Expanded scrolls), but **wrong for the wide Unit Abilities table** (18 cols incl.
-  3 long-text Property cols) under page-scroll: `max-content` overflows the screen,
-  and once content is narrower than the viewport `min-width:100%` stretches it back
-  to full width, re-widening cells with empty space. Fix: `.unit-abilities-table`
-  overrides to **`width: auto; min-width: 0`** (shrink-to-fit — capped at the
-  viewport, wraps cells to fit instead of overflowing, never stretches past
-  content).
-- **Property 1–3 column cap.** The long-text Property cells additionally wrap via a
-  block `<div class="ua-prop-clamp">` (`max-width:200px`, built in
-  `build_creeps.py::_prop_cell`). ⚠ A `max-width` on the `<td>` itself is **ignored**
-  in `table-layout: auto` (column sizes to its widest cell) — the table only honours
-  a *descendant block's* max-width, hence the inner div.
+**One scrollbar, not two.** The box is `overflow:auto; position:sticky; max-height:
+calc(100vh − nav − 24px)`, and the PAGE is locked via
+`body:has(.creeps-scroll){overflow:hidden}` (+ 12px top/bottom `.creeps-page`
+padding) so ONLY the box scrolls — one vertical scrollbar, plus a horizontal one
+for the wide table. (History: we briefly tried page-level scroll for these two
+tables on 2026-06-01, but the wide Unit Abilities table overflowed/looked broken,
+so we reverted to this contained box.)
 
-How the frozen pieces still work at page level:
-- **Identity columns** freeze via `position:sticky; left:<offset>` (JS sets per-cell
-  `left` from measured widths). `position:sticky` pins them against the *viewport's*
-  left edge during horizontal page scroll.
-- **Sticky `<thead>`** pins under the nav: its `top` offsets now include
-  `var(--site-nav-h)` (set by `scripts.js`) — see the two-row header below.
-- **Frozen-pane divider** (`.sticky-frame`, vertical) is drawn as an overlay div
-  because **Chrome drops `box-shadow`/`border` on `position:sticky` cells mid-scroll**.
-  It is now **`position:fixed`** (viewport coords) and repositioned on `window`
-  scroll/resize by `scripts.js` (`positionFrames()`), shown when `window.scrollX > 0`.
+**Mana Items** scrolls at the **page level** (no inner box). That's why its rows slide
+under the translucent glass nav and the table colours show through — an effect the other
+two pages can't get without giving up the frozen columns + overlays.
 
 ### Two-row sticky header (Neutral Creeps)
-- `<tr class="cat-row">` (BASIC / VITALITY / …) sticks at `top: var(--site-nav-h)`.
-- `<tr class="col-row">` (Lvl / Unit / HP …) sticks at
-  `top: calc(var(--site-nav-h) + var(--cat-row-h) - 2px)`.
-- `--site-nav-h` (top-nav height) and `--cat-row-h` (category row's measured height)
-  are both set by `scripts.js`. Unit Abilities has no `.cat-row` → its single header
-  row pins at `top: var(--site-nav-h)`.
+- `<tr class="cat-row">` (BASIC / VITALITY / …) sticks at `top: 0` (of the box).
+- `<tr class="col-row">` (Lvl / Unit / HP …) sticks at `top: calc(var(--cat-row-h) - 2px)`.
+- `--cat-row-h` is set by `scripts.js` from the category row's measured height.
+  Unit Abilities has no `.cat-row` → its single header row pins at `top: 0`.
 - The col-row carries an upward `box-shadow: 0 -14px 0 0 #161b22` that fills any
   rounding gap between the two pinned rows; the cat-row (higher z-index) paints over
   the overlapping part. This is what actually kills the "body shows through the gap"
