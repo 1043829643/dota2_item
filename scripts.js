@@ -1769,7 +1769,7 @@
       sig.style.visibility = 'hidden';
       sig.style.left = '0px'; sig.style.top = '0px';
       // slight organic variation
-      sig.style.fontSize = (11 + Math.floor(Math.random() * 5)) + 'px';
+      sig.style.fontSize = (16 + Math.floor(Math.random() * 8)) + 'px';
       sig.style.transform = 'rotate(' + (Math.random() * 14 - 7).toFixed(1) + 'deg)';
       const w = sig.offsetWidth, h = sig.offsetHeight;
       if (!w || !h) return;
