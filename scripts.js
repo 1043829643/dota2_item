@@ -1755,8 +1755,11 @@
     const book = document.querySelector('.inv-book');
     if (!book) return;
     const nav = document.querySelector('nav.top-nav');
-    const M = 12;                                   // gap kept around everything
-    const W = window.innerWidth, H = window.innerHeight;
+    const M = 12, EDGE = 6;                          // gaps: between items / page edge
+    // clientWidth/Height = the visible area WITHOUT the scrollbar (matches the
+    // fixed signature layer), so a word never lands under the scrollbar.
+    const W = document.documentElement.clientWidth;
+    const H = document.documentElement.clientHeight;
     const br = book.getBoundingClientRect();
     const forbidden = [{ l: br.left - M, t: br.top - M, r: br.right + M, b: br.bottom + M }];
     if (nav) {
@@ -1770,17 +1773,28 @@
       sig.style.left = '0px'; sig.style.top = '0px';
       // slight organic variation
       sig.style.fontSize = (16 + Math.floor(Math.random() * 8)) + 'px';
-      sig.style.transform = 'rotate(' + (Math.random() * 14 - 7).toFixed(1) + 'deg)';
-      const w = sig.offsetWidth, h = sig.offsetHeight;
-      if (!w || !h) return;
+      const rot = Math.random() * 14 - 7;
+      sig.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)';
+      const w0 = sig.offsetWidth, h0 = sig.offsetHeight;   // unrotated box
+      if (!w0 || !h0) return;
+      // Rotated bounding box (transform-origin is the centre). Placing by the
+      // rotated box keeps the tilted text fully inside the viewport — otherwise
+      // a near-edge word's corner spills out and gets clipped (e.g. @mage_69).
+      const rad = Math.abs(rot) * Math.PI / 180;
+      const bw = w0 * Math.cos(rad) + h0 * Math.sin(rad);
+      const bh = w0 * Math.sin(rad) + h0 * Math.cos(rad);
+      const cxMin = EDGE + bw / 2, cxMax = W - EDGE - bw / 2;
+      const cyMin = EDGE + bh / 2, cyMax = H - EDGE - bh / 2;
+      if (cxMax <= cxMin || cyMax <= cyMin) { sig.style.display = 'none'; return; }
       let done = false;
-      for (let i = 0; i < 80 && !done; i++) {
-        const x = 4 + Math.random() * Math.max(1, W - w - 8);
-        const y = 4 + Math.random() * Math.max(1, H - h - 8);
-        const r = { l: x - M, t: y - M, r: x + w + M, b: y + h + M };
+      for (let i = 0; i < 90 && !done; i++) {
+        const cx = cxMin + Math.random() * (cxMax - cxMin);   // centre point
+        const cy = cyMin + Math.random() * (cyMax - cyMin);
+        const r = { l: cx - bw / 2 - M, t: cy - bh / 2 - M, r: cx + bw / 2 + M, b: cy + bh / 2 + M };
         if (forbidden.some(f => overlap(r, f))) continue;
         if (placed.some(p => overlap(r, p))) continue;
-        sig.style.left = x + 'px'; sig.style.top = y + 'px';
+        sig.style.left = (cx - w0 / 2) + 'px';   // element top-left from centre
+        sig.style.top = (cy - h0 / 2) + 'px';
         sig.style.visibility = 'visible';
         placed.push(r);
         done = true;
