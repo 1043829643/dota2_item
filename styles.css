@@ -186,7 +186,8 @@ body:has(.creeps-page) nav.top-nav {
   user-select: none;
   transition: color 0.15s ease, text-shadow 0.15s ease;
 }
-.inv-sig:hover {
+.inv-sig:hover,
+.inv-sig.is-lit {
   color: rgba(243, 220, 150, 0.72);
   text-shadow: 0 0 8px rgba(227, 196, 106, 0.45);
 }

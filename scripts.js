@@ -1795,4 +1795,15 @@
   else window.addEventListener('load', place);
   let t;
   window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(place, 200); }, { passive: true });
+
+  // Auto-spotlight: every 10s light up a random placed signature for 5s, the
+  // same way hover does — but only while the tab is actually visible.
+  setInterval(() => {
+    if (document.hidden) return;
+    const lit = sigs.filter(s => s.style.display !== 'none' && s.style.visibility === 'visible');
+    if (!lit.length) return;
+    const s = lit[Math.floor(Math.random() * lit.length)];
+    s.classList.add('is-lit');
+    setTimeout(() => s.classList.remove('is-lit'), 5000);
+  }, 10000);
 })();
