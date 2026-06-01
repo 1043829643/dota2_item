@@ -3771,6 +3771,22 @@ body.filter-active ul.subnotes { display: none; }
   overflow-wrap: anywhere;
   line-height: 1.25;
 }
+/* Unit Abilities is a WIDE table (18 cols incl. 3 long-text Property cols).
+   `.creeps-table` defaults to `width:max-content; min-width:100%`, which (with
+   no inner scroll box anymore) either overflows the screen OR — once content is
+   narrower than the viewport — gets stretched back to 100%, re-widening the
+   Property cells with empty space. Both look broken.
+
+   Fix: `width:auto` (shrink-to-fit) + `min-width:0`. A shrink-to-fit table is
+   capped at the available width and WRAPS its cells to fit instead of
+   overflowing, and never stretches past its content — so the Property columns
+   stay tight (helped by the `.ua-prop-clamp` block) and the whole table fits the
+   screen without a horizontal scrollbar. */
+.creeps-table.unit-abilities-table {
+  width: auto;
+  min-width: 0;
+  margin: 0;        /* left-aligned, no auto-centering that adds side gaps */
+}
 /* Damage cell allows wrapping for long compound expressions (e.g. Mana Burn:
    "20/25/30/35 + 200/250/350/400% Int"). */
 .unit-abilities-table td.ua-damage { white-space: normal; }

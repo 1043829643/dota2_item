@@ -59,14 +59,20 @@ inner scroll box anymore.
   `max-height`** (any of those would clip the wide table and re-introduce a second
   inner scrollbar). History: it used to be a height-capped `overflow:auto` box; we
   flipped to page-scroll on user request (2026-06-01).
-- **Wide text columns must wrap.** Page-scroll has no inner box to hide runaway
-  width, so columns holding long descriptive text — Unit Abilities **Property 1–3**
-  (`.ua-effect` / `.ua-effect2` / `.ua-effect3`) — would balloon to their widest
-  cell and run far past the viewport. ⚠ In `table-layout: auto` a `max-width` on
-  the `<td>` is **ignored** (the column sizes to its widest cell). Fix: wrap each
-  cell's content in a block `<div class="ua-prop-clamp">` (built in
-  `build_creeps.py::_prop_cell`) whose `max-width` the table layout **does** honour
-  → the text wraps and the column is capped.
+- **Wide tables must shrink-to-fit, not grow.** `.creeps-table` defaults to
+  `width: max-content; min-width: 100%` — great for Neutral Creeps (Standard fills,
+  Expanded scrolls), but **wrong for the wide Unit Abilities table** (18 cols incl.
+  3 long-text Property cols) under page-scroll: `max-content` overflows the screen,
+  and once content is narrower than the viewport `min-width:100%` stretches it back
+  to full width, re-widening cells with empty space. Fix: `.unit-abilities-table`
+  overrides to **`width: auto; min-width: 0`** (shrink-to-fit — capped at the
+  viewport, wraps cells to fit instead of overflowing, never stretches past
+  content).
+- **Property 1–3 column cap.** The long-text Property cells additionally wrap via a
+  block `<div class="ua-prop-clamp">` (`max-width:200px`, built in
+  `build_creeps.py::_prop_cell`). ⚠ A `max-width` on the `<td>` itself is **ignored**
+  in `table-layout: auto` (column sizes to its widest cell) — the table only honours
+  a *descendant block's* max-width, hence the inner div.
 
 How the frozen pieces still work at page level:
 - **Identity columns** freeze via `position:sticky; left:<offset>` (JS sets per-cell
