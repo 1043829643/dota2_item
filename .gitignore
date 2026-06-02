@@ -43,11 +43,10 @@ icons/Pixel Logo.gif
 *.session
 *.session-journal
 
-# Real channel member list — NOT committed for now (privacy + we deploy with
-# random placeholder names). When absent, build_patch.py falls back to random
-# placeholders, so CI builds the wall with fake names. Generated locally by
-# scripts/fetch_signatures.py / run_signatures.ps1.
-data/signatures.json
+# NOTE: data/signatures.json IS committed now — we deploy the real member
+# display-name list (display names, owner/links/empties excluded per
+# scripts/fetch_signatures.py). It's just data, so the wall has real names on
+# CI. (If absent, build_patch.py still falls back to random placeholders.)
 
 # Local one-command refresh helper — contains the Telegram api_hash, never commit
 run_signatures.ps1
