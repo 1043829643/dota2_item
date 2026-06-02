@@ -1502,21 +1502,23 @@ def save_creeps_html():
         f'<script src="scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    with open('materials.html', 'w', encoding='utf-8') as f:
+    with open('neutral_creeps.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"  -> materials.html: {len(html):,} bytes")
-    # Backward-compat redirect: any old bookmark / external link to /creeps.html
-    # bounces to /materials.html. Removed once we're confident no traffic
-    # references the old URL.
-    with open('creeps.html', 'w', encoding='utf-8') as f:
-        f.write(
-            '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-            '<meta http-equiv="refresh" content="0; url=materials.html">'
-            '<link rel="canonical" href="materials.html">'
-            '<title>Sloppy — moved</title></head><body>'
-            '<p>This page moved to <a href="materials.html">materials.html</a>.</p>'
-            '</body></html>'
-        )
+    print(f"  -> neutral_creeps.html: {len(html):,} bytes")
+    # Backward-compat redirects: any old bookmark / external link to the former
+    # /creeps.html or /materials.html bounces to /neutral_creeps.html. Removed
+    # once we're confident no traffic references the old URLs.
+    for _old in ('creeps.html', 'materials.html'):
+        with open(_old, 'w', encoding='utf-8') as f:
+            f.write(
+                '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+                '<meta http-equiv="refresh" content="0; url=neutral_creeps.html">'
+                '<link rel="canonical" href="neutral_creeps.html">'
+                '<title>Sloppy — moved</title></head><body>'
+                '<p>This page moved to '
+                '<a href="neutral_creeps.html">neutral_creeps.html</a>.</p>'
+                '</body></html>'
+            )
 
     # ---- Neutral Abilities companion page ----
     # One row per (creep, ability), mirroring the Creeps Table's Lvl + Unit
@@ -1903,7 +1905,7 @@ def save_creeps_html():
             '_force_leveled': ('effect',),
             'effect': (
                 '\x01<span class="cell-wrap">Summons 3 <a class="ua-inline-link" '
-                'href="materials.html#unit-skeleton_warrior">'
+                'href="neutral_creeps.html#unit-skeleton_warrior">'
                 'Skeleton Warriors</a>'
                 '<span class="qhint" tabindex="0" role="button" '
                 'aria-label="HP = 250/275/300/375, attack damage = 12/15/18/21" '
@@ -2268,7 +2270,7 @@ def save_creeps_html():
         ch = (d.get('createhero') or '').strip()
         icon = d.get('icon')
         unit_img = (
-            f'<a class="unit-link" href="materials.html#unit-{_esc(ch)}">'
+            f'<a class="unit-link" href="neutral_creeps.html#unit-{_esc(ch)}">'
             f'<img class="creep-copy" src="{_esc(icon)}" alt="" loading="lazy" '
             f'onerror="this.style.visibility=\'hidden\'"></a>' if icon else '')
         slugs = [(kk, d.get(kk + '_slug', ''), d.get(kk, ''))

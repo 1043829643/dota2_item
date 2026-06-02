@@ -7,7 +7,7 @@ This covers the sortable data tables under the **Materials** section.
 
 | Page | Content | Builder |
 |---|---|---|
-| `materials.html` | **Neutral Creeps** table (stats + abilities). `creeps.html` is now a redirect → `materials.html`. | `build_creeps.py` |
+| `neutral_creeps.html` | **Neutral Creeps** table (stats + abilities). `creeps.html` and `materials.html` are now redirects → `neutral_creeps.html`. | `build_creeps.py` |
 | `neutral_abilities.html` | Per-unit-ability table (one row per unit×ability). The Materials sub-nav presents it as a child of Neutral Creeps. `unit_abilities.html` is now a small meta-redirect for backwards compatibility. | `build_creeps.py` (same run) |
 | `mana_items.html` | Mana / mana-regen items + gold-efficiency metrics. | `build_mana_items.py` |
 | nav / asset version / `data/site_meta.json` | Shared header, sub-tabs, cache-busting. | `site_common.py` |
@@ -19,7 +19,7 @@ Header sub-tabs (under the logo) switch between Neutral Creeps / Unit Abilities 
 ```bash
 # On Windows always:  PYTHONIOENCODING=utf-8
 python build_patch.py        # 1. writes data/site_meta.json (asset version, patch list)
-python build_creeps.py       # 2. -> materials.html + neutral_abilities.html (+ unit_abilities.html redirect)
+python build_creeps.py       # 2. -> neutral_creeps.html + neutral_abilities.html (+ creeps/materials/unit_abilities redirects)
 python build_mana_items.py   # 3. -> mana_items.html  (run AFTER build_patch)
 ```
 
@@ -81,7 +81,7 @@ html:has(.calendar-page),  /* calendar — fits the screen     */
 html:has(.creeps-page)     /* Neutral Creeps / Neutral Abilities / Mana Items */
 { scrollbar-gutter: auto; }
 ```
-Note `.creeps-page` is shared by **all three** Materials tables (materials.html,
+Note `.creeps-page` is shared by **all three** Materials tables (neutral_creeps.html,
 neutral_abilities.html, mana_items.html), and **all three now lock the page and scroll
 inside `.creeps-scroll`** (one scrollbar inside the box). **New page rule:** single-screen
 or self-scrolling → give it one of these classes (or add to the opt-out); long filterable

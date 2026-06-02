@@ -25,6 +25,7 @@ patches/*.html
 calendar.html
 creeps.html
 materials.html
+neutral_creeps.html
 mana_items.html
 unit_abilities.html
 neutral_abilities.html
@@ -38,6 +39,10 @@ data/*_datafeed.json
 
 # Abandoned logo experiment — kept locally, not committed
 icons/Pixel Logo.gif
+
+# Reference source images for hand-adapted icons (stock/watermarked) — kept
+# locally so icons can be re-derived, never committed/deployed.
+icons/ref/
 
 # Telethon auth session for scripts/fetch_signatures.py — never commit
 *.session

@@ -1791,7 +1791,7 @@
     const EDGE = 6;                                  // gap from the page edge
     // Inter-name gap shrinks as the count grows, so more names pack in (the
     // Telegram bot can feed many without them feeling sparse).
-    const M = Math.max(3, Math.round(14 - sigs.length * 0.05));
+    const M = Math.max(2, Math.round(11 - sigs.length * 0.05));
     // Auto-shrink the font as the wall gets crowded so more names pack in, but
     // never below FONT_MIN (stays legible). Full size up to ~120 names, easing
     // down to the floor by ~360. The per-name random variation rides on top.
@@ -1809,73 +1809,129 @@
       const nr = nav.getBoundingClientRect();
       forbidden.push({ l: 0, t: 0, r: W, b: nr.bottom + M });
     }
+    // PERF: the old code wrote left/top then read getBoundingClientRect() inside
+    // the 90-try loop for every name — forcing a synchronous reflow on each
+    // attempt (~names × tries layouts), which froze the main thread. We now do
+    // it in strict read/write phases so the browser lays out at most ~twice:
+    //   1) batch-write every font-size,
+    //   2) batch-read every box once,
+    //   3) compute all placements in pure JS (no DOM access → no reflow),
+    //   4) batch-write final positions via transform (compositor, not layout).
+    const n = sigs.length;
+
+    // (1) write-only: reset + assign each font size.
+    for (let i = 0; i < n; i++) {
+      const s = sigs[i];
+      s.style.display = '';
+      s.style.visibility = 'hidden';
+      s.style.fontSize = (fontBot + Math.floor(Math.random() * (fontTop - fontBot + 1))) + 'px';
+    }
+    // (2) read-only: measure every unrotated box in one pass (single reflow).
+    const ws = new Array(n), hs = new Array(n);
+    for (let i = 0; i < n; i++) { ws[i] = sigs[i].offsetWidth; hs[i] = sigs[i].offsetHeight; }
+
+    // (3) pure-JS placement — no layout reads/writes here.
     const placed = [];
-    sigs.forEach(sig => {
-      sig.style.display = '';
-      sig.style.visibility = 'hidden';
-      sig.style.left = '0px'; sig.style.top = '0px';
-      // slight organic variation
-      sig.style.fontSize = (fontBot + Math.floor(Math.random() * (fontTop - fontBot + 1))) + 'px';
+    const pos = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const w0 = ws[i], h0 = hs[i];
+      if (!w0 || !h0) { pos[i] = null; continue; }
       const rot = Math.random() * 14 - 7;
-      sig.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)';
-      const w0 = sig.offsetWidth, h0 = sig.offsetHeight;   // unrotated box
-      if (!w0 || !h0) return;
-      // Rotated bounding box (transform-origin is the centre). Placing by the
-      // rotated box keeps the tilted text fully inside the viewport — otherwise
-      // a near-edge word's corner spills out and gets clipped (e.g. @mage_69).
+      // Rotated bounding box (transform-origin centre): place by it so a tilted
+      // word never spills past the viewport edge.
       const rad = Math.abs(rot) * Math.PI / 180;
       const bw = w0 * Math.cos(rad) + h0 * Math.sin(rad);
       const bh = w0 * Math.sin(rad) + h0 * Math.cos(rad);
       const cxMin = EDGE + bw / 2, cxMax = W - EDGE - bw / 2;
       const cyMin = EDGE + bh / 2, cyMax = H - EDGE - bh / 2;
-      if (cxMax <= cxMin || cyMax <= cyMin) { sig.style.display = 'none'; return; }
+      if (cxMax <= cxMin || cyMax <= cyMin) { pos[i] = null; continue; }
       let done = false;
-      for (let i = 0; i < 90 && !done; i++) {
-        const cx = cxMin + Math.random() * (cxMax - cxMin);   // centre point
+      for (let k = 0; k < 90 && !done; k++) {
+        const cx = cxMin + Math.random() * (cxMax - cxMin);
         const cy = cyMin + Math.random() * (cyMax - cyMin);
         const r = { l: cx - bw / 2 - M, t: cy - bh / 2 - M, r: cx + bw / 2 + M, b: cy + bh / 2 + M };
-        if (forbidden.some(f => overlap(r, f))) continue;
-        if (placed.some(p => overlap(r, p))) continue;
-        sig.style.left = (cx - w0 / 2) + 'px';   // element top-left from centre
-        sig.style.top = (cy - h0 / 2) + 'px';
-        sig.style.visibility = 'visible';
-        // Bulletproof: check the ACTUAL rendered (tilted) box — if it pokes past
-        // the page (e.g. the font measured narrower than it renders), reject and
-        // keep trying, so a name can never be clipped at the edge.
-        const rr = sig.getBoundingClientRect();
-        if (rr.left < 2 || rr.top < 2 || rr.right > W - 2 || rr.bottom > H - 2) {
-          sig.style.visibility = 'hidden';
-          continue;
-        }
+        let bad = false;
+        for (let f = 0; f < forbidden.length; f++) { if (overlap(r, forbidden[f])) { bad = true; break; } }
+        if (bad) continue;
+        for (let p = 0; p < placed.length; p++) { if (overlap(r, placed[p])) { bad = true; break; } }
+        if (bad) continue;
+        // Store the top-left offset from the centre; rotate about centre keeps
+        // the centre at (cx, cy).
+        pos[i] = { x: cx - w0 / 2, y: cy - h0 / 2, rot: rot };
         placed.push(r);
         done = true;
       }
-      if (!done) sig.style.display = 'none';        // no room — drop it
-    });
+      if (!done) pos[i] = null;
+    }
+
+    // (4) write-only: position via transform (GPU/compositor, no reflow) or hide.
+    for (let i = 0; i < n; i++) {
+      const s = sigs[i], p = pos[i];
+      if (!p) { s.style.display = 'none'; continue; }
+      s.style.transform = 'translate(' + p.x.toFixed(1) + 'px,' + p.y.toFixed(1) + 'px) rotate(' + p.rot.toFixed(1) + 'deg)';
+      s.style.visibility = 'visible';
+    }
+    // Reveal the whole wall at once now that every name is positioned (fade-in
+    // via CSS), instead of names popping in mid-layout.
+    layer.style.opacity = '1';
   }
 
   // Make sure the pixel font is actually loaded before measuring widths —
   // otherwise names get sized with the fallback font and render wider (which
   // pushed near-edge names past the right side).
   function run() {
-    const ready = (document.fonts && document.fonts.load)
-      ? document.fonts.load('20px "Jersey 10"').catch(() => {})
+    // Wait for the ACTUAL wall font (Handjet) so widths measure right — but cap
+    // the wait at 300ms so names appear fast even on a cold load. If Handjet
+    // swaps in after, it only renders NARROWER than the fallback, so nothing
+    // clips and no re-layout is needed.
+    const fontReady = (document.fonts && document.fonts.load)
+      ? document.fonts.load('20px "Handjet"').catch(() => {})
       : Promise.resolve();
-    Promise.resolve(ready).then(place);
+    Promise.race([
+      Promise.resolve(fontReady),
+      new Promise(r => setTimeout(r, 300)),
+    ]).then(place);
   }
   if (document.readyState === 'complete') run();
   else window.addEventListener('load', run);
   let t;
   window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(place, 200); }, { passive: true });
 
-  // Auto-spotlight: every 10s light up a random placed signature for 5s, the
-  // same way hover does — but only while the tab is actually visible.
-  setInterval(() => {
+  // Auto-spotlight: light a random placed signature for 5s (same look as hover),
+  // only while the tab is visible. First highlight ~2s after load so it doesn't
+  // fire during the initial fade-in; then on the usual 10s cadence.
+  function spotlightOnce() {
     if (document.hidden) return;
     const lit = sigs.filter(s => s.style.display !== 'none' && s.style.visibility === 'visible');
     if (!lit.length) return;
     const s = lit[Math.floor(Math.random() * lit.length)];
     s.classList.add('is-lit');
     setTimeout(() => s.classList.remove('is-lit'), 5000);
-  }, 10000);
+  }
+  setTimeout(spotlightOnce, 2000);
+  setInterval(spotlightOnce, 10000);
+})();
+
+// ---- MANA ITEMS tile: hover plays a one-shot FILL (empty→half), then loops the
+// wave at that level. Two GIFs swapped via JS — a single GIF can't play an intro
+// once and then loop only its tail. Reverts to the static bottle on mouse-out.
+(function () {
+  const tile = document.querySelector('.inv-cell-mana');
+  if (!tile) return;
+  const img = tile.querySelector('.inv-icon');
+  if (!img) return;
+  const PNG = img.getAttribute('src');
+  const FILL = 'icons/ui/gothic/icon_mana_fill.gif';
+  const WAVE = 'icons/ui/gothic/icon_mana.gif';
+  const FILL_MS = 11 * 150;            // fill GIF: 11 frames × 150ms
+  let timer = null;
+  tile.addEventListener('mouseenter', () => {
+    clearTimeout(timer);
+    img.src = FILL + '?' + Date.now();  // cache-bust forces the fill to replay
+    timer = setTimeout(() => { img.src = WAVE; }, FILL_MS);
+  });
+  tile.addEventListener('mouseleave', () => {
+    clearTimeout(timer);
+    img.src = PNG;
+  });
 })();

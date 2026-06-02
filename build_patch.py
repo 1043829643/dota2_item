@@ -3883,28 +3883,53 @@ def save_index_html():
     _INV_ITEMS = [
         ('patch',     'Changelogs', f'patches/{latest}.html' if latest else 'calendar.html'),
         ('calendar',  'Calendar',   'calendar.html'),
-        ('creeps',    'Bestiary', 'materials.html'),
-        ('abilities', 'Arcana',   'neutral_abilities.html'),
+        ('creeps',    'Creeps',     'neutral_creeps.html'),
         ('mana',      'Mana Items', 'mana_items.html'),
     ]
-    # Placeholder slots — any icons, random words, non-clickable for now.
-    _INV_PLACEHOLDERS = [
-        ('materials',  'Satchel'),
-        ('hat',        'Wayfarer'),
-        ('teapot',     'Brew'),
-        ('typewriter', 'Press'),
-        ('creeps',     'Relic'),
-    ]
+    # No placeholder tiles for now — future sections TBD (Mana Items sits right
+    # after Creeps). Arcana (Neutral Abilities) lives under the Materials
+    # sub-nav, so it doesn't need its own hub tile.
+    _INV_PLACEHOLDERS = []
     cells = []
     for key, label, href in _INV_ITEMS:
+        # Every tile shows a static PNG and swaps to an animated GIF only on
+        # hover: calendar (date 1→31, CSS), creeps (crawling legs, CSS), patch
+        # (page-flip, CSS), mana (fill-then-waves, JS).
         cells.append(
-            f'<a class="inv-cell inv-filled" href="{href}" title="{label}">'
+            f'<a class="inv-cell inv-filled inv-cell-{key}" href="{href}">'
             f'<span class="inv-slot">'
             f'<img class="inv-icon" src="icons/ui/gothic/icon_{key}.png" alt="">'
             f'</span>'
             f'<span class="inv-cap">{label}</span>'
             f'</a>'
         )
+    # Special "star" tile — the slot emits a faint pixel-gold glow (hinting it's
+    # special); on hover the star pulses (grows/shrinks) and throws off a burst
+    # of magic dust (CSS). Links to the Tribute bot that handles the paid
+    # Telegram-group subscription (opens externally).
+    cells.append(
+        '<a class="inv-cell inv-filled inv-cell-star inv-special" '
+        'href="https://t.me/tribute/app?startapp=so4y" '
+        'target="_blank" rel="noopener noreferrer">'
+        '<span class="inv-slot">'
+        '<img class="inv-icon" src="icons/ui/gothic/icon_star.png" alt="">'
+        # Magic dust: 6 base sparks drift faintly at rest; 8 burst sparks ignite
+        # on hover (the burst layer fades out on mouse-out → graceful disappear).
+        '<span class="inv-sparks" aria-hidden="true">'
+        '<span class="dust-base">' + '<i class="spark"></i>' * 6 +
+        '</span><span class="dust-burst">' + '<i class="spark"></i>' * 8 +
+        '</span></span>'
+        '</span>'
+        '<span class="inv-cap">Premium</span>'
+        '</a>'
+    )
+    # Plain placeholder tile — no icon, just text. Marks a future section.
+    cells.append(
+        '<span class="inv-cell inv-ph inv-cell-test" title="placeholder">'
+        '<span class="inv-slot is-empty"></span>'
+        '<span class="inv-cap">test</span>'
+        '</span>'
+    )
     empties = ''.join(
         f'<span class="inv-cell inv-ph" title="placeholder">'
         f'<span class="inv-slot">'

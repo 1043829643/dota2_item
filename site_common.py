@@ -58,14 +58,14 @@ NAV_TABS = [
     ("main",       "Main",         "index.html"),
     ("changelogs", "Changelogs",   None),
     ("calendar",   "Calendar",     "calendar.html"),
-    ("materials",  "Materials",    "materials.html"),
+    ("materials",  "Materials",    "neutral_creeps.html"),
 ]
 
 
 # Materials sub-tabs — flat row rendered as a thin bar BELOW the main header
 # (so the header itself stays compact). Single source of truth.
 MATERIALS_SUBTABS = [
-    ("creeps",     "Neutral Creeps",    "materials.html"),
+    ("creeps",     "Neutral Creeps",    "neutral_creeps.html"),
     ("abilities",  "Neutral Abilities", "neutral_abilities.html"),
     ("mana_items", "Mana Items",        "mana_items.html"),
 ]

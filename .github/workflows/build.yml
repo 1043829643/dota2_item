@@ -102,6 +102,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/
           cp calendar.html _site/
+          cp neutral_creeps.html _site/
           cp creeps.html _site/
           cp materials.html _site/
           cp mana_items.html _site/
