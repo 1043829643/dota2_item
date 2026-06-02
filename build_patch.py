@@ -3113,10 +3113,10 @@ def write_head(version, date):
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SIKLE\\Changelogs {version}</title>
+<title>SIKLE | Changelogs {version}</title>
 {_site.favicon_links(prefix="../")}<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">
 <link rel="stylesheet" href="../styles.css?v={_ASSET_VERSION}">
 </head>
 <body>
@@ -3845,12 +3845,12 @@ def save_calendar_html():
     html = (
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         '<meta charset="UTF-8">\n'
-        '<title>SIKLE\\Calendar</title>\n'
+        '<title>SIKLE | Calendar</title>\n'
         + _site.favicon_links() +
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
-        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
+        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n<body>\n\n'
         + nav
@@ -4012,14 +4012,14 @@ def save_index_html():
         '<html lang="en">\n'
         '<head>\n'
         '<meta charset="UTF-8">\n'
-        '<title>SIKLE\\dota.vpk</title>\n'
+        '<title>SIKLE | dota.vpk</title>\n'
         + _site.favicon_links() +
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
         # Handjet = pixel/dot-matrix font WITH Cyrillic (Jersey 10 is Latin-only),
         # used for the signature wall so Cyrillic member names render in-style.
-        'href="https://fonts.googleapis.com/css2?family=Handjet:wght@400..700&family=Jersey+10&family=Jersey+25&display=swap">\n'
+        'href="https://fonts.googleapis.com/css2?family=Handjet:wght@400..700&family=Jersey+10&family=Jersey+25&display=block">\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'

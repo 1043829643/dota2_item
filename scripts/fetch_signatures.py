@@ -109,6 +109,15 @@ def _usernames(user) -> set[str]:
     return out
 
 
+# Code points that render as nothing but can report isalnum()==True: Hangul
+# fillers, zero-width chars, Braille blank, Mongolian vowel separator, ideographic
+# space. Names made only of these collapse into "Hidden (xN)".
+_BLANK_CP = frozenset({
+    0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF,
+    0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800, 0x180E, 0x3000,
+})
+
+
 def _display_name(user) -> str | None:
     """Return the member's set display name (first + last), or None when it is
     empty or just punctuation (e.g. someone using "." or "..." as their name)."""
@@ -117,10 +126,13 @@ def _display_name(user) -> str | None:
     name = " ".join(part for part in (first, last) if part)
     if not name:
         return None
-    # Require at least one letter or digit -> drops ".", "...", emoji-only and
-    # other symbol-only "names". str.isalnum() is Unicode-aware, so Cyrillic and
-    # other scripts count as real names.
-    if not any(ch.isalnum() for ch in name):
+    # Require at least one VISIBLE letter or digit -> drops ".", "...", emoji-only
+    # and other symbol-only "names". str.isalnum() is Unicode-aware, so Cyrillic
+    # and other scripts count as real names. But some "blank" code points report
+    # isalnum()==True yet render as nothing (Hangul fillers U+1160/U+3164/etc.,
+    # zero-width chars, Braille blank) — exclude them, else a beam on the site
+    # flies to an invisible name.
+    if not any(ch.isalnum() and ord(ch) not in _BLANK_CP for ch in name):
         return None
     if _LINK_RE.search(name):
         return None  # contains a link / @mention / promo — skip (→ Hidden)

@@ -96,7 +96,7 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
         f'<img class="nav-brand-logo" src="{prefix}icons/logo_knight.png" '
         f'alt="" loading="eager">'
         f'<span class="nav-brand-text">'
-        f'<span class="nav-brand-sikle">sikle</span>\\dota.vpk'
+        f'<span class="nav-brand-sikle">sikle</span> | dota.vpk'
         f'</span>'
         f'</a>'
     )

@@ -191,35 +191,87 @@ body:has(.creeps-page) nav.top-nav {
   position: absolute;
   top: 0;
   left: 0;                       /* base origin; JS positions via transform: translate() */
-  visibility: hidden;            /* shown by JS once a clear spot is found */
+  visibility: hidden;            /* hidden until a beam reveals it */
+  opacity: 0;
   white-space: nowrap;
   /* Handjet first: a pixel/dot-matrix font WITH Cyrillic, so Russian member
      names render in-style (Jersey 10 has no Cyrillic → it falls through). */
   font-family: "Handjet", "Jersey 10", monospace;
   font-size: 18px;
   letter-spacing: 0.5px;
-  color: rgba(227, 196, 106, 0.12);   /* faint "sikle" gold */
-  pointer-events: auto;          /* …but the words themselves are hoverable */
+  color: rgba(243, 220, 150, 0.72);   /* glowing gold — only seen once revealed */
+  pointer-events: auto;
   cursor: default;
   user-select: none;
-  transition: color 0.15s ease, text-shadow 0.15s ease;
+  transition: opacity 0.7s ease, color 0.15s ease, text-shadow 0.15s ease;
 }
-.inv-sig:hover,
-.inv-sig.is-lit {
-  color: rgba(243, 220, 150, 0.72);
+.inv-sig.is-lit {                /* revealed by the laser — fades in and stays */
+  visibility: visible;
+  opacity: 1;
   text-shadow: 0 0 8px rgba(227, 196, 106, 0.45);
+}
+/* Laser the Premium star fires at a name as it lights up (JS positions/animates
+   each beam). Thin gold ray with a soft glow, drawn over everything. */
+.sig-beam-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.sig-beam {
+  position: absolute;
+  height: 2px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg,
+    rgba(255, 240, 190, 0) 0%,
+    rgba(255, 226, 150, 0.6) 45%,
+    rgba(255, 243, 205, 0.8) 100%);
+  box-shadow:
+    0 0 6px 1px rgba(255, 225, 150, 0.6),
+    0 0 13px 2px rgba(227, 196, 106, 0.35);
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) { .sig-beam-layer { display: none; } }
+/* Pixel gold dust a name bursts into when clicked — crisp 1–2px squares (like the
+   stars), no blur. JS sets size/position and animates each speck. */
+.sig-dust {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #e3c46a;                 /* "sikle" gold */
+  image-rendering: pixelated;
+  will-change: transform, opacity;
 }
 /* Collapsed sign for members without a public @username. */
 .inv-sig-hidden {
   font-style: italic;
   letter-spacing: 1px;
-  color: rgba(178, 186, 200, 0.13);   /* faint cool-grey, not gold */
+  color: rgba(198, 206, 220, 0.6);    /* cool-grey, not gold (shown only once lit) */
 }
-.inv-sig-hidden:hover,
 .inv-sig-hidden.is-lit {
-  color: rgba(198, 206, 220, 0.6);
   text-shadow: 0 0 8px rgba(150, 165, 190, 0.4);
 }
+/* Star sky: a few dim pixel stars behind everything; each twinkles on its own
+   slow cadence (JS sets per-star duration/delay). They never overlap names. */
+.star-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  background: rgba(232, 224, 200, 0.85);   /* dim warm-white */
+  opacity: 0.28;                            /* very faint at rest */
+  image-rendering: pixelated;
+}
+@keyframes starTwinkle {
+  0%, 100% { opacity: var(--lo, 0.12); }
+  50%      { opacity: var(--hi, 0.42); }
+}
+@media (prefers-reduced-motion: reduce) { .star { animation: none !important; } }
 .inv-divider {
   display: block;
   width: 76%;
@@ -272,10 +324,10 @@ body:has(.creeps-page) nav.top-nav {
 .inv-cell-patch:hover .inv-icon {
   content: url('icons/ui/gothic/icon_patch.gif');
 }
-/* Calendar: on hover, the torn date page cycles its number 1→31. */
-.inv-cell-calendar:hover .inv-icon {
-  content: url('icons/ui/gothic/icon_calendar.gif');
-}
+/* Calendar: on hover the date page burns away (gold pixel fire) and a new date
+   appears, looping 1→31. Driven from scripts.js (JS src-swap with a cache-bust)
+   instead of `content: url()` — the calendar GIF filename predates the others, so
+   browsers had a stale copy cached; the cache-bust forces the new burning GIF. */
 /* Special star: no spin — on hover it gently PULSES (grows/shrinks) and the
    tile throws off a lot more magic dust. */
 .inv-cell-star:hover .inv-icon {

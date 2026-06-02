@@ -1451,12 +1451,12 @@ def save_creeps_html():
         '<html lang="ru">\n'
         '<head>\n'
         '<meta charset="UTF-8">\n'
-        '<title>SIKLE\\Neutral Creeps</title>\n'
+        '<title>SIKLE | Neutral Creeps</title>\n'
         + _site.favicon_links() +
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
-        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
+        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
         f'<link rel="stylesheet" href="styles.css?v={ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'
@@ -2332,12 +2332,12 @@ def save_creeps_html():
 
     ua_html = (
         '<!DOCTYPE html>\n<html lang="ru">\n<head>\n<meta charset="UTF-8">\n'
-        '<title>SIKLE\\Neutral Abilities</title>\n'
+        '<title>SIKLE | Neutral Abilities</title>\n'
         + _site.favicon_links() +
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
-        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
+        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
         f'<link rel="stylesheet" href="styles.css?v={ASSET_VERSION}">\n'
         '</head>\n<body>\n'
         f'{nav_ua}\n'
