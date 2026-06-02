@@ -1032,6 +1032,37 @@
     return '<div class="stat-chg-head"><span class="chg-patch">' + patch
          + '</span><span class="chg-date">' + shortDate(date) + '</span></div>';
   }
+  // One history entry → its old/new values (display + numeric) + polarity, or
+  // null for non-value markers (A added / R removed / P replaced) which carry
+  // no comparable value. 'C' computed cells carry pretty display (p3/p4) AND
+  // raw numerics (p5/p6) so the % isn't skewed by thousands formatting.
+  function valEntry(p) {
+    const k = p[2];
+    if (k === 'V') return { dispOld: p[3], dispNew: p[4], numOld: p[3], numNew: p[4], lb: p[5] === 'lo' };
+    if (k === 'F') return { dispOld: p[4], dispNew: p[5], numOld: p[4], numNew: p[5], lb: p[6] === 'lo' };
+    if (k === 'C') return { dispOld: p[3], dispNew: p[4], numOld: p[5], numNew: p[6], lb: p[7] === 'lo' };
+    if (k === 'N') return { dispOld: p[3], dispNew: p[4], numOld: p[3], numNew: p[4], lb: false };
+    return null;
+  }
+  // Overall first-observed → today summary, shown at the TOP of the tooltip
+  // (above the newest patch) with a divider below. Needs >1 value change;
+  // scans past A/R/P markers to the first & last real value entries.
+  function netSummary(entries) {
+    const vals = entries.map(e => valEntry(e.split('|'))).filter(Boolean);
+    if (vals.length < 2) return '';
+    const first = vals[0], last = vals[vals.length - 1];
+    const o = meanOf(first.numOld), n = meanOf(last.numNew);
+    if (!isFinite(o) || !isFinite(n) || o === 0) return '';
+    const pct = (n - o) / Math.abs(o) * 100;
+    // Net 0% (value drifted then returned to its start) is still shown — flat.
+    const cls = pct === 0 ? 'flat' : ((last.lb ? pct < 0 : pct > 0) ? 'up' : 'down');
+    const sign = pct > 0 ? '+' : '';
+    let num = pct.toFixed(1);
+    if (num.endsWith('.0')) num = num.slice(0, -2);
+    return '<div class="stat-net"><span class="stat-net-label">overall</span>'
+         + first.dispOld + ' → ' + last.dispNew
+         + ' <span class="stat-pct ' + cls + '">' + sign + num + '%</span></div>';
+  }
   // Parse one entry → { patch, date, line }. Format: patch|date|kind|...parts
   //   V old new pol          stat value change
   //   F label old new pol    ability value change
@@ -1083,7 +1114,9 @@
     groups.reverse();  // newest patch on top, oldest at the bottom
     // Ability name as a centered header above the changelog (if any).
     const nameHtml = name ? '<div class="abil-tip-name">' + name + '</div>' : '';
-    el.innerHTML = nameHtml + groups.map(g =>
+    // Net first→today summary at the very top (gold test: cells flagged data-net).
+    const netHtml = (td.dataset.net !== undefined) ? netSummary(entries) : '';
+    el.innerHTML = nameHtml + netHtml + groups.map(g =>
       '<div class="stat-chg">' + chgHead(g.patch, g.date)
       + g.lines.map(l => '<div class="stat-chg-line">' + l + '</div>').join('')
       + '</div>'

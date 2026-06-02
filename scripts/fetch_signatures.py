@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -57,6 +58,20 @@ SESSION_NAME = str(REPO_ROOT / ".tg_signatures")  # -> .tg_signatures.session
 # by @username, case-insensitive, no leading @. The channel owner's own account
 # lives here so it never appears on the signature wall.
 EXCLUDE_USERNAMES = {"mr_sikle"}
+
+# Display names that contain a link / @mention / promo (channel ads people put
+# in their name) are dropped → counted into Hidden. Catches http(s)://, www.,
+# t.me, telegram.me/org, @handle, and bare domains like "foo.com".
+_LINK_RE = re.compile(
+    r"https?://"
+    r"|www\."
+    r"|t\.me"
+    r"|telegram\.(?:me|org)"
+    r"|@[a-zA-Z]\w{2,}"
+    r"|\b[\w-]+\.(?:com|net|org|io|gg|tv|me|ru|ua|by|kz|su|info|xyz|online|"
+    r"site|link|app|dev|biz|shop|store|club|fun|live|pro|space|website)\b",
+    re.IGNORECASE,
+)
 
 
 def _die(msg: str) -> "NoReturn":  # type: ignore[name-defined]
@@ -107,6 +122,8 @@ def _display_name(user) -> str | None:
     # other scripts count as real names.
     if not any(ch.isalnum() for ch in name):
         return None
+    if _LINK_RE.search(name):
+        return None  # contains a link / @mention / promo — skip (→ Hidden)
     return name
 
 

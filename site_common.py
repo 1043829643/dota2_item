@@ -56,7 +56,7 @@ def get_latest_version():
 # brand link on the left, so it's not duplicated here.
 NAV_TABS = [
     ("main",       "Main",         "index.html"),
-    ("changelogs", "Patch Reader", None),
+    ("changelogs", "Changelogs",   None),
     ("calendar",   "Calendar",     "calendar.html"),
     ("materials",  "Materials",    "materials.html"),
 ]
@@ -72,7 +72,7 @@ MATERIALS_SUBTABS = [
 
 
 def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None,
-                   subtabs_active=None, subnav_in_header=True):
+                   subtabs_active=None, subnav_in_header=True, centre_tabs=True):
     """Render the shared top nav.
 
     active        — one of the NAV_TABS keys ('main'/'changelogs'/...).
@@ -110,7 +110,13 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
         f'<a class="nav-tab{" active" if active == key else ""}" '
         f'href="{_tab_href(key, href)}">{label}</a>'
         for key, label, href in NAV_TABS)
-    centre_html = f'<div class="nav-tabs">{centre}</div>'
+    # On the index hub the centre tabs are omitted — they'd just duplicate the
+    # inventory-tile grid below. Other pages keep them. Keep an EMPTY centre
+    # element so the 3-column grid (1fr/auto/1fr) still puts the version block
+    # in the RIGHT column (without it, only 2 children remain and the version
+    # slides into the middle column).
+    centre_html = (f'<div class="nav-tabs">{centre}</div>' if centre_tabs
+                   else '<div class="nav-tabs" aria-hidden="true"></div>')
 
     if picker_html:
         right_side = picker_html

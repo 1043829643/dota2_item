@@ -888,10 +888,11 @@ def _cost_cell(r: dict, cost_hist: dict[str, list]) -> str:
     # parses them with parseFloat after a ','→'.' swap, so a thousands comma
     # would be misread as a decimal once a value crosses 1000.
     payload = _encode_hist(hist, "lo", lambda v: f"{v:.0f}")
-    name = _esc(r["name"].replace(" (Active)", ""))
+    # No data-name: the row already identifies the item, so an item-name header
+    # in the tooltip is just a duplicate. data-net adds the overall summary.
     return (
         f'<td class="has-history" data-sort="{r["cost"]}" '
-        f'data-name="{name}" data-hist="{_esc(payload)}">{display}</td>'
+        f'data-net="" data-hist="{_esc(payload)}">{display}</td>'
     )
 
 
@@ -917,11 +918,12 @@ def _metric_cell(r: dict, col_key: str, value: float, display: str,
         payload = _encode_hist(hist, pol, lambda v: _short_plain(v), kind="C")
     else:
         payload = _encode_hist(hist, pol, lambda v: f"{v:g}")
-    name = _esc(r["name"].replace(" (Active)", ""))
+    # No data-name (row already identifies the item — see _cost_cell). data-net
+    # adds the overall first→today summary at the top of the tooltip.
     hcls = (css + " has-history").strip()
     return (
         f'<td class="{hcls}" data-sort="{sort_val}" '
-        f'data-name="{name}" data-hist="{_esc(payload)}">{display}</td>'
+        f'data-net="" data-hist="{_esc(payload)}">{display}</td>'
     )
 
 

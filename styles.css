@@ -187,7 +187,9 @@ body:has(.creeps-page) nav.top-nav {
   position: absolute;
   visibility: hidden;            /* shown by JS once a clear spot is found */
   white-space: nowrap;
-  font-family: "Jersey 10", monospace;
+  /* Handjet first: a pixel/dot-matrix font WITH Cyrillic, so Russian member
+     names render in-style (Jersey 10 has no Cyrillic → it falls through). */
+  font-family: "Handjet", "Jersey 10", monospace;
   font-size: 18px;
   letter-spacing: 0.5px;
   color: rgba(227, 196, 106, 0.12);   /* faint "sikle" gold */
@@ -223,7 +225,7 @@ body:has(.creeps-page) nav.top-nav {
 .inv-grid {
   display: grid;
   grid-template-columns: repeat(5, auto);
-  gap: 18px 22px;
+  gap: 9px 12px;
   justify-content: center;
 }
 .inv-cell {
@@ -3725,6 +3727,15 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   white-space: nowrap;
 }
 .unit-abilities-table .ua-ability-name { font-weight: 600; color: #e6edf3; }
+/* Neutral Creeps "Unit" name cell matches the Neutral Abilities ability-name:
+   left-aligned, semibold, same colour, single line — so both Materials tables
+   share one look AND the same row height (no wrap-induced tall creep rows). */
+.creeps-table td.col-name {
+  text-align: left;
+  font-weight: 600;
+  color: #e6edf3;
+  white-space: nowrap;
+}
 /* Type — plain coloured fills (no glass effect). */
 .unit-abilities-table td.ua-type-active  { background: rgba(80, 155, 230, 0.22); color: #d2e6ff; }
 .unit-abilities-table td.ua-type-passive { background: rgba(170, 110, 215, 0.22); color: #e8d3f5; }
@@ -4319,6 +4330,23 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   border-top: 1px solid rgba(139, 148, 158, 0.18);
   margin-top: 3px;
 }
+/* Net first→today summary pinned at the top of the tooltip, divider below. */
+.stat-hist-tip .stat-net {
+  padding: 1px 0 6px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid rgba(170, 220, 240, 0.30);
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.stat-hist-tip .stat-net-label {
+  color: #8b949e;
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-right: 5px;
+}
 /* Entry header: patch number top-left, date top-right (dd.mm.yy). */
 .stat-hist-tip .stat-chg-head {
   display: flex;
@@ -4674,7 +4702,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   display: grid;
   grid-template-columns: 40px 1fr;
   align-items: center;
-  gap: 10px;
+  /* Room so the hover-zoomed icon (.mr-ico scales 1.8) doesn't cover the name
+     — same fix as Neutral Abilities' .ua-ability-inner gap. */
+  gap: 16px;
   text-align: left;
   min-width: 230px;
 }

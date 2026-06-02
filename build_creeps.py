@@ -1101,8 +1101,8 @@ def save_creeps_html():
         ]),
         ('Attack', [
             ('dmg_avg',      'Damage',           'std'),
-            ('dmg_min',      'Dmg min',          'exp'),
-            ('dmg_max',      'Dmg max',          'exp'),
+            ('dmg_min',      'Dmg\nmin',         'exp'),
+            ('dmg_max',      'Dmg\nmax',         'exp'),
             ('as',           'Speed',            'std'),
             ('t_per_attack', 'Time to hit',      'std'),
             ('bat',          'BAT',              'std'),
@@ -1113,8 +1113,8 @@ def save_creeps_html():
         ]),
         ('Bounty', [
             ('gold',         'Gold',             'std'),
-            ('gold_min',     'Gold min',         'exp'),
-            ('gold_max',     'Gold max',         'exp'),
+            ('gold_min',     'Gold\nmin',        'exp'),
+            ('gold_max',     'Gold\nmax',        'exp'),
             ('xp',           'XP',               'std'),
         ]),
         ('Other', [
@@ -1426,8 +1426,14 @@ def save_creeps_html():
                     pol = 'lo' if k in ('bat', 't_per_attack') else 'hi'
                     payload = ';'.join(f'{p}|{dt}|V|{ov}|{nv}|{pol}'
                                        for (p, dt, ov, nv) in hist)
+                    # NET-CHANGE SUMMARY: every numeric stat column that changed
+                    # >1 time. Rendered INSIDE the hover tooltip by scripts.js —
+                    # at the top, above the newest patch, with a divider — NOT in
+                    # the cell. data-net just marks which cells get the summary.
+                    if len(hist) >= 2:
+                        extra += ' data-net=""'
                 if hist:
-                    extra = f' data-hist="{_esc(payload)}"'
+                    extra += f' data-hist="{_esc(payload)}"'
                     cls += ' has-history'
                 # Ability cells carry the name for the hover tooltip header.
                 if k in COL_CHANGELOG and v:
@@ -1471,7 +1477,9 @@ def save_creeps_html():
         '<p class="mr-blurb inbox-bar">Stats and abilities of every neutral '
         'camp creep in Dota 2 — pulled from the current patch\'s KV files. '
         'Hover any cell with the dotted underline to see its change history '
-        'across patches. Click a column header to sort. The '
+        'across patches. Click a unit icon to copy its demo-mode spawn command '
+        '(e.g. <code>-createhero tunneler neutral</code>) to the clipboard. '
+        'Click a column header to sort. The '
         '<strong>View</strong> toggle switches between <em>Standard</em> '
         '(essentials only) and <em>Expanded</em> (every numeric column — EHP, '
         'armour %, gold range, collision, projectile speed, etc.).</p>\n'

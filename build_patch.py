@@ -3027,7 +3027,7 @@ def _dropdown_options_html(current_version, patch_context=False):
     return "".join(items)
 
 
-def _render_top_nav(active="changelogs", current_version=None, date=None, patch_context=False):
+def _render_top_nav(active="changelogs", current_version=None, date=None, patch_context=False, centre_tabs=True):
     """Render the top nav by delegating to site_common.render_top_nav. This
     wrapper builds the patch-page version picker (prev/next arrows + version
     dropdown + release-info) and passes it as picker_html; the shared module
@@ -3087,7 +3087,8 @@ def _render_top_nav(active="changelogs", current_version=None, date=None, patch_
 
     return _site.render_top_nav(active, latest_href,
                                 patch_context=patch_context,
-                                picker_html=picker_html)
+                                picker_html=picker_html,
+                                centre_tabs=centre_tabs)
 
 
 def write_head(version, date):
@@ -3870,7 +3871,8 @@ def save_index_html():
     that just renders the unified top-nav; reserved for a hub/about page
     later. Title and structure mirror the other tabs so the header stays
     in step."""
-    nav = _render_top_nav(active="main", patch_context=False)
+    # Index hub: hide the centre nav tabs — they duplicate the tile grid below.
+    nav = _render_top_nav(active="main", patch_context=False, centre_tabs=False)
     # Landing page styled as a game inventory opened in a leather-bound book:
     # an ornate parchment panel with square slots; the filled slots are the
     # site's sections (gothic pixel-art icons), the rest are empty inventory
@@ -3879,11 +3881,11 @@ def save_index_html():
     # Captions are placeholder words for now (final wording TBD); the hrefs are
     # the real destinations. Font matches the "sikle" wordmark (Jersey 10).
     _INV_ITEMS = [
-        ('patch',     'Codex',    f'patches/{latest}.html' if latest else 'calendar.html'),
-        ('calendar',  'Almanac',  'calendar.html'),
+        ('patch',     'Changelogs', f'patches/{latest}.html' if latest else 'calendar.html'),
+        ('calendar',  'Calendar',   'calendar.html'),
         ('creeps',    'Bestiary', 'materials.html'),
         ('abilities', 'Arcana',   'neutral_abilities.html'),
-        ('mana',      'Elixir',   'mana_items.html'),
+        ('mana',      'Mana Items', 'mana_items.html'),
     ]
     # Placeholder slots — any icons, random words, non-clickable for now.
     _INV_PLACEHOLDERS = [
@@ -3990,7 +3992,9 @@ def save_index_html():
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
-        'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=swap">\n'
+        # Handjet = pixel/dot-matrix font WITH Cyrillic (Jersey 10 is Latin-only),
+        # used for the signature wall so Cyrillic member names render in-style.
+        'href="https://fonts.googleapis.com/css2?family=Handjet:wght@400..700&family=Jersey+10&family=Jersey+25&display=swap">\n'
         f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'
