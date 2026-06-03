@@ -10,6 +10,7 @@ This covers the sortable data tables under the **Materials** section.
 | `neutral_creeps.html` | **Neutral Creeps** table (stats + abilities). `creeps.html` and `materials.html` are now redirects → `neutral_creeps.html`. | `build_creeps.py` |
 | `neutral_abilities.html` | Per-unit-ability table (one row per unit×ability). The Materials sub-nav presents it as a child of Neutral Creeps. `unit_abilities.html` is now a small meta-redirect for backwards compatibility. | `build_creeps.py` (same run) |
 | `mana_items.html` | Mana / mana-regen items + gold-efficiency metrics. | `build_mana_items.py` |
+| `heroes_dyn.html` | **Hero Dynamics matrix** — rows = every hero (icon+name, alphabetical), columns = every patch (version + release date oldest→newest), each cell = that hero's patch-dynamics **dyn-cell** for that patch. Same diamond-pill widget as patch pages. | `build_heroes_dyn.py` |
 | nav / asset version / `data/site_meta.json` | Shared header, sub-tabs, cache-busting. | `site_common.py` |
 
 Header sub-tabs (under the logo) switch between Neutral Creeps / Unit Abilities / Mana Items.
@@ -21,7 +22,83 @@ Header sub-tabs (under the logo) switch between Neutral Creeps / Unit Abilities 
 python build_patch.py        # 1. writes data/site_meta.json (asset version, patch list)
 python build_creeps.py       # 2. -> neutral_creeps.html + neutral_abilities.html (+ creeps/materials/unit_abilities redirects)
 python build_mana_items.py   # 3. -> mana_items.html  (run AFTER build_patch)
+python build_heroes_dyn.py   # 4. -> heroes_dyn.html  (run AFTER build_patch — reads _dynamics.json)
 ```
+
+### Hero Dynamics matrix (`build_heroes_dyn.py`)
+- Reads **`_dynamics.json`** (written by build_patch): `patches` (newest-first), `entities`
+  (`hero|<slug>` → per-patch tag tallies), and **`heroes`** (full roster `[{name, icon, key}]`,
+  added so every hero lists even if untouched in a rendered patch). build_patch also stamps an
+  `icon` field on each hero entity. build_heroes_dyn does **not** import build_patch (no `__main__`
+  guard there).
+- Table = `creeps-table heroes-dyn-table`, ONE sticky-col (hero icon+name), single `col-row`
+  header (no cat-row), 115 patch columns oldest→newest. `<body data-dyn-path="_dynamics.json">`
+  tells `scripts.js` where to fetch the manifest (patch pages use the default `../_dynamics.json`).
+- **Cells:** the builder marks only *touched* cells with `data-ver/data-hkey/data-eid`; `scripts.js`
+  `dynBuildMatrix()` fills those with a coloured pill (reusing `dynBuildPill`, so colour logic stays
+  single-sourced). Untouched cells are `td.hd-cell.hd-empty` → a static empty diamond via CSS
+  `::after` (keeps the ~14k-cell grid's HTML light; runtime work scales with real data only).
+- Clicking a pill → `patches/<ver>.html#dyn-hero-<slug>` (filePrefix `'patches/'` passed to
+  `dynBuildPill`). The `.dyn-cell`/`.dyn-cell-wrap` CSS was de-scoped from `.patch-dynamics` so the
+  pill renders anywhere.
+- **Layout (`scripts.js` `dynLayoutMatrix`, runs on load + resize):** `table-layout: fixed; width:
+  max-content` (override `.creeps-table`'s `min-width:100%`). Column widths are CSS vars set live:
+  `--hd-hero-w` = longest hero name measured at runtime + icon + gap + zoom clearance (so names
+  never wrap and icons/names line up); `--hd-col-w` = patch-column width (28px pill, `box-sizing:
+  border-box`). ONE sticky-col (hero), single `col-row` (no cat-row). Patch headers show only the
+  version; the **release date is a hover tooltip** (`th.hd-patch[data-tooltip]`, in `TIP_SEL`).
+- **Fit-to-width / latest flush right:** `dynLayoutMatrix` shows the most-recent patches that fit
+  the box width (sized to fill it exactly, latest column flush at the right edge) and hides the
+  older ones via a SINGLE injected `<style>` rule (`:nth-child` range — cheap vs toggling thousands
+  of cells). "Hide old" OFF shows all 115 (scroll, parked at the right so the latest stays in view).
+- **Toolbar toggles** (styled as the shared `.ua-upgrades-toggle` switches, wired in `dynSetupMatrix`):
+  - `#hd-hide-old` (ON by default) → fit-to-width (above). OFF → all patches, scroll.
+  - `#hd-bn-only` (off) → rebuilds pills via `dynFillMatrix(...,bnOnly)` → `dynBuildPill(...,bnOnly=true)`
+    collapses the gradient to TWO bands: **buff+NEW = green, nerf+DEL = red** (NEW counts as a buff,
+    DEL as a nerf), proportioned to fill the cell. Tooltip still shows every original tag.
+- **Click → patch page + back:** pills pass `fromVersion='heroes_dyn'` so the destination patch page
+  shows a `.nav-back-arrow` returning to `../heroes_dyn.html` (handled in the back-arrow IIFE,
+  alongside `from=calendar` / `from=<patch>`). The patch page **re-anchors** to `#dyn-hero-<slug>`
+  after `dynInit` renders the per-entity pill rows (each adds ~28px, drifting the target down) and
+  again on `load` (lazy-image drift), offsetting for the sticky nav.
+
+### Cross-table RULES (apply to every table page — confirmed conventions)
+1. **Even grid:** equal, fixed-width columns so cells line up on clean vertical lines.
+2. **Hover-zoom above the sticky header:** a hovered/zoomed *content* element (dyn-cell, etc.) must
+   sit ABOVE the pinned header, never behind it. The scroll box is the stacking context
+   (`contain:paint`), so bumping the hovered element's `z-index` over the header's (50/51) lifts it
+   clear. (Exception kept from Neutral Creeps: the row *portrait* zoom intentionally stays UNDER the
+   header — it lives in a `sticky-col` at z3.)
+3. **Portrait hover-zoom that doesn't cover text:** icon scales on `td:hover` (like Neutral Creeps),
+   with enough `gap` in the icon+name flex so the zoom never overlaps the name.
+4. **Identical left alignment — use the shared shell AS-IS:** do NOT add per-page padding to
+   `.creeps-scroll`. Every Materials page must keep the SAME left positions — subnav `.materials-
+   subnav-inner` 10px, blurb/toolbar 28px, table flush (0). (An earlier per-page `padding-left`
+   on heroes_dyn shifted its subnav + table right of the others — that's the bug to avoid.)
+5. **Sortable headers:** every sortable `<th>` carries `class="sortable"` + `data-col` (+`data-idx`
+   for body-cell mapping) AND a `<span class="sort-ind"></span>` so the ↕/↑/↓ arrow renders. The
+   shared JS gives a 3-state cycle: neutral → descending → ascending → neutral.
+6. **Row-mark = one band + frame:** the gold `.row-marked` is a single inset frame around the whole
+   row + a uniform tint (see Neutral Creeps). Any decorative per-cell fill (e.g. heroes_dyn's empty
+   diamonds) must be dropped inside a marked row (`tr.row-marked …::after{background:transparent}`)
+   so it doesn't read as separate per-cell boxes.
+7. **Edge hover-pop clearance:** a hovered cell's zoom-pop overflows its cell (~18px for the 2.5×
+   dyn-cell). Keep a right gutter (heroes_dyn: `HD_RIGHT_GUTTER` in `dynLayoutMatrix`) so the last
+   column's pop isn't clipped by the box edge / vertical scrollbar.
+8. **Big-grid paint:** for very large grids (heroes_dyn ≈ 14k cells), keep the bulk cell cheap to
+   paint — flat fill, NO `box-shadow` (thousands of inset shadows were the scroll-jank source; flat
+   fills scroll at 100+ FPS). Hidden columns use `display:none` (skipped from layout/paint).
+9. **First-column override:** the shared `.creeps-table td:first-child` rule forces center-align + a
+   symbol font + `white-space:normal` (for tier-dot glyphs). Any table whose first column is NOT
+   tier-dots (e.g. heroes_dyn's hero name) must override these — and needs HIGHER specificity than
+   `.creeps-table td:first-child` (equal-specificity loses on source order): prefix with the table's
+   own class, e.g. `.creeps-table.heroes-dyn-table td.hd-hero`.
+10. **Super-category header (colspan) ⇒ use `table-layout:auto`:** a colspan'd category row as the
+    FIRST `<thead>` row makes `table-layout:fixed` derive column widths from it (ignoring the leaf
+    columns). Use `table-layout:auto` + `width/min-width/max-width` on the leaf cells to force an
+    equal grid; recompute the category colspans to the VISIBLE leaf columns after any column-hide
+    (see `dynRecomputeSupercats`, keyed by `data-base`/`data-cat`). Don't put `overflow:hidden` on a
+    cell whose content hover-pops (clips the pop) — clip the header label cell only.
 
 `site_common.py` reads `data/site_meta.json`, so `build_patch.py` must run first.
 Generated HTML is **gitignored** and rebuilt by CI; only the `.py` / `styles.css` /

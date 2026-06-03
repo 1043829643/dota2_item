@@ -68,6 +68,7 @@ MATERIALS_SUBTABS = [
     ("creeps",     "Neutral Creeps",    "neutral_creeps.html"),
     ("abilities",  "Neutral Abilities", "neutral_abilities.html"),
     ("mana_items", "Mana Items",        "mana_items.html"),
+    ("heroes_dyn", "Hero Dynamics",     "heroes_dyn.html"),
 ]
 
 

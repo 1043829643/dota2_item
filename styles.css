@@ -166,7 +166,7 @@ body:has(.creeps-page) nav.top-nav {
 .inv-title {
   margin: 0;
   font-family: "Jersey 25", monospace;
-  font-size: 38px;
+  font-size: 30px;
   line-height: 1;
   letter-spacing: 2px;
   color: #e3c46a;                     /* "sikle" gold */
@@ -922,6 +922,11 @@ body:has(.creeps-page) nav.top-nav {
   border-radius: 6px;
   overflow: hidden;
 }
+/* While the year dropdown is open, let it escape the block's overflow:hidden
+   (which is there to clip the grid to the rounded corners). Without this the
+   menu is cut off below the block — most visibly in COMPACT mode, where the
+   block is only as tall as its header so the dropdown has nowhere to show. */
+.cal-year-block:has(.cal-year-picker.is-open) { overflow: visible; }
 .cal-year-label {
   color: #c9d1d9;
   font-size: 16px;
@@ -1706,7 +1711,7 @@ h2.section {
    tooltip. The pill is clipped via overflow:hidden + border-radius so
    pseudo highlights stay inside; the tooltip is a real DOM sibling that
    lives outside the clip. */
-.patch-dynamics .dyn-cell-wrap {
+.dyn-cell-wrap {
   position: relative;
   display: inline-flex;
   width: 24px;
@@ -1714,11 +1719,11 @@ h2.section {
   text-decoration: none;
   cursor: pointer;
 }
-.patch-dynamics .dyn-cell-wrap.empty,
-.patch-dynamics .dyn-cell-wrap.current {
+.dyn-cell-wrap.empty,
+.dyn-cell-wrap.current {
   cursor: default;
 }
-.patch-dynamics .dyn-cell {
+.dyn-cell {
   position: relative;
   display: block;
   width: 100%;
@@ -1759,14 +1764,14 @@ h2.section {
    shadow into it) + 1px faint highlight along the bottom edge (light
    bouncing off the back of the recess). Together they read as a
    shallow inset without competing with the painted cells. */
-.patch-dynamics .dyn-cell-wrap.empty .dyn-cell {
+.dyn-cell-wrap.empty .dyn-cell {
   background: rgba(5, 6, 9, 0.92);
   box-shadow:
     inset 0  1px 0 rgba(0, 0, 0, 0.45),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
   opacity: 0.9;
 }
-.patch-dynamics .dyn-cell-wrap:not(.empty):hover .dyn-cell {
+.dyn-cell-wrap:not(.empty):hover .dyn-cell {
   transform: scale(2.5);
   /* Opaque backdrop under the translucent fluid: stops neighbouring cells
      from showing through the scaled-up hovered cell. Matches the
@@ -1782,7 +1787,7 @@ h2.section {
    blue+black outline back on top so the "you are here" marker stays
    visible. Higher specificity than the generic hover rule above so this
    wins for the current cell. */
-.patch-dynamics .dyn-cell-wrap.current:hover .dyn-cell {
+.dyn-cell-wrap.current:hover .dyn-cell {
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.6),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
@@ -1794,7 +1799,7 @@ h2.section {
    the same style as .cal-patch.current in the calendar, just slimmer
    (1px instead of 2px, lower alpha) so it reads as a subtle "you are
    here" marker without competing with the painted color band inside. */
-.patch-dynamics .dyn-cell-wrap.current .dyn-cell {
+.dyn-cell-wrap.current .dyn-cell {
   /* Two-layer outline: blue ring on top (1.5px) + a thin 1px black ring
      beneath it, giving the marker a crisp dark edge against the page
      background. box-shadow paints in source order top→bottom, so blue
@@ -4417,6 +4422,176 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
     0 -14px 0 0 #161b22;
 }
 .creeps-table thead tr.cat-row .cat-head + .cat-head { border-left: 2px solid rgba(170, 220, 240, 0.22); }
+/* Freeze the FIRST category cell (Basic = the frozen identity columns) on the
+   LEFT too, so during horizontal scroll the other category cells slide UNDER it
+   instead of their left borders drifting across the category header over the
+   frozen block (the col-row already does this via .sticky-col). Its right edge
+   carries the Basic|rest divider permanently so the line stays put when scrolled
+   (the sibling's border-left slides away beneath it). */
+.creeps-table thead tr.cat-row th.cat-head:first-child {
+  left: 0;
+  z-index: 53;          /* above sibling cat-heads (52) so they pass beneath it */
+  border-right: 2px solid rgba(170, 220, 240, 0.22);
+}
+/* ===================== Hero Dynamics matrix (heroes_dyn.html) =====================
+   Reuses the .creeps-table shell (sticky header + sticky-col + sticky-frame) and
+   the global .dyn-cell pill. ROWS = heroes (frozen icon+name column on the left),
+   COLUMNS = patches (version; release date on hover), CELLS = the hero's dyn-cell
+   that patch. Untouched cells render a static glassy diamond via ::after (keeps the
+   ~14k-cell grid's HTML light); touched cells get a JS-built coloured pill.
+   Fixed table layout → every patch column is the SAME width so diamonds line up in
+   a clean vertical grid. Column widths (--hd-col-w) and the hero column width
+   (--hd-hero-w, sized to the longest name + icon + zoom clearance) are set live by
+   scripts.js dynLayoutMatrix(), which also keeps the latest patch flush right.
+   max-content width (NOT .creeps-table's min-width:100%, which would stretch the
+   columns unequally). */
+/* AUTO layout (not fixed): a fixed-layout table derives column widths from the
+   FIRST row, which here is the colspan'd super-category row — that would ignore
+   the per-column widths. Auto layout (like Neutral Creeps) honours the explicit
+   width + min/max-width on the leaf columns below AND lets the super-category
+   colspans span correctly. width:max-content + min-width:0 stops the inherited
+   .creeps-table min-width:100% from stretching the columns. */
+.heroes-dyn-table { table-layout: auto; width: max-content; min-width: 0; }
+/* Hero identity column. The `.creeps-table` prefix raises specificity ABOVE the
+   shared `.creeps-table td:first-child` tier-dots rule (equal-specificity, later
+   in the file) which would otherwise force center-align + a symbol font +
+   white-space:normal onto this cell — making each row's icon+name land at a
+   different x (centred by name length) instead of one clean vertical line. */
+.creeps-table.heroes-dyn-table th.hd-hero,
+.creeps-table.heroes-dyn-table td.hd-hero {
+  width: var(--hd-hero-w, 210px);
+  min-width: var(--hd-hero-w, 210px);
+  max-width: var(--hd-hero-w, 210px);
+  text-align: left;
+  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: normal;
+  /* RULE (all tables): a vertical divider after the frozen identity column(s).
+     2px col-sep line at rest; the .sticky-frame overlay continues it during
+     horizontal scroll (Chrome drops borders on sticky cells mid-scroll). */
+  border-right: 2px solid rgba(170, 220, 240, 0.30);
+}
+.heroes-dyn-table td.hd-hero { padding: 2px 12px 2px 6px; }
+/* Equal patch columns under auto layout: pin width + min + max so every column
+   is exactly --hd-col-w (the dyn-cell pill 28px sits centred inside). No
+   overflow:hidden on the cell — the 2.5× hover-pop must overflow it (the header
+   th below clips its own label separately). */
+.heroes-dyn-table th.hd-patch,
+.heroes-dyn-table td.hd-cell {
+  width: var(--hd-col-w, 40px);
+  min-width: var(--hd-col-w, 40px);
+  max-width: var(--hd-col-w, 40px);
+  box-sizing: border-box;
+}
+/* Icon + name baseline-aligned in one vertical rhythm across every row: fixed
+   icon box + fixed line-height so the text sits centred against the portrait,
+   and every name starts at the SAME x (icon width + gap). The 22px gap leaves
+   room for the hover-zoom (below) so the popped icon never reaches the name. */
+.hd-hero-inner { display: inline-flex; align-items: center; gap: 22px; line-height: 1; }
+.hd-hero-inner img {
+  width: 40px; height: 23px; object-fit: cover; border-radius: 3px;
+  border: 1px solid rgba(170, 220, 240, 0.18); flex: 0 0 auto;
+  /* Anchor the zoom at the LEFT edge so it grows rightward only — never past the
+     box's left edge (which would clip it behind the frozen-column boundary). */
+  transform-origin: left center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.hd-hero-name { font-weight: 600; color: #e6edf3; }
+/* RULE (all tables): hovering a hero/unit portrait pops it out — like Neutral
+   Creeps. The 18px gap + name-fitted column width keep the 1.8× zoom from ever
+   covering the name. The icon's stacking sits under the sticky header (sticky-col
+   z:3 < header), so a top-row zoom slides BEHIND the header (matches creeps). */
+.heroes-dyn-table td.hd-hero:hover .hd-hero-inner img {
+  /* 1.5× from the left edge → grows 20px right, clearing the 22px gap so it
+     stops short of the name; z-index lifts it ABOVE the name text. */
+  transform: scale(1.5); position: relative; z-index: 41;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(170, 220, 240, 0.4);
+}
+/* Toolbar wraps onto extra rows (switches + Remove chips + search don't fit on
+   one line). */
+.hd-page .cal-toggle-bar.hd-toolbar { flex-wrap: wrap; row-gap: 8px; }
+/* "Remove" group + search wrapped in the SAME 32px bordered pill-block as the
+   switches, so all toolbar controls share one height/baseline. */
+.hd-remove-group {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; box-sizing: border-box; padding: 0 10px;
+  background: #161b22; border: 1px solid #30363d; border-radius: 5px;
+}
+.hd-search { flex: 0 1 240px; min-width: 150px; }
+.hd-search input { height: 32px; box-sizing: border-box; }
+/* "Remove" tag chips: the patch-page badges, clickable. A removed tag sinks in
+   (inset shadow + nudge) and greys out — visibly "off". */
+.hd-tag {
+  cursor: pointer; user-select: none; font-family: inherit; font-size: 11px;
+  padding: 2px 9px; transition: filter 0.12s, transform 0.12s, opacity 0.12s, box-shadow 0.12s;
+}
+.hd-tag:hover { filter: brightness(1.18); transform: translateY(-1px); }
+.hd-tag.removed {
+  filter: grayscale(1) brightness(0.62); opacity: 0.5; transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+}
+/* Full-height vertical divider separating super-category (base-version) groups —
+   same idea as Neutral Creeps' .col-sep category dividers. On the first column
+   of each group (except the first); aligns with the cat-row's group border. */
+.heroes-dyn-table th.hd-gsep,
+.heroes-dyn-table td.hd-gsep { border-left: 2px solid rgba(170, 220, 240, 0.22); }
+/* Patch column header: just the version; release date shows in the hover tip. */
+.heroes-dyn-table th.hd-patch {
+  white-space: nowrap; padding: 4px 2px; font-weight: 600; font-size: 12px;
+  color: #c9d1d9; text-align: center; vertical-align: bottom; cursor: help;
+  overflow: hidden;
+}
+/* Super-category row: base version (e.g. 7.41) spanning its lettered variants
+   (7.41/a/b/c). Reuses the shared .cat-head sticky/layout infrastructure;
+   overrides the dim-uppercase look for a centred version number. Solo bases
+   (single patch, no letters) render an empty cell — no label. JS
+   dynRecomputeSupercats() re-spans these to the visible columns after fit. */
+.heroes-dyn-table thead tr.cat-row th.hd-supercat {
+  font-size: 12px; text-transform: none; letter-spacing: 0.02em;
+  color: #aeb9c4; text-align: center;
+}
+/* The cell over the frozen Hero column continues the hero divider (0.30) up
+   through the super-category row. (Beats the shared .cat-head:first-child 0.22
+   rule via the extra .heroes-dyn-table class + later source order.) */
+.creeps-table.heroes-dyn-table thead tr.cat-row th.hd-hero-cat {
+  border-right: 2px solid rgba(170, 220, 240, 0.30);
+}
+/* Cell holding one dyn-cell pill (or the empty-diamond pseudo). */
+.heroes-dyn-table td.hd-cell { text-align: center; vertical-align: middle; padding: 2px; }
+/* Bigger pill in the matrix than on patch pages (28px vs 24px) — more legible
+   in a dense grid; scoped so patch pages keep their size. */
+.heroes-dyn-table .dyn-cell-wrap { width: 28px; height: 28px; }
+/* PERF: empty cells are the bulk of the ~14k-cell grid. A flat fill (NO
+   box-shadow, no opacity layer) paints far cheaper than thousands of inset
+   shadows — the main scroll-jank source on this page. */
+.heroes-dyn-table td.hd-cell.hd-empty::after {
+  content: ''; display: inline-block; width: 28px; height: 28px; border-radius: 4px;
+  background: rgba(12, 14, 19, 0.72);
+}
+/* Buff/nerf-only: a touched cell with no buff/nerf reads as an EMPTY cell —
+   flat fill, no glassy pill, no hover pop. Hover still fires the tooltip. */
+.heroes-dyn-table .dyn-cell-wrap.bn-empty .dyn-cell,
+.heroes-dyn-table .dyn-cell-wrap.bn-empty:hover .dyn-cell {
+  background: rgba(12, 14, 19, 0.72);
+  box-shadow: none;
+  transform: none;
+}
+/* RULE (all tables): the gold row-mark must read as ONE uniform band + frame
+   (like Neutral Creeps / Abilities), not per-cell boxes. The decorative empty
+   diamonds otherwise sit on the gold tint as separate squares — drop their fill
+   inside a marked row so the tint shows through uniformly (coloured pills stay,
+   like icons do on the creeps marked row). */
+.heroes-dyn-table tbody tr.row-marked td.hd-cell.hd-empty::after { background: transparent; }
+/* RULE (all tables): a hovered/zoomed dyn-cell must sit ABOVE the sticky header,
+   never behind it. The wrap is position:relative; bumping its z-index over the
+   header (z:50) inside the .creeps-scroll stacking context lifts the 2.5× pop and
+   its tooltip clear of the pinned header for top rows. */
+.heroes-dyn-table .dyn-cell-wrap:hover { z-index: 60; }
+/* RULE (all tables): use the shared .creeps-scroll shell AS-IS — NO per-page
+   left gutter. The subnav (10px), blurb/toolbar (28px) and table (flush) keep
+   the SAME left positions as Neutral Creeps / Abilities so every Materials page
+   lines up identically. (An earlier .hd-page padding-left shifted this page's
+   subnav + table right of the others — removed.) */
 .creeps-table .creep-icon-cell img {
   width: 48px;
   height: 27px;

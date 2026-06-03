@@ -982,6 +982,11 @@ def _register_entity(kind, name):
     _State.current_entity_display = name
     rec = _State.dynamics.setdefault(key, {"name": name, "kind": kind, "patches": {}})
     rec["name"] = name  # keep latest display
+    # Heroes carry their icon slug so the heroes_dyn matrix page can render the
+    # portrait without importing this module (build_patch has no __main__ guard).
+    if kind == "hero":
+        rec["icon"] = HERO_SLUG.get(
+            name, name.lower().replace(" ", "_").replace("'", "").replace("-", ""))
     return f' id="dyn-{kind}-{slug}"'
 
 
@@ -3885,6 +3890,7 @@ def save_index_html():
         ('calendar',  'Calendar',   'calendar.html'),
         ('creeps',    'Creeps',     'neutral_creeps.html'),
         ('mana',      'Mana Items', 'mana_items.html'),
+        ('dynamics',  'Dynamics',   'heroes_dyn.html'),
     ]
     # No placeholder tiles for now — future sections TBD (Mana Items sits right
     # after Creeps). Arcana (Neutral Abilities) lives under the Materials
@@ -3920,7 +3926,7 @@ def save_index_html():
         '</span><span class="dust-burst">' + '<i class="spark"></i>' * 8 +
         '</span></span>'
         '</span>'
-        '<span class="inv-cap">Premium</span>'
+        '<span class="inv-cap">Support</span>'
         '</a>'
     )
     # Plain placeholder tile — no icon, just text. Marks a future section.
@@ -3942,7 +3948,7 @@ def save_index_html():
     grid_html = (
         '<div class="inv-book">'
         '<div class="inv-head">'
-        '<h1 class="inv-title">Select Category</h1>'
+        '<h1 class="inv-title">What does a hero truly need?</h1>'
         '</div>'
         '<img class="inv-divider" src="icons/ui/gothic/divider.png" alt="" aria-hidden="true">'
         f'<div class="inv-grid">{"".join(cells)}{empties}</div>'
@@ -15746,7 +15752,13 @@ _have_html = {p["version"]: p["filename"].split("/")[-1] for p in PATCHES}
 _dyn_patches = [{"version": r["version"],
                  "filename": _have_html.get(r["version"]),
                  "date": r["date"]} for r in RELEASE_HISTORY]
-_dyn_payload = {"patches": _dyn_patches, "entities": _State.dynamics}
+# Full hero roster (every hero, even those untouched in a rendered patch) so the
+# heroes_dyn matrix page lists the COMPLETE alphabetical roster. name → icon slug
+# + dynamics key. build_heroes_dyn.py reads this without importing this module.
+_hero_roster = [{"name": _n, "icon": _s, "key": "hero|" + _slugify(_n)}
+                for _n, _s in sorted(HERO_SLUG.items())]
+_dyn_payload = {"patches": _dyn_patches, "entities": _State.dynamics,
+                "heroes": _hero_roster}
 with open('_dynamics.json', 'w', encoding='utf-8') as _f:
     _json_dump.dump(_dyn_payload, _f, separators=(',', ':'))
 print(f"  → _dynamics.json: {len(_State.dynamics)} entities × {len(_dyn_patches)} patches in RELEASE_HISTORY")

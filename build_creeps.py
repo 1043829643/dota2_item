@@ -1713,7 +1713,7 @@ def save_creeps_html():
             'duration': _val_qhint(
                 '2 or 20', 'Lasts much longer on creeps (20)'),
             'effect': 'Damage over time',
-            'effect2': 'Reduces HP regeneration by 75/80/85/90%'},
+            'effect2': 'HP regeneration reduction: 75/80/85/90%'},
         'fel_beast_haunt': {
             'effect': 'Silences 1 target',
             'effect2': 'Projectile Speed is 500/600/700/800'},
@@ -1724,7 +1724,7 @@ def save_creeps_html():
                 '20 + 4%',
                 'Activation cost 20, plus 4% of max MP per second while active'),
             'ms_effect': _val_qhint(
-                '-50/40/30/10%',
+                '-50/-40/-30/-10%',
                 'The unit itself is slowed while the ability is active'),
             'effect': 'Gives flying movement with 1200/800 vision',
             'effect2': 'Slows itself while active'},
@@ -1743,8 +1743,8 @@ def save_creeps_html():
         'forest_troll_high_priest_heal': {
             'effect': 'Heals +100 HP'},
         'mudgolem_cloak_aura': {
-            'effect': 'Magic resistance for heroes +10/12/14/16%',
-            'effect2': 'Magic resistance for units +20/24/28/32%'},
+            'effect': 'Heroes magic resistance bonus: +10/12/14/16%',
+            'effect2': 'Creeps magic resistance bonus: +20/24/28/32%'},
         'frogmen_riverborn_aura': {
             'ms_effect': '+10/12/14/16%',
             'effect': 'Outgoing damage +10/12/14/16%'},
@@ -1772,10 +1772,10 @@ def save_creeps_html():
                 '120/170/220/270',
                 'Each bounce reduces damage by 25/20/15/10%'),
             'cast_range': _val_qhint('900', 'Bounces range is 500'),
-            'effect': 'Damage to multiple targets'},
+            'effect': 'Damage to 4 targets'},
         'black_drake_magic_amplification_aura': {
             'effect': _val_qhint(
-                'Increases all spell damage taken by enemies by 5/6/7/9%',
+                'Outgoing spell damage: 5/6/7/9%',
                 "Amplifies any damage type if it's spell damage")},
         'spawnlord_aura': {
             'effect': '+9/10/11/12% lifesteal',
@@ -1881,7 +1881,7 @@ def save_creeps_html():
             'cast_range': _val_qhint('300', '400 with tentacles radius'),
             'effect': 'AoE stun', 'effect2': 'AoE damage'},
         'ancient_rock_golem_weakening_aura': {
-            'effect': '-3/4/5/6 armor'},
+            'effect': '-3/-4/-5/-6 armor'},
         'frostbitten_golem_time_warp_aura': {
             'effect': '8/9/10/11% cooldown reduction'},
         'big_thunder_lizard_wardrums_aura': {
@@ -1952,7 +1952,7 @@ def save_creeps_html():
             'damage': _dmg_qhint(
                 '50 or 12.5 per sec.',
                 'Deals 25% of the damage to structures (12.5/sec before resistances).'),
-            'effect': 'Damage over time on 1 target (including buildings)'},
+            'effect': 'Single target damage over time (works on buildings)'},
     }
 
     def _abil_props(slug):

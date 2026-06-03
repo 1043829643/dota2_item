@@ -12,6 +12,14 @@
   const fromParam = params.get('from');
   if (back && fromParam === 'calendar') {
     back.classList.add('visible');
+  } else if (back && fromParam === 'heroes_dyn') {
+    // Arrived from the Hero Dynamics matrix (root page) via a dyn-cell. Point
+    // the back arrow at it. Same fixed bottom-left button + styling as the
+    // calendar/patch back-arrow; patch pages live under /patches/ so ../.
+    back.href = '../heroes_dyn.html';
+    back.title = 'Back to Hero Dynamics';
+    back.setAttribute('aria-label', 'Back to Hero Dynamics');
+    back.classList.add('visible');
   } else if (back && fromParam && /^\d+\.\d+[a-z]?$/.test(fromParam)) {
     // Came from another patch via the dynamics widget. The dyn-cell href
     // also carries an entity anchor (#dyn-hero-...) so the destination page
@@ -26,6 +34,33 @@
   // The back arrow is a fixed button in the BOTTOM-LEFT corner (CSS), so it no
   // longer needs JS to vertically align it on the toolbar (that inline top:
   // override was what made it overlap the tag block).
+
+  // ---- RE-ANCHOR after load (patch pages) ----
+  // Arriving with a #dyn-hero-… hash (from the Hero Dynamics matrix or another
+  // patch's dynamics widget), the browser anchors immediately — but lazy hero/
+  // item icons ABOVE the target then load and shift layout, leaving the target
+  // scrolled off-screen. Re-scroll once everything has settled, offsetting for
+  // the sticky nav so the heading isn't hidden behind it. Table pages run their
+  // own centerHash(), so skip them.
+  if (window.location.hash && !document.querySelector('.creeps-scroll')) {
+    const reanchor = () => {
+      const el = document.getElementById(
+        decodeURIComponent(window.location.hash.slice(1)));
+      if (!el) return;
+      const navH = parseFloat(getComputedStyle(document.documentElement)
+        .getPropertyValue('--site-nav-h')) || 70;
+      const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+      window.scrollTo(0, Math.max(0, y));
+    };
+    // Several passes: the browser re-applies its own (nav-ignoring) hash scroll
+    // around the load event, and late images shift layout — re-run after each so
+    // the final position wins and accounts for the sticky nav.
+    window.addEventListener('load', () => {
+      reanchor();
+      setTimeout(reanchor, 80);
+      setTimeout(reanchor, 300);
+    });
+  }
 
   // ---- BACK TO TOP visibility ----
   // Guard for pages without the button (e.g. creeps.html). Without this
@@ -443,26 +478,40 @@
   const DYN_NEUTRAL_TAGS = ['misc','qol'];
   const DYN_MAX_PATCHES = 12;
 
-  function dynBuildPill(patch, counts, entityId, isCurrent, fromVersion) {
-    const total = DYN_TAG_ORDER.reduce((s, t) => s + (counts[t] || 0), 0);
-    const clickable = total > 0 && patch.filename && !isCurrent;
-    // Wrapper holds the diamond (.dyn-cell) AND the tooltip (.dyn-tip) as
-    // siblings. The diamond uses clip-path which would clip any tooltip
-    // pseudo-element, so the tooltip must live outside that clipped subtree.
-    // NEUTRAL tags (MISC + QoL) are excluded from the colored gradient —
-    // they're balance-neutral and dilute the pill's signal. They still
-    // surface in the tooltip grid. A cell whose ONLY changes are neutral
-    // ("misc/qol-only") gets a dimmed fallback fill instead.
-    const coloredTotal = DYN_TAG_ORDER
-      .filter(t => !DYN_NEUTRAL_TAGS.includes(t))
-      .reduce((s, t) => s + (counts[t] || 0), 0);
-    const miscOnly = total > 0 && coloredTotal === 0;
+  function dynBuildPill(patch, counts, entityId, isCurrent, fromVersion, filePrefix, bnOnly, removed) {
+    // "Remove" tag filter (toolbar chips): zero out user-removed tags for the
+    // CELL colouring. The hover tooltip below still uses the ORIGINAL counts, so
+    // a removed tag stays visible on hover — it's only dropped from the diamond.
+    const eff = (removed && removed.size)
+      ? DYN_TAG_ORDER.reduce((o, t) => { o[t] = removed.has(t) ? 0 : (counts[t] || 0); return o; }, {})
+      : counts;
+    const origTotal = DYN_TAG_ORDER.reduce((s, t) => s + (counts[t] || 0), 0);
+    const total = DYN_TAG_ORDER.reduce((s, t) => s + (eff[t] || 0), 0);   // effective → drives fill/empty
+    const clickable = origTotal > 0 && patch.filename && !isCurrent;
+    // Gradient source (over EFFECTIVE counts). Default = non-neutral tags vs the
+    // full effective total (MISC/QoL leave a gap — patch-page look). "Buff/nerf
+    // only" (bnOnly) collapses to TWO bands: buff+NEW (green), nerf+DEL (red).
+    const gradCounts = bnOnly
+      ? { buff: (eff.buff || 0) + (eff.new || 0),
+          nerf: (eff.nerf || 0) + (eff.del || 0) }
+      : eff;
+    const gradTagSet = bnOnly
+      ? ['buff', 'nerf']
+      : DYN_TAG_ORDER.filter(t => !DYN_NEUTRAL_TAGS.includes(t));
+    const coloredTotal = gradTagSet.reduce((s, t) => s + (gradCounts[t] || 0), 0);
+    const denom = bnOnly ? coloredTotal : total;   // fill vs proportional-to-total
+    // Dim "misc/qol-only" fallback only in the DEFAULT view (not bnOnly).
+    const miscOnly = total > 0 && coloredTotal === 0 && !bnOnly;
     const wrap = document.createElement(clickable ? 'a' : 'span');
     let wcls = 'dyn-cell-wrap';
-    if (!total) wcls += ' empty';
+    if (!origTotal) wcls += ' empty';
     if (isCurrent) wcls += ' current';
-    if (total && !patch.filename) wcls += ' no-page';
+    if (origTotal && !patch.filename) wcls += ' no-page';
     if (miscOnly) wcls += ' misc-only';
+    // No colour left to show — bnOnly with no buff/nerf, OR every colour tag
+    // removed via the toolbar chips. Render as a plain EMPTY cell (not a dark
+    // glassy pill); it stays clickable + keeps its hover tooltip.
+    if (origTotal > 0 && coloredTotal === 0 && !miscOnly) wcls += ' bn-empty';
     wrap.className = wcls;
     const cell = document.createElement('span');
     cell.className = 'dyn-cell';
@@ -478,7 +527,7 @@
       // MISC and QoL are intentionally EXCLUDED from the gradient — these
       // neutral bands dilute the pill's color signal without adding meaning.
       // The tags still surface in the tooltip grid below.
-      const tags = DYN_TAG_ORDER.filter(t => !DYN_NEUTRAL_TAGS.includes(t) && counts[t] > 0);
+      const tags = gradTagSet.filter(t => gradCounts[t] > 0);
       // Bleed: % half-width of the soft transition zone between adjacent
       // bands. Zero = hard cuts between bands — no phantom mid-tones.
       const bleed = 0;
@@ -486,10 +535,10 @@
       const stops = [];
       for (let i = 0; i < tags.length; i++) {
         const t = tags[i];
-        const c = counts[t];
-        const start = (acc / total) * 100;
+        const c = gradCounts[t];
+        const start = (acc / denom) * 100;
         acc += c;
-        const end = (acc / total) * 100;
+        const end = (acc / denom) * 100;
         const halfBand = (end - start) / 2;
         const localBleed = Math.min(bleed, halfBand);
         const solidStart = i === 0 ? start : start + localBleed;
@@ -509,30 +558,25 @@
         // Flat-gradient wrapper instead of a raw color so the value always
         // parses as `background-image` — keeps the bg-color slot free for
         // the hover-time opaque backdrop layer. Alpha is halved here to
-        // preserve the dimmed-out neutral-only look without applying CSS
-        // `opacity` to the cell (which would also dim the hover backdrop).
-        // Color comes from the dominant neutral tag so a QoL-only cell reads
-        // blue, a MISC-only cell grey.
+        // preserve the dimmed-out neutral-only look. Uses EFFECTIVE counts so a
+        // removed neutral tag doesn't pick the fill colour.
         const domNeutral = DYN_NEUTRAL_TAGS
-          .reduce((a, b) => ((counts[b] || 0) > (counts[a] || 0) ? b : a));
-        const m = dynColorFor(domNeutral, counts[domNeutral] || 1)
+          .reduce((a, b) => ((eff[b] || 0) > (eff[a] || 0) ? b : a));
+        const m = dynColorFor(domNeutral, eff[domNeutral] || 1)
           .replace(/, ([\d.]+)\)$/, (_, a) => `, ${(parseFloat(a) * 0.5).toFixed(2)})`);
         cell.style.setProperty('--dyn-bg', `linear-gradient(${m}, ${m})`);
       }
-      if (clickable) {
-        // Append ?from=<currentVersion> so the destination patch page can
-        // show a back-arrow that returns here when the user clicks it.
-        const qs = fromVersion ? '?from=' + fromVersion : '';
-        wrap.href = patch.filename + qs + (entityId ? '#' + entityId : '');
-      }
-      // Lazy tooltip: defer DOM creation until first hover. On big patch
-      // pages there are 3000+ cells; pre-building all tooltips bloats the
-      // initial DOM (~50k extra nodes) and causes severe scroll jank.
-      // We stash the tooltip params on the wrap and build on demand below.
-      wrap._dynTipParams = [patch, counts, patch.filename ? null : '(no patch page yet)'];
-    } else {
-      wrap._dynTipParams = [patch, null, null];
     }
+    if (clickable) {
+      // ?from=<version> lets the destination patch page show a back-arrow here.
+      const qs = fromVersion ? '?from=' + fromVersion : '';
+      wrap.href = (filePrefix || '') + patch.filename + qs + (entityId ? '#' + entityId : '');
+    }
+    // Lazy tooltip (built on first hover). Uses the ORIGINAL counts so removed/
+    // filtered tags still list on hover even when dropped from the diamond.
+    wrap._dynTipParams = origTotal
+      ? [patch, counts, patch.filename ? null : '(no patch page yet)']
+      : [patch, null, null];
     return wrap;
   }
 
@@ -624,16 +668,183 @@
     entityDiv.appendChild(row);
   }
 
+  // Fill / refill the heroes_dyn matrix's data cells with one pill each. Only
+  // cells the builder marked with data-ver/data-hkey (the hero actually changed
+  // that patch) are filled — untouched cells stay as the CSS empty diamond, so
+  // runtime work scales with real data, not the full N×M grid. Re-runnable: it
+  // clears any existing pill first, so the "Buff/nerf only" toggle can rebuild.
+  function dynFillMatrix(table, manifest, bnOnly, removed) {
+    const byVer = {};
+    manifest.patches.forEach(p => { byVer[p.version] = p; });
+    table.querySelectorAll('td.hd-cell[data-ver]').forEach(td => {
+      const prev = td.querySelector('.dyn-cell-wrap');
+      if (prev) prev.remove();
+      const patch = byVer[td.dataset.ver];
+      if (!patch) return;
+      const rec = manifest.entities[td.dataset.hkey];
+      const counts = (rec && rec.patches && rec.patches[td.dataset.ver]) || {};
+      if (!Object.keys(counts).length) return;
+      // entityId anchors the click to the hero on the patch page; fromVersion
+      // 'heroes_dyn' makes that page show a back-arrow returning here; filePrefix
+      // 'patches/' because the matrix lives at site root, patch pages under /patches.
+      td.appendChild(dynBuildPill(patch, counts, td.dataset.eid, false, 'heroes_dyn', 'patches/', bnOnly, removed));
+    });
+  }
+
+  // Single <style> whose rule hides the oldest patch columns. Editing one rule
+  // is far cheaper than toggling display on thousands of cells (115 cols × 127
+  // rows) every resize.
+  let _dynFitStyle = null;
+  function dynFitStyleEl() {
+    if (!_dynFitStyle) {
+      _dynFitStyle = document.createElement('style');
+      document.head.appendChild(_dynFitStyle);
+    }
+    return _dynFitStyle;
+  }
+
+  // Lay out the matrix so the LATEST patch sits flush at the right edge.
+  //  - Hero column auto-sizes to the longest name (+ icon + gap + zoom clearance).
+  //  - "Hide old" ON (fit mode): show only the most-recent patches that fit the
+  //    box width, sized to fill it exactly (latest flush right); hide the rest.
+  //  - "Hide old" OFF: show every patch at the base column width and scroll, with
+  //    the box scrolled to the right so the latest still ends at the right edge.
+  const HD_MIN_COL = 40;            // base/min patch-column width (px) — fits the 12px version label
+  // Right gutter kept clear of the last column so its 2.5× hover-pop isn't cut
+  // off by the box edge / vertical scrollbar (the pop grows ~18px past the cell).
+  const HD_RIGHT_GUTTER = 24;
+  function dynLayoutMatrix(table, fit) {
+    const scroller = table.closest('.creeps-scroll');
+    if (!scroller) return;
+    // Hero column width = longest hero name measured live + icon + gap + padding.
+    let maxName = 0;
+    table.querySelectorAll('tbody td.hd-hero .hd-hero-name').forEach(s => {
+      maxName = Math.max(maxName, s.scrollWidth);
+    });
+    const heroW = Math.ceil(maxName) + 40 /*icon*/ + 22 /*gap*/ + 18 /*padding 6+12*/;
+    table.style.setProperty('--hd-hero-w', heroW + 'px');
+
+    const patchThs = table.querySelectorAll('thead th.hd-patch');
+    const total = patchThs.length;
+    const csPad = parseFloat(getComputedStyle(scroller).paddingLeft) || 0;
+    const avail = scroller.clientWidth - csPad - heroW - HD_RIGHT_GUTTER;
+    const style = dynFitStyleEl();
+    if (fit && avail > HD_MIN_COL) {
+      const n = Math.min(total, Math.max(1, Math.floor(avail / HD_MIN_COL)));
+      const colW = avail / n;                 // fill exactly → latest flush right
+      table.style.setProperty('--hd-col-w', colW.toFixed(2) + 'px');
+      const hide = total - n;                 // hide the oldest `hide` columns
+      // Patch columns are table children 2..(total+1); hero is child 1.
+      style.textContent = hide > 0
+        ? `.heroes-dyn-table thead .col-row th.hd-patch:nth-child(-n+${hide + 1}):nth-child(n+2),`
+          + `.heroes-dyn-table tbody td.hd-cell:nth-child(-n+${hide + 1}):nth-child(n+2)`
+          + `{display:none}`
+        : '';
+    } else {
+      table.style.setProperty('--hd-col-w', HD_MIN_COL + 'px');
+      style.textContent = '';
+      // Show-all: park the scroll near the right (latest in view) but SNAP to a
+      // whole-column multiple so the left edge shows a FULL column, never a
+      // clipped "..2c" sliver of the column hidden behind the sticky hero col.
+      const maxS = scroller.scrollWidth - scroller.clientWidth;
+      scroller.scrollLeft = Math.max(0, Math.floor(maxS / HD_MIN_COL) * HD_MIN_COL);
+    }
+    dynRecomputeSupercats(table);
+  }
+
+  // Super-category row (base version spanning its lettered variants). After the
+  // fit-to-width hide, re-size each base header to the count of its VISIBLE leaf
+  // columns; hide a base header whose columns are all hidden. Mirrors the
+  // Neutral-Creeps recomputeCatColspans pattern.
+  function dynRecomputeSupercats(table) {
+    table.querySelectorAll('thead .hd-supercat[data-base]').forEach(head => {
+      const base = head.dataset.base;
+      let span = 0;
+      table.querySelectorAll('thead .col-row th.hd-patch').forEach(th => {
+        if (th.dataset.base === base && th.offsetParent !== null) span++;
+      });
+      if (span > 0) { head.colSpan = span; head.style.display = ''; }
+      else { head.style.display = 'none'; }
+    });
+  }
+
+  // Wire the heroes_dyn toolbar: Hide old (fit-to-width), Buff/nerf only,
+  // the "Remove" tag chips, and the hero search box.
+  function dynSetupMatrix(table, manifest) {
+    const elOld = document.getElementById('hd-hide-old');
+    const elBn = document.getElementById('hd-bn-only');
+    const removed = new Set();                 // tags the user toggled off
+    const layout = () => dynLayoutMatrix(table, !elOld || elOld.checked);
+    const refill = () => dynFillMatrix(table, manifest, !!(elBn && elBn.checked), removed);
+    refill();
+    layout();
+    if (elOld) elOld.addEventListener('change', layout);
+    if (elBn) elBn.addEventListener('change', refill);
+
+    // "Remove" tag chips — clicking toggles a tag off (sunken + grey) and drops
+    // it from every dyn-cell's colouring (hover tooltip still lists it).
+    table.closest('.creeps-page').querySelectorAll('.hd-tag[data-tag]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tag = chip.dataset.tag;
+        if (removed.has(tag)) { removed.delete(tag); chip.classList.remove('removed'); }
+        else { removed.add(tag); chip.classList.add('removed'); }
+        refill();
+      });
+    });
+
+    // Hero search — comma-separated, partial, space-insensitive: "anci,aba,brood"
+    // shows Ancient Apparition + Abaddon + Broodmother. Toggles row display only
+    // (independent of the column layout, so it never re-measures the hero width).
+    const search = document.getElementById('hd-hero-search');
+    if (search) {
+      const rows = [...table.querySelectorAll('tbody tr')];
+      const apply = () => {
+        const terms = search.value.toLowerCase().split(',')
+          .map(s => s.trim()).filter(Boolean);
+        rows.forEach(tr => {
+          const name = (tr.querySelector('td.hd-hero')?.dataset.sort || '').toLowerCase();
+          tr.style.display = (!terms.length || terms.some(t => name.includes(t))) ? '' : 'none';
+        });
+      };
+      search.addEventListener('input', apply);
+    }
+
+    window.addEventListener('resize', layout, { passive: true });
+    // Re-measure once fonts/icons settle (first paint can under-measure names).
+    window.addEventListener('load', layout);
+  }
+
   function dynInit() {
     const entities = document.querySelectorAll('.entity[id^="dyn-"]');
-    if (!entities.length) return;
+    const matrix = document.querySelector('.heroes-dyn-table');
+    if (!entities.length && !matrix) return;
     const currentVersion = dynCurrentVersion();
-    fetch('../_dynamics.json', { cache: 'no-cache' })
+    // Path differs by page location: patch pages sit under /patches/ (so ../),
+    // root pages (heroes_dyn) read it directly. Builder sets data-dyn-path.
+    const dynPath = (document.body && document.body.dataset.dynPath) || '../_dynamics.json';
+    fetch(dynPath, { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null)
       .then(manifest => {
         if (!manifest) return;
-        const windowed = dynWindow(manifest);
-        entities.forEach(e => dynRenderRow(e, manifest, windowed, currentVersion));
+        if (entities.length) {
+          const windowed = dynWindow(manifest);
+          entities.forEach(e => dynRenderRow(e, manifest, windowed, currentVersion));
+          // Rendering a pill row into EVERY entity adds ~28px of height to each
+          // one — so any entity targeted by the #hash drifts far down after the
+          // browser's initial anchor. Re-anchor now that all rows exist (the
+          // getBoundingClientRect read forces layout first). Offset for the nav.
+          if (window.location.hash) {
+            const el = document.getElementById(
+              decodeURIComponent(window.location.hash.slice(1)));
+            if (el) {
+              const navH = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--site-nav-h')) || 70;
+              const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+              window.scrollTo(0, Math.max(0, y));
+            }
+          }
+        }
+        if (matrix) dynSetupMatrix(matrix, manifest);
         dynAttachTooltipDelegation();
       })
       .catch(() => { /* silently fail — widget is an enhancement */ });
@@ -1336,10 +1547,16 @@
       // UA continuation rows (rowspanned lvl+unit) have 0 → nothing to pin.
       sc.forEach((cell, i) => { cell.style.left = lefts[i] + 'px'; });
     });
-    // Header: lvl th at 0, Юнит th (covers icon+name) at wLvl.
+    // Header sticky cells. heroes_dyn has ONE frozen column (hero) but TWO
+    // header rows over it (super-category + version), so BOTH header sticky
+    // cells pin at left:0 — not the creeps lvl(0)+unit(wLvl) two-column layout.
     const headStickies = table.querySelectorAll('thead th.sticky-col');
-    if (headStickies[0]) headStickies[0].style.left = '0px';
-    if (headStickies[1]) headStickies[1].style.left = wLvl + 'px';
+    if (table.classList.contains('heroes-dyn-table')) {
+      headStickies.forEach(th => { th.style.left = '0px'; });
+    } else {
+      if (headStickies[0]) headStickies[0].style.left = '0px';
+      if (headStickies[1]) headStickies[1].style.left = wLvl + 'px';
+    }
   }
 
   applyLeftOffsets();
@@ -1377,13 +1594,29 @@
     if (firstTds.length < 3) return;
     const pageR  = page.getBoundingClientRect();
     const scrR   = scroller.getBoundingClientRect();
-    const nameR  = firstTds[2].getBoundingClientRect();  // right edge of pinned block
-    // Anchor to the thead's LIVE bottom edge rather than a fixed header height:
-    // the blurb + toolbar sit inside the scroll box above the table, so the
-    // thead isn't at the box top at rest — measuring its real bottom keeps the
-    // divider correct both at rest and once the header pins under the nav.
-    const headBottom = table.tHead
-      ? table.tHead.getBoundingClientRect().bottom
+    // Right edge of the frozen identity block = right edge of the LAST sticky
+    // column in the row. Creeps/UA pin 2-3 columns; the heroes_dyn matrix pins
+    // just one (the hero name) — measuring the last sticky cell keeps the
+    // divider correct for any number of frozen columns (hardcoding firstTds[2]
+    // put the divider 2 columns too far right on the single-column matrix).
+    const stickyCells = firstRow.querySelectorAll('.sticky-col');
+    const lastSticky = stickyCells[stickyCells.length - 1] || firstTds[2];
+    const nameR  = lastSticky.getBoundingClientRect();  // right edge of pinned block
+    // Anchor the divider's top to the VISIBLE (pinned) header bottom. The
+    // <thead> element itself is position:static — only its <th> cells are
+    // position:sticky — so once the box scrolls down, the thead's own rect
+    // scrolls up (its bottom goes negative) while the column headers stay
+    // pinned at the box top. Measuring table.tHead therefore made the divider's
+    // top climb ABOVE the visible header (the bright line poked past the
+    // category header on vertical+horizontal scroll). Anchor instead to a
+    // PINNED header cell (the col-row's sticky-col <th>): its bottom tracks the
+    // real visible header bottom both at rest (natural position below the blurb)
+    // and once pinned under the nav.
+    const headCell = table.querySelector('thead tr.col-row th.sticky-col')
+      || table.querySelector('thead tr.col-row th')
+      || table.tHead;
+    const headBottom = headCell
+      ? headCell.getBoundingClientRect().bottom
       : scrR.top;
     // Vertical divider: at the right edge of the frozen lvl/unit columns,
     // starting BELOW the sticky column header and spanning the rest of height.
@@ -1485,7 +1718,7 @@
   // Selector matches the original `?` badge plus any element that just opts
   // into the body-level tooltip via `.abil-ico-hint` (currently used on
   // ability icons in the Unit Abilities table).
-  const TIP_SEL = '.qhint, .abil-ico-hint';
+  const TIP_SEL = '.qhint, .abil-ico-hint, .hd-patch[data-tooltip]';
   document.addEventListener('mouseover', (e) => {
     const t = e.target.closest(TIP_SEL);
     if (t) show(t);
