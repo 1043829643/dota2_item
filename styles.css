@@ -243,6 +243,33 @@ body:has(.creeps-page) nav.top-nav {
   image-rendering: pixelated;
   will-change: transform, opacity;
 }
+/* VIP names — azure instead of gold, with a touch more weight + a stronger glow
+   once lit, so they read as "special / legendary" against the gold wall. */
+.inv-sig-vip {
+  color: rgba(140, 224, 255, 0.85);   /* azure */
+  font-weight: 600;
+}
+.inv-sig-vip.is-lit {
+  text-shadow:
+    0 0 8px rgba(120, 214, 255, 0.6),
+    0 0 16px rgba(90, 190, 255, 0.35);
+}
+/* Pixel "forge spark" thrown off a VIP name as a beam lights it — same azure as
+   the name, crisp little squares like the stars/dust. JS sizes/positions/animates. */
+.sig-spark {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #8ce0ff;                  /* azure (matches .inv-sig-vip) */
+  box-shadow: 0 0 4px 1px rgba(120, 214, 255, 0.7);
+  image-rendering: pixelated;
+  will-change: transform, opacity;
+}
+/* Azure dust when a VIP name is clicked apart (overrides the gold .sig-dust). */
+.sig-dust.sig-dust-vip {
+  background: #8ce0ff;
+  box-shadow: 0 0 3px 1px rgba(120, 214, 255, 0.5);
+}
 /* Collapsed sign for members without a public @username. */
 .inv-sig-hidden {
   font-style: italic;

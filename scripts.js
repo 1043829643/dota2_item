@@ -472,10 +472,12 @@
   // the row order in the tooltip grid. Sequenced so neighbouring bands
   // change hue family (green → gold → purple → grey → blue → pink → red).
   const DYN_TAG_ORDER = ['buff','new','rework','misc','qol','del','nerf'];
-  // Balance-neutral tags kept OUT of the dyn-cell colored gradient (they
-  // only fill the cell when nothing else changed — the "misc-only" /
-  // "qol-only" dimmed fallback). They still appear in the tooltip grid.
-  const DYN_NEUTRAL_TAGS = ['misc','qol'];
+  // Tags kept OUT of the dyn-cell colored gradient. Now EMPTY — MISC (grey)
+  // and QoL (blue) are coloured bands like every other tag (user request), so
+  // they contribute to the diamond's fill on both patch pages and heroes_dyn.
+  // The "misc-only" dimmed-fallback path below is now effectively dead (kept
+  // harmless: with no neutral tags, coloredTotal === total whenever total > 0).
+  const DYN_NEUTRAL_TAGS = [];
   const DYN_MAX_PATCHES = 12;
 
   function dynBuildPill(patch, counts, entityId, isCurrent, fromVersion, filePrefix, bnOnly, removed) {
@@ -774,16 +776,35 @@
     const elOld = document.getElementById('hd-hide-old');
     const elBn = document.getElementById('hd-bn-only');
     const removed = new Set();                 // tags the user toggled off
+    const chips = [...table.closest('.creeps-page').querySelectorAll('.hd-tag[data-tag]')];
+    const syncChips = () => chips.forEach(c => c.classList.toggle('removed', removed.has(c.dataset.tag)));
     const layout = () => dynLayoutMatrix(table, !elOld || elOld.checked);
     const refill = () => dynFillMatrix(table, manifest, !!(elBn && elBn.checked), removed);
     refill();
     layout();
     if (elOld) elOld.addEventListener('change', layout);
-    if (elBn) elBn.addEventListener('change', refill);
+
+    // "Buff/nerf only": besides the two-band colouring, it auto-removes every
+    // tag except buff/nerf from the chips (more logical — the cell then shows
+    // ONLY buff vs nerf, matching the toggle's name). We snapshot the user's
+    // own Remove selection on the way in and restore it when they switch off.
+    let bnSnapshot = null;
+    if (elBn) elBn.addEventListener('change', () => {
+      if (elBn.checked) {
+        bnSnapshot = new Set(removed);
+        DYN_TAG_ORDER.forEach(t => { if (t !== 'buff' && t !== 'nerf') removed.add(t); });
+      } else {
+        removed.clear();
+        if (bnSnapshot) bnSnapshot.forEach(t => removed.add(t));
+        bnSnapshot = null;
+      }
+      syncChips();
+      refill();
+    });
 
     // "Remove" tag chips — clicking toggles a tag off (sunken + grey) and drops
     // it from every dyn-cell's colouring (hover tooltip still lists it).
-    table.closest('.creeps-page').querySelectorAll('.hd-tag[data-tag]').forEach(chip => {
+    chips.forEach(chip => {
       chip.addEventListener('click', () => {
         const tag = chip.dataset.tag;
         if (removed.has(tag)) { removed.delete(tag); chip.classList.remove('removed'); }
@@ -2327,6 +2348,38 @@
     beamLayer.appendChild(beam);
     anim.onfinish = () => beam.remove();
   }
+  // VIP-name forge sparks: a small azure burst when a beam lights a VIP name,
+  // as if it were just struck on an anvil. Specks shoot up + out, then gravity
+  // arcs them down past the start and they fade. Same azure as .inv-sig-vip.
+  function forgeSparks(sig) {
+    const r = sig.getBoundingClientRect();
+    const fxl = fxLayer();
+    const N = 10 + Math.floor(Math.random() * 5);     // 10–14 sparks
+    for (let k = 0; k < N; k++) {
+      const p = document.createElement('i');
+      p.className = 'sig-spark';
+      const sz = Math.random() < 0.6 ? 2 : 3;
+      p.style.width = p.style.height = sz + 'px';
+      p.style.left = (r.left + Math.random() * r.width).toFixed(1) + 'px';
+      p.style.top = (r.top + r.height * (0.3 + Math.random() * 0.5)).toFixed(1) + 'px';
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.9;   // fan around "up"
+      const rad = 14 + Math.random() * 26;
+      const dx = Math.cos(ang) * rad;
+      const up = Math.sin(ang) * rad;                  // negative = upward
+      const fall = 10 + Math.random() * 18;
+      const a = p.animate([
+        { transform: 'translate(0,0)', opacity: 1, offset: 0 },
+        { transform: 'translate(' + (dx * 0.6).toFixed(1) + 'px,' + up.toFixed(1) + 'px)', opacity: 1, offset: 0.45 },
+        { transform: 'translate(' + dx.toFixed(1) + 'px,' + (up + fall).toFixed(1) + 'px)', opacity: 0, offset: 1 },
+      ], { duration: 600 + Math.random() * 500, easing: 'cubic-bezier(0.25,0.6,0.4,1)', fill: 'forwards' });
+      fxl.appendChild(p);
+      a.onfinish = () => p.remove();
+    }
+  }
+  function lightUp(s) {
+    s.classList.add('is-lit');
+    if (s.classList.contains('inv-sig-vip')) forgeSparks(s);
+  }
   function spotlightOnce() {
     if (document.hidden || !pos.length) return;
     const pool = [];
@@ -2339,9 +2392,9 @@
     if (star) {
       const sr = star.getBoundingClientRect();
       shootBeam(sr.left + sr.width / 2, sr.top + sr.height / 2, pos[i].cx, pos[i].cy);
-      setTimeout(() => s.classList.add('is-lit'), 220);   // light as the beam lands
+      setTimeout(() => lightUp(s), 220);   // light as the beam lands
     } else {
-      s.classList.add('is-lit');
+      lightUp(s);
     }
   }
   setTimeout(spotlightOnce, 5000);              // first beam ~5s after load
@@ -2358,9 +2411,10 @@
     const durBase = 3300 + Math.random() * 1800;     // this cloud's tempo (slow)
     const drift = Math.random() * Math.PI * 2;       // slight directional lean
     const driftAmt = Math.random() * 12;
+    const vip = sig.classList.contains('inv-sig-vip');
     for (let k = 0; k < N; k++) {
       const p = document.createElement('i');
-      p.className = 'sig-dust';
+      p.className = vip ? 'sig-dust sig-dust-vip' : 'sig-dust';
       const sz = Math.random() < 0.5 ? 2 : 3;        // clear little squares (2–3px)
       p.style.width = p.style.height = sz + 'px';
       p.style.left = (r.left + Math.random() * r.width).toFixed(1) + 'px';

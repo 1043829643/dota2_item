@@ -4009,7 +4009,17 @@ def save_index_html():
                 _seen.add(u)
                 _names.append(u)
 
-    _sigs = ''.join(f'<span class="inv-sig">{_html.escape(u)}</span>' for u in _names)
+    # VIP names — always present regardless of the collected/placeholder list,
+    # rendered in their own colour (azure). When a beam lights one it throws off
+    # pixel "forge sparks" (scripts.js), as if the name was just forged. Drop any
+    # duplicate from the regular list so a VIP never shows twice.
+    _VIP_NAMES = ['iKrivetko', 'DMorg']
+    _vip_lower = {v.lower() for v in _VIP_NAMES}
+    _names = [u for u in _names if u.lower() not in _vip_lower]
+
+    _sigs = ''.join(
+        f'<span class="inv-sig inv-sig-vip">{_html.escape(v)}</span>' for v in _VIP_NAMES)
+    _sigs += ''.join(f'<span class="inv-sig">{_html.escape(u)}</span>' for u in _names)
     if _hidden > 0:
         _sigs += f'<span class="inv-sig inv-sig-hidden">Hidden (x{_hidden})</span>'
     sig_layer = f'<div class="inv-signatures" aria-hidden="true">{_sigs}</div>'
