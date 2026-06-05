@@ -117,6 +117,9 @@ def save_heroes_dyn_html():
             supercat_cells.append(
                 f'<th class="cat-head hd-supercat hd-supercat-solo" '
                 f'data-base="{_esc(base)}" aria-hidden="true"></th>')
+    # Trailing spacer column (fills the right hover-pop gutter as a clipped
+    # empty-column piece — see styles.css .hd-spacer).
+    supercat_cells.append('<th class="cat-head hd-spacer" aria-hidden="true"></th>')
     supercat_html = "".join(supercat_cells)
 
     # ---- column row: Hero | <version> per patch (release date on hover) ----
@@ -130,6 +133,7 @@ def save_heroes_dyn_html():
             f'<th class="hd-patch{sep}" tabindex="0" '
             f'data-base="{_esc(_base_version(p["version"]))}" '
             f'data-tooltip="{_esc(p["date"])}">{_esc(p["version"])}</th>')
+    head_cells.append('<th class="hd-spacer" aria-hidden="true"></th>')
     head_html = "".join(head_cells)
 
     # ---- body: one row per hero ----
@@ -159,6 +163,7 @@ def save_heroes_dyn_html():
             else:
                 # Untouched → static empty diamond (CSS ::after).
                 cells.append(f'<td class="hd-cell hd-empty{sep}"></td>')
+        cells.append('<td class="hd-cell hd-empty hd-spacer"></td>')
         rows.append(f'<tr>{"".join(cells)}</tr>')
 
     # Toggles — styled like the Neutral Creeps / Unit Abilities switches.

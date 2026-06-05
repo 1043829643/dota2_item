@@ -5048,6 +5048,17 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 }
 /* Cell holding one dyn-cell pill (or the empty-diamond pseudo). */
 .heroes-dyn-table td.hd-cell { text-align: center; vertical-align: middle; padding: 2px; }
+/* Trailing spacer column: fills the reserved right-edge gutter (where the last
+   patch column's 2.5× hover-pop overflows) with a clipped slice of an empty
+   column, so the grid reaches the box edge instead of ending in blank space.
+   Fixed 24px (= HD_RIGHT_GUTTER in scripts.js); the 28px empty diamond is
+   left-aligned and clipped by the cell → reads as a column cut off at the edge. */
+.creeps-table.heroes-dyn-table th.hd-spacer,
+.creeps-table.heroes-dyn-table td.hd-spacer {
+  width: 24px; min-width: 24px; max-width: 24px;
+  overflow: hidden;
+  text-align: left;
+}
 /* Bigger pill in the matrix than on patch pages (28px vs 24px) — more legible
    in a dense grid; scoped so patch pages keep their size. */
 .heroes-dyn-table .dyn-cell-wrap { width: 28px; height: 28px; }
