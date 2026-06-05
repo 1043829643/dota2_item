@@ -5040,45 +5040,45 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   transform: scale(1.5); position: relative; z-index: 41;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(170, 220, 240, 0.4);
 }
-/* UNIFIED CONTROL PANEL (dynamics pages): every control lives inside ONE bordered
-   surface (.hd-tb-inner) instead of a row of separate floating pills. The outer
-   .hd-toolbar keeps the Materials vertical rhythm (28px side inset + top/bottom
-   gaps); the inner panel is the raised surface. */
+/* ============================================================================
+   UNIFIED TOOLBAR PANEL — SITE STANDARD (every Materials toolbar).
+   All controls live inside ONE bordered surface (.toolbar-panel) instead of a row
+   of separate floating pills. The outer .cal-toggle-bar.inbox-bar keeps the
+   Materials rhythm (28px side inset + top/bottom gaps); .toolbar-panel is the
+   raised surface. RULE: wrap any new page's toolbar controls in
+   <div class="toolbar-panel">…</div>.
+   ============================================================================ */
 .hd-page .cal-toggle-bar.hd-toolbar { flex-wrap: wrap; row-gap: 8px; }
-.hd-tb-inner {
+.toolbar-panel {
   display: flex; flex-wrap: wrap; align-items: center;
-  gap: 6px 6px; width: 100%; box-sizing: border-box;
+  gap: 6px 6px; width: 100%; flex: 1 1 100%; box-sizing: border-box;
   background: #11161d; border: 1px solid #30363d; border-radius: 8px;
   padding: 7px 12px;
 }
-/* Inside the panel the switches + filter groups go FLAT (transparent) — the panel
-   border replaces their individual pill borders. Chips keep their own design. */
-.hd-tb-inner .ua-upgrades-toggle,
-.hd-tb-inner .hd-remove-group,
-.hd-tb-inner .hd-class-group,
-.hd-tb-inner .view-group {
+/* Switches + chip/label groups go FLAT (transparent) — the panel border replaces
+   their individual pill borders. Inputs/selects (search, price combo, View select)
+   keep their own field border. Chips keep their own design. */
+.toolbar-panel .ua-upgrades-toggle,
+.toolbar-panel .hd-remove-group,
+.toolbar-panel .hd-class-group,
+.toolbar-panel .view-group {
   background: transparent; border-color: transparent;
 }
-.hd-tb-inner .ua-upgrades-toggle:hover { border-color: transparent; }
-/* Switches sit tight together (they were too far apart). */
-.hd-tb-inner .ua-upgrades-toggle { padding: 4px 4px; gap: 5px; }
-/* Thin vertical divider before each filter section (switches | Remove | Show |
-   Price), so the groups read as one panel with sections. */
-.hd-tb-inner > .hd-remove-group,
-.hd-tb-inner > .hd-class-group,
-.hd-tb-inner > .view-group {
-  position: relative; margin-left: 4px; padding-left: 14px;
-}
-.hd-tb-inner > .hd-remove-group::before,
-.hd-tb-inner > .hd-class-group::before,
-.hd-tb-inner > .view-group::before {
+.toolbar-panel .ua-upgrades-toggle:hover { border-color: transparent; }
+.toolbar-panel .ua-upgrades-toggle { padding: 4px 4px; gap: 5px; }
+/* Thin divider before every control except the first — so the panel reads as one
+   surface with sections. EXCEPT between two consecutive switches (they group
+   tightly, no divider). */
+.toolbar-panel > *:not(:first-child) { position: relative; padding-left: 12px; }
+.toolbar-panel > *:not(:first-child)::before {
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 1px; height: 20px; background: #30363d;
+  width: 1px; height: 18px; background: #30363d;
 }
-/* Search grows to fill the row's remaining width (so it isn't a narrow box
-   stranded far to the right) — it trails the filter groups and stretches. */
-.hd-tb-inner > .hd-search { flex: 1 1 220px; min-width: 160px; }
-.hd-tb-inner > .hd-search input { width: 100%; box-sizing: border-box; }
+.toolbar-panel > .ua-upgrades-toggle + .ua-upgrades-toggle { padding-left: 4px; }
+.toolbar-panel > .ua-upgrades-toggle + .ua-upgrades-toggle::before { content: none; }
+/* A toolbar search box grows to fill the remaining row width (not narrow + lonely). */
+.toolbar-panel > .hd-search { flex: 1 1 220px; min-width: 160px; }
+.toolbar-panel > .hd-search input { width: 100%; box-sizing: border-box; }
 /* "Remove" group + search wrapped in the SAME 32px bordered pill-block as the
    switches, so all toolbar controls share one height/baseline. */
 .hd-remove-group {

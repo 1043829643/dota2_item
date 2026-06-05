@@ -934,7 +934,7 @@ def render_html(rows: list[dict], cost_hist: dict[str, list] | None = None,
         # Toolbar — Price min/max + Hide Active + Heatmap. Layout matches
         # the cal-toggle-bar / ua-upgrades-toggle convention used on the
         # Neutral Creeps & Unit Abilities pages.
-        '<div class="cal-toggle-bar mr-toolbar inbox-bar">'
+        '<div class="cal-toggle-bar mr-toolbar inbox-bar"><div class="toolbar-panel">'
         '<span class="view-group">'
         '<strong>Price</strong>'
         # Combo widget — both inputs and the clear-X share a single border
@@ -967,7 +967,7 @@ def render_html(rows: list[dict], cost_hist: dict[str, list] | None = None,
         'class="ua-switch-input" checked>'
         '<span class="ua-switch" aria-hidden="true"></span>'
         '</label>'
-        '</div>\n'
+        '</div></div>\n'
         f'{table}\n'
         '</div>\n'   # close .creeps-scroll
         '</div>\n'   # close .creeps-page

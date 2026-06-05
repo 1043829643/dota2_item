@@ -262,12 +262,12 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
             '</svg></button></span></span>')
     else:
         price_block = ''
-    # All controls live inside ONE bordered surface (.hd-tb-inner) — a single
-    # unified panel rather than a row of separate floating pills. The switches +
-    # filter groups go borderless inside it (CSS), separated by thin dividers;
-    # the tag/class chips keep their own (universal) design.
+    # All controls live inside ONE bordered surface (.toolbar-panel, the site
+    # standard) — a single unified panel rather than a row of separate floating
+    # pills. The switches + filter groups go borderless inside it (CSS), separated
+    # by thin dividers; the tag/class chips keep their own (universal) design.
     toolbar = (
-        '<div class="cal-toggle-bar inbox-bar hd-toolbar"><div class="hd-tb-inner">'
+        '<div class="cal-toggle-bar inbox-bar hd-toolbar"><div class="toolbar-panel">'
         + _switch('hd-hide-old', 'Hide old',
                   'Show only the most recent patches that fit the width '
                   '(latest at the right edge); off shows every patch', True)

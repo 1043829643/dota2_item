@@ -396,6 +396,22 @@ W(li("X no longer has a separate value for incoming heal reduction", t("MISC"),
 
 Любая новая Materials-страница ОБЯЗАНА переиспользовать эти паддинги (блёрб → тулбар → контент), чтобы отступ «текст ↔ таблица/карта» был одинаковым везде. Не задавать произвольный верхний паддинг контенту — пусть gap владеет тулбар.
 
+### Единая панель тулбара `.toolbar-panel` (СТАНДАРТ — обязателен для новых страниц)
+
+Все кнопки/переключатели тулбара любой страницы оборачиваются в **ОДНУ обрамлённую панель** `.toolbar-panel` (не россыпь отдельных пилюль):
+
+```html
+<div class="cal-toggle-bar inbox-bar"><div class="toolbar-panel">… контролы …</div></div>
+```
+
+CSS (`styles.css`, секция «UNIFIED TOOLBAR PANEL») делает всё автоматически:
+- панель = тёмная подложка `#11161d` + рамка + `border-radius:8px`, `width:100%` внутри тулбара (тулбар держит ритм 28px по бокам);
+- переключатели (`.ua-upgrades-toggle`) и группы-лейблы (`.view-group`/`.hd-remove-group`/`.hd-class-group`) — **плоские** (прозрачные); инпуты/селекты (`.cal-mode-select`, `.mr-price-range`, search) сохраняют свою рамку поля; чипы тегов/классов — свой дизайн;
+- **тонкий разделитель** перед каждым контролом, КРОМЕ между двумя подряд идущими `.ua-upgrades-toggle` (тумблеры группируются плотно). Реализовано через `> *:not(:first-child)::before` + отмена для `.ua-upgrades-toggle + .ua-upgrades-toggle`;
+- `.toolbar-panel > .hd-search` растягивается (`flex:1 1 220px`).
+
+Применяется на: heroes_dyn / items_dyn (`dyn_matrix_common`), neutral_creeps / neutral_abilities (`build_creeps`), mana_items (`build_mana_items`). **Новую страницу с тулбаром оформлять так же.**
+
 ### Источники данных по рельефу (terrain)
 Главные источники координат карты (деревья/кэмпы/башни/тормент/гейты/лотосы по версиям):
 - **Интерактивная карта**: https://tools.spectral.gg/interactive-map
