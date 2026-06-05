@@ -87,11 +87,18 @@ matrix only draws the item's slots WITHIN its life:
   the 116 patches has items.json → authoritative; e.g. Searing Signet = 7.38).
   Columns before `added` render `td.hd-cell.hd-absent` (a faint "n/a" dot, not the
   empty-slot square).
-- **removed** = the patch with the "removed from the game" row (stamped in `li()`
-  → `rec["removed_in"]`), applied ONLY when the item is not `current` (re-added
-  items stay current → `removed=None`). Columns after `removed` are also blanked.
-  ⚠ items.json can't detect removal (obsolete items linger as keys — Cornucopia is
-  still a 7.41d key), so the patch-note "removed from the game" is the signal.
+- **removed** = the patch where the entity itself is removed, stamped in `li()`
+  → `rec["removed_in"]`. This is the AUTHORITATIVE removal signal and overrides the
+  game-file `current` (`current = game-file-current AND removed_in is None`).
+  Columns after `removed` are blanked; the row is `data-current="0"` (hidden unless
+  the **Deleted** toggle is on). Detection is gated on the DEL tag and matched
+  PRECISELY: bare `"Removed"` (enchants — **Wise / Boundless / Vast**, removed in
+  7.41) or `"Item removed from the game"` (items — Cornucopia / Eternal Shroud).
+  ⚠ Two traps this avoids: items.json keeps obsolete items as keys (Cornucopia is
+  still a 7.41d key) AND items.txt keeps removed ENCHANT definitions WITHOUT
+  `IsObsolete` — so neither game file detects enchant removal; only the patch note
+  does. ⚠ Must NOT match `"Facets removed from the game"` (Crude keeps living) nor
+  `"Removed <facet/ability>"` (a sub-feature, e.g. Riftshadow Prism's facet list).
 - A touched cell (has a tag tally) ALWAYS renders its pill, even if the lifespan
   math would blank it (a touch means it existed). heroes_dyn rows have no
   added/removed → nothing is blanked there (could be wired later via heroes.json).

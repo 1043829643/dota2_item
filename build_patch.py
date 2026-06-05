@@ -2859,18 +2859,23 @@ def li(text, badge="", extra="", force_tag=None, ability_row=False):
         else:
             dyn_tags = set(re.findall(r'data-overall="(\w+)"', badge))
     _dyn_record_li(dyn_tags)
-    # Lifespan (items_dyn): when an item/enchant is "removed from the game", stamp
-    # that patch so the matrix can blank every SUBSEQUENT patch for it. setdefault
+    # Lifespan (items_dyn): stamp the patch where an item/enchant itself is removed
+    # so the matrix marks it deleted + blanks every SUBSEQUENT patch. Gated on the
+    # DEL tag and matched PRECISELY against the entity-removal phrasings — bare
+    # "Removed" (enchants: Wise/Boundless/Vast) or "Item removed from the game"
+    # (items: Cornucopia). NOT "Facets removed from the game" (Crude keeps living)
+    # nor "Removed <facet/ability>" (a sub-feature, not the entity). setdefault
     # keeps the NEWEST removal (newer patch blocks appear earlier in this file).
-    # Applied later only if the item ends up not-current (re-added → stays current
-    # → ignored).
-    if isinstance(text, str) and 'removed from the game' in text.lower():
-        _ek = _State.current_entity_key
-        _pv = _State.current_patch_version
-        if _ek and _pv:
-            _rec = _State.dynamics.get(_ek)
-            if _rec is not None and _rec.get('kind') in ('item', 'enchant'):
-                _rec.setdefault('removed_in', _pv)
+    if isinstance(text, str) and 'del' in dyn_tags:
+        _low = text.strip().rstrip('.').lower()
+        if _low in ('removed', 'item removed from the game',
+                    'enchantment removed from the game'):
+            _ek = _State.current_entity_key
+            _pv = _State.current_patch_version
+            if _ek and _pv:
+                _rec = _State.dynamics.get(_ek)
+                if _rec is not None and _rec.get('kind') in ('item', 'enchant'):
+                    _rec.setdefault('removed_in', _pv)
     # Tags for the li's own data-tag attribute (page-side filtering). Keep
     # the wider set so a NEW row still surfaces under the BUFF filter.
     if force_tag is not None:
@@ -17226,12 +17231,15 @@ _item_roster = []
 for _k, _r in _State.dynamics.items():
     if _r.get("kind") not in ("item", "enchant"):
         continue
-    _cls, _current = _item_class_and_current(_r)
+    _cls, _current_gf = _item_class_and_current(_r)
     _icon = _r.get("icon", _r["name"].lower().replace(" ", "_").replace("'", ""))
-    # Lifespan: blank patches before `added`; if the item is no longer in the game
-    # (not current), also blank patches after `removed` (the "removed from the
-    # game" patch). Re-added items stay current → `removed` stays None.
-    _removed = _r.get("removed_in") if not _current else None
+    # Removal: a patch-note "Removed" (item or enchant) is AUTHORITATIVE — Valve
+    # keeps obsolete enchant definitions in items.txt WITHOUT IsObsolete (Wise /
+    # Boundless / Vast), so the game-file `current` alone misses them. If the
+    # patch notes removed it, it's not current regardless of the game file.
+    _removed = _r.get("removed_in")
+    _current = _current_gf and (_removed is None)
+    # Lifespan: blank patches before `added`; if removed, also blank after `removed`.
     # Gold cost (latest items.json) for the items_dyn price filter. Neutrals +
     # enchantments are 0 (not purchasable) → store None so they're EXEMPT from the
     # range filter rather than treated as "free" and hidden when a min is set.
