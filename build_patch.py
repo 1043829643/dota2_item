@@ -7462,7 +7462,7 @@ W(li("All innate abilities that used to scale with other abilities now either pr
          "Abilities that improve with hero level have a <b>base value</b> and an <b>increment value</b>. Some also specify the <b>number of levels required per increment</b>."
          "<br>Abilities that improve every level provide their increment value already at level 1."
      )))
-W(li("Added UI icon that shows you which parameters increase with hero level and what is the current value. Some non-innate ability might have this per level UI as well", t("MISC"),
+W(li("Added UI icon that shows you which parameters increase with hero level and what is the current value. Some non-innate ability might have this per level UI as well", t("QoL"),
      extra=inline_note("Pressing ALT key will show base value and increment of the ability.")))
 W(li("Abilities that had 'per level up' scaling changed to be 'per level'", t("MISC"),
      extra=inline_note("This mostly affects heroes reworked in update 7.40 and Largo.")))
@@ -13418,7 +13418,7 @@ W(section("Item Updates"))
 
 W(item_header("Mask of Madness"))
 W(ul_open())
-W(li("Berserk now shows the overhead \"Silenced\" text when active", t("MISC")))
+W(li("Berserk now shows the overhead \"Silenced\" text when active", t("QoL")))
 W(ul_close())
 
 W(item_header("Silver Edge"))
@@ -14267,7 +14267,7 @@ W(li("Melee Creep: Gold Bounty now increases by 1 per lane creep upgrade interva
 W(li("Flagbearer Creep: Gold Bounty now increases by 1 per lane creep upgrade interval", t("NEW")))
 W(li("Flagbearer Creep: AoE Bounty Radius increased from 1200 to 1500", b(1200, 1500)))
 W(li("Flagbearer Creep: When killed by a player controlled unit, the Flagbearer Creep always grants Bonus Bounty to the killer's hero regardless of the hero's proximity to the Flagbearer Creep", t("REWORK")))
-W(li("Flagbearer Creep: Bonus Gold from killing Flagbearers is now classified as creep gold instead of ability gold", t("MISC"), extra=inline_note("Has no gameplay effect, but makes a post game gold breakdown more accurate")))
+W(li("Flagbearer Creep: Bonus Gold from killing Flagbearers is now classified as creep gold instead of ability gold", t("QoL"), extra=inline_note("Has no gameplay effect, but makes a post game gold breakdown more accurate")))
 W(li("Flagbearer Creep: Inspiration Aura no longer affects heroes", t("DEL")))
 W(li("Flagbearer Creep: Inspiration Aura now also provides a magic resistance bonus to affected creeps starting with 0% and improving by 4% with every lane creep upgrade interval, up to a maximum of 15 upgrades", t("NEW")))
 W(ul_close())
@@ -14276,7 +14276,7 @@ W(li_formula("Courier respawn time decreased",
              "60s + 6s per Hero Level", "45s + 5s per Hero Level",
              lambda L: 60 + 6 * L, lambda L: 45 + 5 * L, l=True))
 W(li("Courier no longer has a 15% movement speed penalty while carrying a Clarity, Enchanted Mango, Faerie Fire, Healing Salve, or Tango", t("BUFF")))
-W(li("Flying Courier will now go to a more obscure shopping area within range of the Secret Shop when using Go To Secret Shop", t("MISC")))
+W(li("Flying Courier will now go to a more obscure shopping area within range of the Secret Shop when using Go To Secret Shop", t("QoL")))
 W(ul_close())
 W(ul_open())
 W(li("All illusions now have 800 daytime vision and 400 nighttime vision", b([1800, 800], [800, 400], slash=True),
@@ -14293,9 +14293,9 @@ W(li("Slam: Now deals double damage to creeps", t("NEW")))
 W(ul_close())
 W(subgroup("Tormentor"))
 W(ul_open())
-W(li("Added a Tormentor Timer near the minimap. Functions similarly to the Roshan Timer. Can be pinged to communicate the current state of Tormentor", t("MISC")))
-W(li("Pinging Tormentor's location in world will trigger the same ping as the timer (same behavior the Roshan Timer has)", t("MISC")))
-W(li("The minimap now only has one Tormentor icon and reflects where Tormentor is or will spawn", t("MISC")))
+W(li("Added a Tormentor Timer near the minimap. Functions similarly to the Roshan Timer. Can be pinged to communicate the current state of Tormentor", t("QoL")))
+W(li("Pinging Tormentor's location in world will trigger the same ping as the timer (same behavior the Roshan Timer has)", t("QoL")))
+W(li("The minimap now only has one Tormentor icon and reflects where Tormentor is or will spawn", t("QoL")))
 W(li("The Shining: Now only starts dealing damage to the surrounding enemies when attacked/damaged", t("REWORK")))
 W(ul_close())
 W(subgroup("Runes"))
