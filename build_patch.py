@@ -3631,8 +3631,12 @@ def _li_rank(li_html):
        3 BUFF  (numeric badge with overall=buff, or textual t("BUFF"))
        4 NERF  (numeric badge with overall=nerf, or textual t("NERF"))
        5 DEL
-       6 MISC / QoL
-       7 untagged (kept at end so they don't displace tagged rows).
+       6 QoL   (quality-of-life convenience — grouped before the MISC catch-all)
+       7 MISC
+       8 untagged (kept at end so they don't displace tagged rows).
+
+    QoL and MISC have DISTINCT ranks so QoL rows group together instead of
+    interleaving with MISC (a stable sort can't separate equal ranks).
 
     Classification reads the LEFT-TAG span's class — that's the only reliable
     signal because data-tag stores both the visible kind AND the filter alias
@@ -3646,7 +3650,7 @@ def _li_rank(li_html):
             'new': 1, 'rework': 2,
             'buff-text': 3, 'nerf-text': 4,
             'del': 5,
-            'misc': 6, 'qol': 6,
+            'qol': 6, 'misc': 7,
         }[kind]
     # No explicit left text-tag — numeric-only rows always synthesize a
     # BUFF/NERF left-tag in li() based on data-overall, so the above regex
@@ -3656,12 +3660,12 @@ def _li_rank(li_html):
         # Safety net for any badge-group row that escaped the left-tag
         # synth path — fall into BUFF rank as a neutral default.
         return 3
-    return 7
+    return 8
 
 
 def _sort_changes_li(html):
     """Enforce the canonical row order inside every <ul class="changes"> block:
-       NEW → REWORK → BUFF → NERF → DEL → MISC/QoL → untagged.
+       NEW → REWORK → BUFF → NERF → DEL → QoL → MISC → untagged.
     Stable sort preserves the patch-note ordering within each rank. Applies
     PER-ABILITY (each `<ul class="changes">` belongs to one ability/hero
     block via the surrounding ability()/hero_header() emitter).

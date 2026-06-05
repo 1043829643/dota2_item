@@ -327,9 +327,10 @@ def _terrain_changes_by_patch():
 
 
 # Canonical tag order (same as the site convention): NEW → REWORK → BUFF →
-# NERF → DEL → MISC/QoL. Stable within a rank.
+# NERF → DEL → QoL → MISC. QoL gets its own rank before MISC so QoL rows group
+# together instead of interleaving with MISC. Stable within a rank.
 _TAG_RANK = {"NEW": 1, "REWORK": 2, "BUFF": 3, "NERF": 4, "DEL": 5,
-             "MISC": 6, "QoL": 6}
+             "QoL": 6, "MISC": 7}
 _TAG_CLS = {
     "NEW": ("new", "new", ' data-overall="buff"'),
     "REWORK": ("rework", "rework", ""),
