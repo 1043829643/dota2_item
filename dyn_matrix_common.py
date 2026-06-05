@@ -219,19 +219,22 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         '<input type="text" id="hd-hero-search" autocomplete="off" spellcheck="false" '
         f'placeholder="{_esc(search_ph)}">'
         '</span>')
-    # Optional items_dyn controls. "In game" switch (sits left of Buff/nerf only):
-    # hide rows whose item was removed from the game. Default ON.
+    # Optional items_dyn controls. "Show deleted" switch (sits left of Buff/nerf
+    # only): OFF by default → items removed from the game are hidden; ON reveals
+    # them (their post-removal columns are blanked anyway).
     current_block = _switch(
-        'hd-current-only', 'In game',
-        'Show only items still in the game; hide removed/obsolete ones', True
+        'hd-show-deleted', 'Show deleted',
+        'Show items that were removed from the game (hidden by default)', False
     ) if current_toggle else ''
     # Class filter group (sits right of Remove): toggle item classes on/off.
+    # Default: only regular Items on; Neutral Items + Enchantments start OFF.
     if class_filter:
-        _CLASS_CHIPS = [('regular', 'Items'), ('neutral', 'Neutral Items'),
-                        ('enchant', 'Enchantments')]
+        _CLASS_CHIPS = [('regular', 'Items', True), ('neutral', 'Neutral Items', False),
+                        ('enchant', 'Enchantments', False)]
         class_chips = ''.join(
             f'<button type="button" class="hd-class-chip" data-class="{c}" '
-            f'aria-pressed="true">{lbl}</button>' for c, lbl in _CLASS_CHIPS)
+            f'aria-pressed="{"true" if on else "false"}">{lbl}</button>'
+            for c, lbl, on in _CLASS_CHIPS)
         class_block = (
             '<span class="hd-class-group" title="Show or hide item classes">'
             '<strong>Show</strong>' + class_chips + '</span>')
@@ -274,7 +277,10 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         f'<p class="mr-blurb inbox-bar">{blurb}</p>\n'
         f'{toolbar}'
         # Column visibility + fit-to-width is set by scripts.js dynLayoutMatrix().
-        '<table class="creeps-table heroes-dyn-table">\n'
+        # items pages get an extra hook class so item-shaped icons (88×64) aren't
+        # cropped by the hero 16:9 icon box.
+        f'<table class="creeps-table heroes-dyn-table'
+        f'{" items-dyn-table" if kind == "item" else ""}">\n'
         f'<thead><tr class="cat-row">{supercat_html}</tr>'
         f'<tr class="col-row">{head_html}</tr></thead>\n'
         f'<tbody>\n{chr(10).join(rows)}\n</tbody>\n'

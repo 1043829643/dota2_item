@@ -729,12 +729,19 @@
   function dynLayoutMatrix(table, fit) {
     const scroller = table.closest('.creeps-scroll');
     if (!scroller) return;
-    // Hero column width = longest hero name measured live + icon + gap + padding.
-    let maxName = 0;
-    table.querySelectorAll('tbody td.hd-hero .hd-hero-name').forEach(s => {
-      maxName = Math.max(maxName, s.scrollWidth);
-    });
-    const heroW = Math.ceil(maxName) + 40 /*icon*/ + 22 /*gap*/ + 18 /*padding 6+12*/;
+    // Hero column width = longest name + icon + gap + padding. The names never
+    // change, so measuring all ~170 rows' scrollWidth on EVERY layout (toggle /
+    // resize) forced a costly reflow each time → lag. Measure once and cache on
+    // the table; the `load` handler clears it once so fonts/icons settle first.
+    let heroW = table._hdHeroW;
+    if (heroW == null) {
+      let maxName = 0;
+      table.querySelectorAll('tbody td.hd-hero .hd-hero-name').forEach(s => {
+        maxName = Math.max(maxName, s.scrollWidth);
+      });
+      heroW = Math.ceil(maxName) + 40 /*icon*/ + 22 /*gap*/ + 18 /*padding 6+12*/;
+      table._hdHeroW = heroW;
+    }
     table.style.setProperty('--hd-hero-w', heroW + 'px');
 
     const patchThs = table.querySelectorAll('thead th.hd-patch');
@@ -824,15 +831,15 @@
       });
     });
 
-    // Row filters — name search + (items_dyn only) item-class chips + "In game"
-    // toggle, all combined into ONE visibility pass so they don't fight over
-    // tr.style.display. Search: comma-separated, partial ("anci,aba,brood").
-    // Class chips / current toggle are absent on heroes_dyn → their predicates
+    // Row filters — name search + (items_dyn only) item-class chips + "Show
+    // deleted" toggle, all combined into ONE visibility pass so they don't fight
+    // over tr.style.display. Search: comma-separated, partial ("anci,aba,brood").
+    // Class chips / deleted toggle are absent on heroes_dyn → their predicates
     // are no-ops there. Row display only (never re-measures the hero width).
     const search = document.getElementById('hd-hero-search');
     const page = table.closest('.creeps-page');
     const classChips = page ? [...page.querySelectorAll('.hd-class-chip[data-class]')] : [];
-    const curToggle = document.getElementById('hd-current-only');
+    const delToggle = document.getElementById('hd-show-deleted');
     const rows = [...table.querySelectorAll('tbody tr')];
     const applyRowFilters = () => {
       const terms = search
@@ -842,13 +849,14 @@
         ? new Set(classChips.filter(c => c.getAttribute('aria-pressed') !== 'false')
                             .map(c => c.dataset.class))
         : null;
-      const curOnly = !!(curToggle && curToggle.checked);
+      const showDeleted = !!(delToggle && delToggle.checked);
       rows.forEach(tr => {
         const name = (tr.querySelector('td.hd-hero')?.dataset.sort || '').toLowerCase();
         const okSearch = !terms.length || terms.some(t => name.includes(t));
         const okClass = !enabled || enabled.has(tr.dataset.class);
-        const okCur = !curOnly || tr.dataset.current === '1';
-        tr.style.display = (okSearch && okClass && okCur) ? '' : 'none';
+        // data-current="0" = removed from the game → shown only when "Show deleted".
+        const okDel = showDeleted || tr.dataset.current !== '0';
+        tr.style.display = (okSearch && okClass && okDel) ? '' : 'none';
       });
     };
     if (search) search.addEventListener('input', applyRowFilters);
@@ -857,12 +865,24 @@
         chip.getAttribute('aria-pressed') === 'false' ? 'true' : 'false');
       applyRowFilters();
     }));
-    if (curToggle) curToggle.addEventListener('change', applyRowFilters);
-    applyRowFilters();   // initial pass (current-only ON by default)
+    if (delToggle) delToggle.addEventListener('change', applyRowFilters);
+    applyRowFilters();   // initial pass (deleted hidden + only Items class by default)
 
     window.addEventListener('resize', layout, { passive: true });
     // Re-measure once fonts/icons settle (first paint can under-measure names).
-    window.addEventListener('load', layout);
+    // Guard against shrink: rows hidden by the default filters (neutral/enchant)
+    // report scrollWidth 0, so a naive re-measure could narrow the column and clip
+    // those names when later shown. Keep the larger of the setup measure (taken
+    // with ALL rows visible) and the post-font re-measure.
+    window.addEventListener('load', () => {
+      const prev = table._hdHeroW || 0;
+      table._hdHeroW = null;
+      layout();
+      if ((table._hdHeroW || 0) < prev) {
+        table._hdHeroW = prev;
+        table.style.setProperty('--hd-hero-w', prev + 'px');
+      }
+    });
   }
 
   function dynInit() {

@@ -4997,6 +4997,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
      horizontal scroll (Chrome drops borders on sticky cells mid-scroll). */
   border-right: 2px solid rgba(170, 220, 240, 0.30);
 }
+/* The identity-column HEADER ("Hero" / "Item") is centred; the body cells stay
+   left-aligned (icon + name). */
+.creeps-table.heroes-dyn-table thead th.hd-hero { text-align: center; }
 .heroes-dyn-table td.hd-hero { padding: 2px 12px 2px 6px; }
 /* Equal patch columns under auto layout: pin width + min + max so every column
    is exactly --hd-col-w (the dyn-cell pill 28px sits centred inside). No
@@ -5022,6 +5025,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   transform-origin: left center;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
+/* items_dyn: item/enchant icons are 88×64 (aspect 1.375), NOT the hero 16:9 — the
+   hero box (40×23) crops them top/bottom. Size the box to the item aspect (40×29)
+   so cover fills it without cropping (mirrors mana_items' .mr-ico approach). */
+.items-dyn-table .hd-hero-inner img { height: 29px; }
 .hd-hero-name { font-weight: 600; color: #e6edf3; }
 /* RULE (all tables): hovering a hero/unit portrait pops it out — like Neutral
    Creeps. The 18px gap + name-fitted column width keep the 1.8× zoom from ever
