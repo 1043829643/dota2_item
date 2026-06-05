@@ -43,7 +43,7 @@
 		{
 			"damage_per_second"
 			{
-				"value"													"25 45 65 85"
+				"value"													"20 40 60 80"
 				"special_bonus_unique_ancient_apparition_cold_feet_dps"	"+30"
 				"DamageTypeTooltip"		"DAMAGE_TYPE_MAGICAL"
 			}
@@ -168,7 +168,7 @@
 			
 			"damage"
 			{
-				"value"				"35 65 95 125"
+				"value"				"30 60 90 120"
 				"special_bonus_unique_ancient_apparition_2"		"+100"
 			}
 
@@ -187,7 +187,7 @@
 			"AbilityManaCost"			"35"
 			"AbilityCooldown"				
 			{
-				"value"			"10 7.5 5 2.5"
+				"value"			"12 9 6 3"
 				"special_bonus_scepter"						"-100%"
 			}
 		}

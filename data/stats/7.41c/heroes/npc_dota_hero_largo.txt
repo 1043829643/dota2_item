@@ -142,7 +142,7 @@
 			}
 			"AbilityManaCost"
 			{	
-				"value"			"25 35 45"
+				"value"			"20 32 44"
 			}
 		}
 	}
@@ -208,7 +208,7 @@
 			}
 			"AbilityManaCost"
 			{	
-				"value"			"25 35 45"
+				"value"			"20 32 44"
 			}
 		}
 	}
@@ -262,7 +262,7 @@
 			}
 			"AbilityManaCost"
 			{	
-				"value"			"25 35 45"
+				"value"			"20 32 44"
 			}
 		}
 	}
@@ -494,7 +494,7 @@
 		{
 			"buff_amplification"
 			{
-				"value"									"15"
+				"value"									"10"
 				"hero_levelup"							"+1"
 			}
 			"repeat_buff"

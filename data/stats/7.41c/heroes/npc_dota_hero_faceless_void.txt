@@ -59,7 +59,7 @@
 			"dodge_chance_pct"			"100"			
 			"radius"
 			{
-				"special_bonus_scepter"				"+325"
+				"special_bonus_scepter"				"+400"
 				"affected_by_aoe_increase"			"1"
 			}
 		}
@@ -208,7 +208,7 @@
 		{
 			"radius"				
 			{
-				"value"		"700"
+				"value"		"775"
 				"affected_by_aoe_increase"	"1"
 			}
 			"duration"				"7 8 9 10"

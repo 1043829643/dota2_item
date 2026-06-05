@@ -176,7 +176,7 @@
 
 			"radius"					
 			{
-				"value"		"900"
+				"value"		"700"
 				"affected_by_aoe_increase"	"1"
 			}
 		}
@@ -338,7 +338,7 @@
 			"width"				"100"
 			"spear_damage"		
 			{
-				"value"	"80 170 260"
+				"value"	"80 160 240"
 				"special_bonus_unique_mars_arena_of_blood_damage" "+70"
 			}
 			"formation_time"	"0.1"
