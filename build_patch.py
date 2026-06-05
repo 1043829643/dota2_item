@@ -4518,7 +4518,7 @@ W(ul_close())
 # Axe
 W(hero_header("Axe"))
 W(ul_open())
-W(li("Base Health Regen decreased by 0.5", bstat_h("Axe", "StatusHealthRegen", "7.41c", -0.5), extra=inline_note("Valve also lists \"Sense of Foreboding increased from 0 to 0.5\" — unclear if this is a typo, a joke, or something else; taken at face value, effective Health Regen is reduced")))
+W(li("Base Health Regen decreased by 0.5", bstat_h("Axe", "StatusHealthRegen", "7.41c", -0.5), extra=inline_note("Valve also lists \"Sense of Foreboding increased from 0 to 0.5\", but no such ability exists anywhere in the game files (likely a Valve leftover) — the only real change is the base Health Regen reduction")))
 W(ul_close())
 W(ability("Battle Hunger", slug="axe_battle_hunger"))
 W(ul_open())
