@@ -2117,7 +2117,7 @@ def ability_change(old, new, summary=None, tag=None):
     )
 
 
-def plain_header(name, dynamics=True):
+def plain_header(name, dynamics=True, terrain_link=None):
     """Section / category header with no icon.
 
     dynamics=False  — suppress the patch-dynamics widget. Use for
@@ -2125,6 +2125,11 @@ def plain_header(name, dynamics=True):
                       "Upgrades" where each contained item already has
                       its own widget, so the category-level dyn-cell row
                       would be redundant noise.
+
+    terrain_link=<base_ver>  — append a gold "View on map" button that jumps to
+                      terrain.html with that patch preselected (e.g. "7.41" →
+                      ../terrain.html?patch=7.41). Used on the "Terrain Changes"
+                      header so the reader can see the moves on the map slider.
 
     Everything under the big "General Updates" tab (General Changes, Map
     Objectives, Terrain Changes, Captains Mode, …) NEVER shows a dyn-cell row —
@@ -2137,7 +2142,14 @@ def plain_header(name, dynamics=True):
     else:
         _State.current_entity_key = None
         eid = ''
-    return out + _open_block() + f'<div class="entity plain-entity"{eid}><div class="entity-name">{name}</div></div>'
+    link_html = ''
+    if terrain_link:
+        link_html = (
+            f'<a class="terrain-jump-btn" href="../terrain.html?patch={terrain_link}" '
+            f'title="See these changes on the map">'
+            f'<img src="../icons/ui/gothic/icon_terrain.png" alt="" width="16" height="16">'
+            f'<span>View on map</span></a>')
+    return out + _open_block() + f'<div class="entity plain-entity"{eid}><div class="entity-name">{name}</div>{link_html}</div>'
 
 
 def enchant_header(name, slug=None, new=False):
@@ -4415,8 +4427,13 @@ W(section("General Updates"))
 W(plain_header("Mechanics"))
 W(ul_open())
 W(li("Dire Fountain: Rejuvenation Aura radius has been slightly increased", t("MISC")))
-W(li("Self-Cast on Town Portal Scroll's Teleport and other similar abilities now place the hero slightly closer to the Ancient", t("MISC")))
-W(li("Town Portal Scroll's Teleport and other similar ability effects now partially follow the channeling unit even if they move after starting their teleport", t("MISC")))
+W(li("Self-Cast on Town Portal Scroll's Teleport and other similar abilities now place the hero slightly closer to the Ancient", t("QoL")))
+W(li("Town Portal Scroll's Teleport and other similar ability effects now partially follow the channeling unit even if they move after starting their teleport", t("QoL"),
+     extra=inline_note(
+         "This makes it possible to track the real spot a hero teleported from while using a movement ability during the channel (e.g. Ball Lightning, Pounce, Sun Ray, etc.). "
+         "Previously the teleport animation stayed in one place while the displaced hero actually landed somewhere else. "
+         "Now the circle animation plays where the Town Portal Scroll was used, but the full animation and effects appear where the hero lands."
+     )))
 W(ul_close())
 
 # ===== ITEM UPDATES =====
@@ -7433,7 +7450,7 @@ W(li_formula("Unyielding Shield Barrier regen upgrade increased",
              levels=[0, 5, 10, 15, 20, 25, 30, 40, 50, 60],
              level_prefix='M', rework_badge=False))
 W(li("Reflect Base damage reflection percentage decreased from 50% to 30%", b(50, 30)))
-W(li("Reflect radius can now be seen by holding ALT key", t("MISC")))
+W(li("Reflect radius can now be seen by holding ALT key", t("QoL")))
 W(li_formula("The Shining damage rescaled",
              "60",
              "20 + 2 per minute",
@@ -7472,7 +7489,7 @@ W(li_formula("Wisdom Shrine Experience changed",
              rework_badge=False,
              headline_level=2))
 W(ul_close())
-W(plain_header("Terrain Changes"))
+W(plain_header("Terrain Changes", terrain_link="7.41"))
 W(ul_open())
 W(li("Tormentor spawns have been positioned closer towards Lotus Pools", t("MISC")))
 W(li("Tormentor spawn areas have been reduced to low ground relative to the lane's level", t("MISC")))
@@ -7486,11 +7503,11 @@ W(li("The watcher between the safe lane tier 1 tower and the tormentor has been 
      )))
 W(li("Ancient neutral camps near stream ends demoted to medium camps and moved slightly towards bases", t("NERF")))
 W(li("Medium neutral camp near offlane defender's gate has been demoted to a small neutral camp", t("NERF")))
-W(li("The tier 1 safe lane towers have been moved slightly away from their pull camps and where the creeps meet", t("BUFF")))
+W(li("The tier 1 safe lane towers have been moved slightly away from their pull camps and where the creeps meet", t("MISC")))
 W(li("Radiant safe lane small camp has been slightly moved north away from the lane", t("MISC")))
 W(li("Radiant safe lane hard camp's spawn box has been moved towards the offlane to remove a bad ward location", t("MISC")))
-W(li("Radiant offlane tier 2 tower has been adjusted slightly to the left, such that creeps do not path on both sides of the tower", t("BUFF")))
-W(li("The ramp leading from the Radiant tier 1 tower to the stream has been decreased in width and moved away from the tower", t("NERF")))
+W(li("Radiant offlane tier 2 tower has been adjusted slightly to the left, such that creeps do not path on both sides of the tower", t("MISC")))
+W(li("The ramp leading from the Radiant tier 1 tower to the stream has been decreased in width and moved away from the tower", t("MISC")))
 W(li("The medium flooded camp near the safe lane tier 2 towers moved closer to the middle of the stream (substantially more for Dire than for Radiant)", t("MISC")))
 W(li("The medium flooded camp near the safe lane tier 2 towers can now only evolve once into a hard camp, rather than into an Ancient Camp", t("NERF")))
 W(li("The medium flooded camp near the bounty runes can now evolve twice into an Ancient Camp", t("REWORK")))
@@ -7532,7 +7549,7 @@ W(li("Units with free movement now can miss their attacks when attacking uphill 
      extra=inline_note(
          "Affected units:<br>* Batrider during Firefly<br>* Dragon Knight during Elder Dragon Form with Aghanim's Scepter<br>* Lina during Flame Cloak<br>* Terrorblade's Reflection illusions"
      )))
-W(li("All sources of reflection damage now have an ALT-note detailing mechanics of reflected damage", t("MISC")))
+W(li("All sources of reflection damage now have an ALT-note detailing mechanics of reflected damage", t("QoL")))
 W(ul_close())
 W(subnote("The following items and abilities deal reflected damage:<br>* Tormentor's Reflect ability<br>* Blade Mail (both active and passive)<br>* Chipped Vest<br>* Rattlecage<br>* Axe's Counter Helix<br>* Bristleback's Quill Spray triggered by Bristleback passive<br>* Centaur Warrunner's Retaliate<br>* Nyx Assassin's Spiked Carapace<br>* Queen of Pain's Scream of Pain<br>* Razor's Storm Surge<br>* Shadow Demon's Disseminate<br>* Spectre's Dispersion<br>* Tidehunter's Anchor Smash triggered by Kraken Shell passive<br>* Viper's Corrosive Skin<br>* Warlock's Fatal Bonds"))
 
@@ -14247,31 +14264,31 @@ W(li("Haste Rune: Duration no longer increases by 3s per rune cycle, and is alwa
 W(li("Invisibility Rune: No longer grants incoming damage reduction", t("DEL")))
 W(ul_close())
 
-W(plain_header("Terrain Changes"))
+W(plain_header("Terrain Changes", terrain_link="7.40"))
 # One ul for the whole category so the tag-order sorter ranks across all rows
 # (NEW → BUFF → NERF → DEL → MISC); the source paragraph splits were arbitrary.
 W(ul_open())
 W(li("Extended the streams into both Radiant and Dire bases and added defender's gate to the outside of the respective safe lanes where the stream flows", t("MISC")))
-W(li("Removed some trees inside the base near the new safelane defender's gate positions", t("DEL")))
-W(li("The Hard camp nearest to Tier 3 towers where the streams used to start has been demoted to a 'medium' camp", t("MISC")))
+W(li("Removed some trees inside the base near the new safelane defender's gate positions", t("MISC")))
+W(li("The Hard camp nearest to Tier 3 towers where the streams used to start has been demoted to a 'medium' camp", t("NERF")))
 W(li("Moved the safelane medium amphibian neutral camp closest to the Tier 2 tower up the stream, slightly closer to the respective bases", t("MISC")))
 W(li("Lowered the Wisdom Shrine areas to low ground, compared to the respective offlanes, filled them with water and connected to the water areas by the Tier 1 towers", t("MISC")))
 W(li("Moved Wisdom Shrines and Watchers to the low ground and slightly closer to the Tier 1 towers. These Watchers now have vision over the shrines at night", t("MISC")))
 W(li("Hard camps nearest to Wisdom Shrines have been moved slightly back towards the bases", t("MISC")))
 W(li("Changed the 'bridges' to actual bridges", t("MISC")))
 W(li("Slightly expanded the entrance to the bridge by the Lotus pools and adjusted the area within the nearby water areas", t("MISC")))
-W(li("The Hard camp in the 'triangle' has been demoted to a 'medium' camp", t("MISC")))
+W(li("The Hard camp in the 'triangle' has been demoted to a 'medium' camp", t("NERF")))
 W(li("Twin Gate mana cost decreased from 75 to 30", b(75, 30, l=True)))
-W(li("Twin Gates now refund the mana cost if the teleporting channel was interrupted", t("MISC")))
+W(li("Twin Gates now refund the mana cost if the teleporting channel was interrupted", t("NEW")))
 W(li("Cleared up some areas around the Tormentor locations", t("MISC")))
 W(li("The watchers nearest to the mid-lane and near the small water camps south/north of the tier 1 tower have been removed", t("DEL")))
 W(li("The watchers in the primary jungles have been repositioned from stairs near the small camp to the cliff above the bounty runes", t("MISC")))
 W(li("Added additional blocks preventing flying movement around the edges of the map (e.g. the highground areas behind the Tormentors will no longer be accessible by Batrider during Firefly)", t("NEW")))
 W(li("Watcher night vision range decreased from 800 to 450", b(800, 450)))
-W(li("Watcher capture time decreased from 1.5s to 1s", t("MISC")))
+W(li("Watcher capture time decreased from 1.5s to 1s", b(1.5, 1, l=True)))
 W(li("Defender's Gate vision radius increased from 525 to 700", b(525, 700)))
-W(li("Defender's Gate will now show their vision radius when holding ALT (similarly to Wards, Watchers, etc.)", t("MISC")))
-W(li("Removed a tree between Dire Safelane Tier 1 tower and the small pull camp", t("DEL")))
+W(li("Defender's Gate will now show their vision radius when holding ALT (similarly to Wards, Watchers, etc.)", t("QoL")))
+W(li("Removed a tree between Dire Safelane Tier 1 tower and the small pull camp", t("MISC")))
 W(li("Very slightly adjusted the paths and spawn points of the Radiant Offlane lane creeps, and the position of the Radiant Offlane Tier 2 tower. This results in creeps pathing to the right of the tier 2 tower instead of sometimes splitting up to go around it", t("MISC")))
 W(li("Radiant Secret Shop trigger area moved slightly towards the radiant Tier 1 tower and more centered around the shopkeeper", t("MISC")))
 W(ul_close())

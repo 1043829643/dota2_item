@@ -2604,7 +2604,11 @@
   //    pins it, then sweeping the handle compares that spot old↔new inside the
   //    circle (the toggled tree/camp markers are cloned into the lens too).
   function initTerrainCompare() {
-    const root = document.querySelector('.terrain-compare');
+    // One slider per map pair (e.g. 7.41 and 7.40 panes both exist; hidden ones
+    // are still wired so switching the picker shows a working slider).
+    document.querySelectorAll('.terrain-compare').forEach(initOneTerrainCompare);
+  }
+  function initOneTerrainCompare(root) {
     if (!root) return;
     const stage = root.querySelector('.tc-stage');
     const handle = root.querySelector('.tc-handle');
@@ -2810,6 +2814,11 @@
     opts.forEach(o => o.addEventListener('click', () => { select(o.dataset.patch); close(); }));
     document.addEventListener('click', e => { if (!picker.contains(e.target)) close(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+    // Deep-link: ?patch=<ver> (from a patch page's "View on map" button)
+    // preselects that patch if it has a terrain pane.
+    const wanted = new URLSearchParams(location.search).get('patch');
+    if (wanted && opts.some(o => o.dataset.patch === wanted)) select(wanted);
   }
 
   if (document.readyState === 'loading') {

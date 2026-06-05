@@ -142,12 +142,34 @@ aligned), resize to **1536²** webp. Re-run: `python scripts/build_terrain_maps.
 - **Change lists are PARSED from build_patch.py** (`_terrain_changes_by_patch`)
   → no drift. One `(text, TAG)` list per `plain_header("Terrain Changes")`
   section. `b(...)` rows → BUFF/NERF by direction honouring `l=True`.
-- **Map pairs** — `_MAP_PAIRS` lists patches we hold matched old→new webp for
-  (today `7.41`→ the swipe slider). Markers/counts gate on `_DIFF_PATCH`
-  (`7.41`, matches `terrain_diff.json`).
+- **Map pairs** — `_MAP_PAIRS` maps `patch → (old_ver, new_ver)` for every patch
+  we hold matched old→new webp for. Today: `7.41`→(7.40,7.41) and
+  `7.40`→(7.39,7.40). `_compare_html(old_ver, new_ver, markers_svg)` builds the
+  swipe slider for any pair (map URLs derived from the versions).
+- **Markers + layer toolbar are PER-PATCH** — each patch ships its own
+  `data/terrain_diff_<ver>.json` (`scripts/build_terrain_diff.py <prev>:<new>`,
+  generic keys `treesOld/New`, `campsOld/New`, `entities`). `save_terrain_html`
+  builds `markers_by_patch` / `counts_by_patch` via `_load_diff(ver)` and renders
+  each pane's overlays. The SHARED crop meta (`terrain_map_meta.json`) projects
+  any patch's markers correctly — no per-patch projection. A pair WITHOUT a diff
+  passes empty `markers_svg` → `_controls_html(layers=False)` (Zoom only, no dead
+  toggles). **Add a new patch:** (1) `build_terrain_maps.py <prev> <new> …ALL…`
+  (shared crop must stay put), (2) `build_terrain_diff.py <prev>:<new>`, (3) add a
+  `_MAP_PAIRS` entry; `git add` the new `map_<ver>.webp` + `terrain_diff_<ver>.json`.
+- **scripts.js inits ALL sliders** — `initTerrainCompare` does
+  `querySelectorAll('.terrain-compare').forEach(initOneTerrainCompare)`; the
+  default-hidden second pane (7.40) still gets a working handle/lens/toggles so the
+  picker can reveal it. (Was a single `querySelector` → only the first pane worked.)
 - **No-map fallback (`_fallback_html`)** — for a patch with changes but no map
-  pair (7.40): the latest map blurred + dimmed with a centred "Map comparison
-  for X isn't available yet" overlay; the textual change list still renders.
+  pair: the latest map blurred + dimmed with a centred "Map comparison for X
+  isn't available yet" overlay; the textual change list still renders.
+- **Deep-link from patch pages** — `plain_header("Terrain Changes",
+  terrain_link="<base_ver>")` (build_patch.py) renders a gold `.terrain-jump-btn`
+  "View on map" link in the section header → `../terrain.html?patch=<base_ver>`.
+  `initTerrainPicker` reads `?patch=` on load and preselects that pane via the
+  existing picker. ONE shared page — no per-patch `terrain_<ver>.html`.
+  ⚠ The parser regex is `plain_header\("Terrain Changes"` (no trailing `\)`) so
+  the new `terrain_link=` arg doesn't make it miss every block.
 
 ## TODO / action items
 

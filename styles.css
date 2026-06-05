@@ -1959,6 +1959,36 @@ h2.section {
 .plain-entity .entity-name {
   color: #79c0ff;
 }
+/* "View on map" jump button on the Terrain Changes header → terrain.html with
+   this patch preselected. Gold-leather pill matching the site nav-arrow skin. */
+.terrain-jump-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #3b2e1d, #2a2014);
+  border: 1px solid #e3c46a;
+  color: #e3c46a;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.terrain-jump-btn img {
+  display: block;
+  image-rendering: pixelated;
+}
+.terrain-jump-btn:hover {
+  filter: brightness(1.18);
+  box-shadow: 0 0 10px rgba(227, 196, 106, 0.35);
+}
+.terrain-jump-btn:active {
+  transform: translateY(1px);
+}
 
 /* =====================================================================
    PATCH DYNAMICS WIDGET
