@@ -338,7 +338,14 @@
 
   function jumpTo(target) {
     if (!target) return;
-    target.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Offset for the sticky nav so the heading lands just BELOW it. Plain
+    // scrollIntoView({block:'start'}) parks the heading at viewport top, hidden
+    // behind the nav — so you see the rows under it and it reads as "jumped
+    // past / below the result". Mirror the re-anchor offset used on load.
+    const navH = parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue('--site-nav-h')) || 70;
+    const y = target.element.getBoundingClientRect().top + window.scrollY - navH - 8;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     target.element.style.transition = 'box-shadow 0.4s';
     target.element.style.boxShadow = '0 0 0 2px #58a6ff';
     setTimeout(() => target.element.style.boxShadow = '', 1400);
