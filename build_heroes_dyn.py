@@ -38,8 +38,8 @@ def save_heroes_dyn_html():
             "is that hero’s balance-change summary for that patch — hover it for "
             "the buff/nerf/rework breakdown, click to jump to the hero on that "
             "patch page. Hover a patch column for its release date. Empty diamonds "
-            "mean the hero was untouched. <strong>Remove</strong> drops any tag "
-            "from the diamonds (it still shows on hover); the <strong>search</strong> "
+            "mean the hero was untouched. The coloured <strong>tag chips</strong> "
+            "drop a tag from the diamonds (it still shows on hover); the <strong>search</strong> "
             "box filters heroes by name — comma-separate for several (partial names "
             "work: <em>anci, aba, brood</em>)."),
     )

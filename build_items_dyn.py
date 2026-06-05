@@ -37,9 +37,10 @@ def save_items_dyn_html():
             "buff/nerf/rework breakdown, click to jump to the item on that patch "
             "page. Hover a patch column for its release date. Empty diamonds mean "
             "the item was untouched. <strong>Deleted</strong> reveals items "
-            "removed from the game; <strong>Show</strong> toggles item classes; "
-            "<strong>Price</strong> filters by gold cost (neutrals + enchantments "
-            "are free, so they ignore it); <strong>Remove</strong> drops any tag "
+            "removed from the game; the <strong>class chips</strong> (Items / "
+            "Neutral Items / Enchantments) toggle which types show; <strong>Price"
+            "</strong> filters by gold cost (neutrals + enchantments are free, so "
+            "they ignore it); the coloured <strong>tag chips</strong> drop a tag "
             "from the diamonds (it still shows on hover); the <strong>search</strong> "
             "box filters by name (comma-separate: <em>blink, dagon, aghs</em>)."),
     )

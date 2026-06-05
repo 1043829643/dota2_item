@@ -5109,8 +5109,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 /* Flat rectangular toggle buttons (NOT gold rounded pills) — ON uses the same
    blue accent as the switches, OFF is muted + sunken. */
 .hd-class-chip {
-  cursor: pointer; user-select: none; font-family: inherit; font-size: 11px;
-  font-weight: 600; letter-spacing: 0.2px;
+  cursor: pointer; user-select: none; font-family: inherit; font-size: 12.5px;
+  font-weight: 400; letter-spacing: normal;
   padding: 4px 10px; border-radius: 4px;
   color: #c9d1d9; background: #1c222c; border: 1px solid #30363d;
   transition: color 0.12s, background 0.12s, border-color 0.12s, box-shadow 0.12s;
@@ -5835,6 +5835,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 .mr-price-clear:hover { color: #f85149; }
 .mr-price-clear[hidden] { display: none; }
 .mr-table tbody tr.mr-filtered-out { display: none; }
+.mr-table tbody tr.mr-search-out { display: none; }
 
 /* Clicked-row highlight — yellow outline around the ENTIRE row, not each
    cell. Achieved with inset box-shadows on the TDs: top / bottom on all

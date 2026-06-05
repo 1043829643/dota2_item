@@ -195,10 +195,12 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
             tr_attr += f' data-price="{int(h["price"])}"'
         rows.append(f'<tr{tr_attr}>{"".join(cells)}</tr>')
 
-    # Toggles — styled like the Neutral Creeps / Unit Abilities switches.
+    # Toggles — styled like the Neutral Creeps / Unit Abilities switches. No hover
+    # title (the visible label already says what it does). `title` kept in the
+    # signature for caller clarity but not rendered.
     def _switch(sw_id, label, title, checked):
         ck = ' checked' if checked else ''
-        return (f'<label class="ua-upgrades-toggle" title="{_esc(title)}">'
+        return (f'<label class="ua-upgrades-toggle">'
                 f'<span class="ua-upgrades-label">{label}</span>'
                 f'<input type="checkbox" id="{sw_id}" class="ua-switch-input"{ck}>'
                 f'<span class="ua-switch" aria-hidden="true"></span></label>')
@@ -212,10 +214,9 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
     tag_chips = ''.join(
         f'<button type="button" class="badge {cls} hd-tag" data-tag="{tag}">{label}</button>'
         for tag, cls, label in _TAG_CHIPS)
-    remove_block = (
-        '<span class="hd-remove-group" '
-        'title="Click a tag to drop it from the diamonds (hover still shows it)">'
-        '<strong>Remove</strong>' + tag_chips + '</span>')
+    # No "Remove" label — the coloured tag chips speak for themselves (click a tag
+    # to drop it from the diamonds).
+    remove_block = '<span class="hd-remove-group">' + tag_chips + '</span>'
     search_block = (
         '<span class="search-box hd-search">'
         '<input type="text" id="hd-hero-search" autocomplete="off" spellcheck="false" '
@@ -238,9 +239,8 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
             f'<button type="button" class="hd-class-chip" data-class="{c}" '
             f'aria-pressed="{"true" if on else "false"}">{lbl}</button>'
             for c, lbl, on in _CLASS_CHIPS)
-        class_block = (
-            '<span class="hd-class-group" title="Show or hide item classes">'
-            '<strong>Show</strong>' + class_chips + '</span>')
+        # No "Show" label — the labelled class chips speak for themselves.
+        class_block = '<span class="hd-class-group">' + class_chips + '</span>'
     else:
         class_block = ''
     # Price-range filter (copied from mana_items): two bound inputs + a clear-X
@@ -255,7 +255,7 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
             '<input type="number" class="mr-price-input" id="hd-price-max" '
             'placeholder="to" min="0" step="50" inputmode="numeric">'
             '<button type="button" class="mr-price-clear" id="hd-price-clear" '
-            'aria-label="Clear price range" title="Clear price range" hidden>'
+            'aria-label="Clear price range" hidden>'
             '<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">'
             '<path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" '
             'stroke-width="2" stroke-linecap="round" fill="none"/>'

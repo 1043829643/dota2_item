@@ -2433,7 +2433,7 @@ def save_creeps_html():
         # value in the table with a dotted underline (each "40/36/32/26"
         # number gets the marker), so leveled cells self-identify through
         # their own content rather than via an Excel-style outline.
-        '<label class="ua-upgrades-toggle" title="Mark cells whose values upgrade per neutral tier">'
+        '<label class="ua-upgrades-toggle">'
         '<span class="ua-upgrades-label">Upgrades</span>'
         '<input type="checkbox" id="ua-upgrades-mode" class="ua-switch-input" checked>'
         '<span class="ua-switch" aria-hidden="true"></span>'
