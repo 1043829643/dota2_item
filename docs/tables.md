@@ -11,6 +11,7 @@ This covers the sortable data tables under the **Materials** section.
 | `neutral_abilities.html` | Per-unit-ability table (one row per unit×ability). The Materials sub-nav presents it as a child of Neutral Creeps. `unit_abilities.html` is now a small meta-redirect for backwards compatibility. | `build_creeps.py` (same run) |
 | `mana_items.html` | Mana / mana-regen items + gold-efficiency metrics. | `build_mana_items.py` |
 | `heroes_dyn.html` | **Hero Dynamics matrix** — rows = every hero (icon+name, alphabetical), columns = every patch (version + release date oldest→newest), each cell = that hero's patch-dynamics **dyn-cell** for that patch. Same diamond-pill widget as patch pages. | `build_heroes_dyn.py` |
+| `items_dyn.html` | **Item Dynamics matrix** — identical to heroes_dyn but rows = every item touched across tracked patches (`item|<slug>` entities, alphabetical). | `build_items_dyn.py` |
 | nav / asset version / `data/site_meta.json` | Shared header, sub-tabs, cache-busting. | `site_common.py` |
 
 Header sub-tabs (under the logo) switch between Neutral Creeps / Unit Abilities / Mana Items.
@@ -23,7 +24,26 @@ python build_patch.py        # 1. writes data/site_meta.json (asset version, pat
 python build_creeps.py       # 2. -> neutral_creeps.html + neutral_abilities.html (+ creeps/materials/unit_abilities redirects)
 python build_mana_items.py   # 3. -> mana_items.html  (run AFTER build_patch)
 python build_heroes_dyn.py   # 4. -> heroes_dyn.html  (run AFTER build_patch — reads _dynamics.json)
+python build_items_dyn.py    # 5. -> items_dyn.html   (run AFTER build_patch — reads _dynamics.json)
 ```
+
+### Shared dynamics renderer (`dyn_matrix_common.py`)
+Both dynamics pages call `dyn_matrix_common.save_dyn_matrix(...)` — the matrix
+renderer is **entity-agnostic**. `build_heroes_dyn.py` passes the hero config
+(`kind="hero"`, `roster_key="heroes"`, `icon_dir="icons/heroes"`, …),
+`build_items_dyn.py` the item config (`kind="item"`, `roster_key="items"`,
+`icon_dir="icons/items"`, `from_token="items_dyn"`, …). Both emit the SAME
+`class="creeps-table heroes-dyn-table"` so the shared CSS + `scripts.js`
+(`dynBuildMatrix`/`dynLayoutMatrix`/`dynSetupMatrix`) apply unchanged.
+- `build_patch.py` writes BOTH rosters into `_dynamics.json` (`heroes` = full
+  HERO_SLUG roster; `items` = every `item|<slug>` entity touched in any tracked
+  patch, with its icon slug stamped in `_register_entity`).
+- **Back-arrow token is data-driven:** each page sets `<body data-dyn-from=...>`;
+  `dynFillMatrix` reads it so a clicked cell's patch page returns to the right
+  matrix (`?from=heroes_dyn` / `?from=items_dyn`, handled in the back-arrow IIFE).
+- **index Dynamics tile** opens an in-place sub-panel (same generic mechanism as
+  Support: `data-panel-open`/`data-panel-close`, `.<name>-open` book class) with
+  Heroes → heroes_dyn and Items → items_dyn.
 
 ### Hero Dynamics matrix (`build_heroes_dyn.py`)
 - Reads **`_dynamics.json`** (written by build_patch): `patches` (newest-first), `entities`
