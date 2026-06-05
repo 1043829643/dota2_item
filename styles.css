@@ -5126,6 +5126,15 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   content: ''; display: inline-block; width: 28px; height: 28px; border-radius: 4px;
   background: rgba(12, 14, 19, 0.72);
 }
+/* Outside the item's lifespan (items_dyn): the item wasn't in the game in this
+   patch — either not added yet, or already removed. NO empty-slot square; just a
+   tiny faint dot so the live span reads as a clear band of slots flanked by
+   "n/a" gaps. Flat fill (no shadow) keeps the big grid cheap to paint. */
+.heroes-dyn-table td.hd-cell.hd-absent::after {
+  content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(125, 135, 155, 0.16);
+}
+.heroes-dyn-table tbody tr.row-marked td.hd-cell.hd-absent::after { background: transparent; }
 /* Buff/nerf-only: a touched cell with no buff/nerf reads as an EMPTY cell —
    flat fill, no glassy pill, no hover pop. Hover still fires the tooltip. */
 .heroes-dyn-table .dyn-cell-wrap.bn-empty .dyn-cell,

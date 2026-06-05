@@ -2859,6 +2859,18 @@ def li(text, badge="", extra="", force_tag=None, ability_row=False):
         else:
             dyn_tags = set(re.findall(r'data-overall="(\w+)"', badge))
     _dyn_record_li(dyn_tags)
+    # Lifespan (items_dyn): when an item/enchant is "removed from the game", stamp
+    # that patch so the matrix can blank every SUBSEQUENT patch for it. setdefault
+    # keeps the NEWEST removal (newer patch blocks appear earlier in this file).
+    # Applied later only if the item ends up not-current (re-added → stays current
+    # → ignored).
+    if isinstance(text, str) and 'removed from the game' in text.lower():
+        _ek = _State.current_entity_key
+        _pv = _State.current_patch_version
+        if _ek and _pv:
+            _rec = _State.dynamics.get(_ek)
+            if _rec is not None and _rec.get('kind') in ('item', 'enchant'):
+                _rec.setdefault('removed_in', _pv)
     # Tags for the li's own data-tag attribute (page-side filtering). Keep
     # the wider set so a NEW row still surfaces under the BUFF filter.
     if force_tag is not None:
@@ -17195,15 +17207,35 @@ def _item_class_and_current(rec):
     return cls, current
 
 
+# Chronological patch order (oldest → newest) for item lifespan windows.
+_CHRON = [_r["version"] for _r in reversed(RELEASE_HISTORY)]
+
+
+def _added_version(icon):
+    """Oldest patch whose items.json contains this item (= the patch it entered the
+    game). Authoritative across all 116 patches (every patch has items.json).
+    Patches BEFORE this are blanked in the matrix. None if never found."""
+    gslug = "item_" + icon
+    for _v in _CHRON:
+        if gslug in _STATS_I.get(_v, {}):
+            return _v
+    return None
+
+
 _item_roster = []
 for _k, _r in _State.dynamics.items():
     if _r.get("kind") not in ("item", "enchant"):
         continue
     _cls, _current = _item_class_and_current(_r)
+    _icon = _r.get("icon", _r["name"].lower().replace(" ", "_").replace("'", ""))
+    # Lifespan: blank patches before `added`; if the item is no longer in the game
+    # (not current), also blank patches after `removed` (the "removed from the
+    # game" patch). Re-added items stay current → `removed` stays None.
+    _removed = _r.get("removed_in") if not _current else None
     _item_roster.append({
-        "name": _r["name"],
-        "icon": _r.get("icon", _r["name"].lower().replace(" ", "_").replace("'", "")),
-        "key": _k, "class": _cls, "current": _current})
+        "name": _r["name"], "icon": _icon, "key": _k,
+        "class": _cls, "current": _current,
+        "added": _added_version(_icon), "removed": _removed})
 _item_roster.sort(key=lambda _d: _d["name"].lower())
 _dyn_payload = {"patches": _dyn_patches, "entities": _State.dynamics,
                 "heroes": _hero_roster, "items": _item_roster}

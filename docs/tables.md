@@ -70,6 +70,22 @@ The two items_dyn controls (`current_toggle` / `class_filter` params of
 dynSetupMatrix` combines name-search + class chips + In-game toggle into ONE
 visibility pass (no-ops on heroes_dyn, whose roster lacks those fields).
 
+### Item lifespan — blanked cells outside [added … removed]
+Each items roster entry also carries `added` + `removed` patch versions so the
+matrix only draws the item's slots WITHIN its life:
+- **added** = oldest patch whose `items.json` contains `item_<slug>` (every one of
+  the 116 patches has items.json → authoritative; e.g. Searing Signet = 7.38).
+  Columns before `added` render `td.hd-cell.hd-absent` (a faint "n/a" dot, not the
+  empty-slot square).
+- **removed** = the patch with the "removed from the game" row (stamped in `li()`
+  → `rec["removed_in"]`), applied ONLY when the item is not `current` (re-added
+  items stay current → `removed=None`). Columns after `removed` are also blanked.
+  ⚠ items.json can't detect removal (obsolete items linger as keys — Cornucopia is
+  still a 7.41d key), so the patch-note "removed from the game" is the signal.
+- A touched cell (has a tag tally) ALWAYS renders its pill, even if the lifespan
+  math would blank it (a touch means it existed). heroes_dyn rows have no
+  added/removed → nothing is blanked there (could be wired later via heroes.json).
+
 ### Hero Dynamics matrix (`build_heroes_dyn.py`)
 - Reads **`_dynamics.json`** (written by build_patch): `patches` (newest-first), `entities`
   (`hero|<slug>` → per-patch tag tallies), and **`heroes`** (full roster `[{name, icon, key}]`,

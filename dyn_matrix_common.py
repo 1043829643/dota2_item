@@ -142,6 +142,9 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
     head_cells.append('<th class="hd-spacer" aria-hidden="true"></th>')
     head_html = "".join(head_cells)
 
+    # Chronological column index (patches is oldest-first) for lifespan blanking.
+    ver_index = {p["version"]: i for i, p in enumerate(patches)}
+
     # ---- body: one row per entity ----
     rows = []
     for h in rows_data:
@@ -149,6 +152,12 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         slug = key.split("|", 1)[-1]
         eid = f"dyn-{kind}-{slug}"
         per_patch = (entities.get(key, {}) or {}).get("patches", {})
+        # Lifespan window (items_dyn only; absent on heroes_dyn → spans everything):
+        # blank columns BEFORE the item entered the game, and AFTER it was removed.
+        added = h.get("added")
+        removed = h.get("removed")
+        a_idx = ver_index.get(added, 0) if added else 0
+        r_idx = ver_index.get(removed) if removed else None
         img = (f'<img src="{_esc(icon_dir)}/{_esc(h["icon"])}.png" '
                f'alt="{_esc(h["name"])}" loading="lazy">')
         cells = [
@@ -157,17 +166,23 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
             f'<span class="hd-hero-inner">{img}'
             f'<span class="hd-hero-name">{_esc(h["name"])}</span></span></td>'
         ]
-        for p in patches:
+        for i, p in enumerate(patches):
             ver = p["version"]
             sep = ' hd-gsep' if ver in gsep_vers else ''
             counts = per_patch.get(ver)
+            absent = (added and i < a_idx) or (r_idx is not None and i > r_idx)
             if counts:
-                # Touched this patch → JS fills a coloured pill.
+                # Touched this patch → JS fills a coloured pill (always wins, even
+                # if the lifespan math would blank it — a touch means it existed).
                 cells.append(
                     f'<td class="hd-cell{sep}" data-ver="{_esc(ver)}" '
                     f'data-hkey="{_esc(key)}" data-eid="{_esc(eid)}"></td>')
+            elif absent:
+                # Outside the item's lifespan (not added yet / already removed) →
+                # faint "n/a" dot, NOT the empty-slot square.
+                cells.append(f'<td class="hd-cell hd-absent{sep}"></td>')
             else:
-                # Untouched → static empty diamond (CSS ::after).
+                # Existed but untouched → static empty diamond (CSS ::after).
                 cells.append(f'<td class="hd-cell hd-empty{sep}"></td>')
         cells.append('<td class="hd-cell hd-empty hd-spacer"></td>')
         # Row metadata for the items_dyn filters (absent on heroes_dyn).
