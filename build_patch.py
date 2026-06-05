@@ -443,13 +443,15 @@ def b(old, new, l=False, slash=False, force_overall=None):
     slash=True separates the badges with " / " instead of ", " — use it for
     PAIRED dimensions (e.g. daytime / nighttime vision), not level progressions.
     If all per-level badges turn out identical, collapses to a single badge.
-    Determines OVERALL buff/nerf tag for filtering by the MAX-RANK (last)
-    per-level value's direction — the level the hero settles at once the
-    ability is maxed; scans backwards if the max-rank delta is neutral.
-    Pass force_overall="buff"/"nerf" to override when the heuristic
-    disagrees with the real gameplay impact (e.g. a rescale that buffs
-    early levels and only slightly nerfs max rank). Per-level % badges are
-    never affected by the override.
+    Determines OVERALL buff/nerf tag by the MAX-RANK (last non-zero) per-level
+    value's direction. Refinement: when max-rank is a SMALL nerf (≤12%) but the
+    per-level deltas AVERAGE to a buff (early-level buffs outweigh an
+    insignificant late dip), it flips to BUFF — so a front-loaded rescale like
+    15/30/45/60→25/35/45/55 (+67/+17/0/-8) reads as a buff. The ≤12% cap keeps
+    "flattening" rescales (big max-rank nerf, e.g. Drow 4/8/12/16→10 =
+    +150/+25/-17/-38) as a max-rank nerf, and the inverse case (early nerf, late
+    buff — Disseminate) is already buff via max-rank. Pass force_overall=
+    "buff"/"nerf" to override outright. Per-level % badges are never affected.
 
     Sign convention: the `+`/`-` reflects the RAW numeric direction
     (`+` when new > old, `-` when new < old). The badge COLOUR reflects
@@ -538,14 +540,23 @@ def b(old, new, l=False, slash=False, force_overall=None):
     # logic — they show explicit L1/L_end badges, so the overall tag's
     # role is different there.
     overall = ""
+    max_rank = 0
     if signed_pcts:
         for v in reversed(signed_pcts):
-            if v > 0:
-                overall = "buff"
+            if v != 0:
+                max_rank = v
+                overall = "buff" if v > 0 else "nerf"
                 break
-            if v < 0:
-                overall = "nerf"
-                break
+        # Front-loaded rescale: max-rank is a SMALL nerf (≤12%) but the per-level
+        # deltas AVERAGE to a buff — the early-level buffs outweigh an
+        # insignificant late dip → BUFF (Riki Blink Strike 15/30/45/60→25/35/45/55
+        # = +67/+17/0/-8). The ≤12% cap keeps "flattening" rescales (X/Y/Z/W → one
+        # value: big max-rank nerf, e.g. Drow Agility 4/8/12/16→10 = +150/+25/-17/-38)
+        # as a max-rank nerf. Inverse case (early nerf, late buff — Disseminate) is
+        # already buff via max-rank, untouched.
+        if (overall == "nerf" and abs(max_rank) <= 12
+                and sum(signed_pcts) / len(signed_pcts) > 0):
+            overall = "buff"
     # Per-row override: when the max-rank heuristic disagrees with the real
     # gameplay impact (e.g. a rescale that buffs early levels and only slightly
     # nerfs max rank), pass force_overall="buff"/"nerf" to set the left tag
@@ -5130,7 +5141,7 @@ W(li("Agility gain decreased from 2.4 to 2.3", b(2.4, 2.3)))
 W(ul_close())
 W(ability("Spectral Dagger", slug="spectre_spectral_dagger"))
 W(ul_open())
-W(li("Movement Speed Change rescaled from 10/14/18/22% to 14/16/18/20%", b([10, 14, 18, 22], [14, 16, 18, 20], force_overall="buff")))
+W(li("Movement Speed Change rescaled from 10/14/18/22% to 14/16/18/20%", b([10, 14, 18, 22], [14, 16, 18, 20])))
 W(ul_close())
 W(ability("Shadow Step", slug="spectre_shadow_step"))
 W(ul_open())
@@ -5281,7 +5292,7 @@ W(ul_close())
 W(hero_header("Visage"))
 W(ability("Grave Chill", slug="visage_grave_chill"))
 W(ul_open())
-W(li("Attack Speed Drain rescaled from 25/40/55/70 to 35/45/55/65", b([25, 40, 55, 70], [35, 45, 55, 65], force_overall="buff")))
+W(li("Attack Speed Drain rescaled from 25/40/55/70 to 35/45/55/65", b([25, 40, 55, 70], [35, 45, 55, 65])))
 W(ul_close())
 
 # Warlock
