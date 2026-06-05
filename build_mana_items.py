@@ -99,7 +99,7 @@ EXCLUDE_PREFIXES = (
     "item_dust",
     "item_ward_",
     "item_sentry",
-    "item_clarity",         # one-shot consumable
+    # item_clarity is INCLUDED (modelled as an active mana restore — see load_items).
     "item_tango",
     "item_faerie_fire",
     "item_healing_salve",
@@ -530,6 +530,19 @@ def load_items() -> list[dict]:
             + ALL_STATS_FIELDS + ACTIVE_MANA_FIELDS
             + ("AbilityCooldown", MULTIPLIER_FIELD),
         )
+        # Clarity: a consumable that restores mana over a duration via a temporary
+        # `mana_regen` buff (mana_regen=6 for buff_duration=25 → 150 mana). That's
+        # NOT permanent regen, so model it as an ACTIVE restore (like Soul Ring):
+        # reclassify the buff as a total active grant (rate × duration) amortised
+        # over its own duration → its in-buff regen rate (6/sec). Renders as
+        # "Clarity (Active)".
+        if slug == "item_clarity":
+            _dur = _to_float(_walk_values(body, ("buff_duration",)).get("buff_duration", "0"))
+            _rate = _to_float(fields.get("mana_regen", "0"))
+            if _dur > 0 and _rate > 0:
+                fields.pop("mana_regen", None)          # not a permanent passive regen
+                fields["mana_gain"] = str(_rate * _dur)  # total restored (ACTIVE_MANA_FIELDS)
+                fields["AbilityCooldown"] = str(_dur)    # amortise over the buff duration
         # all_stats contributes to every primary attribute → for mana purposes
         # we treat it as additional Int.
         intel = (
