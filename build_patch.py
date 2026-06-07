@@ -13245,12 +13245,15 @@ W(ul_close())
 W(hero_header("Broodmother"))
 W(ability("Spin Web"))
 W(ul_open())
-W(li(facet_badge("broodmother_necrotic_webs") + " Enemy Restoration Reduction decreased from 10/30/50/70% to 10/25/40/55%", b([10, 30, 50, 70], [10, 25, 40, 55])))
 W(li("Max Charges decreased from 4/6/8/10 to 3/5/7/9", b([4, 6, 8, 10], [3, 5, 7, 9])))
 W(ul_close())
 W(ability("Incapacitating Bite"))
 W(ul_open())
 W(li("No longer applied by illusions", t("DEL")))
+W(ul_close())
+W(facet_header("broodmother_necrotic_webs"))
+W(ul_open())
+W(li("Spin Web enemy Restoration Reduction decreased from 10/30/50/70% to 10/25/40/55%", b([10, 30, 50, 70], [10, 25, 40, 55])))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -13336,9 +13339,9 @@ W(ul_close())
 
 # Huskar
 W(hero_header("Huskar"))
-W(ability("Berserker's Blood"))
+W(facet_header("huskar_cauterize"))
 W(ul_open())
-W(li(facet_badge("huskar_cauterize") + " Cooldown increased from 50/40/30/20s to 60/50/40/30s", b([50, 40, 30, 20], [60, 50, 40, 30], l=True)))
+W(li("Berserker's Blood cooldown increased from 50/40/30/20s to 60/50/40/30s", b([50, 40, 30, 20], [60, 50, 40, 30], l=True)))
 W(ul_close())
 
 # Jakiro
@@ -13472,9 +13475,9 @@ W(ul_open())
 W(li("Base Agility decreased from 13 to 11", b(13, 11)))
 W(li("Agility gain increased from 1.4 to 1.6", b(1.4, 1.6)))
 W(ul_close())
-W(ability("Whoopee Cushion"))
+W(facet_header("ringmaster_carny_classics"))
 W(ul_open())
-W(li(facet_badge("ringmaster_carny_classics") + " Stink cloud radius increased from 200 to 250", b(200, 250)))
+W(li("Whoopee Cushion stink cloud radius increased from 200 to 250", b(200, 250)))
 W(ul_close())
 
 # Rubick
@@ -13486,9 +13489,9 @@ W(ul_close())
 
 # Shadow Demon
 W(hero_header("Shadow Demon"))
-W(ability("Disseminate"))
+W(facet_header("shadow_demon_promulgate"))
 W(ul_open())
-W(li(facet_badge("shadow_demon_promulgate") + " Health loss decreased from 9/11/13/15% to 9/10/11/12%", b([9, 11, 13, 15], [9, 10, 11, 12], l=True)))
+W(li("Disseminate health loss decreased from 9/11/13/15% to 9/10/11/12%", b([9, 11, 13, 15], [9, 10, 11, 12], l=True)))
 W(ul_close())
 
 # Slardar
@@ -13763,9 +13766,9 @@ W(hero_header("Drow Ranger"))
 W(ul_open())
 W(li("Agility gain decreased from 2.9 to 2.8", b(2.9, 2.8)))
 W(ul_close())
-W(ability("Multishot", slug="drow_ranger_multishot"))
+W(facet_header("drow_ranger_sidestep"))
 W(ul_open())
-W(li(facet_badge("drow_ranger_sidestep") + " " + "Movement Speed Penalty increased from 25% to 35%", b(25, 35, l=True)))
+W(li("Multishot movement speed penalty increased from 25% to 35%", b(25, 35, l=True)))
 W(ul_close())
 W(ability("Glacier", slug="drow_ranger_glacier"))
 W(ul_open())
@@ -13795,10 +13798,6 @@ W(ul_close())
 W(hero_header("Huskar"))
 W(ability("Berserker's Blood", slug="huskar_berserkers_blood"))
 W(ul_open())
-W(li(facet_badge("huskar_cauterize") + " " + "Max HP Heal per Debuff decreased from 5% to 4%", b(5, 4)))
-W(ul_close())
-W(ability("Berserker's Blood", slug="huskar_berserkers_blood"))
-W(ul_open())
 W(li("HP for Max bonus decreased from 12% to 10%", b(12, 10)))
 W(ul_close())
 W(subgroup("Talents"))
@@ -13806,15 +13805,19 @@ W(ul_open())
 W(li("Level 15 Talent Lifesteal decreased from +15% to +12%", b(15, 12)))
 W(li("Level 25 Talent Life Break Damage decreased from +25% to +22%", b(25, 22)))
 W(ul_close())
+W(facet_header("huskar_cauterize"))
+W(ul_open())
+W(li("Berserker's Blood max HP heal per debuff decreased from 5% to 4%", b(5, 4)))
+W(ul_close())
 
 # Invoker
 W(hero_header("Invoker"))
-W(ability("Tornado", slug="invoker_tornado"))
+W(facet_header("invoker_wex_focus"))
 W(ul_open())
 _twister_old = [3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0]
 _twister_new = [2.7, 2.9, 3.1, 3.3, 3.5, 3.7, 3.9, 4.1, 4.3, 4.5]
 W(li_formula(
-    facet_badge("invoker_wex_focus") + " " + "Aghanim's Scepter Twister Duration decreased by 0.5s",
+    "Tornado Aghanim's Scepter Twister Duration decreased by 0.5s",
     "3.2-5.0s", "2.7-4.5s",
     lambda L, o=_twister_old: o[L - 1],
     lambda L, n=_twister_new: n[L - 1],
@@ -13823,10 +13826,7 @@ W(li_formula(
     rework_badge=False,
     value_fmt="{:.1f}s",
 ))
-W(ul_close())
-W(ability("E.M.P.", slug="invoker_emp"))
-W(ul_open())
-W(li(facet_badge("invoker_wex_focus") + " " + "Aghanim's Shard Burn Damage decreased from 90% to 80%", b(90, 80)))
+W(li("E.M.P. Aghanim's Shard burn damage decreased from 90% to 80%", b(90, 80)))
 W(ul_close())
 
 # Jakiro
@@ -13899,11 +13899,6 @@ W(ul_close())
 
 # Legion Commander
 W(hero_header("Legion Commander"))
-W(ability("Duel", slug="legion_commander_duel"))
-W(ul_open())
-W(li(facet_badge("legion_commander_spoils_of_war") + " " + "Press the Attack duration on allies after Duel win decreased from 50% to 25%", b(50, 25),
-     extra=inline_note("From 2.5s to 1.25s")))
-W(ul_close())
 W(ability("Press The Attack", slug="legion_commander_press_the_attack"))
 W(ul_open())
 W(li("Mana Cost decreased from 100 to 90", b(100, 90, l=True)))
@@ -13913,6 +13908,11 @@ W(ability("Duel", slug="legion_commander_duel"))
 W(ul_open())
 W(li("Aghanim's Scepter duration bonus decreased from +2s to +1.5s", b(2, 1.5),
      extra=inline_note("Total Duration decreased from 6/6.5/7s to 5.5/6/6.5s")))
+W(ul_close())
+W(facet_header("legion_commander_spoils_of_war"))
+W(ul_open())
+W(li("Press the Attack duration on allies after Duel win decreased from 50% to 25%", b(50, 25),
+     extra=inline_note("From 2.5s to 1.25s")))
 W(ul_close())
 
 # Lich
@@ -14112,9 +14112,9 @@ W(ul_close())
 
 # Pudge
 W(hero_header("Pudge"))
-W(ability("Dismember", slug="pudge_dismember"))
+W(facet_header("pudge_fresh_meat"))
 W(ul_open())
-W(li(facet_badge("pudge_fresh_meat") + " " + "Strength Increase decreased from 2/4/6 to 2/3/4", b([2, 4, 6], [2, 3, 4])))
+W(li("Dismember strength increase decreased from 2/4/6 to 2/3/4", b([2, 4, 6], [2, 3, 4])))
 W(ul_close())
 W(ability("Meat Hook", slug="pudge_meat_hook"))
 W(ul_open())
@@ -14311,15 +14311,15 @@ W(ul_close())
 
 # Viper
 W(hero_header("Viper"))
-W(ability("Corrosive Skin", slug="viper_corrosive_skin"))
-W(ul_open())
-W(li(facet_badge("viper_caustic_bath") + " " + "Max bonus effect decreased from 100% to 75%", b(100, 75)))
-W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 10 Talent +20 Corrosive Skin Damage Per Second replaced with +10% Poison Attack Slow/Damage", t("REWORK")))
 W(li("Level 15 Talent +15% Poison Attack Slow/Damage replaced with +20 Corrosive Skin Damage Per Second", t("REWORK")))
 W(li("Level 15 Talent Nethertoxin Min/Max Damage decreased from +40 to +30", b(40, 30)))
+W(ul_close())
+W(facet_header("viper_caustic_bath"))
+W(ul_open())
+W(li("Corrosive Skin max bonus effect decreased from 100% to 75%", b(100, 75)))
 W(ul_close())
 
 # Void Spirit
@@ -14343,10 +14343,6 @@ W(ul_close())
 
 # Windranger
 W(hero_header("Windranger"))
-W(ability("Shackleshot", slug="windrunner_shackleshot"))
-W(ul_open())
-W(li(facet_badge("windrunner_tangled") + " " + "Bonus Damage per Hero decreased from 40 to 35", b(40, 35)))
-W(ul_close())
 W(ability("Powershot", slug="windrunner_powershot"))
 W(ul_open())
 W(li("Slow duration decreased from 4s to 3s", b(4, 3)))
@@ -14354,6 +14350,10 @@ W(ul_close())
 W(ability("Windrun", slug="windrunner_windrun"))
 W(ul_open())
 W(li("Aghanim's Scepter physical damage reduction decreased from 45% to 35%", b(45, 35)))
+W(ul_close())
+W(facet_header("windrunner_tangled"))
+W(ul_open())
+W(li("Shackleshot bonus damage per hero decreased from 40 to 35", b(40, 35)))
 W(ul_close())
 
 # Winter Wyvern
@@ -14369,22 +14369,22 @@ W(ul_close())
 W(hero_header("Witch Doctor"))
 W(ability("Death Ward", slug="witch_doctor_death_ward"))
 W(ul_open())
-W(li(facet_badge("witch_doctor_cleft_death") + " " + "Damage decreased from 55/90/125 to 55/85/115", b([55, 90, 125], [55, 85, 115])))
-W(ul_close())
-W(ability("Death Ward", slug="witch_doctor_death_ward"))
-W(ul_open())
 W(li("Damage decreased from 60/95/130 to 60/90/120", b([60, 95, 130], [60, 90, 120])))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 25 Talent Death Ward Damage decreased from +45 to +40", b(45, 40)))
 W(ul_close())
+W(facet_header("witch_doctor_cleft_death"))
+W(ul_open())
+W(li("Death Ward damage decreased from 55/90/125 to 55/85/115", b([55, 90, 125], [55, 85, 115])))
+W(ul_close())
 
 # Wraith King
 W(hero_header("Wraith King"))
-W(ability("Bone Guard", slug="skeleton_king_bone_guard"))
+W(facet_header("skeleton_king_facet_bone_guard"))
 W(ul_open())
-W(li(facet_badge("skeleton_king_facet_bone_guard") + " " + "Skeleton movement speed decreased from 350 to 340", b(350, 340)))
+W(li("Bone Guard skeleton movement speed decreased from 350 to 340", b(350, 340)))
 W(ul_close())
 
 # Zeus
@@ -17183,10 +17183,9 @@ W(ul_open())
 W(li("Level 15 Talent +125 Maledict AoE replaced with +4s Maledict Duration", t("REWORK")))
 W(li("Level 25 Talent +8s Maledict Duration replaced with -6s Paralyzing Cask Cooldown", t("REWORK")))
 W(ul_close())
-W(subgroup("Facet: Malpractice"))
-W(ability("Maledict", slug="witch_doctor_maledict"))
+W(facet_header("witch_doctor_malpractice"))
 W(ul_open())
-W(li(facet_badge("witch_doctor_malpractice") + " " + "Burst damage does not apply from non-hero units", t("MISC")))
+W(li("Maledict burst damage does not apply from non-hero units", t("MISC")))
 W(ul_close())
 
 # Wraith King
