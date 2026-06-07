@@ -15053,6 +15053,10 @@ W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 15 Talent Flaming Lasso Cooldown Reduction increased from 7s to 8s", b(7, 8)))
 W(ul_close())
+W(facet_header("batrider_arsonist"))
+W(ul_open())
+W(li("No longer has decreased number of +2 All Attributes bonuses", t("BUFF")))
+W(ul_close())
 
 # Beastmaster
 W(hero_header("Beastmaster"))
@@ -16004,6 +16008,10 @@ W(ability("Reverse Polarity", slug="magnataur_reverse_polarity"))
 W(ul_open())
 W(li("Cooldown decreased from 120s to 115s", b(120, 115, l=True)))
 W(ul_close())
+W(facet_header("magnataur_diminishing_return"))
+W(ul_open())
+W(li("No longer has decreased number of +2 All Attributes bonuses", t("BUFF")))
+W(ul_close())
 
 # Marci
 W(hero_header("Marci"))
@@ -16033,6 +16041,13 @@ W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 20 Talent +1.5s Stone Gaze Duration replaced with +1 Gorgon's Grasp Volley", t("REWORK")))
 W(li("Level 25 Talent +1 Gorgon's Grasp Volley replaced with +2s Stone Gaze Duration", t("REWORK")))
+W(ul_close())
+
+# Meepo
+W(hero_header("Meepo"))
+W(facet_header("meepo_more_meepo"))
+W(ul_open())
+W(li("No longer has decreased number of +2 All Attributes bonuses", t("BUFF")))
 W(ul_close())
 
 # Mirana
@@ -16065,6 +16080,10 @@ W(ul_close())
 W(ability("Tree Dance", slug="monkey_king_tree_dance"))
 W(ul_open())
 W(li("Stun duration from falling off the cut tree decreased from 4s to 3s", b(4, 3)))
+W(ul_close())
+W(facet_header("monkey_king_simian_stride"))
+W(ul_open())
+W(li("No longer has decreased number of +2 All Attributes bonuses", t("BUFF")))
 W(ul_close())
 
 # Morphling
@@ -16165,6 +16184,10 @@ W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 20 Talent Crippling Fear DPS increased from +20 to +40", b(20, 40)))
+W(ul_close())
+W(facet_header("night_stalker_voidbringer"))
+W(ul_open())
+W(li("No longer has decreased number of +2 All Attributes bonuses", t("BUFF")))
 W(ul_close())
 
 # Nyx Assassin
@@ -16529,6 +16552,10 @@ W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 10 Talent Arcane Curse Penalty Multiplier decreased from +0.5 to +0.25", b(0.5, 0.25)))
+W(ul_close())
+W(facet_header("silencer_spread_the_knowledge"))
+W(ul_open())
+W(li("No longer has decreased number of +2 All Attributes bonuses", t("BUFF")))
 W(ul_close())
 
 # Skywrath Mage
