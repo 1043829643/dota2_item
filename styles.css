@@ -2682,6 +2682,12 @@ ul.changes li.ability-row-end {
 .ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-row { padding: 0; line-height: 1.4; }
 .ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-row.aghanim-scepter,
 .ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-row.aghanim-shard { margin-top: 4px; }
+/* Top-anchor brewling panes so corresponding stat rows line up on the
+   same horizontal baseline across Old / New. (Default `align-self: center`
+   re-centers the shorter pane vertically — for stat lists this misaligns
+   the rows when New has an extra Aghs Scepter row.) */
+.ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-pane { align-self: start; }
+.ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change.unified-panes { align-items: start; }
 /* Unified ability-change layout: renders as a regular ability-block (icon
    + title + tag/summary row) with the swap panes inside the block body.
    Title shows `Old → New` when names differ. The block visually matches

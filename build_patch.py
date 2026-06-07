@@ -15186,9 +15186,6 @@ W(ability_change(
         name="Earth Brewling",
         slug="brewmaster_drunken_brawler_earth",
         desc=[
-            "<b>Health:</b> 1400 / 2300 / 3200",
-            "<b>Regen:</b> 2 / 4 / 6",
-            "<b>Armor:</b> 3 / 5 / 7",
             "<b>Damage:</b> 20–30 / 55–65 / 90–100",
             "<b>Movement Speed:</b> 330 / 350 / 370",
             "<b>Passive:</b> Debuff Immunity",
@@ -15199,13 +15196,10 @@ W(ability_change(
         name="Earth Brewling",
         slug="brewmaster_drunken_brawler_earth",
         desc=[
-            "<b>Health:</b> 1400 / 2300 / 3200",
-            "<b>Regen:</b> 2 / 4 / 6",
-            "<b>Armor:</b> 3 / 5 / 7",
-            "<b>Damage:</b> 30–40 / 65–75 / 100–110",
-            "<b>Movement Speed:</b> 330 / 355 / 380",
+            "<b>Damage:</b> 30–40 / 65–75 / 100–110 " + b([25, 60, 95], [35, 70, 105]),
+            "<b>Movement Speed:</b> 330 / 355 / 380 " + b([330, 350, 370], [330, 355, 380]),
             "<b>Passive:</b> Earth Element — 80% Status Resistance, 60% Magic Resistance",
-            "<b>Demolish:</b> 40 / 80 / 120 bonus building damage",
+            "<b>Demolish:</b> 40 / 80 / 120 bonus building damage " + b([50, 100, 150], [40, 80, 120]),
             aghs_line("Rank 4: <b>4100</b> HP, <b>8</b> Regen, <b>135–145</b> Damage, <b>9</b> Armor. Hurl Boulder: 200 dmg, 2s Stun. Demolish: 160."),
         ],
     ),
@@ -15215,51 +15209,23 @@ W(ability_change(
         name="Storm Brewling",
         slug="brewmaster_drunken_brawler_storm",
         desc=[
-            "<b>Health:</b> 1000 / 1500 / 2000",
-            "<b>Regen:</b> 2 / 4 / 6",
             "<b>Damage:</b> 15–25 / 35–45 / 55–65",
-            "<b>Wind Walk:</b> 320 bonus damage, 55% bonus movement speed",
-            "<b>Cyclone:</b> 6s hero duration, 100 damage on landing",
         ],
     ),
     new=dict(
         name="Storm Brewling",
         slug="brewmaster_drunken_brawler_storm",
         desc=[
-            "<b>Health:</b> 1000 / 1500 / 2000",
-            "<b>Regen:</b> 2 / 4 / 6",
-            "<b>Damage:</b> 25–35 / 45–55 / 65–75",
-            "<b>Wind Walk:</b> 320 bonus damage, 55% bonus movement speed",
-            "<b>Cyclone:</b> 6s hero duration, 100 damage on landing",
+            "<b>Damage:</b> 25–35 / 45–55 / 65–75 " + b([20, 40, 60], [30, 50, 70]),
             aghs_line("Rank 4: <b>2500</b> HP, <b>8</b> Regen, <b>85–95</b> Damage. Other base stats unchanged."),
         ],
     ),
 ))
-W(ability_change(
-    old=dict(
-        name="Fire Brewling",
-        slug="brewmaster_drunken_brawler_fire",
-        desc=[
-            "<b>Health:</b> 1300 / 1450 / 1600",
-            "<b>Regen:</b> 2 / 4 / 6",
-            "<b>Armor:</b> 0 / 8 / 16",
-            "<b>Damage:</b> 65–75 / 115–125 / 165–175",
-            "<b>Permanent Immolation:</b> 100 damage per second",
-        ],
-    ),
-    new=dict(
-        name="Fire Brewling",
-        slug="brewmaster_drunken_brawler_fire",
-        desc=[
-            "<b>Health:</b> 1300 / 1450 / 1600",
-            "<b>Regen:</b> 2 / 4 / 6",
-            "<b>Armor:</b> 0 / 8 / 16",
-            "<b>Damage:</b> 65–75 / 115–125 / 165–175",
-            "<b>Permanent Immolation:</b> 100 damage per second",
-            aghs_line("Rank 4: <b>1750</b> HP, <b>8</b> Regen, <b>215–225</b> Damage, <b>24</b> Armor. Other base stats unchanged."),
-        ],
-    ),
-))
+W(ability("Fire Brewling", slug="brewmaster_drunken_brawler_fire"))
+W(ul_open())
+W(li("Aghanim's Scepter (rank 4): 1750 HP, 8 Health Regen, 215–225 Damage, 24 Armor", t("NEW"),
+     extra=inline_note("Permanent Immolation: 100 damage per second. Other base stats are unchanged.")))
+W(ul_close())
 W(ability("Void Brewling", slug="brewmaster_drunken_brawler_void"))
 W(ul_open())
 W(li("Brewling removed", t("DEL")))
