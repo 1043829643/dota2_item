@@ -2675,6 +2675,13 @@ ul.changes li.ability-row-end {
   min-width: 0;
 }
 .ability-change-row { padding: 4px 0; line-height: 1.45; }
+/* Dense stat-list mode — used by per-unit comparison cards (e.g. Brewmaster
+   brewlings) where each row is a single short stat line. Tightens vertical
+   rhythm so the panes don't tower over the rest of the hero block. */
+.ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-body { gap: 0; }
+.ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-row { padding: 0; line-height: 1.4; }
+.ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-row.aghanim-scepter,
+.ability-change-block:has(.ability-change-icon[src*="drunken_brawler"]) .ability-change-row.aghanim-shard { margin-top: 4px; }
 /* Unified ability-change layout: renders as a regular ability-block (icon
    + title + tag/summary row) with the swap panes inside the block body.
    Title shows `Old → New` when names differ. The block visually matches
