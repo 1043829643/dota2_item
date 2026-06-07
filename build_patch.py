@@ -15178,26 +15178,84 @@ W(li("All Brewlings now receive their respective Drunken Brawler stances", t("NE
 W(li("No longer upgraded with Aghanim's Shard", t("DEL")))
 W(li("Aghanim's Scepter: Allows Brewmaster to cancel the ability early and provides Brewed Up bonus to all Brewlings on cast. Also increases ability's level to 4, improving Brewlings' stats and abilities", t("NEW")))
 W(ul_close())
-W(ability("Earth Brewling", slug="brewmaster_drunken_brawler_earth"))
-W(ul_open())
-W(li("Debuff Immunity ability renamed to Earth Element. No longer grants Debuff Immunity; now provides 80% Status Resistance and 60% Magic Resistance instead", t("REWORK")))
-W(li("Demolish Bonus Building Damage decreased from 50/100/150 to 40/80/120", b([50, 100, 150], [40, 80, 120])))
-W(li("Movement Speed increased from 330/350/370 to 330/355/380", b([330, 350, 370], [330, 355, 380])))
-W(li("Damage increased from 25/60/95 to 35/70/105", b([25, 60, 95], [35, 70, 105]), extra=inline_note("From 20–30/55–65/90–100 to 30–40/65–75/100–110")))
-W(li("Aghanim's Scepter: 4100 Health, 8 Health Regen, 135–145 Damage, 9 Armor", t("NEW"),
-     extra=inline_note("Other base stats are unchanged.<br>Hurl Boulder: 200 Damage and 2s Stun Duration.<br>Demolish: 160 Bonus Building Damage.")))
-W(ul_close())
-W(ability("Storm Brewling", slug="brewmaster_drunken_brawler_storm"))
-W(ul_open())
-W(li("Damage increased from 20/40/60 to 30/50/70", b([20, 40, 60], [30, 50, 70]), extra=inline_note("From 15–25/35–45/55–65 to 25–35/45–55/65–75")))
-W(li("Aghanim's Scepter: 2500 Health, 8 Health Regen, 85–95 Damage", t("NEW"),
-     extra=inline_note("Other base stats are unchanged.<br>Wind Walk: 320 Bonus Damage and 55% Bonus Movement Speed.<br>Cyclone: 6s Hero Duration and 100 Damage on Landing.")))
-W(ul_close())
-W(ability("Fire Brewling", slug="brewmaster_drunken_brawler_fire"))
-W(ul_open())
-W(li("Aghanim's Scepter: 1750 Health, 8 Health Regen, 215–225 Damage, 24 Armor", t("NEW"),
-     extra=inline_note("Other base stats are unchanged.<br>Permanent Immolation: 100 Damage per second.")))
-W(ul_close())
+
+# Each brewling rendered as an ability_change comparison card. Same
+# name on both sides → "in-place" mode hides the duplicate header.
+W(ability_change(
+    old=dict(
+        name="Earth Brewling",
+        slug="brewmaster_drunken_brawler_earth",
+        desc=[
+            "Active. Summoned by Primal Split (3 ranks). Auto-controlled tank.",
+            "<b>Health:</b> 1400 / 2300 / 3200. <b>Regen:</b> 2 / 4 / 6. <b>Armor:</b> 3 / 5 / 7.",
+            "<b>Damage:</b> 20–30 / 55–65 / 90–100 <span class=\"inline-soft\">(avg 25 / 60 / 95)</span>.",
+            "<b>Movement Speed:</b> 330 / 350 / 370.",
+            "<b>Passive:</b> Debuff Immunity.",
+            "<b>Demolish:</b> 50 / 100 / 150 bonus damage to buildings.",
+        ],
+    ),
+    new=dict(
+        name="Earth Brewling",
+        slug="brewmaster_drunken_brawler_earth",
+        desc=[
+            "Active. Summoned by Primal Split (3 ranks). Auto-controlled tank. Now receives the Earth Drunken Brawler stance.",
+            "<b>Health:</b> 1400 / 2300 / 3200. <b>Regen:</b> 2 / 4 / 6. <b>Armor:</b> 3 / 5 / 7.",
+            "<b>Damage:</b> 30–40 / 65–75 / 100–110 <span class=\"inline-soft\">(avg 35 / 70 / 105)</span>.",
+            "<b>Movement Speed:</b> 330 / 355 / 380.",
+            "<b>Passive:</b> Earth Element — <b>80%</b> Status Resistance, <b>60%</b> Magic Resistance.",
+            "<b>Demolish:</b> 40 / 80 / 120 bonus damage to buildings.",
+            aghs_line("Upgrades brewling to rank 4: <b>4100</b> Health, <b>8</b> Regen, <b>135–145</b> Damage, <b>9</b> Armor. Hurl Boulder: <b>200</b> Damage, <b>2s</b> Stun. Demolish: <b>160</b> bonus building damage."),
+        ],
+    ),
+))
+W(ability_change(
+    old=dict(
+        name="Storm Brewling",
+        slug="brewmaster_drunken_brawler_storm",
+        desc=[
+            "Active. Summoned by Primal Split (3 ranks). Auto-controlled mobility/control.",
+            "<b>Health:</b> 1000 / 1500 / 2000. <b>Regen:</b> 2 / 4 / 6.",
+            "<b>Damage:</b> 15–25 / 35–45 / 55–65 <span class=\"inline-soft\">(avg 20 / 40 / 60)</span>.",
+            "<b>Wind Walk:</b> 320 bonus damage, 55% bonus movement speed.",
+            "<b>Cyclone:</b> 6s hero duration, 100 damage on landing.",
+        ],
+    ),
+    new=dict(
+        name="Storm Brewling",
+        slug="brewmaster_drunken_brawler_storm",
+        desc=[
+            "Active. Summoned by Primal Split (3 ranks). Auto-controlled mobility/control. Now receives the Storm Drunken Brawler stance.",
+            "<b>Health:</b> 1000 / 1500 / 2000. <b>Regen:</b> 2 / 4 / 6.",
+            "<b>Damage:</b> 25–35 / 45–55 / 65–75 <span class=\"inline-soft\">(avg 30 / 50 / 70)</span>.",
+            "<b>Wind Walk:</b> 320 bonus damage, 55% bonus movement speed.",
+            "<b>Cyclone:</b> 6s hero duration, 100 damage on landing.",
+            aghs_line("Upgrades brewling to rank 4: <b>2500</b> Health, <b>8</b> Regen, <b>85–95</b> Damage. Other base stats are unchanged."),
+        ],
+    ),
+))
+W(ability_change(
+    old=dict(
+        name="Fire Brewling",
+        slug="brewmaster_drunken_brawler_fire",
+        desc=[
+            "Active. Summoned by Primal Split (3 ranks). Auto-controlled DPS.",
+            "<b>Health:</b> 1300 / 1450 / 1600. <b>Regen:</b> 2 / 4 / 6. <b>Armor:</b> 0 / 8 / 16.",
+            "<b>Damage:</b> 65–75 / 115–125 / 165–175.",
+            "<b>Permanent Immolation:</b> 100 damage per second.",
+        ],
+    ),
+    new=dict(
+        name="Fire Brewling",
+        slug="brewmaster_drunken_brawler_fire",
+        desc=[
+            "Active. Summoned by Primal Split (3 ranks). Auto-controlled DPS. Now receives the Fire Drunken Brawler stance.",
+            "<b>Health:</b> 1300 / 1450 / 1600. <b>Regen:</b> 2 / 4 / 6. <b>Armor:</b> 0 / 8 / 16.",
+            "<b>Damage:</b> 65–75 / 115–125 / 165–175.",
+            "<b>Permanent Immolation:</b> 100 damage per second.",
+            aghs_line("Upgrades brewling to rank 4: <b>1750</b> Health, <b>8</b> Regen, <b>215–225</b> Damage, <b>24</b> Armor. Other base stats are unchanged."),
+        ],
+    ),
+))
 W(ability("Void Brewling", slug="brewmaster_drunken_brawler_void"))
 W(ul_open())
 W(li("Brewling removed", t("DEL")))
