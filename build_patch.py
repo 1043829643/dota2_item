@@ -15193,19 +15193,19 @@ W(li("Damage increased from 25/60/95 to 35/70/105", b([25, 60, 95], [35, 70, 105
      extra=inline_note("From 20–30/55–65/90–100 to 30–40/65–75/100–110")))
 W(li("Movement Speed increased from 330/350/370 to 330/355/380", b([330, 350, 370], [330, 355, 380])))
 W(li("Demolish Bonus Building Damage decreased from 50/100/150 to 40/80/120", b([50, 100, 150], [40, 80, 120])))
-W(li("Aghanim's Scepter (rank 4): 4100 HP, 8 Regen, 135–145 Damage, 9 Armor", t("NEW"),
+W(li("Aghanim's Scepter (level 4): 4100 HP, 8 Regen, 135–145 Damage, 9 Armor", t("NEW"),
      extra=inline_note("Hurl Boulder: 200 Damage, 2s Stun.<br>Demolish: 160 bonus building damage.")))
 W(ul_close())
 W(ability("Storm Brewling", slug="brewmaster_drunken_brawler_storm"))
 W(ul_open())
 W(li("Damage increased from 20/40/60 to 30/50/70", b([20, 40, 60], [30, 50, 70]),
      extra=inline_note("From 15–25/35–45/55–65 to 25–35/45–55/65–75")))
-W(li("Aghanim's Scepter (rank 4): 2500 HP, 8 Regen, 85–95 Damage", t("NEW"),
+W(li("Aghanim's Scepter (level 4): 2500 HP, 8 Regen, 85–95 Damage", t("NEW"),
      extra=inline_note("Wind Walk: 320 bonus damage, 55% bonus movement speed.<br>Cyclone: 6s hero duration, 100 damage on landing.")))
 W(ul_close())
 W(ability("Fire Brewling", slug="brewmaster_drunken_brawler_fire"))
 W(ul_open())
-W(li("Aghanim's Scepter (rank 4): 1750 HP, 8 Regen, 215–225 Damage, 24 Armor", t("NEW"),
+W(li("Aghanim's Scepter (level 4): 1750 HP, 8 Regen, 215–225 Damage, 24 Armor", t("NEW"),
      extra=inline_note("Permanent Immolation: 100 damage per second.")))
 W(ul_close())
 W(ability("Void Brewling", slug="brewmaster_drunken_brawler_void"))
