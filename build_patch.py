@@ -998,6 +998,7 @@ class _State:
     # Auto-categorize hero block contents (Stats / Abilities / Talents subgroups):
     next_ul_is_hero_stats = False    # set by hero_header(), consumed by ul_open()
     in_stats_ul = False              # True while inside the auto-"STATS" ul (sanity-check facet/innate rows)
+    section_panel_open = False       # True while inside a <section class="cat-panel"> wrapper
     seen_abilities_subgroup = False  # set when first ability() emits "Abilities" subgroup
     seen_facets_subgroup = False     # set when first facet_header() emits "Facets" subgroup
     current_sections = []            # per-patch list of {slug, label}; reset in save_html()
@@ -1234,6 +1235,17 @@ def components(*parts, total, recipe=None):
             f'</div>')
 
 
+def item_cost(gold):
+    """Flat purchase price for a BASIC (no-recipe) new item — a bordered box
+    matching the components() build box (same border/padding), showing the gold
+    cost on the right like a recipe item's total. Use under item_header() for
+    new shop items that have no build, paired with provides() for their stats."""
+    return (f'<div class="item-cost-box">'
+            f'<span class="item-cost-label">Cost</span>'
+            f'<span class="item-cost-val">{gold}</span>'
+            f'</div>')
+
+
 def provides(*items):
     """Visual properties block — one stat per row, soft outlined box. Use:
         provides('+1.75 Mana Regen', '+3 All Attributes', '+6 Armor')
@@ -1326,14 +1338,26 @@ def properties_change(old, new, old_extras=None, new_extras=None):
                 )
             else:
                 tag, text, badge = _prop_cells(row)
-                cells.append(
-                    f'<span class="property-tag" style="grid-row:{cur_row};grid-column:1">'
-                    f'{_prop_tag(tag)}</span>'
-                    f'<span class="property-text" style="grid-row:{cur_row};grid-column:2">'
-                    f'{text}</span>'
-                    f'<span class="property-badge" style="grid-row:{cur_row};grid-column:3">'
-                    f'{badge}</span>'
-                )
+                # When a row has NO numeric badge, let its text span the badge
+                # column too (grid-column 2/-1) so it isn't needlessly narrowed
+                # by the badge column reserved for other rows — keeps trailing
+                # bits like an (i)-tip on the same line.
+                if badge:
+                    cells.append(
+                        f'<span class="property-tag" style="grid-row:{cur_row};grid-column:1">'
+                        f'{_prop_tag(tag)}</span>'
+                        f'<span class="property-text" style="grid-row:{cur_row};grid-column:2">'
+                        f'{text}</span>'
+                        f'<span class="property-badge" style="grid-row:{cur_row};grid-column:3">'
+                        f'{badge}</span>'
+                    )
+                else:
+                    cells.append(
+                        f'<span class="property-tag" style="grid-row:{cur_row};grid-column:1">'
+                        f'{_prop_tag(tag)}</span>'
+                        f'<span class="property-text" style="grid-row:{cur_row};grid-column:2/-1">'
+                        f'{text}</span>'
+                    )
             cur_row += 1
             ex = extras.get(i, '')
             if ex:
@@ -1409,7 +1433,7 @@ def info_tip(*lines, header=None):
     # Wrapped in <!--TIP--> sentinels so li()'s auto-classifier can exclude the
     # popup text (e.g. a list item mentioning "Aghanim's Scepter" must NOT make
     # the whole row an Aghanim stripe). save_html strips the sentinel comments.
-    return ('<!--TIP--><span class="info-tip" tabindex="0">i'
+    return ('<!--TIP--><span class="info-tip" tabindex="0">?'
             f'<span class="info-pop">{head}{body}</span></span><!--/TIP-->')
 
 
@@ -2514,8 +2538,15 @@ def section(title):
     slug, label = _section_slug(title)
     _State.current_section_slug = slug
     _State.current_sections.append({'slug': slug, 'label': label})
-    return (_close_block()
-            + f'<h2 class="section" data-section="{slug}">{title}</h2>')
+    # Each category is its own panel (cat-panel) so categories visually break
+    # apart — the textured background shows in the gaps between them.
+    out = _close_block()
+    if _State.section_panel_open:
+        out += '</section>'
+    out += (f'<section class="cat-panel">'
+            f'<h2 class="section" data-section="{slug}">{title}</h2>')
+    _State.section_panel_open = True
+    return out
 
 
 # Talent icon — Valve's official SVG used in www.dota2.com/patches/.
@@ -3194,12 +3225,12 @@ def _days_ago(version):
 
 
 def _patch_link(version):
-    """Render a patch version as a clickable link to its page. Patch HTML
-    files live in `patches/<ver>.html` — relative reference works because
-    correction-notes are rendered inside those same patch pages."""
+    """Render a patch version as plain underlined text (NOT a link). These
+    only appear inside note_box (i)-popups now, where a link wouldn't be
+    clickable anyway — so it's just a solid underline, no anchor."""
     if not version:
         return ''
-    return f'<a class="patch-link" href="{version}.html"><b>{version}</b></a>'
+    return f'<span class="patch-ref"><b>{version}</b></span>'
 
 
 def _format_age(days):
@@ -3231,30 +3262,41 @@ def _fmt_val(v):
 
 
 def note_box(text=None, *, hero=None, item=None, unit=None, field=None, before_patch=None,
-             prev_val=None, prev_patch=None):
-    """Inline NOTE box rendered after a row.
+             prev_val=None, prev_patch=None, new_val=None, extra_note=None):
+    """Inline NOTE (i)-popup rendered after a row.
 
     Usage modes:
-      - Legacy free-form:  note_box("any text")
+      - Legacy free-form:  note_box("any text")  → "Note:" popup.
       - Auto-derived from stats DB: provide hero=/item=/unit= + field= +
-        before_patch= → emits "Previously: <b>X</b>. … changed in <b>PATCH</b>".
+        before_patch= → "Now it's <b>X</b>. … changed in <b>PATCH</b>", where X
+        is the value AFTER this patch's change (current patch version).
         `unit` takes the full npc key, e.g. 'npc_dota_beastmaster_boar'.
-      - Manual "Previously" override: pass prev_val= + prev_patch= directly.
-        Use when the value isn't in the parsed DB — e.g. a summon whose stat
-        lives on an un-parsed base unit (Spirit Bear's regen inherits from
-        npc_dota_lone_druid_bear, so units.json carries None).
+      - Manual override: pass prev_val= + prev_patch= (and new_val= for the
+        post-patch value). Use when the value isn't in the parsed DB — e.g. a
+        summon whose stat lives on an un-parsed base unit (Spirit Bear's regen
+        inherits from npc_dota_lone_druid_bear, so units.json carries None).
     """
+    cur = _State.current_patch_version
     if prev_val is None and (hero or item or unit):
         if hero:
             prev_val = stat_h(hero, field, before_patch)
             prev_patch = prev_change_patch_h(hero, field, before_patch) or before_patch
+            if new_val is None and cur:
+                new_val = stat_h(hero, field, cur)
         elif item:
             prev_val = stat_i(item, field, before_patch)
             prev_patch = prev_change_patch_i(item, field, before_patch) or before_patch
+            if new_val is None and cur:
+                new_val = stat_i(item, field, cur)
         else:
             prev_val = stat_u(unit, field, before_patch)
             prev_patch = prev_change_patch_u(unit, field, before_patch) or before_patch
-    if prev_val is not None and prev_patch is not None:
+            if new_val is None and cur:
+                new_val = stat_u(unit, field, cur)
+    # Show the value AFTER this patch's change ("Now it's X"); fall back to the
+    # pre-patch value only if the new value couldn't be resolved.
+    show_val = new_val if new_val is not None else prev_val
+    if show_val is not None and prev_patch is not None:
         if isinstance(prev_patch, str) and prev_patch.startswith("<"):
             ver = prev_patch[1:]
             # The stat held its value for every patch we have on record (DB
@@ -3267,13 +3309,14 @@ def note_box(text=None, *, hero=None, item=None, unit=None, field=None, before_p
             ago_phrase = _format_age(_days_ago(prev_patch))
             ago_str = f' <span class="days-ago">({ago_phrase})</span>' if ago_phrase else ''
             tail = f'Before this patch it was changed in {_patch_link(prev_patch)}{ago_str}'
-        return (f'<div class="correction-note">'
-                f'<span class="correction-label">Previously:</span>'
-                f'<b>{_fmt_val(prev_val)}</b>. {tail}'
-                f'</div>')
-    return (f'<div class="correction-note">'
-            f'<span class="correction-label">Note:</span> {text or ""}'
-            f'</div>')
+        body = f"Now it's <b>{_fmt_val(show_val)}</b>. {tail}"
+        if extra_note:
+            body += f'<br>{extra_note}'
+        return f'<!--INLINETIP-->{info_tip(body)}<!--/INLINETIP-->'
+    note = text or ""
+    if extra_note:
+        note = f'{note}<br>{extra_note}' if note else extra_note
+    return f'<!--INLINETIP-->{info_tip(note, header="Note:")}<!--/INLINETIP-->'
 
 
 def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False,
@@ -3690,7 +3733,7 @@ def write_head(version, date):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">
 <link rel="stylesheet" href="../styles.css?v={_ASSET_VERSION}">
 </head>
-<body>
+<body class="patch-page">
 
 {nav}
 <a class="nav-back-arrow" href="../calendar.html" aria-label="Back to calendar" title="Back to calendar"></a>
@@ -3727,6 +3770,9 @@ with open(JS_TEXT, encoding="utf-8") as _f:
 def write_footer():
     """Render close-block + back-to-top button + script tag + closing tags."""
     W(_close_block())
+    if _State.section_panel_open:
+        W('</section>')
+        _State.section_panel_open = False
     W('<button class="back-to-top" aria-label="Back to top" title="Back to top" onclick="window.scrollTo({top:0, behavior:\'smooth\'})"></button>')
     W(f'<script src="../scripts.js?v={_ASSET_VERSION}"></script>')
     W('</div></body></html>')
@@ -3986,6 +4032,9 @@ def save_html(filename):
     # the (i) bubble still renders in place; only the comments are stripped.
     out = out.replace('<!--INLINETIP-->', '').replace('<!--/INLINETIP-->', '')
     out = out.replace('<!--TIP-->', '').replace('<!--/TIP-->', '')
+    # Perf: let the browser decode images off the main thread (smoother render
+    # on icon-heavy pages — 600+ icons). Safe + universal; no visual change.
+    out = out.replace('<img ', '<img decoding="async" ')
     path = filename
     os.makedirs(os.path.dirname(path), exist_ok=True) if os.path.dirname(path) else None
     with open(path, "w", encoding="utf-8") as f:
@@ -5224,7 +5273,7 @@ W(li("Level 10 Talent Movement Speed decreased from +20 to +15", b(20, 15)))
 W(ul_close())
 W(unit_header("Spirit Bear", "../icons/abilities/lone_druid_spirit_bear.png", kind="Creep-hero"))
 W(ul_open())
-W(li("Base Health Regen decreased by 1.5", b(3, 1.5), extra=note_box(prev_val=3, prev_patch="7.40")))
+W(li("Base Health Regen decreased by 1.5", b(3, 1.5), extra=note_box(prev_val=3, new_val=1.5, prev_patch="7.40")))
 W(ul_close())
 
 # Marci
@@ -5715,7 +5764,7 @@ W(ul_open())
 W(li(
     '<span class="wrong-word">Health bonus increased from +600 to +625</span>',
     '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>',
-    extra='<div class="correction-note"><span class="correction-label">Note:</span> This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span></div>',
+    extra=note_box('This change is wrongly stated. The real change is 650 → 625 <span class="badge-group" data-overall="nerf"><span class="badge nerf1">-4%</span></span>'),
     force_tag="nerf"
 ))
 W(li("Bloodpact cooldown increased from 30s to 35s", b(30, 35, l=True)))
@@ -5784,9 +5833,8 @@ W(ul_close())
 W(section("Hero Updates"))
 W(hero_header("Abaddon"))
 W(ul_open())
-W(li("Base Intelligence increased by 1", bstat_h("Abaddon", "AttributeBaseIntelligence", "7.41b", 1), extra=note_box(hero="Abaddon", field="AttributeBaseIntelligence", before_patch="7.41b")))
+W(li("Base Intelligence increased by 1", bstat_h("Abaddon", "AttributeBaseIntelligence", "7.41b", 1), extra=note_box(hero="Abaddon", field="AttributeBaseIntelligence", before_patch="7.41b", extra_note="Damage at level 1 unchanged at 49-59")))
 W(ul_close())
-W(subnote("Damage at level 1 unchanged at 49-59"))
 W(subgroup("Talents"))
 W(ul_open())
 W(li("Level 10: Curse of Avernus DPS increased from +25 to +30", b(25, 30)))
@@ -5915,8 +5963,7 @@ W(li("Mana Cost decreased from 100 to 70", b(100, 70, l=True)))
 W(ul_close())
 W(hero_header("Centaur Warrunner"))
 W(ul_open())
-W(li("Base Strength increased from 27 to 28", b(27, 28)))
-W(li("Damage at level 1 increased from 63-65 to 64-66", '<span class="badge-group" data-overall="buff"><span class="badge buff1">+2%</span></span>'))
+W(li("Base Strength increased from 27 to 28", b(27, 28), extra=inline_note("Damage at level 1 increased from 63-65 to 64-66")))
 W(li("Strength gain increased from 4.2 to 4.3", b(4.2, 4.3)))
 W(ul_close())
 W(subgroup("Talents"))
@@ -5996,10 +6043,9 @@ W(li("Duration increased from 4s to 5s", b(4, 5)))
 W(ul_close())
 W(hero_header("Hoodwink"))
 W(ul_open())
-W(li("Base Damage increased by 3", bstat_h("Hoodwink", "AttackDamageMin", "7.41b", 3), extra=note_box(hero="Hoodwink", field="AttackDamageMin", before_patch="7.41b")))
+W(li("Base Damage increased by 3", t("MISC") + bstat_h("Hoodwink", "AttackDamageMin", "7.41b", 3), extra=note_box(hero="Hoodwink", field="AttackDamageMin", before_patch="7.41b", extra_note="Damage at level 1 unchanged at 47-54")))
 W(li("Base Agility decreased from 25 to 22", b(25, 22)))
 W(ul_close())
-W(subnote("Damage at level 1 unchanged at 47-54"))
 W(subgroup("Abilities"))
 W(ability("Sharpshooter"))
 W(ul_open())
@@ -6412,7 +6458,7 @@ W(li("Base Damage increased by 2", bstat_h("Timbersaw", "AttackDamageMin", "7.41
 W(li(
     'Damage at level 1 <span class="wrong-word">decreased</span> from 46-50 to 48-52',
     '<span class="badge-group" data-overall="buff"><span class="badge buff1">+4%</span></span>',
-    extra='<div class="correction-note"><span class="correction-label">Note:</span> The patch text says "decreased", but the values actually went up.</div>',
+    extra=note_box('The patch text says "decreased", but the values actually went up.'),
     force_tag="buff"
 ))
 W(li("Base Intelligence increased from 23 to 24", b(23, 24)))
@@ -7872,13 +7918,13 @@ W(ul_close())
 
 W(subgroup("Miscellaneous"))
 W(ul_open())
-W(li("Reflected damage cannot be reflected back", t("NERF")))
-W(li("Lifesteal and Spell Lifesteal don't apply to reflected damage", t("NERF")))
-W(li("Reflected damage doesn't affect Debuff Immune units", t("NERF")))
+W(li("Reflected damage cannot be reflected back", t("NEW")))
+W(li("Lifesteal and Spell Lifesteal don't apply to reflected damage", t("NEW")))
+W(li("Reflected damage doesn't affect Debuff Immune units", t("NEW")))
 W(li("Units with free movement now can miss their attacks when attacking uphill targets " + info_tip(
         "Batrider during Firefly", "Dragon Knight during Elder Dragon Form with Aghanim's Scepter",
         "Lina during Flame Cloak", "Terrorblade's Reflection illusions",
-        header="Affected units:"), t("NERF")))
+        header="Affected units:"), t("NEW")))
 W(li("All sources of reflection damage now have an ALT-note detailing mechanics of reflected damage " + info_tip(
         "Tormentor's Reflect ability", "Blade Mail (both active and passive)", "Chipped Vest", "Rattlecage",
         "Axe's Counter Helix", "Bristleback's Quill Spray triggered by Bristleback passive",
@@ -7965,26 +8011,17 @@ W(ul_close())
 
 W(plain_header("Basic Items", dynamics=False))
 W(item_header("Chasm Stone", new="New Miscellaneous Item"))
-W(ul_open())
-W(li("Costs 800 gold", t("NEW")))
-W(li("+40 Area of Effect", t("NEW")))
-W(li("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack", t("NEW")))
-W(ul_close())
+W(item_cost(800))
+W(provides('+40 Area of Effect ' + info_tip("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack")))
 W(item_header("Shawl", new="New Miscellaneous Item"))
-W(ul_open())
-W(li("Costs 450 gold", t("NEW")))
-W(li("+10% Magic Resistance", t("NEW")))
-W(ul_close())
+W(item_cost(450))
+W(provides('+10% Magic Resistance'))
 W(item_header("Splintmail", new="New Equipment Item"))
-W(ul_open())
-W(li("Costs 950 gold", t("NEW")))
-W(li("+7 Armor", t("NEW")))
-W(ul_close())
+W(item_cost(950))
+W(provides('+7 Armor'))
 W(item_header("Wizard Hat", new="New Miscellaneous Item"))
-W(ul_open())
-W(li("Costs 250 gold", t("NEW")))
-W(li("+125 Mana", t("NEW")))
-W(ul_close())
+W(item_cost(250))
+W(provides('+125 Mana'))
 W(item_header("Chainmail"))
 W(ul_open())
 W(li("Cost decreased from 550g to 500g", b(550, 500, l=True)))
@@ -8238,7 +8275,7 @@ W(li("Berserk bonus Movement Speed changed from +25 for all heroes to +8%/12% fo
 W(ul_close())
 W(item_header("Mekansm"))
 W(ul_open())
-W(li("Recipe cost increased from 800 to 850 " + b(800, 850, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 1775g (due to Chainmail cost decrease)")))
+W(li("Recipe cost increased from 800 to 850", t("MISC") + b(800, 850, l=True), extra=inline_note("Total cost unchanged at 1775g (due to Chainmail cost decrease)")))
 W(ul_close())
 W(item_header("Monkey King Bar"))
 W(ul_open())
@@ -8333,7 +8370,7 @@ W(ul_close())
 W(item_header("Pipe of Insight", changed=True))
 W(auto_components_change("Pipe of Insight", "7.41"))
 W(ul_open())
-W(li("Recipe Cost decreased from 800 to 675 " + b(800, 675, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 3725g (due to Cloak cost increase)")))
+W(li("Recipe Cost decreased from 800 to 675", t("MISC") + b(800, 675, l=True), extra=inline_note("Total cost unchanged at 3725g (due to Cloak cost increase)")))
 W(li("Barrier no longer affects units that have been affected by Barrier within Pipe of Insight's cooldown", t("NERF")))
 W(li("Insight Aura no longer provides 2.5 health regen", t("DEL")))
 W(ul_close())
@@ -8435,7 +8472,7 @@ W(li("Passive: Enemy units within 1200 radius take 12% increased damage from spe
 W(ul_close())
 W(item_header("Witch Blade"))
 W(ul_open())
-W(li("Recipe cost increased from 250 to 300 " + b(250, 300, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 2775g (due to Chainmail cost decrease)")))
+W(li("Recipe cost increased from 250 to 300", t("MISC") + b(250, 300, l=True), extra=inline_note("Total cost unchanged at 2775g (due to Chainmail cost decrease)")))
 W(ul_close())
 # ===== NEUTRAL ITEM UPDATES =====
 W(section("Neutral Item Updates"))
@@ -13000,9 +13037,8 @@ W(ul_close())
 # Void Spirit
 W(hero_header("Void Spirit"))
 W(ul_open())
-W(li("Base Damage decreased by 4", bstat_h("Void Spirit", "AttackDamageMin", "7.40c", -4), extra=note_box(hero="Void Spirit", field="AttackDamageMin", before_patch="7.40c")))
+W(li("Base Damage decreased by 4", t("MISC") + bstat_h("Void Spirit", "AttackDamageMin", "7.40c", -4), extra=note_box(hero="Void Spirit", field="AttackDamageMin", before_patch="7.40c", extra_note="Damage at level 1 unchanged due to innate ability changes")))
 W(ul_close())
-W(subnote("Damage at level 1 unchanged due to innate ability changes"))
 W(ability_change(
     old=dict(
         name="Intrinsic Edge",
@@ -13243,8 +13279,7 @@ W(hero_header("Zeus"))
 W(ul_open())
 W(li("Base Strength increased from 19 to 21", b(19, 21)))
 W(li("Base Damage increased by 1–3", bstat_h("Zeus", "AttackDamageMin", "7.40c", 1),
-     extra=note_box(hero="Zeus", field="AttackDamageMin", before_patch="7.40c") + inline_note("Damage spread increased from 8 to 10 — " + b(8, 10))))
-W(li("Damage at level 1 increased from 52–60 to 53–63", t("BUFF")))
+     extra=note_box(hero="Zeus", field="AttackDamageMin", before_patch="7.40c") + inline_note("Damage spread increased from 8 to 10 — " + b(8, 10) + "<br><br>Damage at level 1 increased from 52–60 to 53–63")))
 W(li("Base Movement Speed decreased from 315 to 305", b(315, 305)))
 W(li("Base Armor decreased by 1", bstat_h("Zeus", "ArmorPhysical", "7.40c", -1), extra=note_box(hero="Zeus", field="ArmorPhysical", before_patch="7.40c")))
 W(ul_close())
@@ -13773,8 +13808,7 @@ W(ul_close())
 # Brewmaster
 W(hero_header("Brewmaster"))
 W(ul_open())
-W(li("Base Strength increased from 23 to 24", b(23, 24)))
-W(li("Damage at level 1 increased from 52–59 to 53–60", t("BUFF")))
+W(li("Base Strength increased from 23 to 24", b(23, 24), extra=inline_note("Damage at level 1 increased from 52–59 to 53–60")))
 W(ul_close())
 W(ability("Liquid Courage", slug="brewmaster_liquid_courage"))
 W(ul_open())
@@ -13904,9 +13938,8 @@ W(ul_close())
 # Faceless Void
 W(hero_header("Faceless Void"))
 W(ul_open())
-W(li("Base Damage decreased by 3", t("NERF")))
-W(li("Base Agility increased from 21 to 24", b(21, 24)))
-W(li("Damage at level 1 unchanged (58–64)", t("MISC")))
+W(li("Base Damage decreased by 3", t("MISC")))
+W(li("Base Agility increased from 21 to 24", b(21, 24), extra=inline_note("Damage at level 1 unchanged (58–64)")))
 W(ul_close())
 
 # Huskar
@@ -14303,8 +14336,7 @@ W(ul_close())
 # Spectre
 W(hero_header("Spectre"))
 W(ul_open())
-W(li("Base Agility increased from 25 to 26", b(25, 26)))
-W(li("Damage at level 1 increased from 48–52 to 49–53", t("BUFF")))
+W(li("Base Agility increased from 25 to 26", b(25, 26), extra=inline_note("Damage at level 1 increased from 48–52 to 49–53")))
 W(li("Agility gain increased from 2.1 to 2.4", b(2.1, 2.4)))
 W(ul_close())
 W(ability("Shadow Step", slug="spectre_shadow_step"))
@@ -14332,8 +14364,7 @@ W(ul_close())
 # Terrorblade
 W(hero_header("Terrorblade"))
 W(ul_open())
-W(li("Base agility increased from 22 to 23", b(22, 23)))
-W(li("Damage at level 1 increased from 48–54 to 49–55", t("BUFF")))
+W(li("Base agility increased from 22 to 23", b(22, 23), extra=inline_note("Damage at level 1 increased from 48–54 to 49–55")))
 W(ul_close())
 W(ability("Metamorphosis", slug="terrorblade_metamorphosis"))
 W(ul_open())
@@ -14769,7 +14800,7 @@ W(li("Ether Blast attributes as damage changed from (1.5x the target's primary a
 W(ul_close())
 W(item_header("Glimmer Cape"))
 W(ul_open())
-W(li("Recipe cost increased from 350 to 450 " + b(350, 450, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 2150 due to Shadow Amulet cost decrease")))
+W(li("Recipe cost increased from 350 to 450", t("MISC") + b(350, 450, l=True), extra=inline_note("Total cost unchanged at 2150 due to Shadow Amulet cost decrease")))
 W(ul_close())
 W(item_header("Guardian Greaves", changed=True))
 W(auto_components_change("Guardian Greaves", "7.40"))
@@ -14811,7 +14842,7 @@ W(properties_change(
     old=[("NERF", "+9 All Attributes")],
     new=[("",    "+7 All Attributes", b(9, 7))]))
 W(ul_open())
-W(li("Recipe cost increased from 800 to 1340 " + b(800, 1340, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 2250 due to Iron Branch cost increase")))
+W(li("Recipe cost increased from 800 to 1340", t("MISC") + b(800, 1340, l=True), extra=inline_note("Total cost unchanged at 2250 due to Iron Branch cost increase")))
 W(li("Energy Charge automatic charge gain time increased from 8s to 10s", b(8, 10, l=True)))
 W(li("Energy Charge max charges increased from 20 to 25", b(20, 25)))
 W(li("Energy Charge cast range increased from 500 to 600", b(500, 600)))
@@ -14860,7 +14891,7 @@ W(li("Can now be disassembled", t("NEW")))
 W(ul_close())
 W(item_header("Pipe of Insight"))
 W(ul_open())
-W(li("Recipe cost increased from 700 to 800 " + b(700, 800, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 3725 due to Ring of Tarrasque cost decrease")))
+W(li("Recipe cost increased from 700 to 800", t("MISC") + b(700, 800, l=True), extra=inline_note("Total cost unchanged at 3725 due to Ring of Tarrasque cost decrease")))
 W(ul_close())
 W(item_header("Phylactery", changed=True))
 W(auto_components_change("Phylactery", "7.40"))
@@ -14887,15 +14918,15 @@ W(properties_change(
     new=[("",    "+12 Health Regen", b(18, 12)),
          ("",    "+6 Mana Regen",    b(8, 6))]))
 W(ul_open())
-W(li("Recipe cost increased from 200 to 1600 " + b(200, 1600, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 5000 due to Ring of Tarrasque and Tiara of Selemene cost decrease")))
+W(li("Recipe cost increased from 200 to 1600", t("MISC") + b(200, 1600, l=True), extra=inline_note("Total cost unchanged at 5000 due to Ring of Tarrasque and Tiara of Selemene cost decrease")))
 W(ul_close())
 W(item_header("Revenant's Brooch"))
 W(ul_open())
-W(li("Recipe cost increased from 600 to 650 " + b(600, 650, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 3300 due to Voodoo Mask cost decrease")))
+W(li("Recipe cost increased from 600 to 650", t("MISC") + b(600, 650, l=True), extra=inline_note("Total cost unchanged at 3300 due to Voodoo Mask cost decrease")))
 W(ul_close())
 W(item_header("Scythe of Vyse"))
 W(ul_open())
-W(li("Recipe cost increased from 600 to 700 " + b(600, 700, l=True), t("MISC"), extra=inline_note("Total cost unchanged at 5200 due to Tiara of Selemene cost decrease")))
+W(li("Recipe cost increased from 600 to 700", t("MISC") + b(600, 700, l=True), extra=inline_note("Total cost unchanged at 5200 due to Tiara of Selemene cost decrease")))
 W(ul_close())
 W(item_header("Shadow Blade"))
 W(ul_open())
@@ -15076,8 +15107,7 @@ W(section("Hero Updates"))
 W(hero_header("Abaddon"))
 W(ul_open())
 W(li("Base Strength decreased from 22 to 21", b(22, 21)))
-W(li("Base Agility decreased from 23 to 22", b(23, 22)))
-W(li("Damage at level 1 decreased by 1 (from 50–60 to 49–59)", br(50, 60, 49, 59)))
+W(li("Base Agility decreased from 23 to 22", b(23, 22), extra=inline_note("Damage at level 1 decreased by 1 (from 50–60 to 49–59)")))
 W(ul_close())
 W(facet_header("abaddon_the_quickening"))
 W(ul_open())
@@ -15412,8 +15442,7 @@ W(ul_close())
 W(hero_header("Chaos Knight"))
 W(ul_open())
 W(li("Min Base Damage increased by 5", bstat_h("Chaos Knight", "AttackDamageMin", "7.39e", 5), extra=note_box(hero="Chaos Knight", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Max Base Damage decreased by 5", bstat_h("Chaos Knight", "AttackDamageMax", "7.39e", -5), extra=note_box(hero="Chaos Knight", field="AttackDamageMax", before_patch="7.39e")))
-W(li("Damage at level 1 changed from 48–78 to 53–73", t("REWORK"), extra=inline_note("Damage spread decreased from 30 to 20")))
+W(li("Max Base Damage decreased by 5", bstat_h("Chaos Knight", "AttackDamageMax", "7.39e", -5), extra=note_box(hero="Chaos Knight", field="AttackDamageMax", before_patch="7.39e", extra_note="Damage at level 1 changed from 48–78 to 53–73. Damage spread decreased from 30 to 20")))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -15445,10 +15474,6 @@ W(facet_header("clinkz_engulfing_step"))
 W(ul_open())
 W(li("Facet removed", t("DEL")))
 W(ul_close())
-W(ability("Tar Bomb", slug="clinkz_tar_bomb"))
-W(ul_open())
-W(li("Ability removed", t("DEL")))
-W(ul_close())
 W(ability_change(
     old=dict(
         name="Bone and Arrow",
@@ -15464,34 +15489,36 @@ W(ability_change(
         innate=True,
         desc=[
             "Passive.",
-            "Clinkz and his skeletons apply a stacking debuff that causes their attacks to pierce up to <b>20%</b> of the target's armor. Clinkz applies 2% per attack, his skeletons apply 1%. Debuff lasts 5 seconds.",
-            inline_note("Doesn't affect the target's armor directly — it simply improves attacks for Clinkz and his skeletons."),
+            "Clinkz and his skeletons apply a stacking debuff that causes their attacks to pierce up to <b>20%</b> of the target's armor. Clinkz applies 2% per attack, his skeletons apply 1%. Debuff lasts 5 seconds. " + info_tip("Doesn't affect the target's armor directly — it simply improves attacks for Clinkz and his skeletons."),
         ],
     ),
     summary="New innate ability.",
     tag="new",
 ))
+W(ability("Tar Bomb", slug="clinkz_tar_bomb"))
+W(ul_open())
+W(li("Ability removed", t("DEL")))
+W(ul_close())
 W(ability("Strafe", slug="clinkz_strafe"))
 W(ul_open())
 W(li("Skeleton Archers attack speed factor decreased from 60% to 50%", b(60, 50)))
 W(ul_close())
 W(ability("Searing Arrows", slug="clinkz_searing_arrows"))
 W(ul_open())
-W(li("Returning as base ability", t("MISC"), extra=inline_note("Imbues Clinkz's arrows with fire for extra 18/32/46/60 extra damage. Skeleton Archers always fire Searing Arrows with 50% reduced damage. Mana Cost: 10")))
-W(li("Skeleton Archers target the enemy attacked by Clinkz with Searing Arrows effect", t("MISC")))
+W(li("Returning as base ability", t("NEW"), extra=inline_note("Imbues Clinkz's arrows with fire for extra 18/32/46/60 extra damage. Skeleton Archers always fire Searing Arrows with 50% reduced damage. Mana Cost: 10<br><br>Skeleton Archers target the enemy attacked by Clinkz with Searing Arrows effect")))
 W(ul_close())
 W(ability("Death Pact", slug="clinkz_death_pact"))
 W(ul_open())
-W(li("No longer creates Skeleton Archers", t("MISC")))
+W(li("No longer creates Skeleton Archers", t("DEL")))
 W(ul_close())
 W(ability("Skeleton Walk", slug="clinkz_wind_walk"))
 W(ul_open())
 W(li("Skeleton Archer stats and Aghanim's Scepter upgrade are now part of Skeleton Walk", t("MISC")))
-W(li("Skeleton Archer Duration rescaled from 15/20/25/30s to 20/25/30s", t("REWORK"), extra=inline_note("Also applies to Burning Army")))
+W(li("Skeleton Archer Duration rescaled from 15/20/25/30s to 20/25/30s", t("MISC"), extra=inline_note("Also applies to Burning Army")))
 W(ul_close())
 W(ability("Burning Barrage", slug="clinkz_burning_barrage"))
 W(ul_open())
-W(li("No longer slows the targets", t("MISC")))
+W(li("No longer slows the targets", t("DEL")))
 W(ul_close())
 W(ability("Burning Army", slug="clinkz_burning_army"))
 W(ul_open())
@@ -15517,16 +15544,14 @@ W(ul_close())
 # Crystal Maiden
 W(hero_header("Crystal Maiden"))
 W(ul_open())
-W(li("Base Damage decreased by 2", bstat_h("Crystal Maiden", "AttackDamageMin", "7.39e", -2), extra=note_box(hero="Crystal Maiden", field="AttackDamageMin", before_patch="7.39e")))
+W(li("Base Damage decreased by 2", t("MISC") + bstat_h("Crystal Maiden", "AttackDamageMin", "7.39e", -2), extra=note_box(hero="Crystal Maiden", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 unchanged at 48–54")))
 W(li("Base Intelligence increased from 18 to 20", b(18, 20)))
-W(li("Damage at level 1 unchanged at 48–54", t("MISC")))
 W(ul_close())
 
 # Dark Seer
 W(hero_header("Dark Seer"))
 W(ul_open())
-W(li("Base Intelligence increased from 21 to 22", b(21, 22)))
-W(li("Damage at level 1 increased by 1 (from 52–58 to 53–59)", br(52, 58, 53, 59)))
+W(li("Base Intelligence increased from 21 to 22", b(21, 22), extra=inline_note("Damage at level 1 increased by 1 (from 52–58 to 53–59)")))
 W(ul_close())
 W(ability("Vacuum", slug="dark_seer_vacuum"))
 W(ul_open())
@@ -15551,12 +15576,11 @@ W(ul_close())
 # Dawnbreaker
 W(hero_header("Dawnbreaker"))
 W(ul_open())
-W(li("Base Damage increased by 1", bstat_h("Dawnbreaker", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Dawnbreaker", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Damage at level 1 increased from 49–53 to 50–54", br(49, 53, 50, 54)))
+W(li("Base Damage increased by 1", bstat_h("Dawnbreaker", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Dawnbreaker", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 increased from 49–53 to 50–54")))
 W(ul_close())
 W(ability("Solar Guardian", slug="dawnbreaker_solar_guardian"))
 W(ul_open())
-W(li("Aghanim's Scepter no longer reduces air time or channel time", t("BUFF")))
+W(li("Aghanim's Scepter no longer reduces air time or channel time", t("DEL")))
 W(li("Aghanim's Scepter Heal per pulse increased from 55/85/115 to 60/90/120", b([55, 85, 115], [60, 90, 120])))
 W(ul_close())
 W(subgroup("Talents"))
@@ -15567,8 +15591,7 @@ W(ul_close())
 # Dazzle
 W(hero_header("Dazzle"))
 W(ul_open())
-W(li("Base Strength increased from 18 to 19", b(18, 19)))
-W(li("Damage at level 1 unchanged", t("MISC")))
+W(li("Base Strength increased from 18 to 19", b(18, 19), extra=inline_note("Damage at level 1 unchanged")))
 W(li("Intelligence gain decreased from 3.7 to 3.5", b(3.7, 3.5)))
 W(li("Damage gain per level decreased from 3.5 to 3.4", b(3.5, 3.4)))
 W(ul_close())
@@ -15581,7 +15604,8 @@ W(ul_close())
 W(hero_header("Death Prophet"))
 W(ability("Witchcraft", slug="death_prophet_witchcraft"))
 W(ul_open())
-_pill1 = scale_pill("0.75% + 0.75% per level up", lambda L: 0.75 + 0.75*L, levels=[1,5,10,15,20,25,30])
+_pill1 = scale_pill("0.75% + 0.75% per level up", lambda L: 0.75 + 0.75*L,
+                    levels=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30])
 W(li("Movement speed bonus changed from 0.5% per hero level to " + _pill1[0] + "", t("REWORK"), extra=_pill1[1]))
 W(ul_close())
 W(ability("Exorcism", slug="death_prophet_exorcism"))
@@ -15637,8 +15661,7 @@ W(ul_close())
 # Earth Spirit
 W(hero_header("Earth Spirit"))
 W(ul_open())
-W(li("Base Damage decreased by 6", bstat_h("Earth Spirit", "AttackDamageMin", "7.39e", -6), extra=note_box(hero="Earth Spirit", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Damage at level 1 decreased from 53–57 to 47–51", br(53, 57, 47, 51)))
+W(li("Base Damage decreased by 6", bstat_h("Earth Spirit", "AttackDamageMin", "7.39e", -6), extra=note_box(hero="Earth Spirit", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 decreased from 53–57 to 47–51")))
 W(ul_close())
 W(facet_header("earth_spirit_resonance"))
 W(ul_open())
@@ -15655,8 +15678,13 @@ W(ul_close())
 W(ability("Stone Remnant", slug="earth_spirit_stone_caller"))
 W(ul_open())
 W(li("Now passively grants +2.5% bonus attack damage per currently unused charge", t("NEW")))
-W(li("Whenever Earth Spirit uses another ability on Stone Remnant, he gains +7.5% bonus attack damage for 10s (effect doesn't stack)", t("MISC")))
-W(li("Max Ability Charges increased from (7 + 1 additional charge at every 5th level) to (7 + 1 per 4 hero level ups)", t("MISC"), extra=inline_note("Changed from 6 additional charges at levels 5/10/15/20/25/30 to 7 additional charges at levels 5/9/13/17/21/25/29")))
+W(li("Whenever Earth Spirit uses another ability on Stone Remnant, he gains +7.5% bonus attack damage for 10s (effect doesn't stack)", t("NEW")))
+W(li_formula("Max Ability Charges increased",
+             "7 + 1 additional charge at every 5th level",
+             "7 + 1 per 4 hero level ups",
+             lambda L: 7 + L // 5,
+             lambda L: 7 + L // 4,
+             levels=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30]))
 W(ul_close())
 W(ability("Boulder Smash", slug="earth_spirit_boulder_smash"))
 W(ul_open())
@@ -15664,8 +15692,7 @@ W(li("Cooldown rescaled from 22/18/14/10s to 20/17/14/11s", t("REWORK")))
 W(ul_close())
 W(ability("Geomagnetic Grip", slug="earth_spirit_geomagnetic_grip"))
 W(ul_open())
-W(li("Can now target allied units by default with 550/600/650/700 cast range", t("MISC"), extra=inline_note("Can't pull allies that are affected by Leash, Root, Bind, Duel, Chronosphere or Black Hole")))
-W(li("Aghanim's Shard Reworked", t("REWORK"), extra=inline_note("Decreases cooldown by 3s and increases allied unit cast range and speed by 50%")))
+W(li("Aghanim's Shard reworked. Can now target allied units by default with 550/600/650/700 cast range.", t("NEW"), extra=inline_note("Aghanim's Shard rework: Decreases cooldown by 3s and increases allied unit cast range and speed by 50%<br><br>Can't pull allies that are affected by Leash, Root, Bind, Duel, Chronosphere or Black Hole")))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -15680,7 +15707,7 @@ W(hero_header("Earthshaker"))
 W(ability("Fissure", slug="earthshaker_fissure"))
 W(ul_open())
 W(li("Damage decreased from 110/170/230/290 to 100/160/220/280", b([110, 170, 230, 290], [100, 160, 220, 280])))
-W(li("Aghanim's Shard no longer allows Fissure walking", t("MISC")))
+W(li("Aghanim's Shard no longer allows Fissure walking", t("DEL")))
 W(ul_close())
 W(ability("Echo Slam", slug="earthshaker_echo_slam"))
 W(ul_open())
@@ -15840,8 +15867,7 @@ W(ul_close())
 W(hero_header("Io"))
 W(ul_open())
 W(li("Base Strength increased from 17 to 19", b(17, 19)))
-W(li("Base Intelligence decreased from 23 to 21", b(23, 21)))
-W(li("Damage at level 1 unchanged (45–51)", t("MISC")))
+W(li("Base Intelligence decreased from 23 to 21", b(23, 21), extra=inline_note("Damage at level 1 unchanged (45–51)")))
 W(ul_close())
 W(ability("Spirits", slug="wisp_spirits"))
 W(ul_open())
@@ -15870,8 +15896,7 @@ W(ul_close())
 # Juggernaut
 W(hero_header("Juggernaut"))
 W(ul_open())
-W(li("Base Agility decreased from 34 to 32", b(34, 32)))
-W(li("Damage at level 1 decreased from 56–58 to 54–56", br(56, 58, 54, 56)))
+W(li("Base Agility decreased from 34 to 32", b(34, 32), extra=inline_note("Damage at level 1 decreased from 56–58 to 54–56")))
 W(ul_close())
 W(ability("Blade Fury", slug="juggernaut_blade_fury"))
 W(ul_open())
@@ -15885,8 +15910,7 @@ W(ul_close())
 # Keeper of the Light
 W(hero_header("Keeper of the Light"))
 W(ul_open())
-W(li("Base Intelligence increased from 23 to 24", b(23, 24)))
-W(li("Damage at level 1 increased from 43–50 to 44–51", br(43, 50, 44, 51)))
+W(li("Base Intelligence increased from 23 to 24", b(23, 24), extra=inline_note("Damage at level 1 increased from 43–50 to 44–51")))
 W(ul_close())
 W(ability("Blinding Light", slug="keeper_of_the_light_blinding_light"))
 W(ul_open())
@@ -15999,8 +16023,7 @@ W(ul_close())
 W(hero_header("Lone Druid"))
 W(ul_open())
 W(li("Base Movement Speed decreased from 325 to 295", b(325, 295)))
-W(li("Base Damage increased by 4", bstat_h("Lone Druid", "AttackDamageMin", "7.39e", 4), extra=note_box(hero="Lone Druid", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Damage at level 1 increased from 38–42 to 42–46", br(38, 42, 42, 46)))
+W(li("Base Damage increased by 4", bstat_h("Lone Druid", "AttackDamageMin", "7.39e", 4), extra=note_box(hero="Lone Druid", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 increased from 38–42 to 42–46")))
 W(ul_close())
 W(facet_header("lone_druid_bear_with_me"))
 W(ul_open())
@@ -16163,8 +16186,7 @@ W(ul_close())
 # Magnus
 W(hero_header("Magnus"))
 W(ul_open())
-W(li("Base Damage increased by 1", bstat_h("Magnus", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Magnus", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Damage at level 1 increased from 54–62 to 55–63", br(54, 62, 55, 63)))
+W(li("Base Damage increased by 1", bstat_h("Magnus", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Magnus", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 increased from 54–62 to 55–63")))
 W(ul_close())
 W(facet_header("magnataur_diminishing_return"))
 W(ul_open())
@@ -16367,8 +16389,7 @@ W(ul_close())
 # Ogre Magi
 W(hero_header("Ogre Magi"))
 W(ul_open())
-W(li("Base Damage increased by 1", bstat_h("Ogre Magi", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Ogre Magi", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Damage at level 1 increased from 69–75 to 70–76", br(69, 75, 70, 76)))
+W(li("Base Damage increased by 1", bstat_h("Ogre Magi", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Ogre Magi", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 increased from 69–75 to 70–76")))
 W(ul_close())
 W(ability("Bloodlust", slug="ogre_magi_bloodlust"))
 W(ul_open())
@@ -16641,8 +16662,7 @@ W(ul_close())
 # Rubick
 W(hero_header("Rubick"))
 W(ul_open())
-W(li("Base damage increased by 1", bstat_h("Rubick", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Rubick", field="AttackDamageMin", before_patch="7.39e")))
-W(li("Damage at level 1 increased from 49–55 to 50–56", br(49, 55, 50, 56)))
+W(li("Base damage increased by 1", bstat_h("Rubick", "AttackDamageMin", "7.39e", 1), extra=note_box(hero="Rubick", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 increased from 49–55 to 50–56")))
 W(ul_close())
 W(ability("Telekinesis", slug="rubick_telekinesis"))
 W(ul_open())
@@ -16826,9 +16846,8 @@ W(ul_close())
 W(hero_header("Spectre"))
 W(ul_open())
 W(li("Now an Agility Hero", t("NEW")))
-W(li("Base Damage increased by 2", bstat_h("Spectre", "AttackDamageMin", "7.39e", 2), extra=note_box(hero="Spectre", field="AttackDamageMin", before_patch="7.39e")))
+W(li("Base Damage increased by 2", t("MISC") + bstat_h("Spectre", "AttackDamageMin", "7.39e", 2), extra=note_box(hero="Spectre", field="AttackDamageMin", before_patch="7.39e", extra_note="Damage at level 1 unchanged (48–52)")))
 W(li("Base attributes unchanged", t("MISC")))
-W(li("Damage at level 1 unchanged (48–52)", t("MISC")))
 W(li("Attribute gains unchanged", t("MISC")))
 W(li("Damage gain per level decreased from +2.8 to +2.1", b(2.8, 2.1)))
 W(li("Damage at level 30 decreased by 27 (from 149–153 to 122–126)", t("MISC")))
@@ -16953,8 +16972,7 @@ W(ul_close())
 # Techies
 W(hero_header("Techies"))
 W(ul_open())
-W(li("Base Agility increased from 14 to 16", b(14, 16)))
-W(li("Damage at level 1 increased by 1 (from 46–48 to 47–49)", br(46, 48, 47, 49)))
+W(li("Base Agility increased from 14 to 16", b(14, 16), extra=inline_note("Damage at level 1 increased by 1 (from 46–48 to 47–49)")))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -17314,8 +17332,7 @@ W(ul_close())
 # Winter Wyvern
 W(hero_header("Winter Wyvern"))
 W(ul_open())
-W(li("Base damage increased by 1", t("MISC")))
-W(li("Damage at level 1 increased from 41–48 to 42–49", t("MISC")))
+W(li("Base damage increased by 1", t("MISC"), extra=inline_note("Damage at level 1 increased from 41–48 to 42–49")))
 W(li("Base Attack Range increased from 425 to 450", b(425, 450)))
 W(ul_close())
 W(ability("Arctic Burn", slug="winter_wyvern_arctic_burn"))

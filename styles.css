@@ -28,6 +28,75 @@ body {
   min-height: 100vh;
 }
 
+/* ── Patch pages: Valve-style featured.jpg texture behind a translucent
+   content "stage". The faceted texture shows at the page margins; the
+   centered content column sits on a dimmed dark panel so text stays readable.
+   (First pass — tune the alpha / borders / margin reveal to taste.) ── */
+body.patch-page {
+  /* Valve's own patch-page background: featured.jpg, fixed cover, anchored top
+     (used unchanged). */
+  background-color: #0e1015;
+  background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/backgrounds/featured.jpg');
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  background-attachment: fixed;
+}
+/* Container is transparent now — each category is its own opaque panel
+   (.cat-panel) so categories break apart with the textured background showing
+   in the gaps between them. */
+body.patch-page .container {
+  background: none;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 4px;
+}
+/* Per-category panel = opaque dark stage (no texture bleed through content).
+   Rounded + soft shadow + bottom gap = a smooth break before the next
+   category. Right edge lifts a touch lighter (neutral grey, no blue tint). */
+body.patch-page .cat-panel {
+  /* Slightly translucent so the FIXED page texture shows through the panel,
+     continuous with the margins (Valve-style — one harmonious texture across
+     the whole page, just dimmed behind content). Flat colour (a gradient would
+     band). Tune the alpha to taste: lower = more texture through the panel. */
+  background: rgba(17, 20, 26, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  padding: 0 28px 20px;
+  margin: 0 0 26px;
+}
+/* Category (section) + sub-category (entity) header bars span the full stage
+   width — they set the "shelf" edges (Valve-style). Their text/icon padding
+   aligns with the content-left line (= container padding, 28px). */
+body.patch-page h2.section {
+  margin: 0 -28px 20px;          /* flush to panel top + sides; gap below */
+  padding-left: 28px;
+  padding-right: 28px;
+  border-radius: 7px 7px 0 0;    /* match the panel's rounded top corners */
+}
+body.patch-page .entity {
+  margin-left: -28px;
+  margin-right: -28px;
+  padding-left: 28px;
+  padding-right: 28px;
+  border-radius: 0;
+}
+/* Align the dynamics-cell row's right edge to the content edge (no overhang),
+   so the cells, the change-row %s, and every bordered block (build / cost /
+   provides / properties / ability-change) all share one right edge — uniform
+   widths, no per-box nudge needed. */
+body.patch-page .patch-dynamics {
+  margin-right: 0;
+}
+/* ul.changes carried a 6px right padding to compensate the old cell-row
+   overhang. The row now ends at the content edge, so drop it — otherwise the
+   change rows and the ability-row boxes (inside ul.changes) sit 6px narrower
+   than the components / provides / cost boxes. */
+body.patch-page ul.changes {
+  padding-right: 0;
+}
+
 .container {
   max-width: 1080px;
   margin: 0 auto;
@@ -2043,6 +2112,7 @@ h2.section {
 }
 .dyn-cell {
   position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
@@ -2068,7 +2138,10 @@ h2.section {
       rgba(0, 0, 0, 0.0) 65%,
       rgba(0, 0, 0, 0.10) 100%),
     var(--dyn-bg, rgba(10, 11, 14, 0.55));
-  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+  /* z-index reverts 0.14s AFTER un-hover (matches the scale duration) so the
+     cell stays on top while it shrinks back — otherwise the right-hand
+     neighbour (later in DOM) paints over it mid-descent. */
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, z-index 0s linear 0.14s;
   box-shadow:
     0 1px 1.5px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -2090,6 +2163,9 @@ h2.section {
   opacity: 0.9;
 }
 .dyn-cell-wrap:not(.empty):hover .dyn-cell {
+  /* Raise immediately on hover (no z-index delay); the delayed revert lives
+     on the base .dyn-cell rule for the un-hover descent. */
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, z-index 0s linear 0s;
   transform: scale(2.5);
   /* Opaque backdrop under the translucent fluid: stops neighbouring cells
      from showing through the scaled-up hovered cell. Matches the
@@ -2487,36 +2563,36 @@ ul.changes li.ability-row-end {
 .enchant-chip.souvenir-chip.removed:hover::after {
   opacity: 1;
 }
-/* Circled-'i' info marker — inline hover bubble like the official Dota
-   patchnotes (i) icons. Trigger is a small gold-ringed circle; popup uses
-   pre-line for one-stat-per-line bodies. */
+/* Info marker — matches the `.qhint` "?" badge (rounded square), with the
+   question mark in our gold. Popup body is the .info-pop child below. */
 .info-tip {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;            /* ~cap height of the row text so it fits the line */
   margin-left: 4px;
-  border-radius: 50%;
-  border: 1px solid rgba(227, 196, 106, 0.6);
-  background: rgba(227, 196, 106, 0.12);
+  border: 1px solid #6b7682;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
   color: #e3c46a;
-  font-size: 10.5px;
-  font-style: italic;
+  font-size: 9px;
   font-weight: 700;
   line-height: 1;
-  font-family: Georgia, 'Times New Roman', serif;
   cursor: help;
-  vertical-align: middle;
+  user-select: none;
   position: relative;
-  top: -1px;
+  /* Centred on the row text's digit band: vertical-align:middle sits the box
+     centre near the x-height; nudge up so it spans cap-to-baseline (no poke
+     below the text). */
+  vertical-align: middle;
+  top: -0.5px;
   transition: background 0.15s, border-color 0.15s;
 }
 .info-tip:hover,
 .info-tip:focus {
-  background: rgba(227, 196, 106, 0.25);
-  border-color: rgba(227, 196, 106, 0.9);
+  border-color: #e3c46a;
+  background: rgba(227, 196, 106, 0.15);
   outline: none;
 }
 /* HTML popup child — supports rich content (badges, <br>) + a bold header,
@@ -2525,7 +2601,7 @@ ul.changes li.ability-row-end {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(-50%);
   background: rgba(13, 17, 23, 0.98);
   color: #c9d1d9;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -2548,14 +2624,14 @@ ul.changes li.ability-row-end {
   /* Avoid orphan words/numbers on a line of their own — keeps stat ranges
      like "…100–110" intact rather than dropping "110" to the next line. */
   text-wrap: pretty;
-  transition: opacity 0.12s, transform 0.12s;
+  /* No slide — the popup just appears on hover/focus (no transform anim). */
+  transition: none;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
 .info-tip:hover .info-pop,
 .info-tip:focus .info-pop {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
 }
 .info-pop-h {
   display: block;
@@ -2603,6 +2679,30 @@ ul.changes li.ability-row-end {
   border-radius: 6px;
   color: #c9d1d9;
   font-size: 13.5px;
+}
+/* Flat purchase price for a basic (no-recipe) new item — same bordered box as
+   the components() build, with the gold value on the right like a recipe total. */
+.item-cost-box {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 6px 0 4px;
+  padding: 8px 14px;
+  background: rgba(139, 148, 158, 0.04);
+  border: 1px solid rgba(139, 148, 158, 0.18);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.item-cost-label {
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 600;
+}
+.item-cost-val {
+  color: #f0c674;
+  font-size: 14px;
+  font-weight: 700;
 }
 .provides-box .provides-row {
   padding: 2px 0;
@@ -3992,6 +4092,12 @@ ul.changes li > .badge-group {
   border-bottom: 1px dotted currentColor;
   transition: color 120ms ease, border-color 120ms ease;
 }
+/* Patch version reference inside a note_box (i)-popup — plain solid underline,
+   not a link (popups aren't clickable). */
+.patch-ref {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .patch-link:hover,
 .patch-link:focus-visible {
   color: #4894ff;
@@ -4128,8 +4234,15 @@ ul.changes li.aghanim-shard {
   border-spacing: 2px;
   font-size: 11px;
   width: 100%;
-  table-layout: auto;
+  /* fixed → every level column is the SAME width (auto sized each cell to its
+     own content, making short labels like "L7" narrow). */
+  table-layout: fixed;
   font-variant-numeric: tabular-nums;
+}
+/* Label column (first): fixed width so the level columns share the rest evenly. */
+.formula-table th:first-child,
+.formula-table td:first-child {
+  width: 42px;
 }
 .formula-table[hidden] { display: none; }
 .formula-table thead th {
@@ -4779,7 +4892,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   border: 1px solid #6b7682;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.04);
-  color: #b8c2cc;
+  color: #e3c46a;
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -4790,9 +4903,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 }
 .qhint:hover,
 .qhint:focus-visible {
-  color: #fff;
-  border-color: #58a6ff;
-  background: rgba(88, 166, 255, 0.15);
+  color: #f4e3b3;
+  border-color: #e3c46a;
+  background: rgba(227, 196, 106, 0.15);
   outline: none;
 }
 /* Tooltip body for `.qhint` is rendered at <body> level (fixed-position) by

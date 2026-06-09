@@ -1088,12 +1088,32 @@
         if (!manifest) return;
         if (entities.length) {
           const windowed = dynWindow(manifest);
-          entities.forEach(e => dynRenderRow(e, manifest, windowed, currentVersion));
-          // Rendering a pill row into EVERY entity adds ~28px of height to each
-          // one — so any entity targeted by the #hash drifts far down after the
-          // browser's initial anchor. Re-anchor now that all rows exist (the
-          // getBoundingClientRect read forces layout first). Offset for the nav.
+          const buildRow = (e) => {
+            if (e.dataset.dynBuilt) return;
+            e.dataset.dynBuilt = '1';
+            dynRenderRow(e, manifest, windowed, currentVersion);
+          };
+          // Build each entity's cell row LAZILY as it nears the viewport — on a
+          // 1800-change patch that's ~3200 gradient cells; creating them all on
+          // load is the page's biggest cost. IntersectionObserver builds only
+          // what's near view, then unobserves. Identical look, far less work.
+          if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver((obsEntries, obs) => {
+              obsEntries.forEach(en => {
+                if (en.isIntersecting) { buildRow(en.target); obs.unobserve(en.target); }
+              });
+            }, { rootMargin: '120% 0px' });   // ~1.2 screen-heights of lead, scales with resolution
+            entities.forEach(e => io.observe(e));
+          } else {
+            entities.forEach(buildRow);
+          }
+          // A #hash target must have its row built before we re-anchor (rows add
+          // ~28px height). Force-build the target immediately, then re-anchor
+          // (the getBoundingClientRect read forces layout first). Offset for nav.
           if (window.location.hash) {
+            const _tgt = document.getElementById(
+              decodeURIComponent(window.location.hash.slice(1)));
+            if (_tgt && _tgt.matches('.entity[id^="dyn-"]')) buildRow(_tgt);
             const el = document.getElementById(
               decodeURIComponent(window.location.hash.slice(1)));
             if (el) {
@@ -3092,4 +3112,46 @@
     initTerrainCompare();
     initTerrainPicker();
   }
+})();
+
+// ---------------------------------------------------------------------
+// Info-tip (i) popup positioning — keep the bubble inside the viewport.
+// CSS centers it above the (i); this nudges it horizontally so it never
+// runs off-screen, and flips it below when there isn't room above.
+// Event-delegated so it covers every (i) without per-element listeners.
+// ---------------------------------------------------------------------
+(function () {
+  var MARGIN = 8;
+  function place(tip) {
+    var pop = tip.querySelector('.info-pop');
+    if (!pop) return;
+    // Reset so we measure the natural size, then position explicitly.
+    pop.style.left = '0';
+    pop.style.right = 'auto';
+    pop.style.transform = 'none';
+    var tr = tip.getBoundingClientRect();
+    var pw = pop.offsetWidth;
+    var ph = pop.offsetHeight;
+    var vw = document.documentElement.clientWidth;
+    // Horizontal: center over the (i), then clamp into the viewport.
+    var vpLeft = tr.left + tr.width / 2 - pw / 2;
+    vpLeft = Math.max(MARGIN, Math.min(vpLeft, vw - pw - MARGIN));
+    pop.style.left = (vpLeft - tr.left) + 'px';
+    // Vertical: prefer above; flip below if it would clip the top.
+    if (tr.top - ph - 10 < MARGIN) {
+      pop.style.top = 'calc(100% + 8px)';
+      pop.style.bottom = 'auto';
+    } else {
+      pop.style.bottom = 'calc(100% + 8px)';
+      pop.style.top = 'auto';
+    }
+  }
+  function handler(e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var tip = t.closest('.info-tip');
+    if (tip) place(tip);
+  }
+  document.addEventListener('mouseover', handler, true);
+  document.addEventListener('focusin', handler, true);
 })();
