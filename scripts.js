@@ -2241,7 +2241,8 @@
 (function() {
   const table = document.querySelector('.mr-table');
   if (!table) return;
-  const headers = [...table.querySelectorAll('thead th')];
+  const headRow = table.querySelector('thead tr.col-row') || table.querySelector('thead tr');
+  const headers = headRow ? [...headRow.querySelectorAll('th')] : [];
 
   function applyHeatmap() {
     // Respect the on-page Heatmap switch — when off, all cells stay flat.

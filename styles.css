@@ -5792,8 +5792,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   vertical-align: middle;
   line-height: 1;
   position: relative;
-  /* Nudged down 4px from the caps midline (user request). */
-  top: 4px;
+  /* Centered against the cap-height of large table headers. */
+  top: -0.04em;
   width: 11px;
   height: 11px;
   /* Coloured via background-color through a PNG mask — neutral default
@@ -6389,6 +6389,39 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 /* Extras hidden in Base & Starting; visible only in Expanded. */
 .hs-table .hs-extra { display: none; }
 .hs-table.hs-mode-expanded .hs-extra { display: table-cell; }
+/* Hero Stats uses the same two-row category header pattern as Neutral Creeps,
+   but stays on the mr-table sorter/heatmap stack. */
+.mr-table.hs-table thead tr.cat-row th.cat-head {
+  position: sticky;
+  top: 0;
+  z-index: 52;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9fb0c0;
+  font-weight: 700;
+  background: #161b22;
+  padding: 3px 4px;
+  box-shadow: 0 6px 0 0 #161b22;
+  cursor: default;
+  user-select: none;
+}
+.mr-table.hs-table thead tr.col-row th {
+  top: calc(var(--cat-row-h, 0px) - 2px);
+  z-index: 50;
+  border-bottom: none;
+  box-shadow:
+    inset 0 -2px 0 rgba(120, 200, 235, 0.85),
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 -14px 0 0 #161b22;
+}
+.mr-table.hs-table thead tr.cat-row .cat-head + .cat-head {
+  border-left: 2px solid rgba(170, 220, 240, 0.22);
+}
+.mr-table.hs-table th.col-sep,
+.mr-table.hs-table td.col-sep {
+  border-left: 2px solid rgba(170, 220, 240, 0.30);
+}
 /* Sticky hero column (single frozen column → plain CSS sticky, no JS lefts).
    Solid backgrounds so scrolled columns disappear under it; header corner
    sits above both axes' pinned bars (z 51 > th 50). */
@@ -6407,6 +6440,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   position: sticky;
   left: 0;
   z-index: 51;
+}
+.mr-table.hs-table thead tr.cat-row th.cat-head:first-child {
+  z-index: 53;
 }
 .mr-table.hs-table tbody tr:hover td.hs-name { background: #1a212b; }
 /* Hero portrait (16:9) in the name cell — same slot the item icon uses. */

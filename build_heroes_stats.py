@@ -282,9 +282,9 @@ def _innate_bonus(col_key: str, s: dict, h: str) -> float:
     block. Currently covered:
       • Morphling   — Ebb and Flow (innate 7.41+): Agi→Attack Range,
                       Agi→Move Speed.
-      • Void Spirit — Intrinsic Edge (innate 7.36+): +33%/25% MORE of the
-                      secondary bonuses Armor(Agi)/HP regen(Str)/Mana
-                      regen(Int)/Magic resist(Int).
+      • Void Spirit — Intrinsic Edge (innate 7.36+): patch-gated secondary
+                      attribute bonuses; 7.41+ switches to Damage/HP regen/
+                      Mana regen/Attack Speed.
       • Centaur     — Horsepower (innate 7.36+): Str→Move Speed (capped).
     Known but NOT yet modelled (don't map to a single displayed column or
     need dynamic state): Dark Seer (Int floor = max of Str/Agi), Tiny /
@@ -303,8 +303,19 @@ def _innate_bonus(col_key: str, s: dict, h: str) -> float:
             return agi * 0.15            # Agi→Move Speed: 15% (since 7.41)
 
     if slug == "void_spirit" and _ge(ver, "7.36"):
-        # Intrinsic Edge: +33% (7.36–7.36a) / +25% (7.36b+) MORE of the
-        # secondary bonuses that the attributes already provide.
+        # Intrinsic Edge:
+        #   7.36-7.36a: +33% secondary bonuses from attributes
+        #   7.36b-7.40: +25% secondary bonuses from attributes
+        #   7.41+: +30% HP regen / mana regen / attack speed, no armor/MR.
+        if _ge(ver, "7.41"):
+            pct = 0.30
+            if col_key == "hpr":
+                return HPREG_PER_STR * _field(s, h, "AttributeBaseStrength") * pct
+            if col_key == "mpr":
+                return MANAREG_PER_INT * _field(s, h, "AttributeBaseIntelligence") * pct
+            if col_key == "aspd":
+                return AS_PER_AGI * _field(s, h, "AttributeBaseAgility") * pct
+            return 0.0
         pct = 0.25 if _ge(ver, "7.36b") else 0.33
         if col_key == "armor":
             return ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility") * pct
@@ -371,18 +382,28 @@ def _primary_dmg(s, h):
         total = (_field(s, h, "AttributeBaseStrength")
                  + _field(s, h, "AttributeBaseAgility")
                  + _field(s, h, "AttributeBaseIntelligence"))
-        bonus = _universal_dmg_mult() * total
+        mult = _universal_dmg_mult()
+        if h.endswith("_void_spirit") and _ge(_CTX_VERSION[0], "7.41"):
+            # Intrinsic Edge: +15% attack damage per attribute since 7.41.
+            mult *= 1.15
+        bonus = mult * total
     return float(_math.floor(bonus))
 
 
 # Damage ---------------------------------------------------------------------
 
 def _dmg_min_base(s, h, r):
-    return _field(s, h, "AttackDamageMin")
+    v = _field(s, h, "AttackDamageMin")
+    if h.endswith("_void_spirit") and _ge(_CTX_VERSION[0], "7.41") and not _ge(_CTX_VERSION[0], "7.41d"):
+        return v - 4
+    return v
 
 
 def _dmg_max_base(s, h, r):
-    return _field(s, h, "AttackDamageMax")
+    v = _field(s, h, "AttackDamageMax")
+    if h.endswith("_void_spirit") and _ge(_CTX_VERSION[0], "7.41") and not _ge(_CTX_VERSION[0], "7.41d"):
+        return v - 4
+    return v
 
 
 def _dmg_avg_base(s, h, r):
@@ -541,6 +562,30 @@ def _gains_total_l30(s, h, r):
     return round(29 * _gains_per_level(s, h, r), 1)
 
 
+def _armor_factor(a):
+    return (0.06 * a) / (1 + 0.06 * abs(a))
+
+
+def _armor_pct_base(s, h, r):
+    return round(_armor_factor(_armor_base(s, h, r)) * 100)
+
+
+def _armor_pct_l1(s, h, r):
+    return round(_armor_factor(_armor_l1(s, h, r)) * 100)
+
+
+def _t_per_attack_base(s, h, r):
+    bat = _field(s, h, "AttackRate")
+    ats = _raw_num(r, h, "BaseAttackSpeed") or 100
+    return round(bat * 100 / ats, 2) if ats else round(bat, 2)
+
+
+def _t_per_attack_l1(s, h, r):
+    bat = _field(s, h, "AttackRate")
+    ats = _aspd_l1(s, h, r) or 100
+    return round(bat * 100 / ats, 2) if ats else round(bat, 2)
+
+
 def _collision(s, h, r):
     return float(_HULL_RADIUS.get(str(_raw_field(r, h, "BoundsHullName")), 24))
 
@@ -636,6 +681,54 @@ COLUMNS = [
     _col("bound",     "Bound Radius", mode="extra", pol="lo",
          fn_base=lambda s, h, r: _raw_num(r, h, "RingRadius"), raw=True),
 ]
+
+_BASE_COL_BY_KEY = {col["key"]: col for col in COLUMNS}
+_EXTRA_COLS = {
+    "armor_pct": _col("armor_pct", "Armor %", mode="extra", fmt=_gpct,
+                      fn_base=_armor_pct_base, fn_starting=_armor_pct_l1,
+                      disp_base=lambda s, h, r: _gpct(_armor_pct_base(s, h, r)),
+                      disp_starting=lambda s, h, r: _gpct(_armor_pct_l1(s, h, r))),
+    "t_per_attack": _col("t_per_attack", "Time to hit", mode="extra", pol="lo",
+                         fn_base=_t_per_attack_base,
+                         fn_starting=_t_per_attack_l1),
+}
+_BASE_COL_BY_KEY.update(_EXTRA_COLS)
+
+_LABEL_OVERRIDES = {
+    "hpr": "HP/sec",
+    "mpr": "MP/sec",
+    "dmin": "Dmg\nmin",
+    "dmax": "Dmg\nmax",
+    "aspd": "Speed",
+    "range": "Range",
+    "proj": "Projectile Speed",
+    "collision": "Collision Size",
+    "ms": "Movespeed",
+}
+for _key, _label in _LABEL_OVERRIDES.items():
+    _BASE_COL_BY_KEY[_key]["label"] = _label
+
+CATEGORIES = [
+    ("Basic", "basic", []),
+    ("Vitality", "vitality", ["hp", "hpr", "mp", "mpr"]),
+    ("Attributes", "attributes", ["str", "str_gain", "agi", "agi_gain",
+                                   "int", "int_gain", "gper"]),
+    ("Defense", "defense", ["armor", "armor_pct", "mr"]),
+    ("Attack", "attack", ["dmg", "dmin", "dmax", "aspd", "t_per_attack",
+                           "bat", "range", "proj"]),
+    ("Vision", "vision", ["dvision", "nvision"]),
+    ("Other", "other", ["ms", "turn", "collision", "bound"]),
+]
+
+for _cat_name, _cat_slug, _keys in CATEGORIES:
+    for _key in _keys:
+        _BASE_COL_BY_KEY[_key]["cat"] = _cat_slug
+
+COLUMNS = [_BASE_COL_BY_KEY[_key]
+           for _cat_name, _cat_slug, _keys in CATEGORIES
+           for _key in _keys]
+_CAT_FIRST_KEYS = {keys[0] for _cat_name, cat_slug, keys in CATEGORIES
+                   if cat_slug != "basic" and keys}
 
 
 # ---------- patch-note → field event index ----------
@@ -972,6 +1065,32 @@ def _history_for(snaps, versions, dates, hero, col, raws, *, mode: str) -> str:
             prev_val, prev_disp = v, d
     # Re-sort by shifted patch so the tooltip lists oldest→newest after shifts.
     parts.sort(key=lambda p: _patch_sort_key(p[0]))
+
+    # Combined columns (Damage, Min/Max-derived ranges, etc.) may see min and
+    # max KV fields land as separate snapshots even though the patch note is
+    # one logical row. If both transitions shift to the same patch, collapse
+    # them into one old→final entry instead of exposing scrape noise.
+    merged: list[tuple[str, str]] = []
+    for patch, payload in parts:
+        if not merged or merged[-1][0] != patch:
+            merged.append((patch, payload))
+            continue
+        prev_patch, prev_payload = merged[-1]
+        a = prev_payload.split("|")
+        b = payload.split("|")
+        if len(a) >= 8 and len(b) >= 8 and a[2] == b[2] == "C" and a[7] == b[7]:
+            merged[-1] = (
+                prev_patch,
+                f"|{a[1]}|C|{a[3]}|{b[4]}|{a[5]}|{b[6]}|{a[7]}",
+            )
+        elif len(a) >= 6 and len(b) >= 6 and a[2] == b[2] == "V" and a[5] == b[5]:
+            merged[-1] = (
+                prev_patch,
+                f"|{a[1]}|V|{a[3]}|{b[4]}|{a[5]}",
+            )
+        else:
+            merged.append((patch, payload))
+    parts = merged
     return ";".join(p[0] + p[1] for p in parts)
 
 
@@ -997,6 +1116,17 @@ def _mode_cls(col) -> str:
     return " hs-extra" if col["mode"] == "extra" else ""
 
 
+def _sep_cls(col) -> str:
+    return " col-sep" if col["key"] in _CAT_FIRST_KEYS else ""
+
+
+def _label_html(label: str) -> str:
+    if "\n" in label:
+        main, sub = label.split("\n", 1)
+        return f'{_esc(main)}<span class="th-sub">{_esc(sub)}</span>'
+    return _esc(label)
+
+
 def render_html() -> str:
     versions = _versions()
     dates = _load_patch_dates()
@@ -1019,19 +1149,29 @@ def render_html() -> str:
 
     # ---- header ----
     head = [
-        '<th class="mr-th hs-th hs-name sortable" data-col="name">'
+        '<th class="mr-th hs-th hs-name sortable" data-col="name" data-cat="basic">'
         '<span class="th-label">Hero</span><span class="sort-ind"></span></th>',
-        '<th class="mr-th hs-th hs-col-attr sortable" data-col="attr">'
+        '<th class="mr-th hs-th hs-col-attr sortable" data-col="attr" data-cat="basic">'
         '<span class="th-label">Attr</span><span class="sort-ind"></span></th>',
     ]
     for col in COLUMNS:
         direction = "lower" if col["pol"] == "lo" else "higher"
         head.append(
-            f'<th class="mr-th hs-th hs-col-{col["key"]}{_mode_cls(col)} sortable" '
-            f'data-col="{col["key"]}" data-direction={direction}>'
-            f'<span class="th-label">{col["label"]}</span>'
+            f'<th class="mr-th hs-th hs-col-{col["key"]}{_mode_cls(col)}'
+            f'{_sep_cls(col)} sortable" '
+            f'data-col="{col["key"]}" data-direction={direction} '
+            f'data-cat="{col.get("cat", "other")}">'
+            f'<span class="th-label">{_label_html(col["label"])}</span>'
             f'<span class="sort-ind"></span></th>')
     thead = "".join(head)
+    cat_cells = ['<th class="cat-head cat-basic" data-cat="basic" colspan="2">Basic</th>']
+    for cat_name, cat_slug, keys in CATEGORIES:
+        if cat_slug == "basic":
+            continue
+        cat_cells.append(
+            f'<th class="cat-head cat-{cat_slug}" data-cat="{cat_slug}" '
+            f'colspan="{len(keys)}">{_esc(cat_name)}</th>')
+    cat_row = "".join(cat_cells)
 
     # ---- body ----
     # Displayed cell values are the LATEST patch's — set the modifier context
@@ -1046,7 +1186,7 @@ def render_html() -> str:
                 if (_HERE / "icons" / "heroes" / f"{slug}.png").exists()
                 else '<span class="mr-ico mr-ico-blank"></span>')
         cells = [
-            f'<td class="mr-name hs-name" data-sort="{_esc(name)}">'
+            f'<td class="mr-name hs-name" data-cat="basic" data-sort="{_esc(name)}">'
             f'{icon}<span class="mr-name-text">{_esc(name)}</span></td>'
         ]
         meta = _attr_of(cur, hero) or ("uni", "Universal", "universal.webp", 3)
@@ -1054,11 +1194,11 @@ def render_html() -> str:
         attr_attrs = (f' class="hs-attr-cell has-history" data-hist="{_esc(ah)}"'
                       if ah else ' class="hs-attr-cell"')
         cells.append(
-            f'<td{attr_attrs} data-sort="{meta[3]}">'
+            f'<td{attr_attrs} data-cat="basic" data-sort="{meta[3]}">'
             f'<img class="hs-attr-ico" src="icons/{meta[2]}" alt="{meta[1]}" '
             f'title="{meta[1]}" width="20" height="20"></td>')
         for col in COLUMNS:
-            cls = f"hs-col-{col['key']}{_mode_cls(col)} has-history"
+            cls = f"hs-col-{col['key']}{_mode_cls(col)}{_sep_cls(col)} has-history"
             # Displayed values use the LATEST patch's modifier context;
             # _history_for mutates the context, so reset it each cell.
             _set_ctx_version(latest)
@@ -1087,13 +1227,15 @@ def render_html() -> str:
             net_attr = ' data-net=""' if hist_start else ""
             cls_final = (cls if hist_start else cls.replace(" has-history", ""))
             cells.append(
-                f'<td class="{cls_final}" data-sort="{v_start}"{net_attr}{hist_attr}'
+                f'<td class="{cls_final}" data-cat="{col.get("cat", "other")}" '
+                f'data-sort="{v_start}"{net_attr}{hist_attr}'
                 f'{extra_attrs}>{disp_start}</td>')
         body.append(f'<tr data-slug="{slug}">{"".join(cells)}</tr>')
 
     table = (
         '<table class="mr-table hs-table sortable-table">'
-        f'<thead><tr>{thead}</tr></thead>'
+        f'<thead><tr class="cat-row">{cat_row}</tr>'
+        f'<tr class="col-row">{thead}</tr></thead>'
         f'<tbody>{"".join(body)}</tbody>'
         '</table>'
     )
@@ -1108,12 +1250,13 @@ def render_html() -> str:
         'level-1 attribute bonuses (HP = base + 22×Str, MP = base + 12×Int, '
         'Armor = base + Agi/6, Mag.&nbsp;resist = base + 0.1×Int, Damage = base + '
         'primary-attribute bonus, Attack Speed = base + Agi); <em>Expanded</em> '
-        'adds attribute totals/level-30 columns, Min/Max damage, projectile speed, '
-        'turn rate, collision, bound radius. Huskar has no mana pool ever; '
+        'adds extra inspection columns: Gains/lvl, Armor %, Min/Max damage, '
+        'Time to hit, projectile speed, turn rate, collision size, bound radius. '
+        'Huskar has no mana pool ever; '
         'Ogre Magi’s mana / mana regen scale with Strength instead of Intelligence. '
         'Hero innates that convert attributes are also applied (Morphling’s '
         'Agility→Attack&nbsp;Range / Move&nbsp;Speed since 7.41, Void Spirit’s '
-        '+25% secondary bonuses, Centaur’s Strength→Move&nbsp;Speed). '
+        'Intrinsic Edge, Centaur’s Strength→Move&nbsp;Speed). '
         'Click a column header to sort.</p>\n'
     )
     toolbar = (
