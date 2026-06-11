@@ -33,14 +33,23 @@ body {
    centered content column sits on a dimmed dark panel so text stays readable.
    (First pass — tune the alpha / borders / margin reveal to taste.) ── */
 body.patch-page {
-  /* Valve's own patch-page background: featured.jpg, fixed cover, anchored top
-     (used unchanged). */
-  background-color: #0e1015;
-  background-image: url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/backgrounds/featured.jpg');
-  background-repeat: no-repeat;
-  background-position: center top;
-  background-size: cover;
-  background-attachment: fixed;
+  /* Shorthand on purpose: also WIPES the base body rule's radial gradients
+     and their background-attachment:fixed (same repaint-on-scroll issue). */
+  background: #0e1015;
+}
+/* Valve's patch-page texture (featured.jpg) as a FIXED UNDERLAY element, not
+   `background-attachment: fixed` on body. A fixed-attachment background can't
+   be scroll-blitted — with the translucent .cat-panels above it the browser
+   repainted the ENTIRE viewport every scroll frame (the "heavy scroll" on the
+   huge 7.41 page). A position:fixed pseudo gets its own compositor layer:
+   scrolling just re-composites on the GPU, zero repaints. Visual result is
+   identical (texture stays pinned while content scrolls over it). */
+body.patch-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #0e1015 url('https://cdn.steamstatic.com/apps/dota2/images/dota_react/backgrounds/featured.jpg') center top / cover no-repeat;
 }
 /* Container is transparent now — each category is its own opaque panel
    (.cat-panel) so categories break apart with the textured background showing
@@ -1491,8 +1500,8 @@ body:has(.creeps-page) nav.top-nav {
 .cal-ig-statline b {
   color: #79c0ff; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
-/* Major-patch count in the calendar's orange (matches .cal-*.major cells). */
-.cal-ig-statline b.cal-ig-major { color: #e3a15d; }
+/* Major-patch count in the calendar's blue (matches .cal-*.major cells + chart). */
+.cal-ig-statline b.cal-ig-major { color: #79c0ff; }
 /* Faint horizontal divider between stat groups. */
 .cal-ig-rule {
   height: 1px;
@@ -1619,10 +1628,10 @@ body:has(.creeps-page) nav.top-nav {
 .cal-patch.sub {
   background: rgba(110, 118, 129, 0.22);
 }
-/* Major patches — unified solid orange (compact) */
+/* Major patches — unified solid blue (compact), matches the cadence chart */
 .cal-patch.major {
-  background: rgba(212, 138, 78, 0.60);
-  border-color: rgba(212, 138, 78, 0.75);
+  background: rgba(88, 166, 255, 0.50);
+  border-color: rgba(88, 166, 255, 0.65);
 }
 .cal-patch.major .cal-day {
   color: #fff;
@@ -1641,7 +1650,9 @@ body:has(.creeps-page) nav.top-nav {
   z-index: 2;
   box-shadow:
     inset 0 1px 0 rgba(255, 235, 205, 0.35),
-    0 0 0 2px rgba(121, 192, 255, 0.85),
+    /* pre-divided by the brightness(1.2) filter above so the ring renders
+       as the site gold #e3c46a on screen (filter brightens box-shadows too) */
+    0 0 0 2px rgba(189, 163, 88, 0.90),
     0 2px 6px rgba(0, 0, 0, 0.4);
 }
 .cal-patch.current:hover {
@@ -1649,7 +1660,8 @@ body:has(.creeps-page) nav.top-nav {
   filter: brightness(1.35);
   box-shadow:
     inset 0 1px 0 rgba(255, 235, 205, 0.50),
-    0 0 0 2.5px rgba(121, 192, 255, 1),
+    /* pre-divided by brightness(1.35) — renders as #e3c46a */
+    0 0 0 2.5px rgba(168, 145, 79, 1),
     0 3px 10px rgba(0, 0, 0, 0.5);
 }
 span.cal-patch {
@@ -1747,9 +1759,9 @@ table tr.cross-row > td.cross-col {
   background: rgba(110, 118, 129, 0.4);
   color: #c9d1d9;
 }
-/* Major patches — unified solid orange (full grid) */
+/* Major patches — unified solid blue (full grid), matches the cadence chart */
 .cal-full-day.has-patch.major {
-  background: rgba(212, 138, 78, 0.80);
+  background: rgba(88, 166, 255, 0.70);
   color: #fff;
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
@@ -1760,14 +1772,16 @@ table tr.cross-row > td.cross-col {
   z-index: 4;
   filter: brightness(1.20);
   box-shadow:
-    0 0 0 2px rgba(121, 192, 255, 0.85),
+    /* pre-divided by brightness(1.2) — renders as #e3c46a */
+    0 0 0 2px rgba(189, 163, 88, 0.90),
     0 2px 8px rgba(0, 0, 0, 0.55);
 }
 .cal-full-day.has-patch.current:hover {
   z-index: 6;
   filter: brightness(1.35);
   box-shadow:
-    0 0 0 2.5px rgba(121, 192, 255, 1),
+    /* pre-divided by brightness(1.35) — renders as #e3c46a */
+    0 0 0 2.5px rgba(168, 145, 79, 1),
     0 4px 12px rgba(0, 0, 0, 0.65);
 }
 
@@ -1980,8 +1994,9 @@ h2.section {
     linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, transparent 18%, transparent 82%, rgba(0, 0, 0, 0.45) 100%),
     linear-gradient(180deg, #b53528 0%, #4a120c 100%);
   color: #fff;
-  font-size: 22px;
-  font-weight: 700;
+  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-size: 25px;
+  font-weight: 400;
   padding: 12px 18px;
   margin: 36px 0 20px;
   border-radius: 4px;
@@ -2010,8 +2025,12 @@ h2.section {
 }
 .entity-name {
   color: #f0c674;
-  font-size: 19px;
-  font-weight: 700;
+  /* Site pixel font (same family as the brand/nav). Jersey renders narrow
+     and has a single weight — bigger size + slight tracking compensate. */
+  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
 }
 .entity-icon img {
   display: block;
@@ -2110,6 +2129,15 @@ h2.section {
 .dyn-cell-wrap.current {
   cursor: default;
 }
+/* Raise the WHOLE wrap of the hovered cell above a just-left neighbour: the
+   leaving cell keeps its hover z for 0.14s (delayed z revert) while it
+   shrinks, and both cells' z values tie — so without this the leaving cell
+   can paint over the newly hovered one mid-descent. The wrap's z (7) beats
+   the leaving cell's held z (6); its own cell isn't isolated (wrap z:auto),
+   so the comparison happens in the same stacking context. */
+.dyn-cell-wrap:not(.empty):hover {
+  z-index: 7;
+}
 .dyn-cell {
   position: relative;
   z-index: 1;
@@ -2126,16 +2154,14 @@ h2.section {
        3. Fluid color gradient driven by JS (--dyn-bg)
      The opaque fallback color at the end ensures rendering even before
      JS runs. */
+  /* Glassy pill: thin top light edge + soft diagonal sheen + dark bottom
+     edge over the fluid tag gradient — single paint pass, no pseudos
+     (~3000 cells on the largest pages; extra layers cause scroll jank). */
   background:
-    radial-gradient(ellipse 55% 30% at 50% 10%,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.04) 60%,
-      rgba(255, 255, 255, 0.0) 100%),
-    linear-gradient(180deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.04) 32%,
-      rgba(255, 255, 255, 0.0) 55%,
-      rgba(0, 0, 0, 0.0) 65%,
+    linear-gradient(160deg,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.05) 42%,
+      rgba(255, 255, 255, 0.0) 62%,
       rgba(0, 0, 0, 0.10) 100%),
     var(--dyn-bg, rgba(10, 11, 14, 0.55));
   /* z-index reverts 0.14s AFTER un-hover (matches the scale duration) so the
@@ -2143,8 +2169,10 @@ h2.section {
      neighbour (later in DOM) paints over it mid-descent. */
   transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, z-index 0s linear 0.14s;
   box-shadow:
-    0 1px 1.5px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 /* Misc-only patch — every tag was MISC. The dimmed look is achieved by
    halving the fluid alpha in JS (see scripts.js `miscOnly` branch); we
@@ -2175,7 +2203,10 @@ h2.section {
     0 2px 4px rgba(0, 0, 0, 0.6),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     0 0 8px rgba(255, 255, 255, 0.22);
-  z-index: 5;
+  /* 6 — strictly ABOVE a just-left neighbour, which keeps its hover z (5,
+     via the delayed z-index revert) for 0.14s while it shrinks back.
+     Without this, the descending cell paints OVER the newly hovered one. */
+  z-index: 6;
 }
 /* Hover on the current patch — keep the same 2× pop + glow but layer the
    blue+black outline back on top so the "you are here" marker stays
@@ -2186,7 +2217,7 @@ h2.section {
     0 2px 4px rgba(0, 0, 0, 0.6),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     0 0 8px rgba(255, 255, 255, 0.22),
-    0 0 0 1.5px rgba(121, 192, 255, 0.95),
+    0 0 0 1.5px rgba(227, 196, 106, 0.95),
     0 0 0 2.5px rgba(0, 0, 0, 0.85);
 }
 /* Current patch (the page the user is on) — thin faint blue outline in
@@ -2194,15 +2225,15 @@ h2.section {
    (1px instead of 2px, lower alpha) so it reads as a subtle "you are
    here" marker without competing with the painted color band inside. */
 .dyn-cell-wrap.current .dyn-cell {
-  /* Two-layer outline: blue ring on top (1.5px) + a thin 1px black ring
-     beneath it, giving the marker a crisp dark edge against the page
-     background. box-shadow paints in source order top→bottom, so blue
+  /* Gold "you are here" ring: gold on top (1.5px) + a thin black ring
+     beneath, giving the marker a crisp dark edge against the page
+     background. box-shadow paints in source order top→bottom, so gold
      covers the inner 1.5px of the wider 2.5px black layer and leaves
      1px of black exposed as the outermost ring. */
   box-shadow:
     0 1px 1.5px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 0 0 1.5px rgba(121, 192, 255, 0.95),
+    0 0 0 1.5px rgba(227, 196, 106, 0.95),
     0 0 0 2.5px rgba(0, 0, 0, 0.85);
 }
 /* The convex highlight + specular layers used to live on ::before/::after
@@ -2714,6 +2745,9 @@ ul.changes li.ability-row-end {
    instead of dropping to the baseline of the larger heading text. */
 .entity-name .entity-new-type {
   margin-left: 8px;
+  /* The entity name itself is pixel-font (Jersey 25); these add-on labels
+     ("NEW ARMAMENT ITEM", "Recipe changed") stay in the regular UI font. */
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.4px;
@@ -2727,6 +2761,7 @@ ul.changes li.ability-row-end {
    'Recipe changed' on items whose components changed in this patch. */
 .entity-name .entity-changed-type {
   margin-left: 8px;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.4px;
@@ -3207,6 +3242,96 @@ ul.changes li.ability-row-end {
   color: #c9d1d9;
   font-size: 13.5px;
   line-height: 1.5;
+}
+/* ABILITY ORDER FLOW (Spirit Bear 7.40): bare square ability icons in one
+   horizontal row, old group → arrow → new group. Hover an icon for its name
+   (data-tooltip popup shared with .enchant-chip). Spans the full li width
+   below the row text (extras grid-column 1/-1). */
+.ability-order-flow {
+  /* Mirror .properties-change geometry (1fr | arrow | 1fr, 12px gap) so the
+     two icon panes line up flush with the stat-comparison panes above. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  column-gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+  /* full li width — same lane as correction-note/formula-table extras,
+     otherwise the row auto-places into the badge column (right edge)
+     and shoves the left tag off its row */
+  grid-column: 1 / -1;
+}
+.ability-order-flow .ao-arrow {
+  justify-self: center;
+}
+/* Each order group (old set / new set) sits in its own pane box —
+   same skin as .properties-pane. */
+.ability-order-flow .ao-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 10px;
+  background: rgba(139, 148, 158, 0.04);
+  border: 1px solid rgba(139, 148, 158, 0.18);
+  border-radius: 6px;
+}
+.ability-order-flow .ao-icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(139, 148, 158, 0.4);
+  border-radius: 4px;
+  background: #11161d;
+  overflow: visible;          /* tooltip must escape the box */
+}
+.ability-order-flow .ao-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  display: block;
+  object-fit: cover;
+}
+/* New-in-this-patch ability — purple NEW ring */
+.ability-order-flow .ao-icon.is-new {
+  border-color: rgba(184, 127, 255, 0.85);
+  box-shadow: 0 0 6px rgba(184, 127, 255, 0.35);
+}
+/* Hidden/innate slot — dimmed icon, tooltip stays full-strength */
+.ability-order-flow .ao-icon.is-dim img {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+.ability-order-flow .ao-arrow {
+  color: #e3c46a;
+  font-size: 18px;
+  margin: 0 4px;
+  flex: 0 0 auto;
+}
+/* Tooltip popup — same recipe as .enchant-chip[data-tooltip] */
+.ao-icon[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(13, 17, 23, 0.97);
+  color: #c9d1d9;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 6px 10px;
+  border: 1px solid rgba(139, 148, 158, 0.35);
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+  transition: opacity 0.12s 0.05s;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.ao-icon[data-tooltip]:hover::after {
+  opacity: 1;
 }
 .properties-change .property-badge {
   justify-self: end;
@@ -4146,7 +4271,10 @@ ul.changes li.aghanim-shard {
      For single-line rows layer 2 collapses to zero height (nothing below). */
   background:
     linear-gradient(90deg, transparent 0 70px, rgba(72, 148, 255, 0.20) 70px, rgba(72, 148, 255, 0.10) 60%, transparent 100%) no-repeat 0 3px / 100% 19px,
-    linear-gradient(90deg, rgba(72, 148, 255, 0.20) 0, rgba(72, 148, 255, 0.10) 60%, transparent 100%) no-repeat 0 22px / 100% calc(100% - 25px);
+    /* Wrapped-lines layer starts 3px lower and ends 3px earlier than before —
+       its top edge was hugging the first line's text (visually touching the
+       tag). The slimmer band stays centred on the wrapped lines. */
+    linear-gradient(90deg, rgba(72, 148, 255, 0.20) 0, rgba(72, 148, 255, 0.10) 60%, transparent 100%) no-repeat 0 25px / 100% calc(100% - 28px);
   border-radius: 3px;
 }
 /* Aghanim marker — inline icon appended to the change-text inside .row-text,
@@ -5533,6 +5661,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 .heroes-dyn-table .dyn-cell-wrap.bn-empty:hover .dyn-cell {
   background: rgba(12, 14, 19, 0.72);
   box-shadow: none;
+  filter: none;
   transform: none;
 }
 /* RULE (all tables): the gold row-mark must read as ONE uniform band + frame
@@ -5626,6 +5755,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
    Mana Items so all three behave identically. The bare ↕/↑/↓ glyphs hang
    low on the baseline; vertical-align: middle + a small upward nudge pulls
    them onto the header text's optical centre. */
+/* Label + arrow both vertical-align:middle so they share ONE midline —
+   otherwise the uppercase label aligns to its baseline while the arrow
+   centres on x-height, dropping it below the letters. */
+.creeps-table th.sortable .th-label,
+.mr-table thead th.sortable .th-label {
+  vertical-align: middle;
+}
 .creeps-table th.sortable .sort-ind,
 .mr-table thead th.sortable .sort-ind {
   margin-left: 3px;
@@ -5635,7 +5771,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   vertical-align: middle;
   line-height: 1;
   position: relative;
-  top: -0.12em;
+  /* Lift onto the UPPERCASE caps midline: vertical-align:middle centres on
+     x-height, which sits below the caps centre, and the arrow glyph renders
+     low in its own box — so nudge up a touch. */
+  top: -0.18em;
 }
 .creeps-table th.sortable .sort-ind::after { content: '↕'; }
 .creeps-table th.sort-desc .sort-ind,
@@ -6205,6 +6344,75 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
     inset  0   -2px 0 rgba(231, 196, 106, 0.95);
 }
 .mr-table tbody tr.mr-row-selected .mr-name-text { color: #fff8e0; }
+
+/* ───────────────────────── HERO STATS TABLE (heroes_stats.html) ───────────
+   mr-table skin (flat sort / heatmap / search / stat-hist tooltips reused
+   via the shared classes+ids) + hero-specific bits: sticky hero column,
+   Standard/Advanced column modes, per-attribute level-30 expanders. */
+/* Mode visibility. Advanced-only columns hide until the table gets
+   .show-adv; the level-30 columns additionally need their attribute's
+   expander class (source order: the .hs-x30 hide rule must follow the
+   .hs-adv show rule, the per-attribute show rules follow both). */
+.hs-table .hs-adv { display: none; }
+.hs-table.show-adv .hs-adv { display: table-cell; }
+/* Sticky hero column (single frozen column → plain CSS sticky, no JS lefts).
+   Solid backgrounds so scrolled columns disappear under it; header corner
+   sits above both axes' pinned bars (z 51 > th 50). */
+.mr-table.hs-table td.hs-name {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #11161d;
+}
+/* table-layout:fixed derives column widths from the FIRST row (the thead) —
+   the body's .mr-name width rule doesn't reach the th, so without this the
+   Hero HEADER was narrower than the hero column. */
+.mr-table.hs-table th.hs-name { width: 230px; }
+.mr-table.hs-table th.hs-col-attr { width: 56px; }
+/* Dim separator in combined values (vision "1800/800"). */
+.hs-table .hs-dim { color: #6e7681; padding: 0 2px; }
+.mr-table.hs-table thead th.hs-name {
+  position: sticky;
+  left: 0;
+  z-index: 51;
+}
+.mr-table.hs-table tbody tr:hover td.hs-name { background: #1a212b; }
+/* Hero portrait (16:9) in the name cell — same slot the item icon uses. */
+.hs-ico {
+  width: 40px;
+  height: 23px;
+  object-fit: cover;
+  border-radius: 3px;
+  display: block;
+}
+/* Primary-attribute icon cell */
+.hs-attr-cell { padding: 4px 6px; }
+.hs-attr-ico {
+  width: 20px;
+  height: 20px;
+  display: block;
+  margin: 0 auto;
+}
+/* Expanded layout grows the table HORIZONTALLY (Neutral Creeps convention) —
+   auto layout + max-content width so extra columns add width and the
+   .creeps-scroll box scrolls sideways, instead of fixed-layout squeezing
+   every column narrower until headers clip. */
+.mr-table.hs-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+/* Even grid: every numeric column shares one width floor; headers never
+   wrap or clip — a longer header (Attack Range) widens its own column. */
+.mr-table.hs-table thead th {
+  white-space: nowrap;
+}
+.mr-table.hs-table thead th:not(.hs-name):not(.hs-col-attr) {
+  min-width: 68px;
+}
+.mr-table.hs-table tbody td {
+  white-space: nowrap;
+}
 
 /* ============================================================================
    TERRAIN COMPARE  (terrain.html — Materials » Terrain)

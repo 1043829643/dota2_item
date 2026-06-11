@@ -223,7 +223,11 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
     for h in rows_data:
         key = h["key"]
         slug = key.split("|", 1)[-1]
-        eid = f"dyn-{kind}-{slug}"
+        # Anchor id mirrors _register_entity's "dyn-<entity_kind>-<slug>" using the
+        # KEY's own kind, not the page kind — a roster can carry foreign-kind rows
+        # (heroes_dyn includes Spirit Bear, key "creep-hero|spirit-bear", whose
+        # patch-page anchor is dyn-creep-hero-spirit-bear, not dyn-hero-...).
+        eid = "dyn-" + key.replace("|", "-")
         per_patch = (entities.get(key, {}) or {}).get("patches", {})
         # Lifespan window (items_dyn only; absent on heroes_dyn → spans everything):
         # blank columns BEFORE the item entered the game, and AFTER it was removed.

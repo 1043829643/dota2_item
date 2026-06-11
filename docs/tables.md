@@ -10,6 +10,7 @@ This covers the sortable data tables under the **Materials** section.
 | `neutral_creeps.html` | **Neutral Creeps** table (stats + abilities). `creeps.html` and `materials.html` are now redirects → `neutral_creeps.html`. | `build_creeps.py` |
 | `neutral_abilities.html` | Per-unit-ability table (one row per unit×ability). The Materials sub-nav presents it as a child of Neutral Creeps. `unit_abilities.html` is now a small meta-redirect for backwards compatibility. | `build_creeps.py` (same run) |
 | `mana_items.html` | Mana / mana-regen items + gold-efficiency metrics. | `build_mana_items.py` |
+| `heroes_stats.html` | **Hero Stats** — one row per hero (127), every base stat from `data/stats/<patch>/heroes.json`. Two modes: **Standard** (attributes base+gain, damage, armor, MS, range) and **Advanced** (`#hs-adv-toggle` → adds BAT / base HP / base mana / regens + per-attribute **level-30 expander** columns: header "30" chips toggle `show-<attr>30`; L30 = base + 29×gain, raw — no +2-all level bonuses). Every numeric cell carries the full 7.08→today change history (`data-hist` + `data-net` overall summary); the primary-attribute cell logs attribute swaps (kind `N`, e.g. Spectre Universal→Agility 7.40). **Reuses the mr-table front-end wholesale** (class `mr-table hs-table` + ids `mr-search`/`mr-heatmap-toggle`): flat data-sort sorting, heatmap, name search, stat-hist tooltips — only new JS is the mode/expander IIFE (`scripts.js` "HERO STATS"). Hero column = single CSS-sticky frozen col (`.hs-name`). Display names from `data/herolist.json` (+ `_NAME_OVERRIDES` for heroes newer than the datafeed dump, e.g. Largo); dirty KV values ("21a") number-prefix-parsed. | `build_heroes_stats.py` |
 | `heroes_dyn.html` | **Hero Dynamics matrix** — rows = every hero (icon+name, alphabetical), columns = every patch (version + release date oldest→newest), each cell = that hero's patch-dynamics **dyn-cell** for that patch. Same diamond-pill widget as patch pages. | `build_heroes_dyn.py` |
 | `items_dyn.html` | **Item Dynamics matrix** — like heroes_dyn, rows = **every real game item** (parity with heroes_dyn listing every hero), columns = every patch. Untouched items render as empty rows. Currently **350** (199 regular + 129 neutral + 22 enchant); 91 not-current (incl. 80 cycled-out neutrals — only the live pool of 49 shows by default), every one with an accurate removal patch. Adds an **In game** toggle (hide removed items, ON) + Type & Category multi-select dropdowns. | `build_items_dyn.py` |
 | nav / asset version / `data/site_meta.json` | Shared header, sub-tabs, cache-busting. | `site_common.py` |
@@ -23,6 +24,7 @@ Header sub-tabs (under the logo) switch between Neutral Creeps / Unit Abilities 
 python build_patch.py        # 1. writes data/site_meta.json (asset version, patch list)
 python build_creeps.py       # 2. -> neutral_creeps.html + neutral_abilities.html (+ creeps/materials/unit_abilities redirects)
 python build_mana_items.py   # 3. -> mana_items.html  (run AFTER build_patch)
+python build_heroes_stats.py # 3b. -> heroes_stats.html (run AFTER build_patch — needs site_meta dates)
 python build_heroes_dyn.py   # 4. -> heroes_dyn.html  (run AFTER build_patch — reads _dynamics.json)
 python build_items_dyn.py    # 5. -> items_dyn.html   (run AFTER build_patch — reads _dynamics.json)
 ```
@@ -305,6 +307,8 @@ every page including the patch notes.
 | `data/creeps_raw.csv` | creep order, level, `createhero` shortcut, attack-type |
 | `data/stats/<patch>/items.json` | per-patch item stats (cost, mana, regen…) → cell history |
 | `data/stats/<patch>/units.json` | per-patch unit stats (HP, armor, mana, dmg) |
+| `data/stats/<patch>/heroes.json` | per-patch HERO stats (attributes, armor, dmg, BAT, MS, range, HP/mana base, magic res, regen) → Hero Stats cells + history. All 116 patches. |
+| `data/stats/<patch>/heroes_raw.json` | per-patch HERO raw-only fields (vision day/night, projectile speed, base attack speed, turn rate, collision hull, bound radius) — NOT in heroes.json. Built by `scripts/fetch_hero_history.py` from dotabuff/d2vpkr's historical `npc_heroes.txt` (same commit-by-date matching as `fetch_npc_history.py`). Coverage 7.36→today (d2vpkr's window for this file). Run after a new patch lands to backfill. |
 | `data/stats/<patch>/npc_units.txt` | 7.41c-only: regen, bounty, vision, magres, abilities |
 | `data/stats/<patch>/npc_abilities.json` | per-patch neutral ability balance (`av_*`) |
 | `data/abilities_english.txt` | ability + **item** tooltip descriptions (icon hover) |

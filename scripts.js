@@ -2274,12 +2274,18 @@
       // where a single outlier (Dagon 5's 25.5k cost-per-regen) compressed
       // every other value into the same green band — now mid-tier rows get
       // mid-tier colours regardless of how far the worst outlier sits.
-      const sorted = cells.slice().sort((a, b) => a.v - b.v);
-      const rankMap = new Map();
-      sorted.forEach((c, i) => rankMap.set(c, i));
-      const last = sorted.length - 1;
+      // Rank over UNIQUE values so ties share one colour — otherwise a
+      // column of identical numbers (hero Vision: 1800 everywhere) painted
+      // a meaningless green→red gradient purely by row order.
+      const uniq = [...new Set(cells.map(c => c.v))].sort((a, b) => a - b);
+      if (uniq.length < 2) {
+        cells.forEach(c => { c.td.style.backgroundColor = ''; });
+        return;
+      }
+      const rankMap = new Map(uniq.map((v, i) => [v, i]));
+      const last = uniq.length - 1;
       cells.forEach(c => {
-        let t = rankMap.get(c) / last;     // [0, 1] by rank
+        let t = rankMap.get(c.v) / last;   // [0, 1] by unique-value rank
         if (direction === 'lower') t = 1 - t;
         // 0 → red, 60 → amber, 120 → green. Keep saturation + alpha
         // moderate so cross-hover darkening still reads on top.
@@ -2370,6 +2376,25 @@
     window.dispatchEvent(new CustomEvent('mr:filter-changed'));
   };
   search.addEventListener('input', apply);
+})();
+
+// ---- HERO STATS (heroes_stats.html): Standard / Expanded view ----
+// The table reuses the whole mr-table front-end (sort / heatmap / search /
+// stat-hist tooltips); the only page-specific behavior is the View dropdown
+// (same control as Neutral Creeps): 'expanded' → .show-adv on the table,
+// revealing the computed level-1 / min–max / level-30 columns.
+(function() {
+  const table = document.querySelector('.hs-table');
+  if (!table) return;
+  const viewSel = document.getElementById('hs-view-mode');
+  if (viewSel) {
+    const apply = () => {
+      table.classList.toggle('show-adv', viewSel.value === 'expanded');
+      window.dispatchEvent(new CustomEvent('mr:filter-changed'));  // heatmap re-scan
+    };
+    viewSel.addEventListener('change', apply);
+    apply();
+  }
 })();
 
 // ---- MANA ITEMS: Heatmap on/off toggle + recompute on filter change ----

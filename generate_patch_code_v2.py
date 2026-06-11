@@ -526,8 +526,19 @@ def _postprocess_aghs_merge(lines):
 
 
 _PER_LEVEL_FORMULA_RE = re.compile(
+    # "per level", "per level up" AND "per <Hero> level (up)" — Valve often
+    # interpolates the hero name ("4% per Enchantress level"), which the old
+    # bare "per level" pattern silently missed (7.40 Rabble-Rouser bug).
     r'(?P<base>\d+(?:\.\d+)?)(?P<pct>%?)\s*\+\s*(?P<inc>\d+(?:\.\d+)?)\2'
-    r'\s+per level(?: up)?\b'
+    r"\s+per(?:\s+[A-Z][\w'-]*)?\s+level(?: up)?\b"
+)
+
+# "X changed from <formula> to <formula>" — a DIFF of two per-level formulas
+# must become li_formula(...) (old vs new table), not a scale_pill around one
+# of them. Plain li lines only (no extra=), single t(...) tag.
+_FORMULA_DIFF_LINE_RE = re.compile(
+    r'^W\(li\("(?P<prefix>[^"]+?) from (?P<old>[^"]+?) to (?P<new>[^"]+?)",\s*'
+    r't\("(?:REWORK|MISC|BUFF|NERF)"\)\)\)$'
 )
 
 
@@ -552,6 +563,22 @@ def _postprocess_scale_pill(lines):
         if not m:
             out.append(line)
             continue
+        # TWO formulas in a "changed from X to Y" line → emit li_formula
+        # (old/new diff table), NOT a scale_pill around just one of them.
+        diff = _FORMULA_DIFF_LINE_RE.match(line)
+        if diff:
+            mo = _PER_LEVEL_FORMULA_RE.search(diff.group('old'))
+            mn = _PER_LEVEL_FORMULA_RE.search(diff.group('new'))
+            if mo and mn:
+                fmt = '"{:g}%"' if mo.group('pct') else '"{:g}"'
+                out.append(
+                    f'W(li_formula("{diff.group("prefix")}", '
+                    f'"{diff.group("old")}", "{diff.group("new")}", '
+                    f'lambda L: {mo.group("base")} + {mo.group("inc")}*L, '
+                    f'lambda L: {mn.group("base")} + {mn.group("inc")}*L, '
+                    f'value_fmt={fmt}))'
+                )
+                continue
         base_s = m.group('base')
         inc_s = m.group('inc')
         pct = m.group('pct')
@@ -562,10 +589,12 @@ def _postprocess_scale_pill(lines):
         counter += 1
         var = f'_pill{counter}'
         out.append(
+            # No levels= override: the FULL default grid (L1-15, 20, 25, 30)
+            # is the site standard for formula tables. Only abilities that
+            # scale every X>1 levels get a custom step-X grid (manual).
             f'{var} = scale_pill('
             f'"{formula_text}", '
-            f'lambda L: {base_s} + {inc_s}*L, '
-            f'levels=[1,5,10,15,20,25,30])'
+            f'lambda L: {base_s} + {inc_s}*L)'
         )
         # Replace the formula substring inside the li text with the
         # trigger HTML (formed by an f-string concatenation at runtime).
