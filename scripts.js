@@ -3,8 +3,8 @@
   // ---- BACK-FROM-CALENDAR / BACK-FROM-PATCH ----
   // The back arrow normally points to the calendar (rendered in HTML).
   // Two trigger paths:
-  //   ?from=calendar           → show arrow, default href is fine
-  //   ?from=<patch-version>    → user navigated here from another patch via
+  //   ?from=calendar           в†’ show arrow, default href is fine
+  //   ?from=<patch-version>    в†’ user navigated here from another patch via
   //                              the dynamics widget; rewrite the arrow's
   //                              href + label to point back to that patch.
   const params = new URLSearchParams(window.location.search);
@@ -24,7 +24,7 @@
   } else if (back && fromParam && /^\d+\.\d+[a-z]?$/.test(fromParam)) {
     // Came from another patch via the dynamics widget. The dyn-cell href
     // also carries an entity anchor (#dyn-hero-...) so the destination page
-    // scrolls to that entity — the SAME entity was visible on the origin
+    // scrolls to that entity вЂ” the SAME entity was visible on the origin
     // page, so reusing the current hash on the back-link restores the
     // user's scroll position on return.
     back.href = fromParam + '.html' + (window.location.hash || '');
@@ -37,8 +37,8 @@
   // override was what made it overlap the tag block).
 
   // ---- RE-ANCHOR after load (patch pages) ----
-  // Arriving with a #dyn-hero-… hash (from the Hero Dynamics matrix or another
-  // patch's dynamics widget), the browser anchors immediately — but lazy hero/
+  // Arriving with a #dyn-hero-вЂ¦ hash (from the Hero Dynamics matrix or another
+  // patch's dynamics widget), the browser anchors immediately вЂ” but lazy hero/
   // item icons ABOVE the target then load and shift layout, leaving the target
   // scrolled off-screen. Re-scroll once everything has settled, offsetting for
   // the sticky nav so the heading isn't hidden behind it. Table pages run their
@@ -54,7 +54,7 @@
       window.scrollTo(0, Math.max(0, y));
     };
     // Several passes: the browser re-applies its own (nav-ignoring) hash scroll
-    // around the load event, and late images shift layout — re-run after each so
+    // around the load event, and late images shift layout вЂ” re-run after each so
     // the final position wins and accounts for the sticky nav.
     window.addEventListener('load', () => {
       reanchor();
@@ -65,7 +65,7 @@
 
   // ---- BACK TO TOP visibility ----
   // Guard for pages without the button (e.g. creeps.html). Without this
-  // null-guard, updateBtt() throws at load and halts the whole script —
+  // null-guard, updateBtt() throws at load and halts the whole script вЂ”
   // which silently broke the creep-icon copy handler below.
   const btt = document.querySelector('.back-to-top');
   if (btt) {
@@ -102,13 +102,13 @@
   // styles.css so the user doesn't see all 7 buttons appear and then watch
   // the absent one(s) (e.g. QoL on a patch without QoL rows) disappear on
   // Ctrl+F5. We compute presence, hide the absent buttons, THEN flip the
-  // container to visible — a single resolved render, no flash.
+  // container to visible вЂ” a single resolved render, no flash.
   const presentTags = new Set();
   document.querySelectorAll('[data-tag]').forEach(el => {
     (el.dataset.tag || '').split(' ').filter(Boolean).forEach(t => presentTags.add(t));
   });
   // Recipe-changed items count as REWORK even if none of their explicit rows
-  // carry t("REWORK") — keep the filter button discoverable on those pages.
+  // carry t("REWORK") вЂ” keep the filter button discoverable on those pages.
   if (document.querySelector('.entity-block.is-changed')) presentTags.add('rework');
   document.querySelectorAll('.filter-btn').forEach(btn => {
     if (!presentTags.has(btn.dataset.filter)) {
@@ -126,7 +126,7 @@
     const html = text
       .replace(/\b(\d+\.\d+[a-z]?)\b/g, '<strong>$1</strong>')   // version like 7.41b
       .replace(/\b(\d+)\b(?=\s+days?)/g, '<strong>$1</strong>')   // numbers before "days"
-      .replace(/·/g, '<span class="age-sep">·</span>');
+      .replace(/В·/g, '<span class="age-sep">В·</span>');
     ageEl.innerHTML = html;
   }
 
@@ -172,7 +172,7 @@
       h.classList.toggle('f-hide', !hasVisibleContent);
     });
     // Collapse a whole category section (section.cat-panel, incl. its h2.section
-    // header + slab) when every entity inside it was filtered out — otherwise an
+    // header + slab) when every entity inside it was filtered out вЂ” otherwise an
     // emptied section leaves a bare slab strip between two visible sections.
     // Runs AFTER the entity-block pass above so each block's f-hide is settled.
     document.querySelectorAll('section.cat-panel').forEach(panel => {
@@ -184,7 +184,7 @@
     });
     // The entity-block top hairline is suppressed on the section's FIRST block
     // (`h2.section + .entity-block`), but once filtering hides earlier blocks the
-    // first SURVIVING block isn't that one anymore → an orphan line appears under
+    // first SURVIVING block isn't that one anymore в†’ an orphan line appears under
     // the category header. Re-mark the first visible block per section so CSS can
     // drop its top border.
     document.querySelectorAll('.entity-block.first-visible')
@@ -211,7 +211,7 @@
       if (!matches) li.classList.add('f-hide');
     });
     // Block-level swap visuals (ability_change) carry their own data-tag and
-    // sit outside ul.changes — hide them when none of their tags is active.
+    // sit outside ul.changes вЂ” hide them when none of their tags is active.
     document.querySelectorAll('.ability-change[data-tag]').forEach(block => {
       const tags = (block.dataset.tag || '').split(' ').filter(Boolean);
       if (!tags.some(t => activeFilters.has(t))) block.classList.add('f-hide');
@@ -286,7 +286,7 @@
   // ---- ENTITY SEARCH ----
   // Guard: pages without the search box (e.g. creeps.html) skip this whole
   // block. Without the guard, searchInput.addEventListener below throws on
-  // null and halts the script — which silently broke later handlers.
+  // null and halts the script вЂ” which silently broke later handlers.
   const searchInput = document.getElementById('entity-search');
   const resultsBox = document.getElementById('search-results');
   if (searchInput && resultsBox) {
@@ -311,7 +311,7 @@
       kind: kind
     });
   });
-  // Also index ability titles (h4.ability-title) — pull icon from the .ability-block
+  // Also index ability titles (h4.ability-title) вЂ” pull icon from the .ability-block
   // wrapper so search results show the same picture as the ability heading.
   // Innate abilities that have their own icon (e.g. Invoker's Invoke =
   // invoker_invoke.png + small innate marker overlay) should still use that
@@ -385,7 +385,7 @@
     if (!target) return;
     // Offset for the sticky nav so the heading lands just BELOW it. Plain
     // scrollIntoView({block:'start'}) parks the heading at viewport top, hidden
-    // behind the nav — so you see the rows under it and it reads as "jumped
+    // behind the nav вЂ” so you see the rows under it and it reads as "jumped
     // past / below the result". Mirror the re-anchor offset used on load.
     const navH = parseFloat(getComputedStyle(document.documentElement)
       .getPropertyValue('--site-nav-h')) || 70;
@@ -469,7 +469,7 @@
   // dimensions (icon images may load late and shift the icon position).
   window.addEventListener('load', drawAbilityChangeConnectors);
   // Re-run when an inline formula table toggles open/closed inside an
-  // ability_change block — the block's height changes, so the SVG canvas
+  // ability_change block вЂ” the block's height changes, so the SVG canvas
   // dimensions (which cover blockRect.height) must be recalculated.
   document.addEventListener('toggle', (e) => {
     if (e.target && e.target.closest && e.target.closest('.ability-change-block')) {
@@ -478,15 +478,15 @@
   }, true);
 
   // ---------------------------------------------------------------------
-  // Brewling connector — dashed lines from Primal Split icon down to each
+  // Brewling connector вЂ” dashed lines from Primal Split icon down to each
   // of the four brewling ability blocks (Earth / Storm / Fire / Void).
   // Same dashed style as the ability_change-connector (.ability-change-
   // connector path), but a single SVG attached to <body> overlays multiple
   // ability blocks via document-level coordinates.
   // ---------------------------------------------------------------------
   // Ability-tree groups: a parent ability icon dashed-linked down to its
-  // child blocks. Used for Brewmaster's Primal Split → brewlings and
-  // Drunken Brawler → stances (same visual concept).
+  // child blocks. Used for Brewmaster's Primal Split в†’ brewlings and
+  // Drunken Brawler в†’ stances (same visual concept).
   const ABILITY_TREES = [
     {
       parent: 'brewmaster_primal_split',
@@ -529,7 +529,7 @@
     const childRects = childImgs.map((i) => i.getBoundingClientRect());
 
     // Trunk: vertical line in the left gutter just outside the parent icon's
-    // left edge — visually "comes out" of the Primal Split icon.
+    // left edge вЂ” visually "comes out" of the Primal Split icon.
     const trunkX = docX(parentRect) - 12;
     const startY = docY(parentRect) + parentRect.height / 2;
     const lastChild = childRects[childRects.length - 1];
@@ -580,13 +580,13 @@
   // ---------------------------------------------------------------------
   // For every .entity on the page, fetch _dynamics.json once, derive the
   // entity's (kind, slug) from its DOM id ("dyn-<kind>-<slug>"), and append
-  // a row of diamond pills — one per recent patch. Each pill shows a
+  // a row of diamond pills вЂ” one per recent patch. Each pill shows a
   // proportional gradient of tag colors; untouched pills are dark/glassy.
   // Click on a touched pill navigates to that patch HTML, scrolling to the
   // same entity anchor when present.
   // Tag colors rendered with alpha so the fluid layer reads as translucent
   // liquid sitting inside a recessed glass diamond rather than a solid pill.
-  // Hues chosen so adjacent bands in DYN_TAG_ORDER below contrast — NEW
+  // Hues chosen so adjacent bands in DYN_TAG_ORDER below contrast вЂ” NEW
   // moves to gold (matching the .badge.new page color) so it stops getting
   // visually swallowed when it sits next to BUFF (green).
   // Stored as RGB tuples; alpha is computed at render time per band so
@@ -600,7 +600,7 @@
     del:    [177, 78, 107],  // pink
     nerf:   [209, 75, 75],   // red
   };
-  // Map a tag's count → rgba alpha. Single-hit bands sit near the old
+  // Map a tag's count в†’ rgba alpha. Single-hit bands sit near the old
   // baseline (~0.50), heavy bands push toward fully-saturated 0.90 so
   // the visual difference between "1 buff" and "8 buffs" is obvious at
   // a glance. Wider range than before for a more expressive ramp.
@@ -609,7 +609,7 @@
   const DYN_ALPHA_MAX  = 0.90;
   function dynColorFor(tag, count) {
     const rgb = DYN_TAG_RGB[tag];
-    // count=1 → BASE, then each additional hit adds STEP, clamped at MAX.
+    // count=1 в†’ BASE, then each additional hit adds STEP, clamped at MAX.
     const alpha = Math.min(
       DYN_ALPHA_MAX,
       DYN_ALPHA_BASE + Math.max(0, count - 1) * DYN_ALPHA_STEP
@@ -620,17 +620,17 @@
     buff:'BUFF', nerf:'NERF', new:'NEW', del:'DEL',
     rework:'REWORK', misc:'MISC', qol:'QoL',
   };
-  // Tag id → page-badge css class. Matches the styles in styles.css so
+  // Tag id в†’ page-badge css class. Matches the styles in styles.css so
   // tooltip badges look identical to the row badges everywhere else.
   const DYN_TAG_BADGE_CLASS = {
     buff:'buff-text', nerf:'nerf-text', new:'new', del:'del',
     rework:'rework', misc:'misc', qol:'qol',
   };
-  // Order is also the visual top→bottom band stack inside each pill, AND
+  // Order is also the visual topв†’bottom band stack inside each pill, AND
   // the row order in the tooltip grid. Sequenced so neighbouring bands
-  // change hue family (green → gold → purple → grey → blue → pink → red).
+  // change hue family (green в†’ gold в†’ purple в†’ grey в†’ blue в†’ pink в†’ red).
   const DYN_TAG_ORDER = ['buff','new','rework','misc','qol','del','nerf'];
-  // Tags kept OUT of the dyn-cell colored gradient. Now EMPTY — MISC (grey)
+  // Tags kept OUT of the dyn-cell colored gradient. Now EMPTY вЂ” MISC (grey)
   // and QoL (blue) are coloured bands like every other tag (user request), so
   // they contribute to the diamond's fill on both patch pages and heroes_dyn.
   // The "misc-only" dimmed-fallback path below is now effectively dead (kept
@@ -641,15 +641,15 @@
   function dynBuildPill(patch, counts, entityId, isCurrent, fromVersion, filePrefix, bnOnly, removed, debut) {
     // "Remove" tag filter (toolbar chips): zero out user-removed tags for the
     // CELL colouring. The hover tooltip below still uses the ORIGINAL counts, so
-    // a removed tag stays visible on hover — it's only dropped from the diamond.
+    // a removed tag stays visible on hover вЂ” it's only dropped from the diamond.
     const eff = (removed && removed.size)
       ? DYN_TAG_ORDER.reduce((o, t) => { o[t] = removed.has(t) ? 0 : (counts[t] || 0); return o; }, {})
       : counts;
     const origTotal = DYN_TAG_ORDER.reduce((s, t) => s + (counts[t] || 0), 0);
-    const total = DYN_TAG_ORDER.reduce((s, t) => s + (eff[t] || 0), 0);   // effective → drives fill/empty
+    const total = DYN_TAG_ORDER.reduce((s, t) => s + (eff[t] || 0), 0);   // effective в†’ drives fill/empty
     const clickable = origTotal > 0 && patch.filename && !isCurrent;
     // Gradient source (over EFFECTIVE counts). Default = non-neutral tags vs the
-    // full effective total (MISC/QoL leave a gap — patch-page look). "Buff/nerf
+    // full effective total (MISC/QoL leave a gap вЂ” patch-page look). "Buff/nerf
     // only" (bnOnly) collapses to TWO bands: buff+NEW (green), nerf+DEL (red).
     // `debut` = the item's introduction cell (data-debut): its NEW rows mean
     // "item now exists", so they must NOT fold into buff (items_dyn only).
@@ -670,7 +670,7 @@
     if (isCurrent) wcls += ' current';
     if (origTotal && !patch.filename) wcls += ' no-page';
     if (miscOnly) wcls += ' misc-only';
-    // No colour left to show — bnOnly with no buff/nerf, OR every colour tag
+    // No colour left to show вЂ” bnOnly with no buff/nerf, OR every colour tag
     // removed via the toolbar chips. Render as a plain EMPTY cell (not a dark
     // glassy pill); it stays clickable + keeps its hover tooltip.
     if (origTotal > 0 && coloredTotal === 0 && !miscOnly) wcls += ' bn-empty';
@@ -682,16 +682,16 @@
       // Build a vertical gradient where each tag occupies a band proportional
       // to its share. Instead of hard color-stops at the band boundaries we
       // leave a `bleed` zone on each side so adjacent colors interpolate
-      // across it — this produces the soft "liquid floating at different
+      // across it вЂ” this produces the soft "liquid floating at different
       // densities" look rather than crisp horizontal stripes. The bleed is
       // capped to half the band width to stay within the segment.
       //
-      // MISC and QoL are intentionally EXCLUDED from the gradient — these
+      // MISC and QoL are intentionally EXCLUDED from the gradient вЂ” these
       // neutral bands dilute the pill's color signal without adding meaning.
       // The tags still surface in the tooltip grid below.
       const tags = gradTagSet.filter(t => gradCounts[t] > 0);
       // Bleed: % half-width of the soft transition zone between adjacent
-      // bands. Zero = hard cuts between bands — no phantom mid-tones.
+      // bands. Zero = hard cuts between bands вЂ” no phantom mid-tones.
       const bleed = 0;
       let acc = 0;
       const stops = [];
@@ -718,7 +718,7 @@
         cell.style.setProperty('--dyn-bg', `linear-gradient(to bottom, ${stops.join(', ')})`);
       } else if (miscOnly) {
         // Flat-gradient wrapper instead of a raw color so the value always
-        // parses as `background-image` — keeps the bg-color slot free for
+        // parses as `background-image` вЂ” keeps the bg-color slot free for
         // the hover-time opaque backdrop layer. Alpha is halved here to
         // preserve the dimmed-out neutral-only look. Uses EFFECTIVE counts so a
         // removed neutral tag doesn't pick the fill colour.
@@ -742,7 +742,7 @@
     return wrap;
   }
 
-  // Tooltip popup — a real DOM sibling of .dyn-cell (not a pseudo) so it
+  // Tooltip popup вЂ” a real DOM sibling of .dyn-cell (not a pseudo) so it
   // escapes the diamond's clip-path. Content:
   //   - Header: version + date.
   //   - Body: 2-column grid of tag badges (page-style) each followed by
@@ -768,7 +768,7 @@
         badge.textContent = DYN_TAG_LABEL[t];
         const count = document.createElement('span');
         count.className = 'dyn-tip-count';
-        count.textContent = '×' + c;
+        count.textContent = 'Г—' + c;
         row.appendChild(badge);
         row.appendChild(count);
         grid.appendChild(row);
@@ -796,17 +796,17 @@
     return t ? t[1] : null;
   }
 
-  // Known entity kinds — must match the strings emitted by _register_entity()
+  // Known entity kinds вЂ” must match the strings emitted by _register_entity()
   // in build_patch.py. Ordered longest-first so "creep-hero" wins over "creep".
   const DYN_KINDS = ['creep-hero', 'hero', 'item', 'unit', 'plain', 'enchant'];
 
   // Cache the per-page patches window so we compute it once, not 250+ times.
-  // Pure function of manifest → ordered patches array.
+  // Pure function of manifest в†’ ordered patches array.
   function dynWindow(manifest) {
     // Always show the 12 newest patches in RELEASE_HISTORY, regardless of
     // which patch page the user is currently on. The .current class on the
     // pill that matches the page version visually marks where they are.
-    // manifest.patches is newest-first → take first 12, reverse so oldest
+    // manifest.patches is newest-first в†’ take first 12, reverse so oldest
     // is on the left in the rendered row.
     return manifest.patches.slice(0, 12).reverse();
   }
@@ -832,8 +832,8 @@
 
   // Fill / refill the heroes_dyn matrix's data cells with one pill each. Only
   // cells the builder marked with data-ver/data-hkey (the hero actually changed
-  // that patch) are filled — untouched cells stay as the CSS empty diamond, so
-  // runtime work scales with real data, not the full N×M grid. Re-runnable: it
+  // that patch) are filled вЂ” untouched cells stay as the CSS empty diamond, so
+  // runtime work scales with real data, not the full NГ—M grid. Re-runnable: it
   // clears any existing pill first, so the "Buff vs nerf" toggle can rebuild.
   function dynFillMatrix(table, manifest, bnOnly, removed) {
     const byVer = {};
@@ -858,7 +858,7 @@
   }
 
   // Single <style> whose rule hides the oldest patch columns. Editing one rule
-  // is far cheaper than toggling display on thousands of cells (115 cols × 127
+  // is far cheaper than toggling display on thousands of cells (115 cols Г— 127
   // rows) every resize.
   let _dynFitStyle = null;
   function dynFitStyleEl() {
@@ -875,8 +875,8 @@
   //    box width, sized to fill it exactly (latest flush right); hide the rest.
   //  - "Hide old" OFF: show every patch at the base column width and scroll, with
   //    the box scrolled to the right so the latest still ends at the right edge.
-  const HD_MIN_COL = 40;            // base/min patch-column width (px) — fits the 12px version label
-  // Right gutter kept clear of the last column so its 2.5× hover-pop isn't cut
+  const HD_MIN_COL = 40;            // base/min patch-column width (px) вЂ” fits the 12px version label
+  // Right gutter kept clear of the last column so its 2.5Г— hover-pop isn't cut
   // off by the box edge / vertical scrollbar (the pop grows ~18px past the cell).
   const HD_RIGHT_GUTTER = 24;
   function dynLayoutMatrix(table, fit) {
@@ -884,7 +884,7 @@
     if (!scroller) return;
     // Hero column width = longest name + icon + gap + padding. The names never
     // change, so measuring all ~170 rows' scrollWidth on EVERY layout (toggle /
-    // resize) forced a costly reflow each time → lag. Measure once and cache on
+    // resize) forced a costly reflow each time в†’ lag. Measure once and cache on
     // the table; the `load` handler clears it once so fonts/icons settle first.
     let heroW = table._hdHeroW;
     if (heroW == null) {
@@ -904,7 +904,7 @@
     const style = dynFitStyleEl();
     if (fit && avail > HD_MIN_COL) {
       const n = Math.min(total, Math.max(1, Math.floor(avail / HD_MIN_COL)));
-      const colW = avail / n;                 // fill exactly → latest flush right
+      const colW = avail / n;                 // fill exactly в†’ latest flush right
       table.style.setProperty('--hd-col-w', colW.toFixed(2) + 'px');
       const hide = total - n;                 // hide the oldest `hide` columns
       // Patch columns are table children 2..(total+1); hero is child 1.
@@ -913,6 +913,7 @@
           + `.heroes-dyn-table tbody td.hd-cell:nth-child(-n+${hide + 1}):nth-child(n+2)`
           + `{display:none}`
         : '';
+      scroller.scrollLeft = 0;
     } else {
       table.style.setProperty('--hd-col-w', HD_MIN_COL + 'px');
       style.textContent = '';
@@ -997,7 +998,7 @@
       boxes.forEach(b => b.addEventListener('change', () => { sync(); onChange(); }));
     });
     document.addEventListener('click', () => closeAll(null));
-    // Button moves with the page but a fixed menu doesn't — close on scroll/resize.
+    // Button moves with the page but a fixed menu doesn't вЂ” close on scroll/resize.
     window.addEventListener('scroll', () => closeAll(null), true);
     window.addEventListener('resize', () => closeAll(null));
   }
@@ -1013,14 +1014,14 @@
     layout();
     if (elOld) elOld.addEventListener('change', layout);
 
-    // "Buff vs nerf": collapse each cell to two bands — buff + NEW (green) vs
+    // "Buff vs nerf": collapse each cell to two bands вЂ” buff + NEW (green) vs
     // nerf + DEL (red); rework/misc/qol drop out of the colour (the hover tooltip
-    // still lists every tag). dynBuildPill does the buff←NEW / nerf←DEL fold, so
-    // this switch ONLY flips the bnOnly flag — the Remove chips stay an entirely
+    // still lists every tag). dynBuildPill does the buffв†ђNEW / nerfв†ђDEL fold, so
+    // this switch ONLY flips the bnOnly flag вЂ” the Remove chips stay an entirely
     // INDEPENDENT control (no longer auto-toggled by this switch).
     if (elBn) elBn.addEventListener('change', refill);
 
-    // "Remove" tag chips — clicking toggles a tag off (sunken + grey) and drops
+    // "Remove" tag chips вЂ” clicking toggles a tag off (sunken + grey) and drops
     // it from every dyn-cell's colouring (hover tooltip still lists it).
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
@@ -1031,10 +1032,10 @@
       });
     });
 
-    // Row filters — name search + (items_dyn only) item-class chips + "Show
+    // Row filters вЂ” name search + (items_dyn only) item-class chips + "Show
     // deleted" toggle, all combined into ONE visibility pass so they don't fight
     // over tr.style.display. Search: comma-separated, partial ("anci,aba,brood").
-    // Class chips / deleted toggle are absent on heroes_dyn → their predicates
+    // Class chips / deleted toggle are absent on heroes_dyn в†’ their predicates
     // are no-ops there. Row display only (never re-measures the hero width).
     const search = document.getElementById('hd-hero-search');
     const page = table.closest('.creeps-page');
@@ -1050,7 +1051,7 @@
         ? search.value.toLowerCase().split(',').map(s => s.trim()).filter(Boolean)
         : [];
       // Multi-select dropdowns (Type=class, Category): a row must satisfy EVERY
-      // active dropdown — its data-<dd> value among that dropdown's checked options.
+      // active dropdown вЂ” its data-<dd> value among that dropdown's checked options.
       // Menus are portaled to <body>, so find each by its data-dd (not by containment).
       const ddFilters = page
         ? [...page.querySelectorAll('.hd-dd[data-dd]')].map(dd => {
@@ -1072,17 +1073,17 @@
       rows.forEach(tr => {
         const cell = tr.querySelector('td.hd-hero');
         const name = (cell?.dataset.sort || '').toLowerCase();
-        // data-alias = abbreviations + acronym (aghs→Aghanim's Scepter, bkb→…).
+        // data-alias = abbreviations + acronym (aghsв†’Aghanim's Scepter, bkbв†’вЂ¦).
         const alias = (cell?.dataset.alias || '').toLowerCase();
         const okSearch = !terms.length
           || terms.some(t => name.includes(t) || alias.includes(t));
         // A row with no data-<dd> value is EXEMPT from that dropdown (e.g. neutrals/
-        // enchants have no shop category → the Category filter never hides them).
+        // enchants have no shop category в†’ the Category filter never hides them).
         const okDd = ddFilters.every(f => {
           const v = tr.dataset[f.key];
           return v === undefined || f.checked.has(v);
         });
-        // data-current="0" = removed from the game → shown only when "Show deleted".
+        // data-current="0" = removed from the game в†’ shown only when "Show deleted".
         const okDel = showDeleted || tr.dataset.current !== '0';
         const okAttack = !attackFilter || tr.dataset.attackType === attackFilter;
         // Price: items without data-price (neutrals/enchants = free) are EXEMPT.
@@ -1121,13 +1122,13 @@
     applyRowFilters();   // initial pass (deleted hidden + only Items class by default)
 
     window.addEventListener('resize', layout, { passive: true });
-    // On load, ONLY re-fit the columns to the (settled) box width — reuse the
+    // On load, ONLY re-fit the columns to the (settled) box width вЂ” reuse the
     // cached identity-column width from setup. Do NOT re-measure it here: setup
     // measured it over ALL rows (before the default class/Deleted filters hid
     // some), so it's already complete + correct. Re-measuring now would see only
-    // the VISIBLE rows (shorter names) → a smaller heroW → the column fit
+    // the VISIBLE rows (shorter names) в†’ a smaller heroW в†’ the column fit
     // (computed from it) would mismatch the real heroW and overflow the box with a
-    // horizontal scrollbar (the items_dyn bug — heroes_dyn has no default filter so
+    // horizontal scrollbar (the items_dyn bug вЂ” heroes_dyn has no default filter so
     // it never showed). Names use the system font (no web-font reflow), so the
     // setup measure needs no font-settle correction.
     window.addEventListener('load', layout);
@@ -1152,7 +1153,7 @@
             e.dataset.dynBuilt = '1';
             dynRenderRow(e, manifest, windowed, currentVersion);
           };
-          // Build each entity's cell row LAZILY as it nears the viewport — on a
+          // Build each entity's cell row LAZILY as it nears the viewport вЂ” on a
           // 1800-change patch that's ~3200 gradient cells; creating them all on
           // load is the page's biggest cost. IntersectionObserver builds only
           // what's near view, then unobserves. Identical look, far less work.
@@ -1186,7 +1187,7 @@
         if (matrix) dynSetupMatrix(matrix, manifest);
         dynAttachTooltipDelegation();
       })
-      .catch(() => { /* silently fail — widget is an enhancement */ });
+      .catch(() => { /* silently fail вЂ” widget is an enhancement */ });
   }
 
   // Single shared tooltip lives on document.body (NOT inside any .dyn-cell-
@@ -1195,7 +1196,7 @@
   //      each hover. With 3000+ cells on big patches, per-cell pre-built
   //      tooltips were adding ~50k DOM nodes upfront.
   //   2. content-visibility:auto on .entity-block implies `contain: paint`
-  //      which CLIPS any descendant — including tooltips that overflow
+  //      which CLIPS any descendant вЂ” including tooltips that overflow
   //      above the block. Living on body escapes that clip.
   function dynAttachTooltipDelegation() {
     const shared = document.createElement('span');
@@ -1220,7 +1221,7 @@
       const tipRect = shared.getBoundingClientRect();
       let left = r.left + r.width / 2 - tipRect.width / 2;
       left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
-      // Cell scales to 2.5× on hover from its centre, so it grows ~18px
+      // Cell scales to 2.5Г— on hover from its centre, so it grows ~18px
       // upward beyond the wrap's static bounding rect. Push the tooltip
       // 24px above r.top (18 expansion + 6 clearance) so it never sits on
       // the inflated cell.
@@ -1251,7 +1252,7 @@
   dynInit();
 })();
 
-// ---- CREEPS TABLE: click icon → copy "-createhero <name> neutral" ----
+// ---- CREEPS TABLE: click icon в†’ copy "-createhero <name> neutral" ----
 (function() {
   const icons = document.querySelectorAll('.creep-copy[data-cmd]');
   if (!icons.length) return;
@@ -1317,8 +1318,8 @@
   const headers = [...table.querySelectorAll('thead th.sortable')];
   if (!tbody || !headers.length) return;
 
-  // Map column key → body-cell index. data-idx is authored server-side so
-  // it stays correct despite the colspan=2 on the Юнит header (which makes
+  // Map column key в†’ body-cell index. data-idx is authored server-side so
+  // it stays correct despite the colspan=2 on the Р®РЅРёС‚ header (which makes
   // DOM th position diverge from cell index).
   const colIndex = {};
   headers.forEach(th => {
@@ -1328,7 +1329,7 @@
   // Sort value for a cell: prefer the numeric data-lvl on the level
   // column (its text gets blanked by collapseLevels), else parse the
   // first number out of the text (handles "240", "+0,5", "3-5",
-  // "1400/800", "0%", "Ближняя (100)"), else fall back to lowercased
+  // "1400/800", "0%", "Р‘Р»РёР¶РЅСЏСЏ (100)"), else fall back to lowercased
   // text. Empty cells return null and always sink to the bottom.
   function cellVal(tr, idx) {
     const td = tr.children[idx];
@@ -1344,8 +1345,8 @@
       return isNaN(n) ? s.toLowerCase() : n;
     }
     const t = td.textContent.trim();
-    if (!t || t === ' ') return null;
-    if (t === '-') return 0;   // explicit "no mana" — sorts as the minimum, not last
+    if (!t || t === 'В ') return null;
+    if (t === '-') return 0;   // explicit "no mana" вЂ” sorts as the minimum, not last
     const m = t.replace(',', '.').match(/-?\d+(?:\.\d+)?/);
     return m ? parseFloat(m[0]) : t.toLowerCase();
   }
@@ -1354,7 +1355,7 @@
   // draw the group divider (tier-break) at each run start. Works in any
   // row order, so the grouped look survives sorting by level. Visibility-
   // aware: rows hidden by filter (mr-attack-out / mr-filtered-out /
-  // mr-search-out → display:none) don't participate in run tracking — else
+  // mr-search-out в†’ display:none) don't participate in run tracking вЂ” else
   // a hidden "first of group" row would leave the next visible row blank
   // (the bug behind the ranged filter losing all level labels).
   function collapseLevels(rows) {
@@ -1372,7 +1373,7 @@
     });
   }
 
-  // Unit Abilities: group consecutive rows of the SAME unit — show the Lvl +
+  // Unit Abilities: group consecutive rows of the SAME unit вЂ” show the Lvl +
   // Unit icon only on the first row of each run, hide on the rest (cells stay
   // for alignment). Recomputed after every sort so it works in any order.
   const isUA = table.classList.contains('unit-abilities-table');
@@ -1382,7 +1383,7 @@
       const u = tr.dataset.unit;
       const lvlCell = tr.querySelector('.ua-lvl');
       const lvl = lvlCell ? lvlCell.dataset.lvl : null;
-      // Level grouping — show the number once per level run + the horizontal
+      // Level grouping вЂ” show the number once per level run + the horizontal
       // tier divider at each level change (mirrors the Neutral Creeps table).
       if (lvl !== prevLvl) {
         if (lvlCell) lvlCell.textContent = lvl;
@@ -1391,7 +1392,7 @@
         if (lvlCell) lvlCell.textContent = '';
         tr.classList.remove('tier-break');
       }
-      // Unit-icon dedup — show the icon only on the first row of each unit run.
+      // Unit-icon dedup вЂ” show the icon only on the first row of each unit run.
       if (u !== prevUnit) tr.classList.remove('ua-dup');
       else tr.classList.add('ua-dup');
       prevUnit = u; prevLvl = lvl;
@@ -1399,12 +1400,12 @@
   }
   const groupRows = isUA ? groupByUnit : collapseLevels;
   // Expose to the attack-type filter (lives in a sibling IIFE) so it can
-  // re-run grouping after hiding rows — else hidden "first of run" rows
+  // re-run grouping after hiding rows вЂ” else hidden "first of run" rows
   // leave the next visible row with a blank lvl cell.
   table._groupRows = groupRows;
 
   // Merge consecutive identical ability cells into one rowspanned cell (only
-  // in the default order — sorting reads cells by column index, so we un-merge
+  // in the default order вЂ” sorting reads cells by column index, so we un-merge
   // first). Process columns right-to-left so removals don't shift earlier idx.
   let abilMerges = [];
   function unmergeAbilityRuns() {
@@ -1466,12 +1467,12 @@
   headers.forEach(th => {
     th.addEventListener('click', () => {
       const col = th.dataset.col;
-      // 3-state cycle: neutral → descending → ascending → neutral.
+      // 3-state cycle: neutral в†’ descending в†’ ascending в†’ neutral.
       if (sortCol === col) sortState = (sortState + 1) % 3;
       else { sortCol = col; sortState = 1; }     // first click = descending (largest first)
       headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
       if (sortState === 0) {
-        // Back to neutral: restore the default level-grouped order, dim ↕ returns.
+        // Back to neutral: restore the default level-grouped order, dim в†• returns.
         sortCol = null;
         unmergeAbilityRuns();
         originalOrder.forEach(tr => tbody.appendChild(tr));
@@ -1492,7 +1493,7 @@
   // Unit Abilities VIEW filter (Standard | Only Auras). Toggles a class on
   // the table; CSS hides non-aura rows. Also reorders columns: in "Only Auras"
   // the visible order is Lvl/Unit/Ability | Radius/Duration | Aura Stack/Through
-  // BKB/AS Effect/MS Effect | Effect 1-3 — grouped so the category header (kept
+  // BKB/AS Effect/MS Effect | Effect 1-3 вЂ” grouped so the category header (kept
   // in Auras view too) spans contiguous columns.
   const uaView = document.getElementById('ua-view-mode');
   if (uaView) {
@@ -1574,7 +1575,7 @@
     markCatEdges(false);          // initial Standard-view dividers
   }
 
-  // Upgrades — binary switch. Toggles `.show-upgrades` on the UA table;
+  // Upgrades вЂ” binary switch. Toggles `.show-upgrades` on the UA table;
   // CSS draws a soft rounded outline + faint fill on every `td.leveled`.
   const uaUpg = document.getElementById('ua-upgrades-mode');
   if (uaUpg && table) {
@@ -1584,7 +1585,7 @@
   }
 })();
 
-// ---- UNIT ABILITIES: collapsed upgrade cells ("40…26") expand on click into a
+// ---- UNIT ABILITIES: collapsed upgrade cells ("40вЂ¦26") expand on click into a
 // floating popover with the full per-tier list. Fixed-positioned, clamped to the
 // viewport, so the column width never changes. ----
 (function() {
@@ -1629,7 +1630,7 @@
     if (openBtn && !e.target.closest('.lvl-toggle')) close();
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-  // The table scrolls inside its own box → close on any scroll so the popover
+  // The table scrolls inside its own box в†’ close on any scroll so the popover
   // never detaches from its cell.
   window.addEventListener('scroll', close, true);
   window.addEventListener('resize', close);
@@ -1668,20 +1669,20 @@
     const o = meanOf(ov), n = meanOf(nv);
     if (!isFinite(o) || !isFinite(n) || o === 0) return '';
     // Divide by |o| so a negative baseline keeps the real direction:
-    // armor -1 → 0 is a +100% gain (a buff), not -100%.
+    // armor -1 в†’ 0 is a +100% gain (a buff), not -100%.
     const pct = (n - o) / Math.abs(o) * 100;
     const good = lowerBetter ? pct < 0 : pct > 0;
     const cls = pct === 0 ? 'flat' : (good ? 'up' : 'down');
     const sign = pct > 0 ? '+' : '';
     let num = pct.toFixed(1);
-    if (num.endsWith('.0')) num = num.slice(0, -2);  // 50.0 → 50, 1900.0 → 1900
+    if (num.endsWith('.0')) num = num.slice(0, -2);  // 50.0 в†’ 50, 1900.0 в†’ 1900
     return ' <span class="stat-pct ' + cls + '">' + sign + num + '%</span>';
   }
   function chgHead(patch, date) {
     return '<div class="stat-chg-head"><span class="chg-patch">' + patch
          + '</span><span class="chg-date">' + shortDate(date) + '</span></div>';
   }
-  // One history entry → its old/new values (display + numeric) + polarity, or
+  // One history entry в†’ its old/new values (display + numeric) + polarity, or
   // null for non-value markers (A added / R removed / P replaced) which carry
   // no comparable value. 'C' computed cells carry pretty display (p3/p4) AND
   // raw numerics (p5/p6) so the % isn't skewed by thousands formatting.
@@ -1693,7 +1694,7 @@
     if (k === 'N') return { dispOld: p[3], dispNew: p[4], numOld: p[3], numNew: p[4], lb: false };
     return null;
   }
-  // Overall first-observed → today summary, shown at the TOP of the tooltip
+  // Overall first-observed в†’ today summary, shown at the TOP of the tooltip
   // (above the newest patch) with a divider below. Needs >1 value change;
   // scans past A/R/P markers to the first & last real value entries.
   function netSummary(entries) {
@@ -1703,16 +1704,16 @@
     const o = meanOf(first.numOld), n = meanOf(last.numNew);
     if (!isFinite(o) || !isFinite(n) || o === 0) return '';
     const pct = (n - o) / Math.abs(o) * 100;
-    // Net 0% (value drifted then returned to its start) is still shown — flat.
+    // Net 0% (value drifted then returned to its start) is still shown вЂ” flat.
     const cls = pct === 0 ? 'flat' : ((last.lb ? pct < 0 : pct > 0) ? 'up' : 'down');
     const sign = pct > 0 ? '+' : '';
     let num = pct.toFixed(1);
     if (num.endsWith('.0')) num = num.slice(0, -2);
     return '<div class="stat-net"><span class="stat-net-label">overall</span>'
-         + first.dispOld + ' → ' + last.dispNew
+         + first.dispOld + ' в†’ ' + last.dispNew
          + ' <span class="stat-pct ' + cls + '">' + sign + num + '%</span></div>';
   }
-  // Parse one entry → { patch, date, line }. Format: patch|date|kind|...parts
+  // Parse one entry в†’ { patch, date, line }. Format: patch|date|kind|...parts
   //   V old new pol          stat value change
   //   F label old new pol    ability value change
   //   A name / R name / P old new  ability added / removed / replaced
@@ -1725,24 +1726,24 @@
     } else if (kind === 'R') {
       line = p[3] + ' <span class="chg-tag removed">REMOVED</span>';
     } else if (kind === 'P') {
-      line = p[3] + ' <span class="chg-cycle">⇄</span> ' + p[4]
+      line = p[3] + ' <span class="chg-cycle">в‡„</span> ' + p[4]
            + ' <span class="chg-tag replaced">REPLACED</span>';
     } else if (kind === 'F') {
-      line = '<span class="chg-label">' + p[3] + ':</span> ' + p[4] + ' → '
+      line = '<span class="chg-label">' + p[3] + ':</span> ' + p[4] + ' в†’ '
            + p[5] + pctHtml(p[4], p[5], p[6] === 'lo');
     } else if (kind === 'N') {
-      // No-percentage value change (computed columns): show old → new only.
-      line = p[3] + ' → ' + p[4];
+      // No-percentage value change (computed columns): show old в†’ new only.
+      line = p[3] + ' в†’ ' + p[4];
     } else if (kind === 'C') {
-      // Computed column: pretty short display (p3→p4) with a % delta derived
+      // Computed column: pretty short display (p3в†’p4) with a % delta derived
       // from the raw values (p5, p6) so scaling never skews it. p7 = polarity.
-      line = p[3] + ' → ' + p[4] + pctHtml(p[5], p[6], p[7] === 'lo');
+      line = p[3] + ' в†’ ' + p[4] + pctHtml(p[5], p[6], p[7] === 'lo');
     } else {
       // 'V' stat value (patch|date|V|old|new|pol), or legacy patch|date|old|new
       const isV = kind === 'V';
       const ov = isV ? p[3] : p[2];
       const nv = isV ? p[4] : p[3];
-      line = ov + ' → ' + nv + pctHtml(ov, nv, isV && p[5] === 'lo');
+      line = ov + ' в†’ ' + nv + pctHtml(ov, nv, isV && p[5] === 'lo');
     }
     return { patch: patch, date: date, line: line };
   }
@@ -1763,7 +1764,7 @@
     groups.reverse();  // newest patch on top, oldest at the bottom
     // Ability name as a centered header above the changelog (if any).
     const nameHtml = name ? '<div class="abil-tip-name">' + name + '</div>' : '';
-    // Net first→today summary at the very top (gold test: cells flagged data-net).
+    // Net firstв†’today summary at the very top (gold test: cells flagged data-net).
     const netHtml = (td.dataset.net !== undefined) ? netSummary(entries) : '';
     el.innerHTML = nameHtml + netHtml + groups.map(g =>
       '<div class="stat-chg">' + chgHead(g.patch, g.date)
@@ -1777,7 +1778,7 @@
     left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
     el.style.left = left + 'px';
     // Vertical placement: prefer above the cell, flip below if it would clip
-    // the top. For tall tooltips (taller than the space on either side —
+    // the top. For tall tooltips (taller than the space on either side вЂ”
     // e.g. Guardian Greaves' long changelog) clamp into the viewport so the
     // box never runs off-screen; the CSS max-height + overflow lets the
     // overflow scroll. Always keep an 8px margin top and bottom.
@@ -1790,7 +1791,7 @@
     } else if (tr.height <= spaceBelow) {
       top = r.bottom + margin;                     // fits below
     } else {
-      // Doesn't fit either side — pin to whichever side has more room and
+      // Doesn't fit either side вЂ” pin to whichever side has more room and
       // let it clamp to the viewport edge (CSS caps its height).
       top = spaceAbove >= spaceBelow ? margin : (r.bottom + margin);
     }
@@ -1814,7 +1815,7 @@
   let curTd = null;
   targets.forEach(tbl => {
     tbl.addEventListener('mouseover', e => {
-      // A `?` qhint badge inside a history cell has its own tooltip — let it
+      // A `?` qhint badge inside a history cell has its own tooltip вЂ” let it
       // win and suppress the cell's changelog popup while hovering it.
       if (e.target.closest('.qhint')) { if (curTd) { curTd = null; hide(); } return; }
       const td = e.target.closest(SEL);
@@ -1832,9 +1833,9 @@
 
 // ---- CREEPS / UNIT ABILITIES: size the scroll box to fit the viewport ----
 // The table lives in a height-capped .creeps-scroll box (the page is locked so
-// only this box scrolls — one scrollbar). CSS sets the box max-height; this only
+// only this box scrolls вЂ” one scrollbar). CSS sets the box max-height; this only
 // measures the category row's rendered height into --cat-row-h, which the
-// two-row sticky header offset (col-row top: calc(--cat-row-h - 2px)) needs —
+// two-row sticky header offset (col-row top: calc(--cat-row-h - 2px)) needs вЂ”
 // CSS calc can't read it.
 (function() {
   const box = document.querySelector('.creeps-page .creeps-scroll');
@@ -1845,23 +1846,23 @@
     // - 12px)` keeps it sized to fit the viewport regardless of scroll
     // position, in concert with `position: sticky; top: var(--site-nav-h)`
     // on the box itself. JS only updates --cat-row-h (which CSS calc can't
-    // measure — it depends on the rendered text height of the category row).
+    // measure вЂ” it depends on the rendered text height of the category row).
     //
     // Two-row sticky header (Neutral Creeps): pin the column row exactly
     // under the category row. Use the fractional rect height (rounded) for an
     // accurate offset; the col-row CSS also pulls up 1px to mask any seam.
-    // Unit Abilities has no .cat-row → 0 so its single header row pins flush.
+    // Unit Abilities has no .cat-row в†’ 0 so its single header row pins flush.
     // Math.floor (not round): pairs with the col-row's -2px pull-up so the
     // col-row always starts at least 2px BEFORE the cat-row's true bottom,
     // guaranteeing the two sticky rows overlap regardless of fractional
-    // heights — kills the scroll-time gap where body cells showed through.
+    // heights вЂ” kills the scroll-time gap where body cells showed through.
     document.documentElement.style.setProperty(
       '--cat-row-h',
       (catRow ? Math.floor(catRow.getBoundingClientRect().height) : 0) + 'px');
   }
   size();
   window.addEventListener('resize', size, { passive: true });
-  // Recompute after images (the helmet logo grows the nav) finish loading —
+  // Recompute after images (the helmet logo grows the nav) finish loading вЂ”
   // an early measurement underestimates the nav height and lets the box run
   // past the viewport, which makes the page scroll and the toolbar drift.
   window.addEventListener('load', size);
@@ -1879,11 +1880,11 @@
   // Pin sticky-column widths to their FULL-roster initial measurement so the
   // attack-type filter (display:none on hidden rows) can't reshape the lvl /
   // icon / name columns when the visible roster changes. With table-layout:
-  // auto, min-width alone only sets a floor — the browser can still GROW
+  // auto, min-width alone only sets a floor вЂ” the browser can still GROW
   // pinned columns when other (non-sticky) columns shrink and the table's
   // `min-width:100%` forces it back to container width. Pin min + max + width
   // on the col-row sticky <th>s, AND pin icon col individually via every
-  // body row's .creep-icon-cell (the Юнит th's colspan=2 only pins the
+  // body row's .creep-icon-cell (the Р®РЅРёС‚ th's colspan=2 only pins the
   // icon+name SUM, not their internal ratio). Run once on init, before any
   // filter has a chance to fire.
   (function pinStickyCols() {
@@ -1900,26 +1901,26 @@
     };
     const headStickies = table.querySelectorAll('thead tr.col-row th.sticky-col');
     // Two head shapes share this IIFE:
-    //   • Neutral Stats (.creeps-table.mode-standard): 2 sticky <th>s — lvl
-    //     and "Юнит" (colspan=2 over icon+name). Second th gets wIcon+wName.
-    //   • Unit Abilities (.unit-abilities-table): 3 sticky <th>s — lvl, unit,
+    //   вЂў Neutral Stats (.creeps-table.mode-standard): 2 sticky <th>s вЂ” lvl
+    //     and "Р®РЅРёС‚" (colspan=2 over icon+name). Second th gets wIcon+wName.
+    //   вЂў Unit Abilities (.unit-abilities-table): 3 sticky <th>s вЂ” lvl, unit,
     //     ability, all individual. Each th gets its own body-cell width.
-    // Differentiator = sticky-th count, not table class — keeps the code
+    // Differentiator = sticky-th count, not table class вЂ” keeps the code
     // ready for any future creeps-table variant.
     if (headStickies.length === 2) {
       pin(headStickies[0], wLvl);
-      pin(headStickies[1], wIcon + wName);   // colspan'd Юнит
+      pin(headStickies[1], wIcon + wName);   // colspan'd Р®РЅРёС‚
     } else if (headStickies.length >= 3) {
       pin(headStickies[0], wLvl);
       pin(headStickies[1], wIcon);
       pin(headStickies[2], wName);
     }
-    // Pin icon AND name cols individually on every body row. The Юнит th's
-    // colspan=2 only pins the icon+name SUM — max-width on a colspan'd cell
+    // Pin icon AND name cols individually on every body row. The Р®РЅРёС‚ th's
+    // colspan=2 only pins the icon+name SUM вЂ” max-width on a colspan'd cell
     // doesn't enforce per-column limits in auto layout, so the name col can
     // still grow/shrink with its widest visible content (Forest Troll
     // Berserker disappearing on melee filter was the trigger). Pinning both
-    // body cols freezes the internal split. Covers both tables — the
+    // body cols freezes the internal split. Covers both tables вЂ” the
     // selectors match Neutral Stats (.col-name) and UA (.ua-ability) cells.
     table.querySelectorAll('tbody tr > td.creep-icon-cell.sticky-col')
       .forEach(td => pin(td, wIcon));
@@ -1928,11 +1929,11 @@
   })();
 
   // Body identity cells are the first three: lvl(0), icon(1), name(2).
-  // The header has only two cells over them: lvl th(0) + Юнит th(1,
+  // The header has only two cells over them: lvl th(0) + Р®РЅРёС‚ th(1,
   // colspan=2). Compute cumulative left offsets from the body widths and
   // apply them to both the body sticky cells and the header sticky cells.
   function applyLeftOffsets() {
-    // Use the first VISIBLE row — once attack-type filter is applied, the
+    // Use the first VISIBLE row вЂ” once attack-type filter is applied, the
     // cached firstRow may be display:none, making its getBoundingClientRect
     // collapse to zero and breaking sticky lefts.
     const measureRow = [...table.querySelectorAll('tbody tr')]
@@ -1945,17 +1946,17 @@
 
     // Body rows. Most rows have all 3 sticky identity cells (lvl, icon, name).
     // On the Unit Abilities page, a multi-ability unit rowspans its lvl+icon
-    // cells, so continuation rows carry ONLY the ability sticky cell — which
+    // cells, so continuation rows carry ONLY the ability sticky cell вЂ” which
     // belongs at the 3rd offset. Assign by how many sticky cells the row has.
     table.querySelectorAll('tbody tr').forEach(tr => {
       const sc = [...tr.children].filter(c => c.classList.contains('sticky-col'));
       // Creeps: 3 sticky cells (lvl, icon, name). Unit Abilities: 2 (lvl, unit).
-      // UA continuation rows (rowspanned lvl+unit) have 0 → nothing to pin.
+      // UA continuation rows (rowspanned lvl+unit) have 0 в†’ nothing to pin.
       sc.forEach((cell, i) => { cell.style.left = lefts[i] + 'px'; });
     });
     // Header sticky cells. heroes_dyn has ONE frozen column (hero) but TWO
     // header rows over it (super-category + version), so BOTH header sticky
-    // cells pin at left:0 — not the creeps lvl(0)+unit(wLvl) two-column layout.
+    // cells pin at left:0 вЂ” not the creeps lvl(0)+unit(wLvl) two-column layout.
     const headStickies = table.querySelectorAll('thead th.sticky-col');
     if (table.classList.contains('heroes-dyn-table')) {
       headStickies.forEach(th => { th.style.left = '0px'; });
@@ -1970,7 +1971,7 @@
 
   // Click a cell to mark its row (single-select, no animation). Clicking
   // another row moves the mark; clicking the marked row again clears it.
-  // Matches the simpler highlight behaviour used by the Mana Items table —
+  // Matches the simpler highlight behaviour used by the Mana Items table вЂ”
   // multi-select + fade-flash earlier here was hard to read once a few
   // rows were marked.
   const tbody = table.querySelector('tbody');
@@ -1988,7 +1989,7 @@
 
   // Overlay frame around the pinned identity block, shown while scrolled.
   // It lives in .creeps-page (non-scrolling), so its border + shadow keep
-  // repainting during scroll — unlike box-shadow on the sticky cells,
+  // repainting during scroll вЂ” unlike box-shadow on the sticky cells,
   // which Chrome drops mid-scroll.
   const scroller = table.closest('.creeps-scroll');
   const page = table.closest('.creeps-page');
@@ -2000,17 +2001,23 @@
     if (firstTds.length < 3) return;
     const pageR  = page.getBoundingClientRect();
     const scrR   = scroller.getBoundingClientRect();
+    const tableR = table.getBoundingClientRect();
     // Right edge of the frozen identity block = right edge of the LAST sticky
     // column in the row. Creeps/UA pin 2-3 columns; the heroes_dyn matrix pins
-    // just one (the hero name) — measuring the last sticky cell keeps the
+    // just one (the hero name) вЂ” measuring the last sticky cell keeps the
     // divider correct for any number of frozen columns (hardcoding firstTds[2]
     // put the divider 2 columns too far right on the single-column matrix).
     const stickyCells = firstRow.querySelectorAll('.sticky-col');
-    const lastSticky = stickyCells[stickyCells.length - 1] || firstTds[2];
+    const lastSticky = table.classList.contains('heroes-dyn-table')
+      ? (table.querySelector('thead th.hd-hero.sticky-col')
+          || table.querySelector('thead th.hd-hero')
+          || stickyCells[stickyCells.length - 1]
+          || firstTds[2])
+      : (stickyCells[stickyCells.length - 1] || firstTds[2]);
     const nameR  = lastSticky.getBoundingClientRect();  // right edge of pinned block
     // Anchor the divider's top to the VISIBLE (pinned) header bottom. The
-    // <thead> element itself is position:static — only its <th> cells are
-    // position:sticky — so once the box scrolls down, the thead's own rect
+    // <thead> element itself is position:static вЂ” only its <th> cells are
+    // position:sticky вЂ” so once the box scrolls down, the thead's own rect
     // scrolls up (its bottom goes negative) while the column headers stay
     // pinned at the box top. Measuring table.tHead therefore made the divider's
     // top climb ABOVE the visible header (the bright line poked past the
@@ -2027,16 +2034,18 @@
     // Vertical divider: at the right edge of the frozen lvl/unit columns,
     // starting BELOW the sticky column header and spanning the rest of height.
     if (frame) {
+      const bottom = Math.min(scrR.bottom, tableR.bottom);
       frame.style.left   = (nameR.right - pageR.left) + 'px';
       frame.style.top    = (headBottom - pageR.top) + 'px';
-      frame.style.height = (scrR.bottom - headBottom) + 'px';
+      frame.style.height = Math.max(0, bottom - headBottom) + 'px';
       frame.style.width  = '0px';
     }
   }
 
   if (scroller) {
     const syncFrameVisibility = () => {
-      const sx = scroller.scrollLeft > 0;
+      const hasOverflowX = scroller.scrollWidth - scroller.clientWidth > 1;
+      const sx = hasOverflowX && scroller.scrollLeft > 0;
       scroller.classList.toggle('scrolled', sx);
       if (frame) frame.classList.toggle('visible', sx);
     };
@@ -2059,7 +2068,7 @@
     window.addEventListener('resize', positionFramesRaf, { passive: true });
 
     // Super-category header colspans must equal the number of CURRENTLY
-    // visible leaf columns in each category — otherwise the static (Expanded)
+    // visible leaf columns in each category вЂ” otherwise the static (Expanded)
     // colspans misalign with the collapsed columns in Standard view.
     function recomputeCatColspans() {
       document.querySelectorAll('.cat-head[data-cat]').forEach(head => {
@@ -2078,7 +2087,7 @@
         table.classList.toggle('mode-standard', !expanded);
         table.classList.toggle('mode-expanded', expanded);
         recomputeCatColspans();
-        applyLeftOffsets();   // column widths changed → recompute pinned offsets
+        applyLeftOffsets();   // column widths changed в†’ recompute pinned offsets
         positionFramesRaf();
       };
       viewSel.addEventListener('change', applyView);
@@ -2138,9 +2147,9 @@
   function show(target) {
     const text = target.getAttribute('data-tooltip') || '';
     if (!text) return;
-    // Tooltip content is author-written (UA_HEAD_HINTS / ABIL_MANUAL) — using
+    // Tooltip content is author-written (UA_HEAD_HINTS / ABIL_MANUAL) вЂ” using
     // innerHTML lets header tooltips include coloured legend spans.
-    // Wrap %placeholder% variables (Valve description macros — values aren't
+    // Wrap %placeholder% variables (Valve description macros вЂ” values aren't
     // resolved here) in a styled span so they read as "this is a variable
     // name" rather than mystery raw text.
     tip.innerHTML = text.replace(
@@ -2153,7 +2162,7 @@
     let left = r.left + r.width / 2 - tipRect.width / 2;
     left = Math.max(6, Math.min(left, window.innerWidth - tipRect.width - 6));
     let top = r.top - tipRect.height - 8;
-    if (top < 6) top = r.bottom + 8;            // not enough room above → drop below
+    if (top < 6) top = r.bottom + 8;            // not enough room above в†’ drop below
     tip.style.left = left + 'px';
     tip.style.top = top + 'px';
   }
@@ -2183,7 +2192,7 @@
 
 // ---- Centre the row jumped to via #anchor (cross-page or same-page) ----
 // The Tables pages have an inner `.creeps-scroll` overflow box AND the page
-// itself scrolls — `el.scrollIntoView({block:'center'})` only centres within
+// itself scrolls вЂ” `el.scrollIntoView({block:'center'})` only centres within
 // the immediate scroll parent (usually the inner box), leaving the row near
 // the top of the viewport. Manually centre on BOTH axes: scroll the inner
 // container so the row is mid-box, then scroll the window so the box's
@@ -2210,7 +2219,7 @@
       if (inner) {
         const ir = inner.getBoundingClientRect();
         const er = el.getBoundingClientRect();
-        // Account for the sticky <thead> overlapping the inner box's top —
+        // Account for the sticky <thead> overlapping the inner box's top вЂ”
         // subtract its height so the row centres in the VISIBLE area below
         // the frozen header, not in the raw box.
         const thead = inner.querySelector('thead');
@@ -2261,7 +2270,7 @@
     table.addEventListener('mouseover', e => {
       // Only TD cells trigger / receive the cross-highlight. Hovering a TH
       // (header) shouldn't sweep the row beneath it and shouldn't paint
-      // the column band — the heatmap on data cells is the only visual
+      // the column band вЂ” the heatmap on data cells is the only visual
       // intent there.
       const cell = e.target.closest('td');
       if (!cell || !table.contains(cell)) return;
@@ -2273,7 +2282,7 @@
       clear();
       activeRow = row;
       row.classList.add('cross-row');
-      // Walk only TBODY rows — TH cells in thead never get cross-col.
+      // Walk only TBODY rows вЂ” TH cells in thead never get cross-col.
       table.querySelectorAll('tbody tr').forEach(tr => {
         const c = tr.cells && tr.cells[idx];
         if (c) {
@@ -2294,7 +2303,7 @@
   }
 })();
 
-// ---- SITE NAV HEIGHT → CSS variable (used by every sticky layer below) ----
+// ---- SITE NAV HEIGHT в†’ CSS variable (used by every sticky layer below) ----
 // The toolbar / view / blurb on table pages all scroll away with the page;
 // only the site nav + table category headers stay pinned. The thead pins
 // directly under the nav, so all we need to publish is its live height.
@@ -2314,7 +2323,7 @@
 
 // ---- MANA REGEN TABLE: simple sortable ----
 // Plain sort by data-sort attribute on each <td>. No row grouping / level
-// collapse / ability merging — the table is flat, so the existing creeps
+// collapse / ability merging вЂ” the table is flat, so the existing creeps
 // sort would over-engineer it.
 (function() {
   const tables = document.querySelectorAll('.mr-table');
@@ -2367,12 +2376,12 @@
 
     headers.forEach((th, i) => {
       th.addEventListener('click', () => {
-        // 3-state cycle per header: neutral → descending → ascending → neutral.
+        // 3-state cycle per header: neutral в†’ descending в†’ ascending в†’ neutral.
         if (sortCol === i) sortState = (sortState + 1) % 3;
         else { sortCol = i; sortState = 1; }   // first click = descending
         headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
         if (sortState === 0) {
-          // Neutral — restore the original server-rendered order.
+          // Neutral вЂ” restore the original server-rendered order.
           sortCol = null;
           originalOrder.forEach(r => tbody.appendChild(r));
         } else {
@@ -2405,7 +2414,7 @@
 
 // ---- MANA ITEMS: per-column conditional formatting ----
 // For every column whose <th data-direction> is set, scan all visible cells
-// and paint a faint pastel gradient — green at the "good" end, red at the
+// and paint a faint pastel gradient вЂ” green at the "good" end, red at the
 // "bad" end. Pure visual aid; doesn't alter values or sort order.
 (function() {
   const table = document.querySelector('.mr-table');
@@ -2414,7 +2423,7 @@
   const headers = headRow ? [...headRow.querySelectorAll('th')] : [];
 
   function applyHeatmap() {
-    // Respect the on-page Heatmap switch — when off, all cells stay flat.
+    // Respect the on-page Heatmap switch вЂ” when off, all cells stay flat.
     // (The toggle IIFE separately strips any inline backgrounds we set.)
     const toggle = document.getElementById('mr-heatmap-toggle');
     if (toggle && !toggle.checked) return;
@@ -2444,11 +2453,11 @@
       // Rank-percentile mapping: each cell's colour is decided by its rank
       // within the column, not its raw value. Eliminates the previous problem
       // where a single outlier (Dagon 5's 25.5k cost-per-regen) compressed
-      // every other value into the same green band — now mid-tier rows get
+      // every other value into the same green band вЂ” now mid-tier rows get
       // mid-tier colours regardless of how far the worst outlier sits.
-      // Rank over UNIQUE values so ties share one colour — otherwise a
+      // Rank over UNIQUE values so ties share one colour вЂ” otherwise a
       // column of identical numbers (hero Vision: 1800 everywhere) painted
-      // a meaningless green→red gradient purely by row order.
+      // a meaningless greenв†’red gradient purely by row order.
       const uniq = [...new Set(cells.map(c => c.v))].sort((a, b) => a - b);
       if (uniq.length < 2) {
         cells.forEach(c => { c.td.style.backgroundColor = ''; });
@@ -2459,7 +2468,7 @@
       cells.forEach(c => {
         let t = rankMap.get(c.v) / last;   // [0, 1] by unique-value rank
         if (direction === 'lower') t = 1 - t;
-        // 0 → red, 60 → amber, 120 → green. Keep saturation + alpha
+        // 0 в†’ red, 60 в†’ amber, 120 в†’ green. Keep saturation + alpha
         // moderate so cross-hover darkening still reads on top.
         const hue = Math.round(t * 120);
         c.td.style.backgroundColor =
@@ -2504,8 +2513,8 @@
     const hi = parseFloat(maxIn.value);
     const hasLo = !isNaN(lo);
     const hasHi = !isNaN(hi);
-    // Show the X only when at least one bound is set — otherwise the
-    // combo widget reads as a simple "Price from–to" placeholder pair.
+    // Show the X only when at least one bound is set вЂ” otherwise the
+    // combo widget reads as a simple "Price fromвЂ“to" placeholder pair.
     clear.hidden = !(hasLo || hasHi);
     table.querySelectorAll('tbody tr').forEach(tr => {
       const td = tr.children[priceIdx];
@@ -2553,9 +2562,9 @@
 // ---- HERO STATS (heroes_stats.html): Base / Starting / Expanded view ----
 // Reuses the mr-table front-end (sort / heatmap / search / stat-hist tooltips).
 // Three modes via the View dropdown (mirrors Neutral Creeps):
-//   base     — bare values from the game files
-//   starting — DEFAULT, level-1 values with attribute bonuses
-//   expanded — Starting + extra columns (.hs-extra)
+//   base     вЂ” bare values from the game files
+//   starting вЂ” DEFAULT, level-1 values with attribute bonuses
+//   expanded вЂ” Starting + extra columns (.hs-extra)
 // Some columns (HP, MP, regens, armor, magic resist, damage, attack speed)
 // have DIFFERENT values per mode. The build emits the Starting value as the
 // default cell content; cells that differ from Base carry data-base-sort /
@@ -2568,9 +2577,12 @@
   const viewSel = document.getElementById('hs-view-mode');
   if (!viewSel) return;
   const levelInput = document.getElementById('hs-level-input');
+  const plus2Toggle = document.getElementById('hs-plus2-toggle');
+  const innatesToggle = document.getElementById('hs-innates-toggle');
   const attackBtns = [...document.querySelectorAll('.hs-attack-filter')];
   const cells = [...table.querySelectorAll('tbody td[data-col]')];
   let attackFilter = '';
+  const PLUS2_LEVELS = [15, 16, 17, 19, 20, 21, 22];
 
   const clampLevel = () => {
     if (!levelInput) return 1;
@@ -2600,10 +2612,23 @@
   const armorPct = a => Math.round(armorFactor(a) * 100);
   const ehpPhys = (hp, armor) => Math.round(hp / Math.max(0.01, 1 - armorFactor(armor)));
   const ehpMag = (hp, mr) => Math.round(hp / Math.max(0.01, 1 - mr / 100));
-  const attrsAt = (s, level) => ({
-    str: num(s.str) + (level - 1) * num(s.strGain),
-    agi: num(s.agi) + (level - 1) * num(s.agiGain),
-    int: num(s.int) + (level - 1) * num(s.intGain),
+  const plus2CountAt = level => PLUS2_LEVELS.filter(l => l <= level).length;
+  const techiesPoolPctAt = level => {
+    const lvl = Math.max(1, Number(level) || 1);
+    return 0.001 + lvl * 0.0001;
+  };
+  const attrsAt = (s, level, includePlus2) => {
+    const bonus = includePlus2 ? plus2CountAt(level) * 2 : 0;
+    return {
+      str: num(s.str) + (level - 1) * num(s.strGain) + bonus,
+      agi: num(s.agi) + (level - 1) * num(s.agiGain) + bonus,
+      int: num(s.int) + (level - 1) * num(s.intGain) + bonus,
+    };
+  };
+  const wholeAttrs = a => ({
+    str: Math.floor(a.str),
+    agi: Math.floor(a.agi),
+    int: Math.floor(a.int),
   });
   const rowStats = tr => {
     if (!tr._hsStats) {
@@ -2613,6 +2638,7 @@
     return tr._hsStats;
   };
   const innate = (key, s, a) => {
+    if (!innatesToggle?.checked) return 0;
     if (s.slug === 'morphling') {
       if (key === 'range') return a.agi * 0.25;
       if (key === 'ms') return a.agi * 0.15;
@@ -2625,6 +2651,11 @@
     if (s.slug === 'centaur' && key === 'ms') return a.str * 0.40;
     return 0;
   };
+  const axeStrBonus = (s, a) => {
+    if (!innatesToggle?.checked || s.slug !== 'axe') return 0;
+    const armor = num(s.armor) + a.agi / 6;
+    return armor * 0.5;
+  };
   const primaryDmg = (s, a) => {
     if (s.attr === 'str') return Math.floor(a.str);
     if (s.attr === 'agi') return Math.floor(a.agi);
@@ -2634,32 +2665,43 @@
   };
   const valueFor = (s, col, mode, level) => {
     const effectiveLevel = mode === 'base' ? 1 : level;
-    const a = attrsAt(s, effectiveLevel);
-    const bonusDmg = primaryDmg(s, a);
+    const usePlus2 = mode !== 'base' && !!plus2Toggle?.checked;
+    const rawAttrs = attrsAt(s, effectiveLevel, usePlus2);
+    const a = mode === 'base' ? rawAttrs : {
+      str: rawAttrs.str + axeStrBonus(s, rawAttrs),
+      agi: rawAttrs.agi,
+      int: rawAttrs.int,
+    };
+    const wa = wholeAttrs(a);
+    const bonusDmg = primaryDmg(s, wa);
     const baseAs = num(s.bas);
     const startAs = baseAs + a.agi + innate('aspd', s, a);
-    const startArmor = num(s.armor) + a.agi / 6;
+    const startArmor = num(s.armor) + rawAttrs.agi / 6;
     const startMr = num(s.mr) + a.int * 0.1;
     const rawHp = num(s.hp);
-    const startHp = Math.round(rawHp + a.str * 22);
+    const startHp = Math.round(rawHp + wa.str * 22);
     const rawMana = s.slug === 'huskar' ? 0 : num(s.mp);
     const rawManaRegen = s.slug === 'huskar' ? 0 : num(s.mpr);
     const startMana = (() => {
       if (s.slug === 'huskar') return 0;
-      if (s.slug === 'ogre_magi') return Math.round(num(s.mp) + a.str * 6 + a.int * 12);
-      return Math.round(num(s.mp) + a.int * 12);
+      if (s.slug === 'ogre_magi') return Math.round(num(s.mp) + wa.str * 6 + wa.int * 12);
+      return Math.round(num(s.mp) + wa.int * 12);
     })();
     const startManaRegen = (() => {
       if (s.slug === 'huskar') return 0;
+      const techiesPoolPct = techiesPoolPctAt(effectiveLevel); // 0.10% + 0.01% per level
+      const techiesPoolRegen = (innatesToggle?.checked && s.slug === 'techies')
+        ? startMana * techiesPoolPct
+        : 0;
       if (s.slug === 'ogre_magi') return num(s.mpr) + a.str * 0.02 + a.int * 0.05;
-      return num(s.mpr) + a.int * 0.05 + innate('mpr', s, a);
+      return num(s.mpr) + wa.int * 0.05 + innate('mpr', s, a) + techiesPoolRegen;
     })();
     const start = mode !== 'base';
     switch (col) {
       case 'hp': return [start ? startHp : rawHp, g0];
       case 'ehp_phys': return [ehpPhys(start ? startHp : rawHp, start ? startArmor : num(s.armor)), g0];
       case 'ehp_mag': return [ehpMag(start ? startHp : rawHp, start ? startMr : num(s.mr)), g0];
-      case 'hpr': return [start ? num(s.hpr) + a.str * 0.1 + innate('hpr', s, a) : num(s.hpr), regen];
+      case 'hpr': return [start ? num(s.hpr) + wa.str * 0.1 + innate('hpr', s, a) : num(s.hpr), regen];
       case 'mp': return [start ? startMana : rawMana, g0];
       case 'mpr': return [start ? startManaRegen : rawManaRegen, regen];
       case 'str': return [a.str, g];
@@ -2675,7 +2717,7 @@
       case 'dmg': {
         const min = num(s.dmin) + (start ? bonusDmg : 0);
         const max = num(s.dmax) + (start ? bonusDmg : 0);
-        return [(min + max) / 2, () => `${g0(min)}–${g0(max)}`];
+        return [(min + max) / 2, () => `${g0(min)}вЂ“${g0(max)}`];
       }
       case 'dmin': return [num(s.dmin) + (start ? bonusDmg : 0), g0];
       case 'dmax': return [num(s.dmax) + (start ? bonusDmg : 0), g0];
@@ -2697,7 +2739,7 @@
     }
   };
 
-  // Stash Starting values once — those are the cell's INITIAL data.
+  // Stash Starting values once вЂ” those are the cell's INITIAL data.
   cells.forEach(td => {
     if (!td.dataset.startSort) td.dataset.startSort = td.dataset.sort;
     if (!td.dataset.startHist) td.dataset.startHist = td.dataset.hist || '';
@@ -2750,6 +2792,13 @@
       }
       td.classList.toggle('has-history', !!td.dataset.hist);
     });
+    table.querySelectorAll('tbody tr[data-hs-stats]').forEach(tr => {
+      const stats = rowStats(tr);
+      const icon = tr.querySelector('.hs-innate-mini');
+      if (!icon) return;
+      const show = !!innatesToggle?.checked && !!stats.hasStatInnate && mode !== 'base';
+      icon.classList.toggle('is-hidden', !show);
+    });
     recomputeCats();
     window.dispatchEvent(new CustomEvent('mr:filter-changed'));  // heatmap re-scan
   };
@@ -2774,6 +2823,8 @@
     levelInput.addEventListener('input', apply);
     levelInput.addEventListener('change', apply);
   }
+  if (plus2Toggle) plus2Toggle.addEventListener('change', apply);
+  if (innatesToggle) innatesToggle.addEventListener('change', apply);
   attackBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.attackFilter || '';
@@ -2806,14 +2857,16 @@
     if (!nameCell) return;
     const pageR = page.getBoundingClientRect();
     const scrR = scroller.getBoundingClientRect();
+    const tableR = table.getBoundingClientRect();
     const nameR = nameCell.getBoundingClientRect();
     // Anchor the divider top to the pinned header's bottom (thead th is
     // sticky:top, so its rect tracks the visible pinned position).
     const headCell = table.querySelector('thead th.hs-name') || nameCell;
     const headBottom = headCell.getBoundingClientRect().bottom;
+    const bottom = Math.min(scrR.bottom, tableR.bottom);
     frame.style.left = (nameR.right - pageR.left) + 'px';
     frame.style.top = (headBottom - pageR.top) + 'px';
-    frame.style.height = (scrR.bottom - headBottom) + 'px';
+    frame.style.height = Math.max(0, bottom - headBottom) + 'px';
     frame.style.width = '0px';
   }
 
@@ -2842,7 +2895,7 @@
     if (toggle.checked) {
       // Recompute by dispatching a synthetic event the heatmap IIFE
       // listens to. (The heatmap IIFE re-runs its applyHeatmap each
-      // time a filter/sort changes — we route through it here too.)
+      // time a filter/sort changes вЂ” we route through it here too.)
       window.dispatchEvent(new CustomEvent('mr:filter-changed'));
     } else {
       // Strip all backgroundColor inline styles set by the heatmap.
@@ -2857,7 +2910,7 @@
 
 /* ---- STAR SKY + WALL OF SIGNATURES (index) ----
    A few dim, lightly/independently twinkling pixel "stars" form the backdrop.
-   The member names start HIDDEN (nothing painted at load → light first paint);
+   The member names start HIDDEN (nothing painted at load в†’ light first paint);
    a gold laser from the Premium star reveals them ONE per shot and they stay
    lit, so the wall fills up over time. Stars and names are laid out so they
    never overlap (they may sit very close). Re-runs on resize. Index-only. */
@@ -2924,7 +2977,7 @@
     for (let i = 0; i < COUNT; i++) {
       for (let tryN = 0; tryN < 40; tryN++) {
         const sr = Math.random();
-        const sz = sr < 0.12 ? 1 : sr < 0.30 ? 2 : sr < 0.78 ? 3 : 4;   // ~30% small (1–2px), rest 3–4px
+        const sz = sr < 0.12 ? 1 : sr < 0.30 ? 2 : sr < 0.78 ? 3 : 4;   // ~30% small (1вЂ“2px), rest 3вЂ“4px
         const x = 5 + Math.random() * (W - 10);
         const y = 5 + Math.random() * (H - 10);
         const r = { l: x - SM, t: y - SM, r: x + sz + SM, b: y + sz + SM };
@@ -2938,7 +2991,7 @@
         // Three brightness tiers: most dim, ~22% bright, ~10% extra-bright (brighter still).
         const roll = Math.random();
         let lo, hi, staticOp;
-        // Wide low→high swing so the twinkle is clearly visible (dims to nearly
+        // Wide lowв†’high swing so the twinkle is clearly visible (dims to nearly
         // nothing, then brightens to a clear peak).
         if (roll < 0.10) {
           lo = 0.35; hi = 1.0; staticOp = 0.78;
@@ -2950,7 +3003,7 @@
           lo = 0.08; hi = 0.5; staticOp = 0.3;
         }
         // Only ~22% twinkle (extra-bright lean toward it), and never too close to
-        // another twinkling star — so few flicker at once and they stay spread out.
+        // another twinkling star вЂ” so few flicker at once and they stay spread out.
         const cx = x + sz / 2, cy = y + sz / 2;
         const spaced = !twinkleCenters.some(c => Math.hypot(c.x - cx, c.y - cy) < 55);
         const wantTwinkle = roll < 0.10 ? Math.random() < 0.6 : Math.random() < 0.22;
@@ -2958,7 +3011,7 @@
           star.style.setProperty('--lo', lo);
           star.style.setProperty('--hi', hi);
           star.style.opacity = lo;
-          const durN = 3 + Math.random() * 3.5;               // faster cadence → more noticeable
+          const durN = 3 + Math.random() * 3.5;               // faster cadence в†’ more noticeable
           // NEGATIVE delay = start already partway through the cycle, at a random
           // phase, so stars never twinkle in sync (positive delays would just
           // stagger the start but keep them aligned early on).
@@ -2976,7 +3029,7 @@
   }
 
   // Place every name (avoiding book/nav, stars, and each other) but keep them
-  // HIDDEN — they reveal only when a beam reaches them. Strict read/write phases
+  // HIDDEN вЂ” they reveal only when a beam reaches them. Strict read/write phases
   // so the browser lays out ~twice (no per-name reflow). is-lit is preserved
   // across re-layout so already-revealed names stay visible.
   function placeNames(W, H) {
@@ -3025,7 +3078,7 @@
       }
       if (!done) pos[i] = null;
     }
-    // (4) write transforms; do NOT reveal — names stay hidden until a beam hits.
+    // (4) write transforms; do NOT reveal вЂ” names stay hidden until a beam hits.
     for (let i = 0; i < n; i++) {
       const s = sigs[i], p = pos[i];
       if (!p) { s.style.display = 'none'; continue; }
@@ -3095,7 +3148,7 @@
   function forgeSparks(sig) {
     const r = sig.getBoundingClientRect();
     const fxl = fxLayer();
-    const N = 10 + Math.floor(Math.random() * 5);     // 10–14 sparks
+    const N = 10 + Math.floor(Math.random() * 5);     // 10вЂ“14 sparks
     for (let k = 0; k < N; k++) {
       const p = document.createElement('i');
       p.className = 'sig-spark';
@@ -3151,12 +3204,12 @@
   setTimeout(spotlightOnce, 5000);              // first beam ~5s after load
   setInterval(spotlightOnce, 2500);
 
-  // Click a lit name → it "disintegrates" into pixel gold dust and returns to the
+  // Click a lit name в†’ it "disintegrates" into pixel gold dust and returns to the
   // unlit pool, so a later beam can re-light it.
   function disintegrate(sig) {
     const r = sig.getBoundingClientRect();
     const fxl = fxLayer();
-    const N = 16 + Math.floor(Math.random() * 10);   // 16–25 specks
+    const N = 16 + Math.floor(Math.random() * 10);   // 16вЂ“25 specks
     // Per-click randomisation so no two bursts disperse the same way.
     const spreadF = 0.8 + Math.random() * 0.7;       // this cloud's overall size
     const durBase = 3300 + Math.random() * 1800;     // this cloud's tempo (slow)
@@ -3166,7 +3219,7 @@
     for (let k = 0; k < N; k++) {
       const p = document.createElement('i');
       p.className = vip ? 'sig-dust sig-dust-vip' : 'sig-dust';
-      const sz = Math.random() < 0.5 ? 2 : 3;        // clear little squares (2–3px)
+      const sz = Math.random() < 0.5 ? 2 : 3;        // clear little squares (2вЂ“3px)
       p.style.width = p.style.height = sz + 'px';
       p.style.left = (r.left + Math.random() * r.width).toFixed(1) + 'px';
       p.style.top = (r.top + Math.random() * r.height).toFixed(1) + 'px';
@@ -3195,7 +3248,7 @@
 
 // ---- INVENTORY SUB-PANELS: a tile with [data-panel-open="<name>"] opens its
 // sub-panel ([data-panel="<name>"]) IN PLACE of the inventory grid instead of
-// redirecting (Support → Telegram/Donation; Dynamics → Heroes/Items). The back
+// redirecting (Support в†’ Telegram/Donation; Dynamics в†’ Heroes/Items). The back
 // arrow (or Escape) returns to the grid. Generic over any number of panels. ----
 (function () {
   const book = document.querySelector('.inv-book');
@@ -3230,10 +3283,10 @@
   });
 })();
 
-// ---- CALENDAR tile: hover burns the date page (gold pixel fire) and loops 1→31.
+// ---- CALENDAR tile: hover burns the date page (gold pixel fire) and loops 1в†’31.
 // JS src-swap (not CSS content:url) with a one-time cache-bust, because the
 // calendar GIF filename predates the other tile GIFs and browsers/CDN cached the
-// old number-cycle version — the `?v=` forces the new burning GIF to load.
+// old number-cycle version вЂ” the `?v=` forces the new burning GIF to load.
 (function () {
   const tile = document.querySelector('.inv-cell-calendar');
   if (!tile) return;
@@ -3245,10 +3298,10 @@
   tile.addEventListener('mouseleave', () => { img.src = PNG; });
 })();
 
-// ---- ITEMS tile: hover plays a one-shot chest-OPEN intro (key flies in → lid
-// opens → gold beam + treasure), then LOOPS the open chest with the beam + gold
+// ---- ITEMS tile: hover plays a one-shot chest-OPEN intro (key flies in в†’ lid
+// opens в†’ gold beam + treasure), then LOOPS the open chest with the beam + gold
 // glints twinkling for as long as it's hovered. Two APNGs swapped via JS (a
-// single animation can't play an intro once then loop only its tail — same
+// single animation can't play an intro once then loop only its tail вЂ” same
 // pattern as the mana fill+wave). The ?v= cache-bust forces each to restart
 // from frame 0. Reverts to the closed PNG on mouse-out. Skipped under
 // prefers-reduced-motion (stays closed). INTRO_MS must match the generator's
@@ -3262,8 +3315,8 @@
   const PNG = img.getAttribute('src');
   const OPEN = 'icons/ui/gothic/icon_chest_open.png';   // intro, plays once
   const LOOP = 'icons/ui/gothic/icon_chest_loop.png';   // open + glints, loops
-  const INTRO_MS = 1060;
-  // Preload + decode both APNGs so swapping src mid-hover is instant — without
+  const INTRO_MS = 840;
+  // Preload + decode both APNGs so swapping src mid-hover is instant вЂ” without
   // this the browser fetches the loop on first swap and the beam visibly stalls.
   [OPEN, LOOP].forEach(s => { const p = new Image(); p.src = s; });
   let timer = null;
@@ -3278,8 +3331,8 @@
   });
 })();
 
-// ---- MANA ITEMS tile: hover plays a one-shot FILL (empty→half), then loops the
-// wave at that level. Two GIFs swapped via JS — a single GIF can't play an intro
+// ---- MANA ITEMS tile: hover plays a one-shot FILL (emptyв†’half), then loops the
+// wave at that level. Two GIFs swapped via JS вЂ” a single GIF can't play an intro
 // once and then loop only its tail. Reverts to the static bottle on mouse-out.
 (function () {
   // The mana icon now lives on the "Mana" button inside the Items sub-panel
@@ -3287,7 +3340,7 @@
   // matter where `.inv-cell-mana` sits.
   const FILL = 'icons/ui/gothic/icon_mana_fill.gif';
   const WAVE = 'icons/ui/gothic/icon_mana.gif';
-  const FILL_MS = 11 * 150;            // fill GIF: 11 frames × 150ms
+  const FILL_MS = 11 * 150;            // fill GIF: 11 frames Г— 150ms
   document.querySelectorAll('.inv-cell-mana').forEach((tile) => {
     const img = tile.querySelector('.inv-icon');
     if (!img) return;
@@ -3309,7 +3362,7 @@
 /* ---- Formula calculator (formula_change) ----
    Each `.formula-change[data-fx-old]` has a number input; on change we re-evaluate
    both formulas for every example row (the `fixed` variable = the input value,
-   the `vary` variable = the row's data-h) and refresh the gold cell + Δ% badge.
+   the `vary` variable = the row's data-h) and refresh the gold cell + О”% badge.
    Patch pages only; mirrors b()/gradient_class colouring. */
 (function () {
   const blocks = document.querySelectorAll('.formula-change[data-fx-old]');
@@ -3367,7 +3420,7 @@
         const gold = tr.querySelector('.fx-gold');
         if (gold) gold.textContent = fmt(isOld ? o : n);
         const pc = tr.querySelector('.fx-pct');
-        if (pc && !isOld) pc.innerHTML = pctBadge(o, n, lower);   // Δ% only in NEW pane
+        if (pc && !isOld) pc.innerHTML = pctBadge(o, n, lower);   // О”% only in NEW pane
       });
     }
     input.addEventListener('input', recalc);
@@ -3375,12 +3428,12 @@
 })();
 
 (function() {
-  // ---- TERRAIN COMPARE (terrain.html) — swipe slider + Loupe magnifier ----
+  // ---- TERRAIN COMPARE (terrain.html) вЂ” swipe slider + Loupe magnifier ----
   //  - Divider moves ONLY by dragging the handle (or arrow keys).
   //  - Trees / Camps top-bar checkboxes toggle the SVG overlay layers.
   //  - "Loupe" is a MODE (top-bar button). When on, hovering the MAP (not the
   //    handle or top-bar) shows a gold magnifier following the cursor; click
-  //    pins it, then sweeping the handle compares that spot old↔new inside the
+  //    pins it, then sweeping the handle compares that spot oldв†”new inside the
   //    circle (the toggled tree/camp markers are cloned into the lens too).
   function initTerrainCompare() {
     // One slider per map pair (e.g. 7.41 and 7.40 panes both exist; hidden ones
@@ -3480,7 +3533,7 @@
       const r = stage.getBoundingClientRect();
       return [e.clientX - r.left, e.clientY - r.top];
     }
-    // Over the handle → no lens (so you can grab it with a normal cursor). The
+    // Over the handle в†’ no lens (so you can grab it with a normal cursor). The
     // layer toggles now live ABOVE the stage, so they never overlap the map.
     function overControls(e) {
       return !!(e.target.closest && e.target.closest('.tc-handle'));
@@ -3567,7 +3620,7 @@
     });
   }
 
-  // ---- PATCH PICKER (terrain.html) — gold dropdown; switching it swaps the
+  // ---- PATCH PICKER (terrain.html) вЂ” gold dropdown; switching it swaps the
   // visible map pane (slider or fallback) + the matching change-list pane. Same
   // structure as the calendar year-picker. ----
   function initTerrainPicker() {
@@ -3612,7 +3665,7 @@
 })();
 
 // ---------------------------------------------------------------------
-// Info-tip (i) popup positioning — keep the bubble inside the viewport.
+// Info-tip (i) popup positioning вЂ” keep the bubble inside the viewport.
 // CSS centers it above the (i); this nudges it horizontally so it never
 // runs off-screen, and flips it below when there isn't room above.
 // Event-delegated so it covers every (i) without per-element listeners.
@@ -3652,3 +3705,4 @@
   document.addEventListener('mouseover', handler, true);
   document.addEventListener('focusin', handler, true);
 })();
+

@@ -395,7 +395,7 @@ def _ge(patch: str, ref: str) -> bool:
     return _patch_sort_key(patch) >= _patch_sort_key(ref)
 
 
-def _innate_bonus(col_key: str, s: dict, h: str) -> float:
+def _innate_bonus(col_key: str, s: dict, h: str, r: dict | None = None) -> float:
     """Extra (additive) bonus to a computed Starting column from a hero's
     innate attribute-conversion ability, gated by the current patch.
     Returns 0 for every hero/column without such an innate.
@@ -408,6 +408,7 @@ def _innate_bonus(col_key: str, s: dict, h: str) -> float:
                       attribute bonuses; 7.41+ switches to Damage/HP regen/
                       Mana regen/Attack Speed.
       • Centaur     — Horsepower (innate 7.36+): Str→Move Speed (capped).
+      • Axe         — One Man Army (innate 7.36+): Armor→Strength.
     Known but NOT yet modelled (don't map to a single displayed column or
     need dynamic state): Dark Seer (Int floor = max of Str/Agi), Tiny /
     Morphling-facet (slow/status/cooldown), Elder Titan Momentum, Silencer
@@ -462,7 +463,33 @@ def _innate_bonus(col_key: str, s: dict, h: str) -> float:
                 f = 0.40
             return _field(s, h, "AttributeBaseStrength") * f
 
+    if slug == "axe" and _ge(ver, "7.36") and col_key == "str":
+        armor = (_field(s, h, "ArmorPhysical")
+                 + ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility"))
+        return armor * 0.5
+
     return 0.0
+
+
+def _start_attr(s, h, r, key: str) -> float:
+    field_map = {
+        "str": "AttributeBaseStrength",
+        "agi": "AttributeBaseAgility",
+        "int": "AttributeBaseIntelligence",
+    }
+    return _field(s, h, field_map[key]) + _innate_bonus(key, s, h, r)
+
+
+def _whole_start_attr(s, h, r, key: str) -> int:
+    return int(_math.floor(_start_attr(s, h, r, key)))
+
+
+def _techies_pool_regen_l1(s, h, r) -> float:
+    if not h.endswith("_techies") or not _ge(_CTX_VERSION[0], "7.41a"):
+        return 0.0
+    lvl = 1
+    pct = (0.001 + 0.0001 * lvl) if _ge(_CTX_VERSION[0], "7.41c") else (0.0008 + 0.0002 * lvl)
+    return _mp_l1(s, h, r) * pct
 
 
 # ---------- value functions ----------
@@ -495,11 +522,11 @@ def _primary_dmg(s, h):
         return 0.0
     kind = meta[0]
     if kind == "str":
-        bonus = DMG_PER_PRIMARY * _field(s, h, "AttributeBaseStrength")
+        bonus = DMG_PER_PRIMARY * _whole_start_attr(s, h, None, "str")
     elif kind == "agi":
-        bonus = DMG_PER_PRIMARY * _field(s, h, "AttributeBaseAgility")
+        bonus = DMG_PER_PRIMARY * _whole_start_attr(s, h, None, "agi")
     elif kind == "int":
-        bonus = DMG_PER_PRIMARY * _field(s, h, "AttributeBaseIntelligence")
+        bonus = DMG_PER_PRIMARY * _whole_start_attr(s, h, None, "int")
     else:  # Universal — multiplier on the SUM of all three attributes
         total = (_field(s, h, "AttributeBaseStrength")
                  + _field(s, h, "AttributeBaseAgility")
@@ -556,13 +583,13 @@ def _dmg_range_start(s, h, r):
 
 def _hp_l1(s, h, r):
     return round(_field(s, h, "StatusHealth")
-                 + HP_PER_STR * _field(s, h, "AttributeBaseStrength"))
+                 + HP_PER_STR * _whole_start_attr(s, h, r, "str"))
 
 
 def _hpreg_l1(s, h, r):
     return round(_field(s, h, "StatusHealthRegen")
-                 + HPREG_PER_STR * _field(s, h, "AttributeBaseStrength")
-                 + _innate_bonus("hpr", s, h), 2)
+                 + HPREG_PER_STR * _whole_start_attr(s, h, r, "str")
+                 + _innate_bonus("hpr", s, h, r), 2)
 
 
 def _mp_base_raw(s, h, r):
@@ -578,10 +605,10 @@ def _mp_l1(s, h, r):
         return 0.0
     if slug == "ogre_magi":
         return round(_field(s, h, "StatusMana")
-                     + OGRE_MANA_PER_STR * _field(s, h, "AttributeBaseStrength")
-                     + MANA_PER_INT * _field(s, h, "AttributeBaseIntelligence"))
+                     + OGRE_MANA_PER_STR * _whole_start_attr(s, h, r, "str")
+                     + MANA_PER_INT * _whole_start_attr(s, h, r, "int"))
     return round(_field(s, h, "StatusMana")
-                 + MANA_PER_INT * _field(s, h, "AttributeBaseIntelligence"))
+                 + MANA_PER_INT * _whole_start_attr(s, h, r, "int"))
 
 
 def _mpreg_base_raw(s, h, r):
@@ -596,11 +623,12 @@ def _mpreg_l1(s, h, r):
         return 0.0
     if slug == "ogre_magi":
         return round(_field(s, h, "StatusManaRegen")
-                     + OGRE_MANAREG_PER_STR * _field(s, h, "AttributeBaseStrength")
-                     + MANAREG_PER_INT * _field(s, h, "AttributeBaseIntelligence"), 2)
+                     + OGRE_MANAREG_PER_STR * _start_attr(s, h, r, "str")
+                     + MANAREG_PER_INT * _start_attr(s, h, r, "int"), 2)
     return round(_field(s, h, "StatusManaRegen")
-                 + MANAREG_PER_INT * _field(s, h, "AttributeBaseIntelligence")
-                 + _innate_bonus("mpr", s, h), 2)
+                 + MANAREG_PER_INT * _whole_start_attr(s, h, r, "int")
+                 + _innate_bonus("mpr", s, h, r)
+                 + _techies_pool_regen_l1(s, h, r), 2)
 
 
 # Armor / MR / Attack speed --------------------------------------------------
@@ -612,7 +640,7 @@ def _armor_base(s, h, r):
 def _armor_l1(s, h, r):
     return round(_field(s, h, "ArmorPhysical")
                  + ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility")
-                 + _innate_bonus("armor", s, h), 1)
+                 + _innate_bonus("armor", s, h, r), 1)
 
 
 def _mr_base(s, h, r):
@@ -622,7 +650,7 @@ def _mr_base(s, h, r):
 def _mr_l1(s, h, r):
     return round(_field(s, h, "MagicalResistance")
                  + MR_PER_INT * _field(s, h, "AttributeBaseIntelligence")
-                 + _innate_bonus("mr", s, h), 1)
+                 + _innate_bonus("mr", s, h, r), 1)
 
 
 def _aspd_base(s, h, r):
@@ -632,7 +660,7 @@ def _aspd_base(s, h, r):
 def _aspd_l1(s, h, r):
     return (_raw_num(r, h, "BaseAttackSpeed")
             + AS_PER_AGI * _field(s, h, "AttributeBaseAgility")
-            + _innate_bonus("aspd", s, h))
+            + _innate_bonus("aspd", s, h, r))
 
 
 # Attack range / Move speed (Starting may add an innate attribute factor) -----
@@ -642,7 +670,7 @@ def _range_base(s, h, r):
 
 
 def _range_l1(s, h, r):
-    return round(_field(s, h, "AttackRange") + _innate_bonus("range", s, h))
+    return round(_field(s, h, "AttackRange") + _innate_bonus("range", s, h, r))
 
 
 def _ms_base(s, h, r):
@@ -650,7 +678,7 @@ def _ms_base(s, h, r):
 
 
 def _ms_l1(s, h, r):
-    return round(_field(s, h, "MovementSpeed") + _innate_bonus("ms", s, h))
+    return round(_field(s, h, "MovementSpeed") + _innate_bonus("ms", s, h, r))
 
 
 # Expanded helper values ------------------------------------------------------
@@ -746,11 +774,14 @@ COLUMNS = [
          fn_base=_mpreg_base_raw, fn_starting=_mpreg_l1),
 
     # ── Attributes ─────────────────────────────────────────────────────
-    _col("str",      "STR",      fn_base=_f("AttributeBaseStrength")),
+    _col("str",      "STR",      fn_base=_f("AttributeBaseStrength"),
+         fn_starting=lambda s, h, r: _start_attr(s, h, r, "str")),
     _col("str_gain", "STR+",     fn_base=_f("AttributeStrengthGain")),
-    _col("agi",      "AGI",      fn_base=_f("AttributeBaseAgility")),
+    _col("agi",      "AGI",      fn_base=_f("AttributeBaseAgility"),
+         fn_starting=lambda s, h, r: _start_attr(s, h, r, "agi")),
     _col("agi_gain", "AGI+",     fn_base=_f("AttributeAgilityGain")),
-    _col("int",      "INT",      fn_base=_f("AttributeBaseIntelligence")),
+    _col("int",      "INT",      fn_base=_f("AttributeBaseIntelligence"),
+         fn_starting=lambda s, h, r: _start_attr(s, h, r, "int")),
     _col("int_gain", "INT+",     fn_base=_f("AttributeIntelligenceGain")),
     _col("gper",     "Gains/lvl",       mode="extra", fmt=_g1, fn_base=_gains_per_level),
 
@@ -763,7 +794,7 @@ COLUMNS = [
     # ── Damage ────────────────────────────────────────────────────────
     _col("dmg",  "Damage", fmt=_g0,
          fn_base=_dmg_avg_base, fn_starting=_dmg_avg_start,
-         disp_base=_dmg_range_base, disp_starting=_dmg_range_start),
+         ),
     _col("dmin", "Min Dmg", mode="extra", fmt=_g0,
          fn_base=_dmg_min_base, fn_starting=_dmg_min_start),
     _col("dmax", "Max Dmg", mode="extra", fmt=_g0,
@@ -1271,6 +1302,7 @@ def _row_stats(hero: str, snap: dict, raw: dict) -> str:
     slug = hero.replace("npc_dota_hero_", "")
     data = {
         "slug": slug,
+        "hasStatInnate": slug in {"axe", "centaur", "morphling", "techies", "void_spirit"},
         "attr": meta[0],
         "str": _field(snap, hero, "AttributeBaseStrength"),
         "strGain": _field(snap, hero, "AttributeStrengthGain"),
@@ -1355,6 +1387,7 @@ def render_html() -> str:
     for hero in heroes:
         slug = hero.replace("npc_dota_hero_", "")
         name = _display_name(hero, names)
+        has_stat_innate = slug in {"axe", "centaur", "morphling", "techies", "void_spirit"}
         attack_type = _attack_type(latest, hero, raw)
         icon = (f'<img class="mr-ico hs-ico" src="icons/heroes/{slug}.png" '
                 f'alt="" loading="lazy">'
@@ -1362,7 +1395,10 @@ def render_html() -> str:
                 else '<span class="mr-ico mr-ico-blank"></span>')
         cells = [
             f'<td class="mr-name hs-name" data-cat="basic" data-sort="{_esc(name)}">'
-            f'{icon}<span class="mr-name-text">{_esc(name)}</span></td>'
+            f'{icon}<span class="mr-name-body">'
+            f'<span class="mr-name-text">{_esc(name)}</span>'
+            f'<img class="hs-innate-mini{" is-hidden" if not has_stat_innate else ""}" src="icons/misc/innate_icon.png" alt="Innate stat bonus" '
+            f'title="Innate stat bonus" loading="lazy" aria-hidden="true"></span></td>'
         ]
         meta = _attr_of(cur, hero) or ("uni", "Universal", "universal.webp", 3)
         ah = _attr_history(snaps, versions, dates, hero)
@@ -1428,7 +1464,10 @@ def render_html() -> str:
         '<p class="mr-blurb inbox-bar">Compare hero stats across three views. '
         '<em>Base</em> shows raw level-1 game-file values and ignores the level '
         'control; <em>Starting</em> shows practical values with attribute bonuses '
-        'and supported innate conversions; '
+        'and supported innate conversions; the <em>+2 stats</em> toggle applies '
+        'the automatic all-attributes level-ups from 15/16/17/19/20/21/22; '
+        'the <em>Innates</em> toggle applies always-on innate-derived stat bonuses '
+        'such as Void Spirit, Centaur, Morphling and Techies mana-pool regen; '
         '<em>Expanded</em> adds detailed combat, armor, projectile, mobility and '
         'size columns. Hover any stat for its full patch history since 7.08, then '
         'use search, sorting and heatmap to find outliers quickly.</p>\n'
@@ -1457,6 +1496,16 @@ def render_html() -> str:
         '<span>Lvl</span>'
         '<input type="number" id="hs-level-input" min="1" max="30" value="1" '
         'inputmode="numeric" aria-label="Hero level">'
+        '</label>'
+        '<label class="ua-upgrades-toggle hs-plus2-toggle">'
+        '<span class="ua-upgrades-label">+2 stats</span>'
+        '<input type="checkbox" id="hs-plus2-toggle" class="ua-switch-input" checked>'
+        '<span class="ua-switch" aria-hidden="true"></span>'
+        '</label>'
+        '<label class="ua-upgrades-toggle hs-innates-toggle">'
+        '<span class="ua-upgrades-label">Innates</span>'
+        '<input type="checkbox" id="hs-innates-toggle" class="ua-switch-input" checked>'
+        '<span class="ua-switch" aria-hidden="true"></span>'
         '</label>'
         '<label class="ua-upgrades-toggle">'
         '<span class="ua-upgrades-label">Heatmap</span>'

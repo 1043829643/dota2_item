@@ -37,7 +37,10 @@ _OUT_DIR = os.path.join(_HERE, "icons", "ui", "gothic")
 # clips ~20px of that flip on a few transient frames — an accepted trade for a
 # properly-sized rest icon (per request: match size even if the beam shrinks).
 # (x0, y0, x1, y1)
-CROP = (185, 147, 393, 355)           # 208 x 208
+CROP = (181, 147, 389, 355)           # 208 x 208; shifted left 4px so the
+                                      # closed chest sits closer to the slot's
+                                      # visual centre without badly clipping the
+                                      # lid on the open frames
 CELL = 64                             # final icon resolution (pixelated)
 
 # Green-screen keys (background + the darker grass drop-shadow under the chest).
@@ -187,25 +190,24 @@ def main():
         #     the gold glints twinkling (src frames ~50-88, before the lid starts
         #     to close), looping forever (loop=0). Its first frame == the intro's
         #     last frame so the JS swap is seamless.
-        # Two things must be settled before the loop, or its seam jerks:
-        #   • the BEAM ramps up over src frames 46-52, then constant 52..88;
-        #   • the chest BODY keeps its open-squash extra width (x190-420) at
-        #     frames 50-52, then settles to its steady width (x195-415) by 53+.
-        # So the loop must start AND end inside the fully-settled window (54..88):
-        # frame 54 (settled body, full beam, steady width) == the loop's first
-        # AND the intro's last frame, and 88 (same width + beam) is the last loop
-        # frame → 88→54 is a clean seam, only the small gold glints twinkle.
+        # The user-visible glitch was that the intro kept going through the
+        # "settling" frames after the lid had already fully opened, which reads
+        # like the chest briefly closing/reopening before the loop begins.
+        # Fix: cut the intro at the first convincingly-open frame and start the
+        # loop from that exact source frame too. That favors a clean hand-off
+        # over the extra settle motion.
         intro = []
         for i in range(0, 45, 3):          # key flies in + inserts + turns (fast)
             intro.append((i, 34))
-        for i in range(45, 55):            # lid opens, squashes, beam ignites,
-            intro.append((i, 55))          # body settles — ends at frame 54
+        for i in (45, 46, 48, 50, 58, 62): # cut straight to the first stable
+            intro.append((i, 55))          # fully-open pose used by the loop
         intro_imgs, intro_durs = save_apng("icon_chest_open.png", intro, loop=1)
         intro_ms = sum(intro_durs)
 
         loop = []
-        for i in range(54, 89, 2):         # settled open chest: beam + glint twinkle
-            loop.append((i, 70))           # 54 == intro's last frame (seamless)
+        for i in (62, 64, 68, 70, 74, 80, 86, 80, 74, 70, 68, 64):
+            loop.append((i, 88))           # only stable open poses, mirrored so
+                                           # the wrap back to frame 0 is gentle
         save_apng("icon_chest_loop.png", loop, loop=0)
 
         print(f"  -> icon_chest.png (closed) + icon_chest_open.png intro "

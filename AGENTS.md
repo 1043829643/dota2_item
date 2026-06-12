@@ -462,6 +462,15 @@ For `HP/sec` and `MP/sec` columns in both `heroes_stats.html` and `neutral_stats
 - `heroes_dyn.html` now supports the same Melee/Ranged toolbar filtering pattern used in Hero Stats. Feed `data-attack-type` per row from the latest hero raw data; Spirit Bear is always melee.
 - Dyn-cell pills inside `td.hd-cell` should stay visually centered by forcing the cell to `line-height: 0`; otherwise the pill sits slightly high in the grid.
 
+### Hero Stats: innate-derived computed values
+
+- `heroes_stats.html` must treat innate-derived stat bonuses as part of the computed model, not as presentation-only exceptions. If an innate grants or converts stats into another displayed column (damage, armor, move speed, regen, range, etc.), that bonus belongs in `Starting` / `Expanded` when the `Innates` toggle is on, and stays out of `Base`.
+- This applies even when the innate is conditional or unusual (example: Axe gaining Strength from armor while alone). If the site chooses to model that condition in Hero Stats, it must be expressed as an explicit toggle/assumption, not silently baked into raw values.
+- Current project rule: for Axe in Hero Stats, ignore the nearby-allies condition and model One Man Army as always active when `Innates` is enabled. That Strength bonus must flow through displayed STR and every derived stat it affects (HP, HP regen, damage, etc.).
+- For hero-level formulas phrased as `X + Y per level up`, the increment starts after level 1. In Hero Stats this means `(level - 1)`, not `level`. This matters for innate-derived computations too (example: Techies mana-pool regen).
+- Derived stats in Hero Stats use whole attributes where the game truncates before applying conversions (example: Medusa mana at high levels). Do not use fractional attributes directly for HP / mana / primary-attribute damage when the in-game stat is based on floored attributes.
+- If an innate changes in a later patch (numbers changed, formula changed, reworked, or removed), Hero Stats must respect the patch-gated version of that innate for the selected patch history / latest snapshot logic. Do not assume innate formulas are timeless.
+
 ### Источники данных по рельефу (terrain)
 Главные источники координат карты (деревья/кэмпы/башни/тормент/гейты/лотосы по версиям):
 - **Интерактивная карта**: https://tools.spectral.gg/interactive-map

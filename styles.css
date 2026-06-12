@@ -6897,6 +6897,17 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border-radius: 3px;
   display: block;
 }
+.hs-innate-mini {
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  vertical-align: -2px;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 2px rgba(10, 12, 16, 0.6));
+}
+.hs-innate-mini.is-hidden {
+  display: none;
+}
 /* Primary-attribute icon cell */
 .hs-attr-cell { padding: 4px 6px; }
 .hs-attr-ico {
