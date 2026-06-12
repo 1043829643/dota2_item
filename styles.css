@@ -649,9 +649,13 @@ body:has(.creeps-page) nav.top-nav {
   pointer-events: none;
 }
 .inv-book.support-open .inv-grid,
-.inv-book.dynamics-open .inv-grid { visibility: hidden; }
+.inv-book.creeps-open .inv-grid,
+.inv-book.heroes-open .inv-grid,
+.inv-book.items-open .inv-grid { visibility: hidden; }
 .inv-book.support-open .support-panel,
-.inv-book.dynamics-open .dynamics-panel {
+.inv-book.creeps-open .creeps-panel,
+.inv-book.heroes-open .heroes-panel,
+.inv-book.items-open .items-panel {
   opacity: 1;
   pointer-events: auto;
   animation: supportIn 0.28s ease both;
@@ -807,7 +811,9 @@ body:has(.creeps-page) nav.top-nav {
   line-height: 0;
 }
 .inv-book.support-open .support-back,
-.inv-book.dynamics-open .support-back { display: inline-flex; }
+.inv-book.creeps-open .support-back,
+.inv-book.heroes-open .support-back,
+.inv-book.items-open .support-back { display: inline-flex; }
 .support-back-orn {
   height: 20px;
   image-rendering: pixelated;
@@ -826,7 +832,9 @@ body:has(.creeps-page) nav.top-nav {
 }
 @media (prefers-reduced-motion: reduce) {
   .inv-book.support-open .support-panel,
-  .inv-book.dynamics-open .dynamics-panel { animation: none; }
+  .inv-book.creeps-open .creeps-panel,
+  .inv-book.heroes-open .heroes-panel,
+  .inv-book.items-open .items-panel { animation: none; }
   .support-telegram:hover .inv-icon { animation: none; }
   .tg-heart { display: none; }
   .support-donation:hover .don-coin { animation: none; }
@@ -4855,7 +4863,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
 .creeps-scroll > .materials-subnav {
   position: sticky;
   left: 0;
-  z-index: 7;
+  /* Above the sticky table header (z 50/52) so the grouped sub-nav's hover
+     dropdowns render OVER the table/header instead of behind it. The bar
+     scrolls up out of view before the header pins, so the higher z doesn't
+     cause a lasting overlap. */
+  z-index: 55;
 }
 .nav-subtab {
   font-size: 13px;
@@ -4874,6 +4886,84 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   color: #e6edf3;
   background: #0a0e13;          /* matches the page background → tab merges into page */
   border-color: rgba(170, 220, 240, 0.18);
+}
+/* ---- Grouped sub-nav dropdowns (Creeps ▾ / Items ▾ / Heroes ▾) ---- */
+.nav-subgroup { position: relative; display: inline-flex; align-items: flex-end; }
+.nav-subtab-group { cursor: pointer; }
+.nav-caret { margin-left: 6px; font-size: 9px; opacity: 0.75; }
+.nav-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 184px;
+  background: #11161d;
+  border: 1px solid rgba(170, 220, 240, 0.20);
+  border-radius: 0 8px 8px 8px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Above the submenu's own stacking context; the bar is lifted to z55 so this
+     paints over the table + its sticky header. */
+  z-index: 60;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(5px);
+  transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s;
+}
+/* Child combinator `>` so a nested flyout (a .nav-submenu deeper inside) does
+   NOT open just because the outer group is hovered — only its OWN nested
+   subgroup hover opens it. */
+.nav-subgroup:hover > .nav-submenu,
+.nav-subgroup:focus-within > .nav-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.nav-subitem {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9fb0c0;
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 5px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nav-subitem:hover { color: #e6edf3; background: rgba(48, 54, 61, 0.55); }
+.nav-subitem.active {
+  color: #e6edf3;
+  background: rgba(56, 139, 253, 0.18);
+}
+.nav-subitem-soon { color: #5b6672; cursor: default; }
+.nav-subitem-soon:hover { background: none; }
+/* Nested flyout (Neutral Abilities under Neutral Stats): the parent item opens
+   a second menu to its RIGHT on hover — a classic cascading menu. */
+.nav-subgroup-nested { position: relative; display: block; }
+.nav-subitem-parent { cursor: pointer; }
+.nav-caret-side { font-size: 9px; opacity: 0.7; margin-left: 8px; }
+.nav-submenu-flyout {
+  top: -6px;                 /* align the flyout's first row with the parent */
+  left: 100%;
+  margin-left: 5px;
+  border-radius: 8px;
+}
+/* The nested parent stays visually "open" (highlighted) while its flyout shows. */
+.nav-subgroup-nested:hover > .nav-subitem-parent { color: #e6edf3; background: rgba(48, 54, 61, 0.55); }
+.nav-soon-tag {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #b59a48;
+  border: 1px solid rgba(227, 196, 106, 0.4);
+  border-radius: 4px;
+  padding: 0 4px;
+  line-height: 1.4;
 }
 /* Ability-icon link on the Creeps Table — no underline, inherits layout. */
 .creeps-table .abil-link {
@@ -6146,6 +6236,33 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
    the inset frame (the frame would double-paint through the sticky cell). */
 .creeps-table tbody tr.row-marked .sticky-col { --sticky-bg: #2b251a; }
 .creeps-table tbody tr.row-marked:hover .sticky-col { --sticky-bg: #34291e; }
+/* A marked row's sticky identity cell must keep its opaque fill UNDERNEATH the
+   gold frame. The generic `.row-marked > td:first-child/:last-child` frame is a
+   box-shadow, and box-shadow is a single property — so it REPLACES the sticky
+   cell's `inset 0 0 0 9999px var(--sticky-bg)` fill that normally covers the
+   collapsed-border seam. Without the fill, the seam bled at the column junction
+   (looked like a small gap between Hero and the next column). Re-add the fill as
+   the LAST shadow (painted beneath the earlier gold frame lines). */
+.creeps-table tbody tr.row-marked > td.sticky-col {
+  box-shadow:
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95),
+    inset  0    0   0 9999px var(--sticky-bg);
+}
+.creeps-table tbody tr.row-marked > td.sticky-col:first-child {
+  box-shadow:
+    inset  2px  0  0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95),
+    inset  0    0   0 9999px var(--sticky-bg);
+}
+.creeps-table tbody tr.row-marked > td.sticky-col:last-child {
+  box-shadow:
+    inset -2px  0  0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 rgba(231, 196, 106, 0.95),
+    inset  0   -2px 0 rgba(231, 196, 106, 0.95),
+    inset  0    0   0 9999px var(--sticky-bg);
+}
 /* Legacy .row-flash class (one-shot fade) is no longer applied by JS but
    the keyframes still live below — harmless dead CSS, retained so any
    third-party styling doesn't break. */
@@ -6577,6 +6694,40 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
   z-index: 53;
 }
 .mr-table.hs-table tbody tr:hover td.hs-name { background: #1a212b; }
+/* Selected-row gold frame on the STICKY Hero cell.
+   The generic `.mr-row-selected > td(:first-child)` frame is an inset box-shadow,
+   and Chromium renders box-shadow OFFSET on `position:sticky` cells (the same
+   quirk the `.sticky-frame` overlay exists for) — so the gold top/bottom lines
+   stepped down at the Hero↔Attr seam. Draw the frame as background-gradient
+   layers instead (left + top + bottom bars + gold tint over the sticky base);
+   backgrounds paint correctly on sticky cells, so the lines align with the
+   non-sticky cells' box-shadow frame. The base `td.hs-name` background rule wins
+   over `.mr-row-selected > td`'s gradient via the `background` shorthand, so we
+   re-assert the whole stack here at higher specificity. */
+.mr-table.hs-table tbody tr.mr-row-selected td.hs-name {
+  box-shadow: none;
+  background:
+    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) left   / 2px 100% no-repeat,
+    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) top    / 100% 2px no-repeat,
+    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) bottom / 100% 2px no-repeat,
+    linear-gradient(rgba(231, 196, 106, 0.12), rgba(231, 196, 106, 0.12)),
+    #11161d;
+  /* MUST come AFTER the `background` shorthand (which resets origin to its
+     padding-box default). border-box origin puts the top/bottom bars on the
+     cell's full-height edges, matching the box-shadow frame on the other
+     columns — padding-box would inset them by the cell's vertical padding and
+     draw a SHORTER gold box than the rest of the row. */
+  background-origin: border-box;
+}
+.mr-table.hs-table tbody tr.mr-row-selected:hover td.hs-name {
+  background:
+    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) left   / 2px 100% no-repeat,
+    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) top    / 100% 2px no-repeat,
+    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) bottom / 100% 2px no-repeat,
+    linear-gradient(rgba(231, 196, 106, 0.16), rgba(231, 196, 106, 0.16)),
+    #1a212b;
+  background-origin: border-box;
+}
 /* Hero portrait (16:9) in the name cell — same slot the item icon uses. */
 .hs-ico {
   width: 40px;
@@ -6951,7 +7102,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 12px; padding-bottom: 12px;
    page's GOLD theme (the calendar's is blue). It sits inline in the heading as
    the version, so the heading reads "[7.41 ▾] Terrain Changes". */
 /* Nudge the patch picker down 1px (the "Terrain Changes" label stays put). */
-.tc-picker { transform: translateY(1px); }
+.tc-picker { transform: translateY(1px); position: relative; }
+/* `transform` above turns .tc-picker into a stacking context that TRAPS the
+   menu's z-index:60 inside it — and since the change-list pane comes LATER in
+   the DOM than this heading, those rows painted OVER the (trapped) menu, making
+   the open dropdown look transparent. Lift the whole picker above the rows
+   while it's open so its menu paints on top. */
+.tc-picker.is-open { z-index: 80; }
 .tc-picker .cal-year-current {
   background: linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
   border: 1px solid #e3c46a;

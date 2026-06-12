@@ -62,16 +62,31 @@ NAV_TABS = [
 ]
 
 
-# Materials sub-tabs — flat row rendered as a thin bar BELOW the main header
-# (so the header itself stays compact). Single source of truth.
-MATERIALS_SUBTABS = [
-    ("creeps",     "Neutral Stats",     "neutral_stats.html"),
-    ("abilities",  "Neutral Abilities", "neutral_abilities.html"),
-    ("mana_items", "Mana Items",        "mana_items.html"),
-    ("heroes_stats", "Hero Stats",      "heroes_stats.html"),
-    ("heroes_dyn", "Hero Dynamics",     "heroes_dyn.html"),
-    ("items_dyn",  "Item Dynamics",     "items_dyn.html"),
-    ("terrain",    "Terrain",           "terrain.html"),
+# Materials sub-tabs — a thin bar BELOW the main header (so the header stays
+# compact). GROUPED to mirror the index inventory tiles: each group is a
+# trigger (links to its primary page) that reveals a hover dropdown of its
+# sub-pages. Terrain has no children → a plain link. Single source of truth.
+#   (group_key, group_label, group_href, [ (child_key, child_label, child_href|None), ... ])
+# child_href=None ⇒ an unbuilt "soon" placeholder (Summons / Lane Creeps).
+MATERIALS_GROUPS = [
+    ("creeps_grp", "Creeps", "neutral_stats.html", [
+        # Neutral Abilities nests UNDER Neutral Stats (4th tuple element = its
+        # own sub-pages, rendered indented inside the dropdown).
+        ("creeps",    "Neutral Stats",     "neutral_stats.html", [
+            ("abilities", "Neutral Abilities", "neutral_abilities.html"),
+        ]),
+        ("summons",   "Summons",           None),
+        ("lane",      "Lane Creeps",       None),
+    ]),
+    ("items_grp", "Items", "mana_items.html", [
+        ("mana_items", "Mana Items",    "mana_items.html"),
+        ("items_dyn",  "Item Dynamics", "items_dyn.html"),
+    ]),
+    ("heroes_grp", "Heroes", "heroes_stats.html", [
+        ("heroes_stats", "Hero Stats",    "heroes_stats.html"),
+        ("heroes_dyn",   "Hero Dynamics", "heroes_dyn.html"),
+    ]),
+    ("terrain", "Terrain", "terrain.html", None),
 ]
 
 
@@ -156,12 +171,60 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
 
 
 def render_materials_subnav(active, prefix=""):
-    """The Materials sub-tab bar (Neutral Stats | Neutral Abilities | Mana
-    Items) as a standalone strip — so pages with an inner scroll box can drop
-    it inside that box rather than in the page header."""
-    subpills = ''.join(
-        f'<a class="nav-subtab{" active" if active == key else ""}" '
-        f'href="{prefix}{href}">{label}</a>'
-        for key, label, href in MATERIALS_SUBTABS)
+    """The Materials sub-tab bar (grouped: Creeps ▾ | Items ▾ | Heroes ▾ |
+    Terrain) as a standalone strip — pages with an inner scroll box drop it
+    inside that box. Each group is a trigger linking to its primary page with a
+    hover dropdown of its children; the active child highlights both itself and
+    its group trigger. `active` is one of the child/terrain keys."""
+    parts = []
+    for gkey, glabel, ghref, children in MATERIALS_GROUPS:
+        if children is None:
+            # Plain link (Terrain — no children).
+            cls = "nav-subtab" + (" active" if active == gkey else "")
+            parts.append(f'<a class="{cls}" href="{prefix}{ghref}">{glabel}</a>')
+            continue
+        # Flatten child + grandchild keys so the group highlights when any
+        # descendant page is active.
+        def _keys(nodes):
+            ks = []
+            for node in nodes:
+                ks.append(node[0])
+                if len(node) > 3 and node[3]:
+                    ks.extend(_keys(node[3]))
+            return ks
+        grp_active = active in _keys(children)
+        trig_cls = "nav-subtab nav-subtab-group" + (" active" if grp_active else "")
+
+        def _item(node):
+            ckey, clabel, chref = node[0], node[1], node[2]
+            if chref is None:
+                return (f'<span class="nav-subitem nav-subitem-soon" aria-disabled="true">'
+                        f'{clabel}<span class="nav-soon-tag">soon</span></span>')
+            icls = "nav-subitem" + (" active" if active == ckey else "")
+            return f'<a class="{icls}" href="{prefix}{chref}">{clabel}</a>'
+
+        items = []
+        for node in children:
+            grands = node[3] if len(node) > 3 and node[3] else None
+            if grands:
+                # Nested flyout: the node links to its own page AND opens a side
+                # submenu of its sub-pages on hover (cascading menu).
+                pcls = "nav-subitem nav-subitem-parent" + (
+                    " active" if active == node[0] else "")
+                trigger = (
+                    f'<a class="{pcls}" href="{prefix}{node[2]}">{node[1]}'
+                    f'<span class="nav-caret nav-caret-side" aria-hidden="true">'
+                    f'▸</span></a>')
+                flyout = ('<div class="nav-submenu nav-submenu-flyout">'
+                          + ''.join(_item(g) for g in grands) + '</div>')
+                items.append(
+                    f'<div class="nav-subgroup nav-subgroup-nested">'
+                    f'{trigger}{flyout}</div>')
+            else:
+                items.append(_item(node))
+        trigger = (f'<a class="{trig_cls}" href="{prefix}{ghref}">'
+                   f'{glabel}<span class="nav-caret" aria-hidden="true">▾</span></a>')
+        menu = f'<div class="nav-submenu">{"".join(items)}</div>'
+        parts.append(f'<div class="nav-subgroup">{trigger}{menu}</div>')
     return (f'<div class="materials-subnav"><div class="materials-subnav-inner">'
-            f'{subpills}</div></div>\n')
+            f'{"".join(parts)}</div></div>\n')

@@ -291,6 +291,20 @@ Default-эвристика `no longer` → NERF/DEL **не работает** д
 
 При написании руками: если две KV-строки идут подряд и вторая начинается с уточняющих оборотов («Same behavior as before», «1 X per Y», «Buff Duration: …», «Affects …», «Pressing ALT shows …», «Duration decreased as part of comprehensive Disables Reduction») — это `_info`, прицеплять `extra=inline_note(...)`.
 
+### «Aghanim's Shard reworked» — суть реворка НЕ прятать в `inline_note`
+
+Если строка изменения = только заголовок («Aghanim's Shard Reworked» / «Aghanim's Scepter reworked» и подобное), а **что именно** изменилось спрятано в `extra=inline_note(...)` — **вытащить описание в основной текст строки** и совместить через двоеточие:
+
+```python
+# WRONG — суть реворка спрятана в info
+W(li("Aghanim's Shard Reworked", t("REWORK"), extra=inline_note("Applies 3 Fury Swipe stacks to each affected enemy")))
+
+# RIGHT — описание в самой строке (каноничный вид, строчная "reworked")
+W(li("Aghanim's Shard reworked: Applies 3 Fury Swipe stacks to each affected enemy", t("REWORK")))
+```
+
+Прятать содержимое реворка нелогично (Valve так делает в KV, но на странице это плохо читается). Канон по сайту — `"Aghanim's Shard reworked: <описание>"` (строчная `reworked`, см. ~15 героев в коде). `inline_note` оставлять только для **дополнительных** уточнений (edge-cases), не для самого описания реворка.
+
 ### Иконки-чипы → нужны hover-тултипы (если рядом нет пояснения)
 
 Когда строка показывает список иконок-чипов (предметы, способности, сувениры и т.п.), каждый чип должен нести `data-tooltip="..."` с описанием эффекта, **если** рядом с чипом нет inline-текста, объясняющего что он делает.

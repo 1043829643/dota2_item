@@ -4517,28 +4517,25 @@ def save_index_html():
     latest = PATCHES[0]['version'] if PATCHES else None
     # Captions are placeholder words for now (final wording TBD); the hrefs are
     # the real destinations. Font matches the "sikle" wordmark (Jersey 10).
-    _INV_ITEMS = [
-        ('patch',     'Changelogs', f'patches/{latest}.html' if latest else 'calendar.html'),
-        ('calendar',  'Calendar',   'calendar.html'),
-        ('creeps',    'Neutral Stats', 'neutral_stats.html'),
-        ('mana',      'Mana Items', 'mana_items.html'),
-        ('dynamics',  'Dynamics',   'heroes_dyn.html'),
-        ('terrain',   'Terrain',    'terrain.html'),
-    ]
-    # No placeholder tiles for now — future sections TBD (Mana Items sits right
-    # after Creeps). Arcana (Neutral Abilities) lives under the Materials
-    # sub-nav, so it doesn't need its own hub tile.
+    # Top row = two simple link tiles, three SUB-PANEL openers (Creeps / Items /
+    # Heroes, which expand in place like Support instead of redirecting), then
+    # Terrain. Each link tile swaps its static PNG for an animated GIF on hover:
+    # calendar (date burn, JS), patch (page-flip, CSS), terrain (levitate, CSS).
+    _INV_LINKS = {
+        'patch':    ('Changelogs', f'patches/{latest}.html' if latest else 'calendar.html'),
+        'calendar': ('Calendar',   'calendar.html'),
+        'terrain':  ('Terrain',    'terrain.html'),
+    }
+    # Arcana (Neutral Abilities) lives under the Materials sub-nav, so it has no
+    # hub tile of its own.
     _INV_PLACEHOLDERS = []
-    cells = []
-    for key, label, href in _INV_ITEMS:
-        # Every tile shows a static PNG and swaps to an animated GIF only on
-        # hover: calendar (date 1→31, CSS), creeps (crawling legs, CSS), patch
-        # (page-flip, CSS), mana (fill-then-waves, JS), dynamics (bars grow/
-        # shrink GIF, CSS).
+
+    def _link_tile(key):
+        label, href = _INV_LINKS[key]
         if key == "terrain":
             # Terrain = a floating earth block: on hover it levitates + bobs and
             # sheds occasional pixel "dirt" from its underside (CSS particles).
-            cells.append(
+            return (
                 f'<a class="inv-cell inv-filled inv-cell-terrain" href="{href}">'
                 '<span class="inv-slot">'
                 '<img class="inv-icon" src="icons/ui/gothic/icon_terrain.png" alt="">'
@@ -4549,21 +4546,7 @@ def save_index_html():
                 f'<span class="inv-cap">{label}</span>'
                 '</a>'
             )
-            continue
-        if key == "dynamics":
-            # Dynamics = an opener tile (like Support): clicking opens a sub-panel
-            # with Heroes / Items instead of redirecting. Keeps its bars-GIF hover.
-            cells.append(
-                '<a class="inv-cell inv-filled inv-cell-dynamics" href="#dynamics" '
-                'data-panel-open="dynamics" role="button" aria-expanded="false">'
-                '<span class="inv-slot">'
-                '<img class="inv-icon" src="icons/ui/gothic/icon_dynamics.png" alt="">'
-                '</span>'
-                f'<span class="inv-cap">{label}</span>'
-                '</a>'
-            )
-            continue
-        cells.append(
+        return (
             f'<a class="inv-cell inv-filled inv-cell-{key}" href="{href}">'
             f'<span class="inv-slot">'
             f'<img class="inv-icon" src="icons/ui/gothic/icon_{key}.png" alt="">'
@@ -4571,6 +4554,32 @@ def save_index_html():
             f'<span class="inv-cap">{label}</span>'
             f'</a>'
         )
+
+    def _opener_tile(key, label, panel, icon):
+        # A tile that expands a sub-panel in place (like Support). `key` doubles
+        # as the .inv-cell-<key> hover class, so passing 'creeps' keeps the
+        # beetle-crawl GIF; placeholder openers (items/heroes) use a key with no
+        # hover rule, so they stay static.
+        return (
+            f'<a class="inv-cell inv-filled inv-cell-{key}" href="#{panel}" '
+            f'data-panel-open="{panel}" role="button" aria-expanded="false">'
+            '<span class="inv-slot">'
+            f'<img class="inv-icon" src="icons/ui/gothic/{icon}" alt="">'
+            '</span>'
+            f'<span class="inv-cap">{label}</span>'
+            '</a>'
+        )
+
+    cells = [
+        _link_tile('patch'),
+        _link_tile('calendar'),
+        # Creeps opener keeps the beetle-crawl hover (.inv-cell-creeps).
+        _opener_tile('creeps', 'Creeps', 'creeps', 'icon_creeps.png'),
+        # Items / Heroes openers use placeholder gothic icons (no hover anim).
+        _opener_tile('items', 'Items', 'items', 'icon_materials.png'),
+        _opener_tile('heroes', 'Heroes', 'heroes', 'icon_hat.png'),
+        _link_tile('terrain'),
+    ]
     # Special "star" tile — the slot emits a faint pixel-gold glow (hinting it's
     # special); on hover the star pulses (grows/shrinks) and throws off a burst
     # of magic dust (CSS). Instead of redirecting, clicking it opens the Support
@@ -4633,24 +4642,51 @@ def save_index_html():
         '</div>'
         '</div>'
     )
-    # Dynamics sub-panel — opened by the Dynamics tile (same mechanism as Support).
-    # Two real links: Heroes (heroes_dyn) and Items (items_dyn). Placeholder gothic
-    # icons for now (icon_hat = Heroes, icon_materials = Items) — TBD final art.
-    dynamics_panel = (
-        '<div class="inv-panel dynamics-panel" data-panel="dynamics" aria-hidden="true">'
+    # Sub-panels opened by the Creeps / Heroes / Items tiles (same mechanism as
+    # Support). Buttons reuse the .support-btn shell; an .inv-cell-<key> class on
+    # a button carries over that tile's hover animation (creeps crawl, dynamics
+    # bars, mana fill). Unwired buttons render as inert "soon" tiles.
+    def _panel_link_btn(anim_cls, href, icon, label):
+        cls = ('support-btn ' + anim_cls).strip()
+        return (
+            f'<a class="{cls}" href="{href}">'
+            '<span class="inv-slot">'
+            f'<img class="inv-icon" src="icons/ui/gothic/{icon}" alt="">'
+            '</span>'
+            f'<span class="inv-cap">{label}</span></a>'
+        )
+
+    def _panel_soon_btn(icon, label):
+        return (
+            '<span class="support-btn support-soon" '
+            'aria-disabled="true" title="Coming soon">'
+            '<span class="inv-slot">'
+            f'<img class="inv-icon" src="icons/ui/gothic/{icon}" alt="">'
+            '<span class="support-soon-tag">soon</span></span>'
+            f'<span class="inv-cap">{label}</span></span>'
+        )
+
+    creeps_panel = (
+        '<div class="inv-panel creeps-panel" data-panel="creeps" aria-hidden="true">'
         '<div class="support-options">'
-        '<a class="support-btn dyn-heroes" href="heroes_dyn.html">'
-        '<span class="inv-slot">'
-        '<img class="inv-icon" src="icons/ui/gothic/icon_hat.png" alt="">'
-        '</span>'
-        '<span class="inv-cap">Heroes</span></a>'
-        '<a class="support-btn dyn-items" href="items_dyn.html">'
-        '<span class="inv-slot">'
-        '<img class="inv-icon" src="icons/ui/gothic/icon_materials.png" alt="">'
-        '</span>'
-        '<span class="inv-cap">Items</span></a>'
-        '</div>'
-        '</div>'
+        + _panel_link_btn('inv-cell-creeps', 'neutral_stats.html', 'icon_creeps.png', 'Neutrals')
+        + _panel_soon_btn('icon_abilities.png', 'Summons')
+        + _panel_soon_btn('icon_tree.png', 'Lane Creeps')
+        + '</div></div>'
+    )
+    heroes_panel = (
+        '<div class="inv-panel heroes-panel" data-panel="heroes" aria-hidden="true">'
+        '<div class="support-options">'
+        + _panel_link_btn('inv-cell-dynamics', 'heroes_dyn.html', 'icon_dynamics.png', 'Dynamics')
+        + _panel_link_btn('', 'heroes_stats.html', 'icon_typewriter.png', 'Stats')
+        + '</div></div>'
+    )
+    items_panel = (
+        '<div class="inv-panel items-panel" data-panel="items" aria-hidden="true">'
+        '<div class="support-options">'
+        + _panel_link_btn('inv-cell-mana', 'mana_items.html', 'icon_mana.png', 'Mana')
+        + _panel_link_btn('inv-cell-dynamics', 'items_dyn.html', 'icon_dynamics.png', 'Dynamics')
+        + '</div></div>'
     )
     # The divider keeps its place under the title; when the Support panel is
     # open a gothic left-arrow ornament appears to its left as the "back" control
@@ -4677,7 +4713,9 @@ def save_index_html():
         '<div class="inv-stage">'
         f'<div class="inv-grid">{"".join(cells)}{empties}</div>'
         f'{support_panel}'
-        f'{dynamics_panel}'
+        f'{creeps_panel}'
+        f'{heroes_panel}'
+        f'{items_panel}'
         '</div>'
         '</div>'
     )
@@ -17090,7 +17128,7 @@ W(ul_close())
 W(hero_header("Terrorblade"))
 W(ability("Dark Unity", slug="terrorblade_dark_unity"))
 W(ul_open())
-W(li("Illusions that are outside 1200 radius no longer have a damage penalty", t("BUFF")))
+W(li("Illusions that are outside 1200 radius no longer have a damage penalty", t("NEW")))
 W(li("Damage increase for illusions within 1200 radius increased from 25% to 60%", b(25, 60)))
 W(ul_close())
 W(ability("Reflection", slug="terrorblade_reflection"))
@@ -17152,11 +17190,11 @@ W(li("Strength gain increased from 4.0 to 4.2", b(4, 4.2)))
 W(ul_close())
 W(ability("Avalanche", slug="tiny_avalanche"))
 W(ul_open())
-W(li("Stun duration now applies its stun as an aura in the area", t("MISC"), extra=inline_note("As a result, no longer affected by status resistance")))
+W(li("Stun duration now applies its stun as an aura in the area", t("REWORK"), extra=inline_note("As a result, no longer affected by status resistance")))
 W(ul_close())
 W(ability("Tree Throw", slug="tiny_toss_tree"))
 W(ul_open())
-W(li("No longer has separate damage bonus, uses Tree Grab's value instead", t("DEL"), extra=inline_note("Bonus damage rescaled from 20 to 10/20/30/40 " + b(20, [10, 20, 30, 40]))))
+W(li("No longer has separate damage bonus, uses Tree Grab's value instead", t("BUFF"), extra=inline_note("Bonus damage rescaled from 20 to 10/20/30/40 " + b(20, [10, 20, 30, 40]))))
 W(ul_close())
 W(ability("Grow", slug="tiny_grow"))
 W(ul_open())
@@ -17176,12 +17214,11 @@ W(ul_close())
 W(ability("Nature's Guise", slug="treant_natures_guise"))
 W(ul_open())
 W(li("No longer upgraded with Aghanim's Shard", t("DEL")))
-W(li("Now can be activated while tree walking to make Treant Protector invisible until he attacks or loses the Nature's Guise buff", t("NEW"), extra=inline_note("Linger time: 2s. No Mana Cost. Cooldown: 50s. Cooldown is reduced by 3s per 2 Treant Protector's level ups")))
-W(li("Cooldown starts when the invisibility ends", t("MISC")))
+W(li("Now can be activated while tree walking to make Treant Protector invisible until he attacks or loses the Nature's Guise buff", t("NEW"), extra=inline_note("Linger time: 2s. No Mana Cost. Cooldown: 50s. Cooldown is reduced by 3s per 2 Treant Protector's level ups<br>Cooldown starts when the invisibility ends")))
 W(ul_close())
 W(ability("Nature's Grasp", slug="treant_natures_grasp"))
 W(ul_open())
-W(li("No longer does 50% more damage and slow when touching a tree", t("MISC")))
+W(li("No longer does 50% more damage and slow when touching a tree", t("DEL")))
 W(li("Damage per second increased from 30/40/50/60 to 35/50/65/80", b([30, 40, 50, 60], [35, 50, 65, 80])))
 W(li("Movement Slow increased from 20/25/30/35% to 25/30/35/40%", b([20, 25, 30, 35], [25, 30, 35, 40])))
 W(li("Creep penalty decreased from 50% to 35%", b(50, 35)))
@@ -17213,9 +17250,7 @@ W(ul_close())
 W(ability("Living Armor", slug="treant_living_armor"))
 W(ul_open())
 W(li("No longer grants bonus armor", t("DEL")))
-W(li("Now grants 100 damage block from player-controlled sources. Each time this spell blocks damage the effect is decreased by 35/30/25/20", t("NEW"), extra=inline_note("Damage block affects any types of damage")))
-W(li("The heal ends earlier if the damage block is reduced to 0", t("MISC")))
-W(li("Instances of less than 20 damage are ignored by Living Armor. They are neither blocked nor counted towards block decrease", t("MISC")))
+W(li("Now grants 100 damage block from player-controlled sources. Each time this spell blocks damage the effect is decreased by 35/30/25/20", t("NEW"), extra=inline_note("Damage block affects any types of damage<br>The heal ends earlier if the damage block is reduced to 0<br>Instances of less than 20 damage are ignored by Living Armor. They are neither blocked nor counted towards block decrease")))
 W(li("Duration decreased from 18/22/26/30s to 12s", b([18, 22, 26, 30], 12)))
 W(li("Heal per second increased from 3/4/5/6 to 4/7/10/13", b([3, 4, 5, 6], [4, 7, 10, 13])))
 W(ul_close())
@@ -17228,8 +17263,8 @@ W(ul_open())
 W(li("Now granted by Aghanim's Shard", t("NEW")))
 W(li("Mana Cost decreased from 100 to 30", b(100, 30, l=True)))
 W(li("Cast Range increased from 160 to 350", b(160, 350)))
-W(li("Overgrowth is no longer applied around enchanted trees", t("MISC")))
-W(li("Enchanted trees now have the same health as Observer Wards, and they expire after 5 minutes", t("MISC"), extra=inline_note("Trees can be attacked when revealed by True Sight. Attacks will remove the ability effect from the tree without destroying the tree itself")))
+W(li("Overgrowth is no longer applied around enchanted trees", t("DEL")))
+W(li("Enchanted trees now have the same health as Observer Wards, and they expire after 5 minutes", t("REWORK"), extra=inline_note("Trees can be attacked when revealed by True Sight. Attacks will remove the ability effect from the tree without destroying the tree itself")))
 W(li("Charge Restore Time increased from 40s to 55s", b(40, 55, l=True)))
 W(ul_close())
 W(subgroup("Talents"))
@@ -17296,7 +17331,7 @@ W(ul_close())
 W(hero_header("Ursa"))
 W(ability("Earthshock", slug="ursa_earthshock"))
 W(ul_open())
-W(li("Aghanim's Shard Reworked", t("REWORK"), extra=inline_note("Applies 3 Fury Swipe stacks to each affected enemy")))
+W(li("Aghanim's Shard reworked: Applies 3 Fury Swipe stacks to each affected enemy", t("REWORK")))
 W(ul_close())
 W(ability("Enrage", slug="ursa_enrage"))
 W(ul_open())
@@ -17330,7 +17365,7 @@ W(li("Base Damage per Debuff decreased from 10% to 8%", b(10, 8)))
 W(ul_close())
 W(facet_header("venomancer_plague_carrier"))
 W(ul_open())
-W(li("Plague Wards created by Venomous Gale have 75% health and damage", t("MISC")))
+W(li("Plague Wards created by Venomous Gale have 75% health and damage", t("REWORK")))
 W(ul_close())
 
 # Viper
@@ -17361,7 +17396,7 @@ W(ul_close())
 W(ability("Summon Familiars", slug="visage_summon_familiars"))
 W(ul_open())
 W(li("Familiars now have their own ability to independently recall it to Visage", t("MISC"), extra=inline_note("The alt cast behavior on Visage is unchanged")))
-W(li("The 3rd Familiar gained by Level 25 Talent is now automatically added to an existing control group when created", t("MISC")))
+W(li("The 3rd Familiar gained by Level 25 Talent is now automatically added to an existing control group when created", t("QoL")))
 W(ul_close())
 W(subgroup("Talents"))
 W(ul_open())
@@ -17401,7 +17436,7 @@ W(li("Attack Damage increased from 18/22/26/30 to 18/23/28/33", b([18, 22, 26, 3
 W(ul_close())
 W(ability("Time Lapse", slug="weaver_time_lapse"))
 W(ul_open())
-W(li("Aghanim's Scepter now also reduces Cooldown by 10s", t("MISC")))
+W(li("Aghanim's Scepter now also reduces Cooldown by 10s", t("NEW")))
 W(ul_close())
 
 # Windranger
@@ -17435,7 +17470,7 @@ W(ul_close())
 W(hero_header("Witch Doctor"))
 W(facet_header("witch_doctor_malpractice"))
 W(ul_open())
-W(li("Maledict burst damage does not apply from non-hero units", t("MISC")))
+W(li("Maledict burst damage does not apply from non-hero units", t("NERF")))
 W(ul_close())
 W(ability("Voodoo Restoration", slug="witch_doctor_voodoo_restoration"))
 W(ul_open())

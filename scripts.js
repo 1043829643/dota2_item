@@ -3111,23 +3111,26 @@
 // wave at that level. Two GIFs swapped via JS — a single GIF can't play an intro
 // once and then loop only its tail. Reverts to the static bottle on mouse-out.
 (function () {
-  const tile = document.querySelector('.inv-cell-mana');
-  if (!tile) return;
-  const img = tile.querySelector('.inv-icon');
-  if (!img) return;
-  const PNG = img.getAttribute('src');
+  // The mana icon now lives on the "Mana" button inside the Items sub-panel
+  // (it used to be a top-level tile). querySelectorAll keeps this robust no
+  // matter where `.inv-cell-mana` sits.
   const FILL = 'icons/ui/gothic/icon_mana_fill.gif';
   const WAVE = 'icons/ui/gothic/icon_mana.gif';
   const FILL_MS = 11 * 150;            // fill GIF: 11 frames × 150ms
-  let timer = null;
-  tile.addEventListener('mouseenter', () => {
-    clearTimeout(timer);
-    img.src = FILL + '?' + Date.now();  // cache-bust forces the fill to replay
-    timer = setTimeout(() => { img.src = WAVE; }, FILL_MS);
-  });
-  tile.addEventListener('mouseleave', () => {
-    clearTimeout(timer);
-    img.src = PNG;
+  document.querySelectorAll('.inv-cell-mana').forEach((tile) => {
+    const img = tile.querySelector('.inv-icon');
+    if (!img) return;
+    const PNG = img.getAttribute('src');
+    let timer = null;
+    tile.addEventListener('mouseenter', () => {
+      clearTimeout(timer);
+      img.src = FILL + '?' + Date.now();  // cache-bust forces the fill to replay
+      timer = setTimeout(() => { img.src = WAVE; }, FILL_MS);
+    });
+    tile.addEventListener('mouseleave', () => {
+      clearTimeout(timer);
+      img.src = PNG;
+    });
   });
 })();
 
