@@ -5875,12 +5875,6 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* ===================== Hero Lab calculator ===================== */
 .hero-lab-page {
   max-width: none;
-  padding-left: 0;
-  padding-right: 0;
-}
-.hero-lab-page > .materials-subnav {
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
 }
 .hero-lab {
   display: grid;
@@ -5905,19 +5899,21 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hl-hud {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 224px;
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
   margin-bottom: 10px;
 }
 .hl-identity {
-  display: grid;
-  grid-template-columns: 94px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
+  display: block;
+  width: 88px;
+}
+.hl-portrait-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
 }
 .hl-hero-trigger,
-.hl-hero-name,
 .hl-inv-slot,
 .hl-shop-tab,
 .hl-picker-close,
@@ -5932,78 +5928,40 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   cursor: pointer;
 }
 .hl-hero-icon {
-  width: 94px;
-  height: 72px;
-  object-fit: cover;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  object-position: center;
   border-radius: 4px;
   display: block;
-  border: 1px solid rgba(217, 173, 72, 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 252, 217, 0.18),
-    0 2px 5px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(170, 220, 240, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
   background: #0e1115;
 }
-.hl-identity-main {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-.hl-name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.hl-hero-name {
-  color: #d7c276;
-  font-family: "Jersey 25", serif;
-  font-size: 29px;
-  line-height: 1;
-  text-align: left;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
-}
-.hl-attr-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  border: 1px solid color-mix(in srgb, var(--hl-attr-color, #d7c276) 45%, #221f17);
-  background: rgba(9, 13, 16, 0.52);
-  border-radius: 999px;
-  padding: 0;
-}
-.hl-attr-icon {
-  width: 17px;
-  height: 17px;
+.hl-hero-trigger {
+  width: 88px;
+  height: 88px;
   display: block;
 }
-.hl-level-row {
-  display: grid;
-  grid-template-columns: 88px;
-  gap: 10px;
-  align-items: center;
+.hl-identity-main {
+  display: none;
 }
-.hl-level {
-  display: grid;
-  gap: 4px;
-  color: #d3d7db;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.hl-level-corner {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  width: 30px;
+  height: 22px;
+  z-index: 2;
 }
 .hl-level-input,
 .hl-custom input {
   min-width: 0;
   width: 100%;
-  height: 30px;
+  height: 100%;
   box-sizing: border-box;
   border: 1px solid rgba(117, 108, 87, 0.72);
-  border-radius: 4px;
+  border-radius: 3px;
   background:
     linear-gradient(180deg, rgba(32, 35, 39, 0.95), rgba(10, 12, 15, 0.98)),
     #0c0f12;
@@ -6011,9 +5969,17 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font: inherit;
   text-align: center;
   font-variant-numeric: tabular-nums;
+  padding: 0 3px;
   -moz-appearance: textfield;
   appearance: textfield;
   box-shadow: inset 0 1px 0 rgba(255, 241, 200, 0.05);
+}
+.hl-level-input {
+  font-size: 12px;
+  font-weight: 700;
+}
+.hl-custom input {
+  height: 30px;
 }
 .hl-level-input::-webkit-outer-spin-button,
 .hl-level-input::-webkit-inner-spin-button,
@@ -6022,25 +5988,100 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   -webkit-appearance: none;
   margin: 0;
 }
+/* Dota 2 Reborn HUD inventory — visual model from the actual HUD screenshot:
+     • the 3×2 main grid is a single piece — slots are very dark almost-black
+       wells separated by thin light-gray dividers, achieved with the classic
+       "container with a light bg + dark slots + gap" trick (the bg shows
+       through the gaps as the dividers — no per-slot borders needed);
+     • the round neutral slot sits on its OWN dark backdrop outside the main
+       grid, with just a thin dark ring border — NOT the silver `circle_frame`
+       texture (that one has a decorative right-side tab and is used elsewhere
+       in the HUD, not for inventory slots);
+     • backpack/courier slots (the 3 angled ones in Valve's screenshot) are
+       NOT modelled — Hero Lab has only 6 + 1 neutral.
+   Why I dropped the extracted plate texture (`inventory_bg.png`): on close
+   inspection its diagonal lines are random stone scratches, not the slot grid,
+   so using it as a background under CSS slots gave a noisy look that didn't
+   match the screenshot's clean grid. The HUD's actual visible "slot well"
+   look IS the CSS gap/divider trick — Valve's panorama renderer composites a
+   subtle slate onto the page behind the slots, then draws the slots as flat
+   colour boxes; here we just use the page's own dark colour for the divider
+   tone and skip the texture entirely. */
+/* Authoritative values from Valve's HUD_Inventory.res + HUD_InventoryStash.res:
+   • InventoryButton wide=48 tall=36 → slot is 48×36 px (native).
+   • InventoryBackground1 fillcolor "0 0 0"   → outer plate fill = pure black.
+   • InventoryBackground2 fillcolor "36 36 36" → inner panel fill = #242424
+     (this is what shows through the gaps between slots as the "divider"
+     colour — NOT the light gray I had before).
+   • Each slot also gets `materials/vgui/hud/item_bg.vmat` as its own image
+     (per-slot texture). When the user provides the extracted item_bg PNG it
+     will become each slot's background; until then we approximate with a flat
+     near-black fill that matches the slot interior in the HUD screenshot. */
 .hl-inventory {
   display: grid;
-  grid-template-columns: repeat(3, 68px) 48px;
-  gap: 6px;
+  grid-template-columns: 220px 62px;
+  grid-template-rows: 122px;
+  gap: 14px;
   justify-content: end;
+  align-items: start;
+  justify-self: end;
+  margin-left: auto;
 }
+/* Inventory backdrop uses Valve's `inventory_bg_bg_psd.vtex`. `inventory_panel`
+   belongs to another HUD surface and is too blue/stone-tiled for item wells. */
+.hl-inv-grid {
+  grid-column: 1;
+  grid-row: 1;
+  width: 220px;
+  height: 122px;
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  grid-template-rows: repeat(2, 52px);
+  /* These exact gap+padding values place the CSS slots over the texture's own
+     stone-tile cells (figured out by overlaying the panel and walking the seam
+     spacing — top 8px, sides 8px, between-rows 8px, between-cols 6px). */
+  column-gap: 12px;
+  row-gap: 10px;
+  padding: 4px 8px;
+  background:
+    linear-gradient(180deg, rgba(23, 28, 34, 0.96), rgba(14, 18, 22, 0.98)),
+    #11161d;
+  border: 1px solid rgba(170, 220, 240, 0.14);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+  box-sizing: border-box;
+  align-content: center;
+  justify-content: center;
+}
+/* In-game inventory cells read as recessed rectangular wells: dark inner field,
+   heavy black top/left shadow, faint right/bottom lip. */
 .hl-inv-slot {
   position: relative;
-  width: 68px;
-  height: 50px;
-  border: 1px solid rgba(130, 112, 59, 0.65);
-  border-radius: 3px;
+  width: 60px;
+  height: 52px;
+  border: 0;
+  border-radius: 6px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(28, 31, 34, 0.96), rgba(4, 6, 8, 0.96)),
-    #080a0c;
+    linear-gradient(180deg, rgba(50, 55, 61, 0.9), rgba(27, 30, 35, 0.96)),
+    #181c21;
   box-shadow:
-    inset 0 1px 0 rgba(255, 243, 204, 0.09),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.65);
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    inset 0 -1px 0 rgba(0,0,0,0.42),
+    0 0 0 1px rgba(170, 220, 240, 0.12);
+  transition: filter 0.12s ease;
+}
+/* Bevel overlay (Valve's `.Reborn #inventory #AbilityBevel`) — the thin
+   silvery rim at the top of each slot. The texture itself is very low-alpha
+   (mostly transparent), so it reads as a subtle highlight, not a hard frame. */
+.hl-slot-bevel {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(170, 220, 240, 0.08), transparent 36%);
+  z-index: 2;
 }
 .hl-inv-slot img {
   width: 100%;
@@ -6048,36 +6089,105 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   object-fit: cover;
   display: block;
 }
-.hl-neutral-slot {
-  grid-column: 4;
-  grid-row: 1 / span 2;
-  width: 48px;
-  height: 106px;
+.hl-inv-slot:hover {
+  /* Valve: `#AbilityButton:hover { brightness: 1.6 }`. */
+  filter: brightness(1.6);
 }
-.hl-inv-slot.is-empty::before {
+.hl-inv-slot:focus-visible {
+  outline: 1px solid rgba(213, 173, 95, 0.85);
+  outline-offset: -2px;
+}
+.hl-inv-slot.is-empty::before { content: none; }
+/* Round neutral slot — same matte dark fill as the rectangular slots, with a
+   simple 1px dark-gray ring (NOT the silver circle_frame texture, which has a
+   decorative tab that doesn't appear on real inventory slots). The slot sits
+   in its own grid column outside the main slot block, like the HUD's right
+   cluster of currency/neutral/gold discs. */
+/* Neutral slot — Valve uses a separate `bg_neutral_slot_png.vtex` disc here.
+   It is the full circular slot texture, not just the inner glyph. */
+.hl-neutral-stack {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  width: 52px;
+  padding-bottom: 38px;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  margin-left: 8px;
+}
+.hl-neutral-stack::after {
   content: "";
   position: absolute;
-  inset: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.18));
+  top: 52px;
+  left: 50%;
+  width: 2px;
+  height: 14px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(170, 220, 240, 0.20), rgba(72, 88, 102, 0.48));
 }
-.hl-neutral-mark {
+.hl-neutral-slot {
+  width: 52px;
+  height: 52px;
+  align-self: start;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(50, 55, 61, 0.9), rgba(27, 30, 35, 0.96)),
+    #181c21;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 0 1px rgba(170, 220, 240, 0.14),
+    0 8px 18px rgba(0, 0, 0, 0.2);
+  transition: filter 0.12s ease, box-shadow 0.12s ease;
+}
+.hl-neutral-slot .hl-slot-bevel { border-radius: 6px; }
+.hl-enchant-slot {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(215, 194, 118, 0.72);
-  font-family: "Jersey 25", serif;
-  font-size: 28px;
-  line-height: 1;
+  top: 66px;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(50, 55, 61, 0.9), rgba(27, 30, 35, 0.96)),
+    #181c21;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 0 1px rgba(170, 220, 240, 0.12),
+    0 5px 10px rgba(0, 0, 0, 0.18);
+}
+.hl-enchant-slot .hl-slot-bevel { border-radius: 6px; background: linear-gradient(180deg, rgba(170, 220, 240, 0.08), transparent 36%); }
+.hl-enchant-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+.hl-neutral-slot img {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.hl-neutral-slot:hover { filter: brightness(1.6); }
+.hl-neutral-slot.is-empty::before { content: none; }
+.hl-enchant-slot:hover { filter: brightness(1.6); }
+.hl-enchant-slot.is-empty::before { content: none; }
+.hl-neutral-mark {
+  display: none;
+}
+.hl-enchant-mark {
+  display: none;
 }
 .hl-slot-glow {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 225, 145, 0.04), rgba(0, 0, 0, 0) 36%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 46%);
+  border-radius: inherit;
+  background: transparent;
 }
 .hl-bars {
   display: grid;
@@ -6252,15 +6362,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hl-diff-head strong {
   color: #f0f5fa;
-  font-size: 20px;
+  font-size: 22px;
   font-family: "Jersey 25", serif;
   letter-spacing: 0.04em;
-}
-.hl-kicker,
-.hl-patch {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 .hl-diff-row strong.pos { color: #7ee787; }
 .hl-diff-row strong.neg { color: #ff7b72; }
@@ -6471,20 +6575,37 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   .hl-quick {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .hl-inventory {
-    grid-template-columns: repeat(3, 1fr);
+  .hl-identity {
+    display: block;
   }
+  .hl-inventory {
+    grid-template-columns: 220px 62px;
+    grid-template-rows: 122px;
+  }
+  .hl-inv-grid {
+    width: 220px;
+    height: 122px;
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(2, 52px);
+    column-gap: 12px;
+    row-gap: 10px;
+    padding: 4px 8px;
+  }
+  /* Neutral slot stays circular on mobile. */
   .hl-neutral-slot {
-    grid-column: auto;
-    grid-row: auto;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 68 / 50;
+    width: 52px;
+    height: 52px;
+    aspect-ratio: 1;
+    justify-self: center;
+  }
+  .hl-enchant-slot {
+    width: 30px;
+    height: 30px;
   }
   .hl-inv-slot {
-    width: 100%;
-    aspect-ratio: 68 / 50;
-    height: auto;
+    width: 60px;
+    height: 52px;
+    aspect-ratio: auto;
   }
   .hl-hero-grid,
   .hl-item-grid {

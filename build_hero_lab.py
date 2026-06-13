@@ -247,17 +247,15 @@ def render_html() -> str:
 </head>
 <body>
 {nav}
-<div class="container hero-lab-page">
+<div class="container creeps-page hero-lab-page">
 {subnav}
-<p class="mr-blurb inbox-bar">Build two current-patch hero profiles with levels, six item slots and custom stat overrides, then compare the resulting totals side by side.</p>
+<p class="mr-blurb inbox-bar">Compare two heroes side by side with level, six inventory slots, neutral item, enchantment and custom stat overrides. The center column shows the live difference between both builds.</p>
 <script id="hero-lab-data" type="application/json">{data_script}</script>
 <div class="hero-lab" data-patch="{_esc(version)}">
   <div class="hl-panel" data-side="a"></div>
   <div class="hl-diff-panel">
     <div class="hl-diff-head">
-      <span class="hl-kicker">Hero Lab</span>
-      <strong>Difference</strong>
-      <span class="hl-patch">Patch {version}</span>
+      <strong id="hl-diff-title">none vs none</strong>
     </div>
     <div class="hl-diff-list" id="hl-diff-list"></div>
   </div>

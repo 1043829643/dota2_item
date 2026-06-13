@@ -3088,28 +3088,36 @@
     panel.innerHTML = `
       <div class="hl-hud">
         <div class="hl-identity">
-          <button type="button" class="hl-hero-trigger" data-open-hero-picker aria-label="Choose hero">
-            ${iconHtml(hero.icon, hero.name, 'hl-hero-icon')}
-          </button>
-          <div class="hl-identity-main">
-            <div class="hl-name-row">
-              <button type="button" class="hl-hero-name" data-open-hero-picker>${hero.name}</button>
-              <span class="hl-attr-chip">${iconHtml(ATTR_META[hero.stats?.attr || 'str'].icon, ATTR_META[hero.stats?.attr || 'str'].label, 'hl-attr-icon')}</span>
-            </div>
-            <div class="hl-level-row">
-              <label class="hl-level">Level <input class="hl-level-input" type="number" min="1" max="30" value="1" data-field="level"></label>
-            </div>
+          <div class="hl-portrait-wrap">
+            <button type="button" class="hl-hero-trigger" data-open-hero-picker aria-label="Choose hero">
+              ${iconHtml(hero.icon, hero.name, 'hl-hero-icon')}
+            </button>
+            <span class="hl-level-corner">
+              <input class="hl-level-input" type="number" min="1" max="30" value="1" data-field="level" aria-label="Hero level">
+            </span>
           </div>
+          <div class="hl-identity-main"></div>
         </div>
         <div class="hl-inventory">
-          ${Array.from({ length: 6 }, (_, i) => `
-            <button type="button" class="hl-inv-slot is-empty" data-open-item-picker data-slot="${i}" aria-label="Choose item slot ${i + 1}">
+          <div class="hl-inv-grid">
+            ${Array.from({ length: 6 }, (_, i) => `
+              <button type="button" class="hl-inv-slot is-empty" data-open-item-picker data-slot="${i}" aria-label="Choose item slot ${i + 1}">
+                <span class="hl-slot-bevel"></span>
+                <span class="hl-slot-glow"></span>
+              </button>`).join('')}
+          </div>
+          <div class="hl-neutral-stack">
+            <button type="button" class="hl-inv-slot hl-neutral-slot is-empty" data-open-item-picker data-slot="neutral" aria-label="Choose neutral item">
+              <span class="hl-neutral-mark">N</span>
+              <span class="hl-slot-bevel"></span>
               <span class="hl-slot-glow"></span>
-            </button>`).join('')}
-          <button type="button" class="hl-inv-slot hl-neutral-slot is-empty" data-open-item-picker data-slot="neutral" aria-label="Choose neutral item">
-            <span class="hl-neutral-mark">N</span>
-            <span class="hl-slot-glow"></span>
-          </button>
+            </button>
+            <button type="button" class="hl-inv-slot hl-enchant-slot is-empty" data-open-item-picker data-slot="enchant" aria-label="Choose enchantment">
+              <span class="hl-enchant-mark">E</span>
+              <span class="hl-slot-bevel"></span>
+              <span class="hl-slot-glow"></span>
+            </button>
+          </div>
         </div>
       </div>
       <div class="hl-bars">
@@ -3137,6 +3145,7 @@
     panel.dataset.side = side;
     panel.dataset.items = JSON.stringify(['', '', '', '', '', '']);
     panel.dataset.neutralItem = '';
+    panel.dataset.enchantItem = '';
   }
 
   function state(panel) {
@@ -3147,6 +3156,8 @@
     const itemIds = JSON.parse(panel.dataset.items || '["","","","","",""]').filter(Boolean);
     const neutralItem = panel.dataset.neutralItem || '';
     if (neutralItem) itemIds.push(neutralItem);
+    const enchantItem = panel.dataset.enchantItem || '';
+    if (enchantItem) itemIds.push(enchantItem);
     const custom = {};
     panel.querySelectorAll('[data-custom]').forEach(inp => {
       custom[inp.dataset.custom] = inp.value === '' ? null : (Number(inp.value) || 0);
@@ -3228,21 +3239,12 @@
 
   function renderHeroHud(panel, st, vals) {
     const hero = st.hero;
-    const attr = ATTR_META[hero.stats?.attr || 'str'];
-    const nameBtn = panel.querySelector('.hl-hero-name');
     const portrait = panel.querySelector('.hl-hero-icon');
-    const chip = panel.querySelector('.hl-attr-chip');
     const hpValue = panel.querySelector('[data-bar-value="hp"]');
     const hpRegen = panel.querySelector('[data-bar-regen="hpr"]');
     const mpValue = panel.querySelector('[data-bar-value="mp"]');
     const mpRegen = panel.querySelector('[data-bar-regen="mpr"]');
-    if (nameBtn) nameBtn.textContent = hero.name;
     if (portrait) { portrait.src = hero.icon; portrait.alt = hero.name; }
-    if (chip) {
-      chip.innerHTML = `${iconHtml(attr.icon, attr.label, 'hl-attr-icon')}`;
-      chip.title = attr.label;
-      chip.style.setProperty('--hl-attr-color', attr.color);
-    }
     if (hpValue) hpValue.textContent = `${fmt(vals.hp)} / ${fmt(vals.hp)}`;
     if (hpRegen) hpRegen.textContent = `${vals.hpr >= 0 ? '+' : ''}${quickFmt(vals.hpr)}`;
     if (mpValue) mpValue.textContent = `${fmt(vals.mp)} / ${fmt(vals.mp)}`;
@@ -3251,14 +3253,19 @@
     const slots = JSON.parse(panel.dataset.items || '["","","","","",""]');
     panel.querySelectorAll('.hl-inv-slot').forEach((slotEl, idx) => {
       const isNeutral = slotEl.dataset.slot === 'neutral';
-      const itemId = isNeutral ? (panel.dataset.neutralItem || '') : (slots[idx] || '');
+      const isEnchant = slotEl.dataset.slot === 'enchant';
+      const itemId = isNeutral
+        ? (panel.dataset.neutralItem || '')
+        : isEnchant
+          ? (panel.dataset.enchantItem || '')
+          : (slots[idx] || '');
       const item = byItem.get(itemId);
       slotEl.dataset.itemId = itemId;
       slotEl.classList.toggle('is-empty', !item);
       slotEl.innerHTML = item
-        ? `<img src="${item.icon}" alt="${item.name}" loading="lazy"><span class="hl-slot-glow"></span>`
-        : `${isNeutral ? '<span class="hl-neutral-mark">N</span>' : ''}<span class="hl-slot-glow"></span>`;
-      slotEl.title = item ? item.name : (isNeutral ? 'Empty neutral slot' : 'Empty slot');
+        ? `<img src="${item.icon}" alt="${item.name}" loading="lazy"><span class="hl-slot-bevel"></span><span class="hl-slot-glow"></span>`
+        : `${isNeutral ? '<span class="hl-neutral-mark">N</span>' : isEnchant ? '<span class="hl-enchant-mark">E</span>' : ''}<span class="hl-slot-bevel"></span><span class="hl-slot-glow"></span>`;
+      slotEl.title = item ? item.name : (isNeutral ? 'Empty neutral slot' : isEnchant ? 'Empty enchantment slot' : 'Empty slot');
     });
   }
 
@@ -3311,8 +3318,10 @@
     `;
   }
 
-  function itemPickerMarkup(selectedId, tab, neutralOnly) {
-    const currentTab = neutralOnly ? 'neutrals' : (tab || 'basics');
+  function itemPickerMarkup(selectedId, tab, mode) {
+    const neutralOnly = mode === 'neutral';
+    const enchantOnly = mode === 'enchant';
+    const currentTab = neutralOnly ? 'neutrals' : enchantOnly ? 'enchants' : (tab || 'basics');
     const neutral = itemGroups.neutrals;
     return `
       <div class="hl-picker-card hl-item-picker-card" role="dialog" aria-modal="true" aria-label="Choose item">
@@ -3324,7 +3333,7 @@
           </div>
         </div>
         <div class="hl-shop-tabs">
-          ${(neutralOnly ? [['neutrals', 'Neutrals']] : [['basics', 'Basics'], ['upgrades', 'Upgrades']]).map(([id, label]) => `
+          ${((neutralOnly || enchantOnly) ? [[currentTab, neutralOnly ? 'Neutrals' : 'Enchants']] : [['basics', 'Basics'], ['upgrades', 'Upgrades']]).map(([id, label]) => `
             <button type="button" class="hl-shop-tab${currentTab === id ? ' is-active' : ''}" data-shop-tab="${id}">${label}</button>`).join('')}
         </div>
         <div class="hl-shop-body">
@@ -3340,6 +3349,7 @@
               </div>
             </div>
           ` : ''}
+          ${currentTab === 'enchants' ? itemSectionMarkup('Enchantment', neutral.enchants, selectedId) : ''}
         </div>
       </div>
     `;
@@ -3361,9 +3371,14 @@
 
   function openItemPicker(panel, slot, tab) {
     const itemsState = JSON.parse(panel.dataset.items || '["","","","","",""]');
-    const neutralOnly = slot === 'neutral';
-    activePicker = { kind: 'item', panel, slot, tab: neutralOnly ? 'neutrals' : (tab || 'basics'), neutralOnly };
-    overlay.innerHTML = itemPickerMarkup(neutralOnly ? (panel.dataset.neutralItem || '') : (itemsState[slot] || ''), activePicker.tab, neutralOnly);
+    const mode = slot === 'neutral' ? 'neutral' : slot === 'enchant' ? 'enchant' : 'normal';
+    activePicker = { kind: 'item', panel, slot, tab: mode === 'normal' ? (tab || 'basics') : mode, mode };
+    const selectedId = mode === 'neutral'
+      ? (panel.dataset.neutralItem || '')
+      : mode === 'enchant'
+        ? (panel.dataset.enchantItem || '')
+        : (itemsState[slot] || '');
+    overlay.innerHTML = itemPickerMarkup(selectedId, activePicker.tab, mode);
     overlay.hidden = false;
     overlay.classList.add('is-open');
   }
@@ -3378,6 +3393,10 @@
     renderHeroHud(panels[1], bState, b);
     renderTotals(panels[0], a);
     renderTotals(panels[1], b);
+    const diffTitle = document.getElementById('hl-diff-title');
+    if (diffTitle) {
+      diffTitle.textContent = `${aState.hero?.name || 'none'} vs ${bState.hero?.name || 'none'}`;
+    }
     const diff = document.getElementById('hl-diff-list');
     diff.innerHTML = METRICS.map(([key, label]) => {
       const delta = (a[key] || 0) - (b[key] || 0);
@@ -3393,6 +3412,7 @@
     if (e.target.matches('[data-field="level"], [data-custom]')) update();
   });
   root.addEventListener('click', (e) => {
+    if (e.target.closest('.hl-level-corner')) return;
     const heroBtn = e.target.closest('[data-open-hero-picker]');
     if (heroBtn) {
       openHeroPicker(heroBtn.closest('.hl-panel'));
@@ -3400,7 +3420,12 @@
     }
     const itemBtn = e.target.closest('[data-open-item-picker]');
     if (itemBtn) {
+      if (itemBtn.dataset.slot === 'enchant') {
+        openItemPicker(itemBtn.closest('.hl-panel'), 'enchant');
+        return;
+      }
       openItemPicker(itemBtn.closest('.hl-panel'), itemBtn.dataset.slot === 'neutral' ? 'neutral' : Number(itemBtn.dataset.slot || 0));
+      return;
     }
   });
 
@@ -3425,6 +3450,8 @@
     if (itemTile && activePicker?.kind === 'item') {
       if (activePicker.slot === 'neutral') {
         activePicker.panel.dataset.neutralItem = itemTile.dataset.itemId || '';
+      } else if (activePicker.slot === 'enchant') {
+        activePicker.panel.dataset.enchantItem = itemTile.dataset.itemId || '';
       } else {
         const slots = JSON.parse(activePicker.panel.dataset.items || '["","","","","",""]');
         slots[activePicker.slot] = itemTile.dataset.itemId || '';
