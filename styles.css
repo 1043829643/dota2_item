@@ -5055,9 +5055,12 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 /* Child combinator `>` so a nested flyout (a .nav-submenu deeper inside) does
    NOT open just because the outer group is hovered — only its OWN nested
-   subgroup hover opens it. */
+   subgroup hover opens it. `.is-open` is the touch-device tap-toggle class
+   that scripts.js adds when the user taps a group trigger (first tap = open,
+   second tap = follow link). */
 .nav-subgroup:hover > .nav-submenu,
-.nav-subgroup:focus-within > .nav-submenu {
+.nav-subgroup:focus-within > .nav-submenu,
+.nav-subgroup.is-open > .nav-submenu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -5899,19 +5902,22 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hl-hud {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 18px;
+  /* Wide portrait column matches the hero-art asset's native aspect (≈ 16:9),
+     same approach as heroes_stats `.mr-ico` (36×26 = 1.38:1). 124×72 keeps the
+     portrait readable without forcing it into a square. */
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 14px;
   align-items: start;
   margin-bottom: 10px;
 }
 .hl-identity {
   display: block;
-  width: 88px;
+  width: 124px;
 }
 .hl-portrait-wrap {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 124px;
+  height: 72px;
 }
 .hl-hero-trigger,
 .hl-inv-slot,
@@ -5928,9 +5934,12 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   cursor: pointer;
 }
 .hl-hero-icon {
-  width: 88px;
-  height: 88px;
-  object-fit: contain;
+  /* Same pattern as heroes_stats `.mr-ico` — wide rect, cover-fit so the hero
+     art fills the box without letterboxing. Codex noted: `icons/heroes/*.png`
+     is a wide art asset, not square. */
+  width: 124px;
+  height: 72px;
+  object-fit: cover;
   object-position: center;
   border-radius: 4px;
   display: block;
@@ -5939,8 +5948,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   background: #0e1115;
 }
 .hl-hero-trigger {
-  width: 88px;
-  height: 88px;
+  width: 124px;
+  height: 72px;
   display: block;
 }
 .hl-identity-main {
@@ -6105,31 +6114,39 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    cluster of currency/neutral/gold discs. */
 /* Neutral slot — Valve uses a separate `bg_neutral_slot_png.vtex` disc here.
    It is the full circular slot texture, not just the inner glyph. */
+/* Neutral stack lives in column 2, height matches the inv-grid (122px) so the
+   neutral slot's top edge HORIZONTALLY ALIGNS with the top edge of the 6-slot
+   grid. Internal layout: neutral (52×52) → connector (12px) → enchant (30×30).
+   Total = 52+12+30 = 94px, the stack is centered vertically inside 122px so
+   both slots read as a paired unit. Nudged 8px further right of the inv-grid
+   for breathing room. */
 .hl-neutral-stack {
   grid-column: 2;
   grid-row: 1;
   position: relative;
   width: 52px;
-  padding-bottom: 38px;
+  height: 122px;
   display: grid;
+  grid-template-rows: 4px 52px 12px 30px 4px;
+  /* 4px top spacer matches inv-grid's own 4px top padding, so the neutral
+     slot's top edge sits on the same baseline as the item slots inside it. */
   justify-items: center;
-  align-content: start;
-  margin-left: 8px;
+  margin-left: 14px;
 }
+/* Connector line between neutral and enchant — drawn on the gap row of the
+   stack grid, so it can never escape the neutral block visually. */
 .hl-neutral-stack::after {
   content: "";
-  position: absolute;
-  top: 52px;
-  left: 50%;
+  grid-row: 3;
+  align-self: stretch;
+  justify-self: center;
   width: 2px;
-  height: 14px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(170, 220, 240, 0.20), rgba(72, 88, 102, 0.48));
+  background: linear-gradient(180deg, rgba(170, 220, 240, 0.28), rgba(72, 88, 102, 0.55));
 }
 .hl-neutral-slot {
+  grid-row: 2;
   width: 52px;
   height: 52px;
-  align-self: start;
   border-radius: 6px;
   background:
     linear-gradient(180deg, rgba(50, 55, 61, 0.9), rgba(27, 30, 35, 0.96)),
@@ -6142,12 +6159,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hl-neutral-slot .hl-slot-bevel { border-radius: 6px; }
 .hl-enchant-slot {
-  position: absolute;
-  top: 66px;
-  left: 50%;
+  grid-row: 4;
   width: 30px;
   height: 30px;
-  transform: translateX(-50%);
   border-radius: 6px;
   background:
     linear-gradient(180deg, rgba(50, 55, 61, 0.9), rgba(27, 30, 35, 0.96)),
@@ -6158,19 +6172,17 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
     0 5px 10px rgba(0, 0, 0, 0.18);
 }
 .hl-enchant-slot .hl-slot-bevel { border-radius: 6px; background: linear-gradient(180deg, rgba(170, 220, 240, 0.08), transparent 36%); }
-.hl-enchant-slot img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 6px;
-  display: block;
-}
+/* Item icons in neutral + enchant slots: fill the slot completely. Source
+   icons (Dota's neutral/enchant PNGs) are rendered as `cover` to remove the
+   blank top/bottom strips that appeared when contain was leaving the slot's
+   margins exposed; the icons already crop cleanly. */
+.hl-enchant-slot img,
 .hl-neutral-slot img {
+  display: block;
   width: 100%;
   height: 100%;
-  margin: 0;
-  border-radius: 6px;
   object-fit: cover;
+  border-radius: 6px;
 }
 .hl-neutral-slot:hover { filter: brightness(1.6); }
 .hl-neutral-slot.is-empty::before { content: none; }

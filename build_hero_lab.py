@@ -249,6 +249,7 @@ def render_html() -> str:
 {nav}
 <div class="container creeps-page hero-lab-page">
 {subnav}
+<div class="creeps-scroll">
 <p class="mr-blurb inbox-bar">Compare two heroes side by side with level, six inventory slots, neutral item, enchantment and custom stat overrides. The center column shows the live difference between both builds.</p>
 <script id="hero-lab-data" type="application/json">{data_script}</script>
 <div class="hero-lab" data-patch="{_esc(version)}">
@@ -260,6 +261,7 @@ def render_html() -> str:
     <div class="hl-diff-list" id="hl-diff-list"></div>
   </div>
   <div class="hl-panel" data-side="b"></div>
+</div>
 </div>
 </div>
 <script src="scripts.js?v={av}"></script>
