@@ -189,6 +189,24 @@ _ATTR_META = {
 }
 
 
+def _attr_filter_buttons() -> str:
+    buttons = [
+        ("str", "Strength", "icons/strength.webp"),
+        ("agi", "Agility", "icons/agility.webp"),
+        ("int", "Intelligence", "icons/intelligence.webp"),
+        ("uni", "Universal", "icons/universal.webp"),
+    ]
+    html = ['<span class="hs-attr-filter-group" aria-label="Primary attribute filter">']
+    for key, label, icon in buttons:
+        html.append(
+            '<button type="button" class="hs-attr-filter" '
+            f'data-attr-filter="{key}" aria-pressed="false" title="Show {label} heroes">'
+            f'<img src="{icon}" alt="{label}" loading="lazy"></button>'
+        )
+    html.append('</span>')
+    return ''.join(html)
+
+
 def _attr_of(snap: dict, hero: str):
     raw = (snap.get(hero) or {}).get("AttributePrimary", "")
     return _ATTR_META.get(raw)
@@ -1485,7 +1503,7 @@ def render_html() -> str:
                 f'data-col="{col["key"]}" data-sort="{v_start}"{net_attr}{hist_attr}'
                 f'{extra_attrs}>{disp_start}</td>')
         body.append(
-            f'<tr data-slug="{slug}" data-attack-type="{attack_type}" '
+            f'<tr data-slug="{slug}" data-attack-type="{attack_type}" data-attr-type="{meta[0]}" '
             f'data-hs-stats="{_row_stats(hero, cur, raw)}">'
             f'{"".join(cells)}</tr>'
         )
@@ -1533,6 +1551,7 @@ def render_html() -> str:
         '<span class="atk-badge" aria-hidden="true">'
         '<img src="icons/ui/atk_ranged.png" alt=""></span><span>Ranged</span></button>'
         '</span>'
+        + _attr_filter_buttons() +
         '<label class="hs-level-group">'
         '<span>Lvl</span>'
         '<input type="number" id="hs-level-input" min="1" max="30" value="1" '

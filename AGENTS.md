@@ -56,6 +56,7 @@ docs/
 ```bash
 python build_patch.py        # пересобирает все patches/*.html и calendar.html
 python build_heroes_stats.py # heroes_stats.html — таблица статов героев (после build_patch)
+python build_hero_lab.py     # hero_lab.html — калькулятор сравнения героев с предметами
 python generate_patch_code.py 7.42   # → _generated_p_7.42.py (вставлять в build_patch.py)
 python scripts/apply_stats.py          # упгрейдит t() → bstat_h() где можем
 python scripts/fetch_itemlist.py       # обновляет data/itemlist.json из датафида Valve
@@ -465,6 +466,7 @@ For `HP/sec` and `MP/sec` columns in both `heroes_stats.html` and `neutral_stats
 ### Hero Stats: innate-derived computed values
 
 - `heroes_stats.html` must treat innate-derived stat bonuses as part of the computed model, not as presentation-only exceptions. If an innate grants or converts stats into another displayed column (damage, armor, move speed, regen, range, etc.), that bonus belongs in `Starting` / `Expanded` when the `Innates` toggle is on, and stays out of `Base`.
+- For new numeric inputs in Sloppy UI, hide native increment/decrement spinner controls by default unless the user explicitly asks for them.
 - This applies even when the innate is conditional or unusual (example: Axe gaining Strength from armor while alone). If the site chooses to model that condition in Hero Stats, it must be expressed as an explicit toggle/assumption, not silently baked into raw values.
 - Current project rule: for Axe in Hero Stats, ignore the nearby-allies condition and model One Man Army as always active when `Innates` is enabled. That Strength bonus must flow through displayed STR and every derived stat it affects (HP, HP regen, damage, etc.).
 - For hero-level formulas phrased as `X + Y per level up`, the increment starts after level 1. In Hero Stats this means `(level - 1)`, not `level`. This matters for innate-derived computations too (example: Techies mana-pool regen).

@@ -1046,11 +1046,13 @@
     const page = table.closest('.creeps-page');
     const delToggle = document.getElementById('hd-show-deleted');
     const attackBtns = [...document.querySelectorAll('.hs-attack-filter')];
+    const attrBtns = [...document.querySelectorAll('.hs-attr-filter')];
     const priceMin = document.getElementById('hd-price-min');
     const priceMax = document.getElementById('hd-price-max');
     const priceClear = document.getElementById('hd-price-clear');
     const rows = [...table.querySelectorAll('tbody tr')];
     let attackFilter = '';
+    let attrFilter = '';
     const applyRowFilters = () => {
       const terms = search
         ? search.value.toLowerCase().split(',').map(s => s.trim()).filter(Boolean)
@@ -1091,6 +1093,7 @@
         // data-current="0" = removed from the game → shown only when "Show deleted".
         const okDel = showDeleted || tr.dataset.current !== '0';
         const okAttack = !attackFilter || tr.dataset.attackType === attackFilter;
+        const okAttr = !attrFilter || tr.dataset.attrType === attrFilter;
         // Price: items without data-price (neutrals/enchants = free) are EXEMPT.
         let okPrice = true;
         const p = tr.dataset.price;
@@ -1099,10 +1102,15 @@
           if (hasLo && v < lo) okPrice = false;
           if (hasHi && v > hi) okPrice = false;
         }
-        tr.style.display = (okSearch && okDd && okDel && okAttack && okPrice) ? '' : 'none';
+        tr.style.display = (okSearch && okDd && okDel && okAttack && okAttr && okPrice) ? '' : 'none';
       });
       attackBtns.forEach(btn => {
         const active = btn.dataset.attackFilter === attackFilter;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      attrBtns.forEach(btn => {
+        const active = btn.dataset.attrFilter === attrFilter;
         btn.classList.toggle('active', active);
         btn.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
@@ -1114,6 +1122,13 @@
       btn.addEventListener('click', () => {
         const next = btn.dataset.attackFilter || '';
         attackFilter = attackFilter === next ? '' : next;
+        applyRowFilters();
+      });
+    });
+    attrBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.attrFilter || '';
+        attrFilter = attrFilter === next ? '' : next;
         applyRowFilters();
       });
     });
@@ -2594,8 +2609,10 @@
   const plus2Toggle = document.getElementById('hs-plus2-toggle');
   const innatesToggle = document.getElementById('hs-innates-toggle');
   const attackBtns = [...document.querySelectorAll('.hs-attack-filter')];
+  const attrBtns = [...document.querySelectorAll('.hs-attr-filter')];
   const cells = [...table.querySelectorAll('tbody td[data-col]')];
   let attackFilter = '';
+  let attrFilter = '';
   const PLUS2_LEVELS = [15, 16, 17, 19, 20, 21, 22];
 
   const clampLevel = () => {
@@ -2944,15 +2961,19 @@
     window.dispatchEvent(new CustomEvent('mr:filter-changed'));  // heatmap re-scan
   };
 
-  const applyAttackFilter = () => {
-    table.querySelectorAll('tbody tr[data-attack-type]').forEach(tr => {
-      tr.classList.toggle(
-        'mr-attack-out',
-        !!attackFilter && tr.dataset.attackType !== attackFilter
-      );
+  const applyHeroFilters = () => {
+    table.querySelectorAll('tbody tr[data-hs-stats]').forEach(tr => {
+      const hideAttack = !!attackFilter && tr.dataset.attackType !== attackFilter;
+      const hideAttr = !!attrFilter && tr.dataset.attrType !== attrFilter;
+      tr.classList.toggle('mr-attack-out', hideAttack || hideAttr);
     });
     attackBtns.forEach(btn => {
       const active = btn.dataset.attackFilter === attackFilter;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    attrBtns.forEach(btn => {
+      const active = btn.dataset.attrFilter === attrFilter;
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
@@ -2970,12 +2991,453 @@
     btn.addEventListener('click', () => {
       const next = btn.dataset.attackFilter || '';
       attackFilter = attackFilter === next ? '' : next;
-      applyAttackFilter();
+      applyHeroFilters();
+    });
+  });
+  attrBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.attrFilter || '';
+      attrFilter = attrFilter === next ? '' : next;
+      applyHeroFilters();
     });
   });
   window.addEventListener('resize', recomputeCats, { passive: true });
   apply();
-  applyAttackFilter();
+  applyHeroFilters();
+})();
+
+// ---- HERO LAB: two-side hero + item calculator ----
+(function() {
+  const root = document.querySelector('.hero-lab');
+  const dataEl = document.getElementById('hero-lab-data');
+  if (!root || !dataEl) return;
+  let data;
+  try { data = JSON.parse(dataEl.textContent || '{}'); }
+  catch { return; }
+  const heroes = data.heroes || [];
+  const items = data.items || [];
+  if (!heroes.length) return;
+
+  const PLUS2_LEVELS = [15, 16, 17, 19, 20, 21, 22];
+  const ATTR_META = {
+    str: { label: 'Strength', short: 'STR', icon: 'icons/strength.webp', color: '#cf6d5e' },
+    agi: { label: 'Agility', short: 'AGI', icon: 'icons/agility.webp', color: '#63c774' },
+    int: { label: 'Intelligence', short: 'INT', icon: 'icons/intelligence.webp', color: '#63b8e6' },
+    uni: { label: 'Universal', short: 'UNI', icon: 'icons/universal.webp', color: '#e1b85b' },
+  };
+  const BASIC_SECTIONS = ['Consumables', 'Attributes', 'Equipment', 'Miscellaneous', 'Secret Shop'];
+  const UPGRADE_SECTIONS = ['Accessories', 'Support', 'Magical', 'Armor', 'Weapons', 'Armaments'];
+  const C = {
+    hpStr: 22, hprStr: 0.1, mpInt: 12, mprInt: 0.05,
+    armorAgi: 1 / 6, mrInt: 0.1, asAgi: 1, uniDmg: 0.45,
+  };
+  const METRICS = [
+    ['hp', 'HP'], ['mp', 'MP'], ['hpr', 'HP/sec'], ['mpr', 'MP/sec'],
+    ['str', 'STR'], ['agi', 'AGI'], ['int', 'INT'],
+    ['armor', 'Armor'], ['armorPct', 'Armor %'], ['mr', 'Mag. resist'],
+    ['evasion', 'Evasion'], ['dmg', 'Damage'], ['dmin', 'Dmg min'],
+    ['dmax', 'Dmg max'], ['aspd', 'Attack speed'], ['tHit', 'Time to hit'],
+    ['ms', 'Movespeed'], ['range', 'Attack range'],
+    ['ehpPhys', 'EHP phys'], ['ehpMag', 'EHP mag'],
+  ];
+  const CUSTOM = [
+    ['hp', 'HP'], ['mp', 'MP'], ['hpr', 'HP/sec'], ['mpr', 'MP/sec'],
+    ['armor', 'Armor'], ['mr', 'Magic resist'], ['evasion', 'Evasion'],
+  ];
+  const byHero = new Map(heroes.map(h => [h.id, h]));
+  const byItem = new Map(items.map(i => [i.id, i]));
+  const heroGroups = {
+    str: heroes.filter(h => h.stats?.attr === 'str'),
+    agi: heroes.filter(h => h.stats?.attr === 'agi'),
+    int: heroes.filter(h => h.stats?.attr === 'int'),
+    uni: heroes.filter(h => h.stats?.attr === 'uni'),
+  };
+  const itemGroups = {
+    basics: BASIC_SECTIONS.map(name => [name, items.filter(i => i.class === 'regular' && i.category === name)]),
+    upgrades: UPGRADE_SECTIONS.map(name => [name, items.filter(i => i.class === 'regular' && i.category === name)]),
+    neutrals: {
+      tiers: [0, 1, 2, 3, 4].map(tier => [tier, items.filter(i => i.class === 'neutral' && i.tier === tier)]),
+      enchants: items.filter(i => i.class === 'enchant'),
+    },
+  };
+  const overlay = document.createElement('div');
+  overlay.className = 'hl-overlay';
+  overlay.hidden = true;
+  document.body.appendChild(overlay);
+  let activePicker = null;
+
+  const fmt = (v, d = 0) => {
+    const n = Number(v) || 0;
+    return d ? n.toFixed(d).replace(/\.?0+$/, '') : String(Math.round(n));
+  };
+  const fmtMetric = (key, v) => {
+    if (key === 'hpr' || key === 'mpr' || key === 'tHit') return Number(v || 0).toFixed(2);
+    if (key === 'armor') return fmt(v, 1);
+    if (key === 'mr' || key === 'evasion' || key === 'armorPct') return fmt(v, 1) + '%';
+    return fmt(v);
+  };
+  const armorFactor = a => (0.06 * a) / (1 + 0.06 * Math.abs(a));
+  const plus2At = lvl => PLUS2_LEVELS.filter(x => x <= lvl).length * 2;
+  const combinePct = vals => (1 - vals.reduce((acc, v) => acc * (1 - Math.max(0, v) / 100), 1)) * 100;
+  const iconHtml = (src, name, cls) => `<img class="${cls}" src="${src}" alt="${name}" loading="lazy">`;
+  const quickFmt = v => Number(v || 0).toFixed(2).replace(/\.00$/, '');
+  const tierLabel = tier => `Tier ${Number(tier) + 1}`;
+
+  function renderPanel(panel, side, heroId) {
+    const hero = byHero.get(heroId) || heroes[0];
+    panel.innerHTML = `
+      <div class="hl-hud">
+        <div class="hl-identity">
+          <button type="button" class="hl-hero-trigger" data-open-hero-picker aria-label="Choose hero">
+            ${iconHtml(hero.icon, hero.name, 'hl-hero-icon')}
+          </button>
+          <div class="hl-identity-main">
+            <div class="hl-name-row">
+              <button type="button" class="hl-hero-name" data-open-hero-picker>${hero.name}</button>
+              <span class="hl-attr-chip">${iconHtml(ATTR_META[hero.stats?.attr || 'str'].icon, ATTR_META[hero.stats?.attr || 'str'].label, 'hl-attr-icon')}</span>
+            </div>
+            <div class="hl-level-row">
+              <label class="hl-level">Level <input class="hl-level-input" type="number" min="1" max="30" value="1" data-field="level"></label>
+            </div>
+          </div>
+        </div>
+        <div class="hl-inventory">
+          ${Array.from({ length: 6 }, (_, i) => `
+            <button type="button" class="hl-inv-slot is-empty" data-open-item-picker data-slot="${i}" aria-label="Choose item slot ${i + 1}">
+              <span class="hl-slot-glow"></span>
+            </button>`).join('')}
+          <button type="button" class="hl-inv-slot hl-neutral-slot is-empty" data-open-item-picker data-slot="neutral" aria-label="Choose neutral item">
+            <span class="hl-neutral-mark">N</span>
+            <span class="hl-slot-glow"></span>
+          </button>
+        </div>
+      </div>
+      <div class="hl-bars">
+        <div class="hl-bar hl-bar-hp">
+          <div class="hl-bar-fill"></div>
+          <span class="hl-bar-value" data-bar-value="hp"></span>
+          <span class="hl-bar-regen" data-bar-regen="hpr"></span>
+        </div>
+        <div class="hl-bar hl-bar-mp">
+          <div class="hl-bar-fill"></div>
+          <span class="hl-bar-value" data-bar-value="mp"></span>
+          <span class="hl-bar-regen" data-bar-regen="mpr"></span>
+        </div>
+      </div>
+      <details class="hl-custom">
+        <summary>Custom stats</summary>
+        <div class="hl-custom-grid">
+          ${CUSTOM.map(([key, label]) => `
+            <label>${label}<input type="number" step="0.1" placeholder="auto" data-custom="${key}"></label>`).join('')}
+        </div>
+      </details>
+      <div class="hl-total-list" data-total-list></div>
+    `;
+    panel.dataset.hero = hero.id;
+    panel.dataset.side = side;
+    panel.dataset.items = JSON.stringify(['', '', '', '', '', '']);
+    panel.dataset.neutralItem = '';
+  }
+
+  function state(panel) {
+    const heroId = panel.dataset.hero || heroes[0].id;
+    let level = parseInt(panel.querySelector('[data-field="level"]')?.value || '1', 10);
+    level = Math.max(1, Math.min(30, Number.isFinite(level) ? level : 1));
+    panel.querySelector('[data-field="level"]').value = String(level);
+    const itemIds = JSON.parse(panel.dataset.items || '["","","","","",""]').filter(Boolean);
+    const neutralItem = panel.dataset.neutralItem || '';
+    if (neutralItem) itemIds.push(neutralItem);
+    const custom = {};
+    panel.querySelectorAll('[data-custom]').forEach(inp => {
+      custom[inp.dataset.custom] = inp.value === '' ? null : (Number(inp.value) || 0);
+    });
+    return { hero: byHero.get(heroId) || heroes[0], level, itemIds, custom };
+  }
+
+  function itemTotals(ids, attackType) {
+    const isRanged = String(attackType || '').toLowerCase() === 'ranged';
+    const out = { str: 0, agi: 0, int: 0, hp: 0, mp: 0, hpr: 0, mpr: 0, armor: 0, mrVals: [], evVals: [], damage: 0, aspd: 0, ms: 0, range: 0, cost: 0 };
+    ids.forEach(id => {
+      const it = byItem.get(id);
+      if (!it) return;
+      const b = it.bonus || {};
+      out.str += Number(b.str) || 0;
+      out.agi += Number(b.agi) || 0;
+      out.int += Number(b.int) || 0;
+      out.hp += Number(b.hp) || 0;
+      out.mp += Number(b.mp) || 0;
+      out.hpr += Number(b.hpr) || 0;
+      out.mpr += Number(b.mpr) || 0;
+      out.armor += Number(b.armor) || 0;
+      if (b.mr) out.mrVals.push(Number(b.mr) || 0);
+      if (b.evasion) out.evVals.push(Number(b.evasion) || 0);
+      out.damage += (Number(b.damage) || 0) + (isRanged ? (Number(b.damageRanged) || 0) : (Number(b.damageMelee) || 0));
+      out.aspd += Number(b.aspd) || 0;
+      out.ms += (Number(b.ms) || 0) + (isRanged ? (Number(b.msRanged) || 0) : (Number(b.msMelee) || 0));
+      if (isRanged) out.range += Number(b.range) || 0;
+      out.cost += Number(it.cost) || 0;
+    });
+    return out;
+  }
+
+  function calc(st) {
+    const s = st.hero.stats || {};
+    const lvl = st.level;
+    const plus = plus2At(lvl);
+    const itemsTotal = itemTotals(st.itemIds, st.hero.attackType);
+    const rawStr = (Number(s.str) || 0) + (lvl - 1) * (Number(s.strGain) || 0) + plus + itemsTotal.str;
+    const rawAgi = (Number(s.agi) || 0) + (lvl - 1) * (Number(s.agiGain) || 0) + plus + itemsTotal.agi;
+    const rawInt = st.hero.id === 'ogre_magi'
+      ? 0
+      : (Number(s.int) || 0) + (lvl - 1) * (Number(s.intGain) || 0) + plus + itemsTotal.int;
+    const str = Math.floor(rawStr), agi = Math.floor(rawAgi), int = Math.floor(rawInt);
+    const isOgre = st.hero.id === 'ogre_magi';
+    const isHuskar = st.hero.id === 'huskar';
+    const mpFromAttr = isHuskar ? 0 : (isOgre ? str * 6 : int * C.mpInt);
+    const mprFromAttr = isHuskar ? 0 : (isOgre ? str * 0.02 : int * C.mprInt);
+    const baseMr = (Number(s.mr) || 25) + int * C.mrInt;
+    let mr = combinePct([baseMr, ...itemsTotal.mrVals]);
+    let evasion = combinePct([...itemsTotal.evVals]);
+    let armor = (Number(s.armor) || 0) + agi * C.armorAgi + itemsTotal.armor;
+    let hp = Math.round((Number(s.hp) || 120) + str * C.hpStr + itemsTotal.hp);
+    let mp = isHuskar ? 0 : Math.round((Number(s.mp) || 75) + mpFromAttr + itemsTotal.mp);
+    let hpr = (Number(s.hpr) || 0) + str * C.hprStr + itemsTotal.hpr;
+    let mpr = isHuskar ? 0 : (Number(s.mpr) || 0) + mprFromAttr + itemsTotal.mpr;
+    if (st.custom.hp !== null) hp = Math.round(st.custom.hp);
+    if (st.custom.mp !== null && !isHuskar) mp = Math.round(st.custom.mp);
+    if (st.custom.hpr !== null) hpr = st.custom.hpr;
+    if (st.custom.mpr !== null && !isHuskar) mpr = st.custom.mpr;
+    if (st.custom.armor !== null) armor = st.custom.armor;
+    if (st.custom.mr !== null) mr = st.custom.mr;
+    if (st.custom.evasion !== null) evasion = st.custom.evasion;
+    const primary = s.attr === 'uni' ? Math.floor((str + agi + int) * C.uniDmg)
+      : s.attr === 'str' ? str : s.attr === 'agi' ? agi : int;
+    const dmin = (Number(s.dmin) || 0) + primary + itemsTotal.damage;
+    const dmax = (Number(s.dmax) || 0) + primary + itemsTotal.damage;
+    const dmg = (dmin + dmax) / 2;
+    const aspd = (Number(s.bas) || 100) + agi * C.asAgi + itemsTotal.aspd;
+    const bat = Number(s.bat) || 1.7;
+    const tHit = bat * 100 / Math.max(1, aspd);
+    const ms = (Number(s.ms) || 0) + itemsTotal.ms;
+    const range = (Number(s.range) || 0) + itemsTotal.range;
+    const armorPct = armorFactor(armor) * 100;
+    const ehpPhys = hp / Math.max(0.01, 1 - armorFactor(armor));
+    const ehpMag = hp / Math.max(0.01, 1 - mr / 100);
+    return { hp, mp, hpr, mpr, str, agi, int, armor, armorPct, mr, evasion, dmg, dmin, dmax, aspd, tHit, ms, range, ehpPhys, ehpMag, cost: itemsTotal.cost };
+  }
+
+  function renderHeroHud(panel, st, vals) {
+    const hero = st.hero;
+    const attr = ATTR_META[hero.stats?.attr || 'str'];
+    const nameBtn = panel.querySelector('.hl-hero-name');
+    const portrait = panel.querySelector('.hl-hero-icon');
+    const chip = panel.querySelector('.hl-attr-chip');
+    const hpValue = panel.querySelector('[data-bar-value="hp"]');
+    const hpRegen = panel.querySelector('[data-bar-regen="hpr"]');
+    const mpValue = panel.querySelector('[data-bar-value="mp"]');
+    const mpRegen = panel.querySelector('[data-bar-regen="mpr"]');
+    if (nameBtn) nameBtn.textContent = hero.name;
+    if (portrait) { portrait.src = hero.icon; portrait.alt = hero.name; }
+    if (chip) {
+      chip.innerHTML = `${iconHtml(attr.icon, attr.label, 'hl-attr-icon')}`;
+      chip.title = attr.label;
+      chip.style.setProperty('--hl-attr-color', attr.color);
+    }
+    if (hpValue) hpValue.textContent = `${fmt(vals.hp)} / ${fmt(vals.hp)}`;
+    if (hpRegen) hpRegen.textContent = `${vals.hpr >= 0 ? '+' : ''}${quickFmt(vals.hpr)}`;
+    if (mpValue) mpValue.textContent = `${fmt(vals.mp)} / ${fmt(vals.mp)}`;
+    if (mpRegen) mpRegen.textContent = `${vals.mpr >= 0 ? '+' : ''}${quickFmt(vals.mpr)}`;
+
+    const slots = JSON.parse(panel.dataset.items || '["","","","","",""]');
+    panel.querySelectorAll('.hl-inv-slot').forEach((slotEl, idx) => {
+      const isNeutral = slotEl.dataset.slot === 'neutral';
+      const itemId = isNeutral ? (panel.dataset.neutralItem || '') : (slots[idx] || '');
+      const item = byItem.get(itemId);
+      slotEl.dataset.itemId = itemId;
+      slotEl.classList.toggle('is-empty', !item);
+      slotEl.innerHTML = item
+        ? `<img src="${item.icon}" alt="${item.name}" loading="lazy"><span class="hl-slot-glow"></span>`
+        : `${isNeutral ? '<span class="hl-neutral-mark">N</span>' : ''}<span class="hl-slot-glow"></span>`;
+      slotEl.title = item ? item.name : (isNeutral ? 'Empty neutral slot' : 'Empty slot');
+    });
+  }
+
+  function renderTotals(panel, vals) {
+    const list = panel.querySelector('[data-total-list]');
+    if (!list) return;
+    list.innerHTML = METRICS.map(([key, label]) => `
+      <div class="hl-stat-row"><span>${label}</span><strong>${fmtMetric(key, vals[key])}</strong></div>
+    `).join('') + `<div class="hl-stat-row hl-cost"><span>Items cost</span><strong>${fmt(vals.cost)}g</strong></div>`;
+  }
+
+  function heroPickerMarkup(selectedId) {
+    return `
+      <div class="hl-picker-card hl-hero-picker-card" role="dialog" aria-modal="true" aria-label="Choose hero">
+        <div class="hl-picker-head">
+          <strong>Choose Hero</strong>
+          <button type="button" class="hl-picker-close" data-picker-close aria-label="Close">x</button>
+        </div>
+        <div class="hl-hero-grid-wrap">
+          ${['str', 'agi', 'int', 'uni'].map(key => `
+            <section class="hl-hero-group hl-hero-group-${key}">
+              <header>
+                ${iconHtml(ATTR_META[key].icon, ATTR_META[key].label, 'hl-hero-group-icon')}
+                <span>${ATTR_META[key].label}</span>
+              </header>
+              <div class="hl-hero-grid">
+                ${heroGroups[key].map(hero => `
+                  <button type="button" class="hl-hero-tile${hero.id === selectedId ? ' is-selected' : ''}" data-hero-id="${hero.id}" aria-label="${hero.name}">
+                    <img src="${hero.icon}" alt="${hero.name}" loading="lazy">
+                  </button>`).join('')}
+              </div>
+            </section>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function itemSectionMarkup(title, list, selectedId) {
+    if (!list.length) return '';
+    return `
+      <section class="hl-item-section">
+        <header>${title}</header>
+        <div class="hl-item-grid">
+          ${list.map(item => `
+            <button type="button" class="hl-item-tile${item.id === selectedId ? ' is-selected' : ''}" data-item-id="${item.id}" aria-label="${item.name}">
+              <img src="${item.icon}" alt="${item.name}" loading="lazy">
+            </button>`).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function itemPickerMarkup(selectedId, tab, neutralOnly) {
+    const currentTab = neutralOnly ? 'neutrals' : (tab || 'basics');
+    const neutral = itemGroups.neutrals;
+    return `
+      <div class="hl-picker-card hl-item-picker-card" role="dialog" aria-modal="true" aria-label="Choose item">
+        <div class="hl-picker-head">
+          <strong>Choose Item</strong>
+          <div class="hl-picker-actions">
+            <button type="button" class="hl-picker-clear" data-item-id="">Empty</button>
+            <button type="button" class="hl-picker-close" data-picker-close aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="hl-shop-tabs">
+          ${(neutralOnly ? [['neutrals', 'Neutrals']] : [['basics', 'Basics'], ['upgrades', 'Upgrades']]).map(([id, label]) => `
+            <button type="button" class="hl-shop-tab${currentTab === id ? ' is-active' : ''}" data-shop-tab="${id}">${label}</button>`).join('')}
+        </div>
+        <div class="hl-shop-body">
+          ${currentTab === 'basics' ? itemGroups.basics.map(([name, list]) => itemSectionMarkup(name, list, selectedId)).join('') : ''}
+          ${currentTab === 'upgrades' ? itemGroups.upgrades.map(([name, list]) => itemSectionMarkup(name, list, selectedId)).join('') : ''}
+          ${currentTab === 'neutrals' ? `
+            <div class="hl-neutrals-layout">
+              <div class="hl-neutrals-tiers">
+                ${neutral.tiers.map(([tier, list]) => itemSectionMarkup(tierLabel(tier), list, selectedId)).join('')}
+              </div>
+              <div class="hl-neutrals-enchants">
+                ${itemSectionMarkup('Enchantment', neutral.enchants, selectedId)}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function closePicker() {
+    activePicker = null;
+    overlay.hidden = true;
+    overlay.classList.remove('is-open');
+    overlay.innerHTML = '';
+  }
+
+  function openHeroPicker(panel) {
+    activePicker = { kind: 'hero', panel };
+    overlay.innerHTML = heroPickerMarkup(panel.dataset.hero || heroes[0].id);
+    overlay.hidden = false;
+    overlay.classList.add('is-open');
+  }
+
+  function openItemPicker(panel, slot, tab) {
+    const itemsState = JSON.parse(panel.dataset.items || '["","","","","",""]');
+    const neutralOnly = slot === 'neutral';
+    activePicker = { kind: 'item', panel, slot, tab: neutralOnly ? 'neutrals' : (tab || 'basics'), neutralOnly };
+    overlay.innerHTML = itemPickerMarkup(neutralOnly ? (panel.dataset.neutralItem || '') : (itemsState[slot] || ''), activePicker.tab, neutralOnly);
+    overlay.hidden = false;
+    overlay.classList.add('is-open');
+  }
+
+  function update() {
+    const panels = [...root.querySelectorAll('.hl-panel')];
+    const aState = state(panels[0]);
+    const bState = state(panels[1]);
+    const a = calc(aState);
+    const b = calc(bState);
+    renderHeroHud(panels[0], aState, a);
+    renderHeroHud(panels[1], bState, b);
+    renderTotals(panels[0], a);
+    renderTotals(panels[1], b);
+    const diff = document.getElementById('hl-diff-list');
+    diff.innerHTML = METRICS.map(([key, label]) => {
+      const delta = (a[key] || 0) - (b[key] || 0);
+      const cls = delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'zero';
+      return `<div class="hl-diff-row"><span>${label}</span><strong class="${cls}">${delta > 0 ? '+' : ''}${fmtMetric(key, delta)}</strong></div>`;
+    }).join('');
+  }
+
+  const panels = [...root.querySelectorAll('.hl-panel')];
+  renderPanel(panels[0], 'a', heroes[0].id);
+  renderPanel(panels[1], 'b', heroes[Math.min(1, heroes.length - 1)].id);
+  root.addEventListener('input', (e) => {
+    if (e.target.matches('[data-field="level"], [data-custom]')) update();
+  });
+  root.addEventListener('click', (e) => {
+    const heroBtn = e.target.closest('[data-open-hero-picker]');
+    if (heroBtn) {
+      openHeroPicker(heroBtn.closest('.hl-panel'));
+      return;
+    }
+    const itemBtn = e.target.closest('[data-open-item-picker]');
+    if (itemBtn) {
+      openItemPicker(itemBtn.closest('.hl-panel'), itemBtn.dataset.slot === 'neutral' ? 'neutral' : Number(itemBtn.dataset.slot || 0));
+    }
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.closest('[data-picker-close]')) {
+      closePicker();
+      return;
+    }
+    const heroTile = e.target.closest('[data-hero-id]');
+    if (heroTile && activePicker?.kind === 'hero') {
+      activePicker.panel.dataset.hero = heroTile.dataset.heroId;
+      closePicker();
+      update();
+      return;
+    }
+    const tabBtn = e.target.closest('[data-shop-tab]');
+    if (tabBtn && activePicker?.kind === 'item') {
+      openItemPicker(activePicker.panel, activePicker.slot, tabBtn.dataset.shopTab);
+      return;
+    }
+    const itemTile = e.target.closest('[data-item-id]');
+    if (itemTile && activePicker?.kind === 'item') {
+      if (activePicker.slot === 'neutral') {
+        activePicker.panel.dataset.neutralItem = itemTile.dataset.itemId || '';
+      } else {
+        const slots = JSON.parse(activePicker.panel.dataset.items || '["","","","","",""]');
+        slots[activePicker.slot] = itemTile.dataset.itemId || '';
+        activePicker.panel.dataset.items = JSON.stringify(slots);
+      }
+      closePicker();
+      update();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !overlay.hidden) closePicker();
+  });
+  update();
 })();
 
 // ---- HERO STATS: vertical frozen-pane divider after the pinned Hero column ----
@@ -3851,4 +4313,3 @@
   document.addEventListener('mouseover', handler, true);
   document.addEventListener('focusin', handler, true);
 })();
-

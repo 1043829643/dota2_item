@@ -84,6 +84,7 @@ MATERIALS_GROUPS = [
     ]),
     ("heroes_grp", "Heroes", "heroes_stats.html", [
         ("heroes_stats", "Hero Stats",    "heroes_stats.html"),
+        ("hero_lab",     "Hero Lab",      "hero_lab.html"),
         ("heroes_dyn",   "Hero Dynamics", "heroes_dyn.html"),
     ]),
     ("terrain", "Terrain", "terrain.html", None),

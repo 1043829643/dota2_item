@@ -104,6 +104,24 @@ def _multiselect_dropdown(dd_id, label, options):
         f'{all_row}{opts}</div></div>')
 
 
+def _attr_filter_buttons() -> str:
+    buttons = [
+        ("str", "Strength", "icons/strength.webp"),
+        ("agi", "Agility", "icons/agility.webp"),
+        ("int", "Intelligence", "icons/intelligence.webp"),
+        ("uni", "Universal", "icons/universal.webp"),
+    ]
+    html = ['<span class="hs-attr-filter-group" aria-label="Primary attribute filter">']
+    for key, label, icon in buttons:
+        html.append(
+            '<button type="button" class="hs-attr-filter" '
+            f'data-attr-filter="{key}" aria-pressed="false" title="Show {label} heroes">'
+            f'<img src="{icon}" alt="{label}" loading="lazy"></button>'
+        )
+    html.append('</span>')
+    return ''.join(html)
+
+
 def _base_version(ver):
     """Strip a trailing letter suffix: 7.41c → 7.41, 7.39e → 7.39, 7.08 → 7.08."""
     return _re.sub(r"[a-z]+$", "", ver)
@@ -151,7 +169,7 @@ def _roster(manifest, roster_key, kind, *, preserve_order=False):
 def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
                     icon_dir, from_token, search_ph, blurb,
                     current_toggle=False, class_filter=False, price_filter=False,
-                    category_filter=False, attack_filter=False,
+                    category_filter=False, attack_filter=False, attr_filter=False,
                     row_meta_by_slug=None, preserve_roster_order=False):
     """Render a Dynamics matrix page. See module docstring for the params.
 
@@ -282,6 +300,8 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         row_meta = row_meta_by_slug.get(slug) or {}
         if row_meta.get("attack_type"):
             tr_attr += f' data-attack-type="{_esc(row_meta["attack_type"])}"'
+        if row_meta.get("attr"):
+            tr_attr += f' data-attr-type="{_esc(row_meta["attr"])}"'
         if "class" in h:
             tr_attr += f' data-class="{_esc(h["class"])}"'
         if "current" in h:
@@ -339,6 +359,7 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         '<img src="icons/ui/atk_ranged.png" alt=""></span><span>Ranged</span></button>'
         '</span>'
     ) if attack_filter else ''
+    attr_block = _attr_filter_buttons() if attr_filter else ''
     # Class filter (sits right of Remove): ONE multi-select dropdown (Type) — pick
     # any combination of Items / Neutral Items / Enchantments. Default: Items only.
     if class_filter:
@@ -392,6 +413,7 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         + class_block
         + category_block
         + attack_block
+        + attr_block
         + _switch('hd-hide-old', 'Hide old',
                   'Show only the most recent patches that fit the width '
                   '(latest at the right edge); off shows every patch', True)

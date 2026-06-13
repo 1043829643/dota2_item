@@ -49,6 +49,11 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python build_heroes_stats.py
 
+      - name: Build hero lab calculator
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python build_hero_lab.py
+
       - name: Build hero dynamics matrix
         env:
           PYTHONIOENCODING: utf-8
@@ -128,6 +133,7 @@ jobs:
           cp materials.html _site/
           cp mana_items.html _site/
           cp heroes_stats.html _site/
+          cp hero_lab.html _site/
           cp unit_abilities.html _site/
           cp neutral_abilities.html _site/
           cp heroes_dyn.html _site/
