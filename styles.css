@@ -6841,6 +6841,24 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   z-index: 3;
   background: #11161d;
 }
+/* The shared .mr-name rule sets display:grid on the <td>. A grid (or flex) <td>
+   drops out of the table's automatic ROW-HEIGHT equalisation, so the icon-tall
+   hero cell rendered a different height than the stat cells and the rows visibly
+   mis-aligned (a vertical shift down the Hero column). Keep the hero cell a real
+   table-cell and lay the icon + name out inline so it shares the row height with
+   every stat cell; vertical-align:middle centres all cells consistently. */
+.mr-table.hs-table td.hs-name {
+  display: table-cell;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.mr-table.hs-table td.hs-name .hs-ico {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 16px;
+}
+.mr-table.hs-table td.hs-name .mr-name-body { vertical-align: middle; }
+.mr-table.hs-table tbody td { vertical-align: middle; }
 /* table-layout:fixed derives column widths from the FIRST row (the thead) —
    the body's .mr-name width rule doesn't reach the th, so without this the
    Hero HEADER was narrower than the hero column. */

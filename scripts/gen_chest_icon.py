@@ -190,17 +190,19 @@ def main():
         #     the gold glints twinkling (src frames ~50-88, before the lid starts
         #     to close), looping forever (loop=0). Its first frame == the intro's
         #     last frame so the JS swap is seamless.
-        # The user-visible glitch was that the intro kept going through the
-        # "settling" frames after the lid had already fully opened, which reads
-        # like the chest briefly closing/reopening before the loop begins.
-        # Fix: cut the intro at the first convincingly-open frame and start the
-        # loop from that exact source frame too. That favors a clean hand-off
-        # over the extra settle motion.
+        # The lid flips open over src frames 46-49 (46 cracks, 48 is a diagonal
+        # mid-flip flap, 49 lands flat). Picking those with uneven skips made the
+        # mid-flip frame (48) read as a broken "extra" frame on its own. Fix: play
+        # the open burst as a CONSECUTIVE run (45-53) so the flip is continuous
+        # motion with the beam ramping in, then settle to frame 62 = the loop's
+        # first frame for a seamless hand-off.
         intro = []
         for i in range(0, 45, 3):          # key flies in + inserts + turns (fast)
             intro.append((i, 34))
-        for i in (45, 46, 48, 50, 58, 62): # cut straight to the first stable
-            intro.append((i, 55))          # fully-open pose used by the loop
+        for i in range(45, 54):            # smooth lid-open + beam ramp (45-53)
+            intro.append((i, 42))
+        for i in (56, 59, 62):             # settle to the loop's start pose
+            intro.append((i, 52))
         intro_imgs, intro_durs = save_apng("icon_chest_open.png", intro, loop=1)
         intro_ms = sum(intro_durs)
 

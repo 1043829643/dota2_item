@@ -468,6 +468,44 @@ def _innate_bonus(col_key: str, s: dict, h: str, r: dict | None = None) -> float
                  + ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility"))
         return armor * 0.5
 
+    # Dragon Knight — Dragon Blood (innate): bonus HP regen AND armor, both
+    # 2 + 0.5 per hero level. Level-1 (Starting) value here; scripts.js owns the
+    # per-level recompute, this keeps the server-rendered level-1 cell consistent.
+    if slug == "dragon_knight" and col_key in ("hpr", "armor"):
+        return 2 + 0.5 * 1
+    # Lifestealer — innate bonus Attack Speed, 4 per hero level (level-1 here).
+    if slug == "life_stealer" and col_key == "aspd":
+        return 4 * 1
+    # Drow — innate bonus Agility = 10% + 1% per level of her current Agility
+    # (self-referential off base agi at level 1; scripts.js scales per level).
+    if slug == "drow_ranger" and col_key == "agi":
+        return _field(s, h, "AttributeBaseAgility") * (0.10 + 0.01 * 1)
+    # ── Innates added below all delegate per-level / per-patch scaling to
+    # scripts.js (`hsTablePatch`/`patchGe`). Here we only seed the level-1 cell.
+    # Razor — Unstable Current (7.41a+): +1 Move Speed per level (level 1 → +1).
+    if slug == "razor" and col_key == "ms" and _ge(ver, "7.41a"):
+        return 1.0
+    # Ursa — Earthshock Maul: bonus damage = % of CURRENT HP.
+    # 1.5 @ 7.36..7.37a → leveled 1.2/1.3/1.4/1.5 (7.37b..7.39c, take max) → 1.25 @ 7.39d+.
+    if slug == "ursa" and col_key == "dmg" and _ge(ver, "7.36"):
+        pct = 1.25 if _ge(ver, "7.39d") else 1.5
+        # use the base raw HP (StatusHealth) — full HP needs str scaling done in caller
+        return _field(s, h, "StatusHealth") * pct / 100.0
+    # Dark Seer — Quick Wit: +AS per Int. 0.5 @ 7.36..7.37e → 1.0 @ 7.38+.
+    if slug == "dark_seer" and col_key == "aspd" and _ge(ver, "7.36"):
+        f = 1.0 if _ge(ver, "7.38") else 0.5
+        return _field(s, h, "AttributeBaseIntelligence") * f
+    # Keeper of the Light — Bright Speed (7.41a+): +1 MS per N Int. 2.5 (7.41a..7.41b) → 3 (7.41c+).
+    if slug == "keeper_of_the_light" and col_key == "ms" and _ge(ver, "7.41a"):
+        n = 3.0 if _ge(ver, "7.41c") else 2.5
+        return _field(s, h, "AttributeBaseIntelligence") / n
+    # Beastmaster — Inner Beast (7.41a+): +(7 + 3·level) Attack Speed, hero only.
+    if slug == "beastmaster" and col_key == "aspd" and _ge(ver, "7.41a"):
+        return 7 + 3 * 1
+    # Death Prophet — Witchcraft: % bonus to MS. We can't return a multiplier
+    # via the additive _innate_bonus interface, so leave the level-1 ms cell to
+    # scripts.js (it applies the multiplier on every recompute).
+
     return 0.0
 
 
@@ -1302,7 +1340,7 @@ def _row_stats(hero: str, snap: dict, raw: dict) -> str:
     slug = hero.replace("npc_dota_hero_", "")
     data = {
         "slug": slug,
-        "hasStatInnate": slug in {"axe", "centaur", "morphling", "techies", "void_spirit"},
+        "hasStatInnate": slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "ogre_magi", "razor", "sven", "techies", "ursa", "void_spirit"},
         "attr": meta[0],
         "str": _field(snap, hero, "AttributeBaseStrength"),
         "strGain": _field(snap, hero, "AttributeStrengthGain"),
@@ -1387,7 +1425,7 @@ def render_html() -> str:
     for hero in heroes:
         slug = hero.replace("npc_dota_hero_", "")
         name = _display_name(hero, names)
-        has_stat_innate = slug in {"axe", "centaur", "morphling", "techies", "void_spirit"}
+        has_stat_innate = slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "ogre_magi", "razor", "sven", "techies", "ursa", "void_spirit"}
         attack_type = _attack_type(latest, hero, raw)
         icon = (f'<img class="mr-ico hs-ico" src="icons/heroes/{slug}.png" '
                 f'alt="" loading="lazy">'
@@ -1397,8 +1435,8 @@ def render_html() -> str:
             f'<td class="mr-name hs-name" data-cat="basic" data-sort="{_esc(name)}">'
             f'{icon}<span class="mr-name-body">'
             f'<span class="mr-name-text">{_esc(name)}</span>'
-            f'<img class="hs-innate-mini{" is-hidden" if not has_stat_innate else ""}" src="icons/misc/innate_icon.png" alt="Innate stat bonus" '
-            f'title="Innate stat bonus" loading="lazy" aria-hidden="true"></span></td>'
+            f'<img class="hs-innate-mini{" is-hidden" if not has_stat_innate else ""}" src="icons/misc/innate_icon.png" alt="" '
+            f'loading="lazy" aria-hidden="true"></span></td>'
         ]
         meta = _attr_of(cur, hero) or ("uni", "Universal", "universal.webp", 3)
         ah = _attr_history(snaps, versions, dates, hero)
@@ -1453,7 +1491,10 @@ def render_html() -> str:
         )
 
     table = (
-        '<table class="mr-table hs-table sortable-table">'
+        # data-patch lets scripts.js gate per-patch innate formulas (e.g.
+        # Medusa's Mana Shield damage_per_mana: 2.4 @ 7.37 → 2.2 @ 7.38 →
+        # 2.0 @ 7.39e → 2+0.1·level @ 7.41a+; values from KV files).
+        f'<table class="mr-table hs-table sortable-table" data-patch="{_CTX_VERSION[0]}">'
         f'<thead><tr class="cat-row">{cat_row}</tr>'
         f'<tr class="col-row">{thead}</tr></thead>'
         f'<tbody>{"".join(body)}</tbody>'
