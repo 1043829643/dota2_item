@@ -4135,12 +4135,14 @@ def save_calendar_html():
         if not year_patches:
             return None
         ranked = sorted(year_patches, key=lambda p: spans.get(p['version'], 0))
-        shortest = ranked[0]
-        longest = ranked[-1]
+        min_days = spans.get(ranked[0]['version'], 0)
+        max_days = spans.get(ranked[-1]['version'], 0)
+        shortest_vers = [p['version'] for p in ranked if spans.get(p['version'], 0) == min_days]
+        longest_vers  = [p['version'] for p in ranked if spans.get(p['version'], 0) == max_days]
         return {
             'total': len(year_patches),
-            'shortest': (shortest['version'], spans[shortest['version']]),
-            'longest':  (longest['version'],  spans[longest['version']]),
+            'shortest': (shortest_vers, min_days),
+            'longest':  (longest_vers,  max_days),
         }
     months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     has_html = {p['version'] for p in PATCHES}
@@ -4258,11 +4260,11 @@ def save_calendar_html():
                 '</div>'
                 '<div class="cal-year-summary-right">'
                 f'<span class="cal-year-summary-key">Longest:</span> '
-                f'<span class="cal-year-summary-val">{ys["longest"][0]}</span>'
+                f'<span class="cal-year-summary-val">{" &amp; ".join(ys["longest"][0])}</span>'
                 f' <span class="cal-year-summary-meta">({ys["longest"][1]} days)</span>'
                 f' &middot; '
                 f'<span class="cal-year-summary-key">Shortest:</span> '
-                f'<span class="cal-year-summary-val">{ys["shortest"][0]}</span>'
+                f'<span class="cal-year-summary-val">{" &amp; ".join(ys["shortest"][0])}</span>'
                 f' <span class="cal-year-summary-meta">({ys["shortest"][1]} days)</span>'
                 '</div>'
                 '</div>'

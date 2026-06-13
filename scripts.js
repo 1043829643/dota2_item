@@ -79,7 +79,9 @@
   // The back arrow is a fixed button in the BOTTOM-LEFT corner (CSS), so it no
   // longer needs JS to vertically align it on the toolbar (that inline top:
   // override was what made it overlap the tag block).
+})();
 
+(function() {
   // ---- RE-ANCHOR after load (patch pages) ----
   // Arriving with a #dyn-hero-… hash (from the Hero Dynamics matrix or another
   // patch's dynamics widget), the browser anchors immediately — but lazy hero/
@@ -126,6 +128,10 @@
       e.stopPropagation();
       const open = dropdownMenu.classList.toggle('open');
       dropdownBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        const cur = dropdownMenu.querySelector('.version-item.current');
+        if (cur) cur.scrollIntoView({ block: 'nearest' });
+      }
     });
     document.addEventListener('click', (e) => {
       if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
@@ -2263,6 +2269,48 @@
   window.addEventListener('scroll', hide, true);
 })();
 
+// ---- Body-level tooltip for `.info-tip` "?" badges (patch pages) ----
+// CSS-driven `.info-pop` (position:absolute) overflows the viewport when the
+// badge is near a screen edge. A single body-level div is positioned via JS
+// so it stays clamped inside the viewport on both axes.
+(function() {
+  const tip = document.createElement('div');
+  tip.className = 'info-pop-body';
+  document.body.appendChild(tip);
+
+  function show(target) {
+    const pop = target.querySelector('.info-pop');
+    if (!pop) return;
+    tip.innerHTML = pop.innerHTML;
+    tip.classList.add('is-visible');
+    const r = target.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+    let left = r.left + r.width / 2 - tipRect.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
+    let top = r.top - tipRect.height - 8;
+    if (top < 8) top = r.bottom + 8;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function hide() { tip.classList.remove('is-visible'); }
+
+  document.addEventListener('mouseover', e => {
+    const t = e.target.closest('.info-tip');
+    if (t) show(t);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('.info-tip')) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const t = e.target.closest('.info-tip');
+    if (t) show(t);
+  });
+  document.addEventListener('focusout', e => {
+    if (e.target.closest('.info-tip')) hide();
+  });
+  window.addEventListener('scroll', hide, true);
+})();
+
 // ---- Centre the row jumped to via #anchor (cross-page or same-page) ----
 // The Tables pages have an inner `.creeps-scroll` overflow box AND the page
 // itself scrolls — `el.scrollIntoView({block:'center'})` only centres within
@@ -4001,8 +4049,8 @@
   let timer = null;
   tile.addEventListener('mouseenter', () => {
     clearTimeout(timer);
-    img.src = OPEN + '?v=' + Date.now();
-    timer = setTimeout(() => { img.src = LOOP + '?v=' + Date.now(); }, INTRO_MS);
+    img.src = ''; img.src = OPEN;
+    timer = setTimeout(() => { img.src = ''; img.src = LOOP; }, INTRO_MS);
   });
   tile.addEventListener('mouseleave', () => {
     clearTimeout(timer);
@@ -4132,6 +4180,7 @@
     const lensRim = root.querySelector('.tc-lens-rim');
     const markerSvgs = stage.querySelectorAll('.tc-markers');
     const lensOk = !!(lens && lensOld && lensNew);
+    const LENS_PX = parseFloat(root.dataset.lens) || 184;
     if (root.dataset.lens) stage.style.setProperty('--lens', root.dataset.lens + 'px');
 
     let pos = parseFloat(root.dataset.pos);
@@ -4145,13 +4194,29 @@
 
     // ---- divider drag: HANDLE ONLY (pointer capture isolates it) ----
     let dragging = false;
+    let dragRect = null;      // stage rect cached at pointerdown — avoids
+    let dragHalfW = 22;       // getBoundingClientRect() on every pointermove
+    let sliderRaf = null;
+    let pendingX = 0;
+
     function posFromX(clientX) {
-      const r = stage.getBoundingClientRect();
+      const r = dragRect || stage.getBoundingClientRect();
       if (r.width <= 0) return pos;
       return ((clientX - r.left) / r.width) * 100;
     }
+    // During drag, position the handle via transform (compositor) so the
+    // browser never triggers layout for the handle's left property.
+    function applyHandleTransform(p) {
+      if (!dragRect) return;
+      handle.style.transform = 'translateX(' + (dragRect.width * p / 100 - dragHalfW) + 'px)';
+    }
     handle.addEventListener('pointerdown', function(e) {
       dragging = true;
+      dragRect = stage.getBoundingClientRect();
+      dragHalfW = handle.offsetWidth / 2;
+      stage.classList.add('is-dragging');
+      // Disable CSS left:var(--pos) so transform owns positioning during drag.
+      handle.style.left = '0';
       if (e.pointerId != null && handle.setPointerCapture) {
         try { handle.setPointerCapture(e.pointerId); } catch (_) {}
       }
@@ -4159,10 +4224,27 @@
       e.stopPropagation();
     });
     handle.addEventListener('pointermove', function(e) {
-      if (dragging) apply(posFromX(e.clientX));
+      if (!dragging) return;
+      pendingX = e.clientX;
+      if (sliderRaf !== null) return;
+      sliderRaf = requestAnimationFrame(function() {
+        sliderRaf = null;
+        const p = posFromX(pendingX);
+        apply(p);
+        applyHandleTransform(pos);
+      });
     });
-    handle.addEventListener('pointerup', function() { dragging = false; });
-    handle.addEventListener('pointercancel', function() { dragging = false; });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      dragRect = null;
+      stage.classList.remove('is-dragging');
+      // Revert handle to CSS-driven left: var(--pos) for arrow keys / resize.
+      handle.style.left = '';
+      handle.style.transform = '';
+    }
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
     handle.addEventListener('keydown', function(e) {
       let step = 0;
       switch (e.key) {
@@ -4182,6 +4264,10 @@
     let loupeMode = false;
     let pinned = false;
     let lensMarkers = [];          // cloned marker SVGs (trees-old/new, camps)
+    let lensR = LENS_PX / 2;       // lens radius — derived from data-lens attr,
+                                   // never read from DOM to avoid layout reflow
+    let rafId = null;              // RAF handle for move throttling
+    let pendingCx = 0, pendingCy = 0;
     function buildLensMarkers() {
       if (!lensOk || lensMarkers.length || !markerSvgs.length) return;
       markerSvgs.forEach(function(svg) {
@@ -4198,15 +4284,25 @@
       [lensOld, lensNew].concat(lensMarkers).forEach(function(el) {
         if (el) { el.style.width = w + 'px'; el.style.height = w + 'px'; }
       });
+      // lensR is fixed (derived from data-lens); no DOM read needed here.
     }
     function placeLens(cx, cy) {
       if (!lensOk) return;
-      const R = lens.offsetWidth / 2;
-      lens.style.transform = 'translate(' + (cx - R) + 'px,' + (cy - R) + 'px)';
-      const tf = 'translate(' + (R - cx * ZOOM) + 'px,' + (R - cy * ZOOM) + 'px)';
+      lens.style.transform = 'translate(' + (cx - lensR) + 'px,' + (cy - lensR) + 'px)';
+      const tf = 'translate(' + (lensR - cx * ZOOM) + 'px,' + (lensR - cy * ZOOM) + 'px)';
       lensOld.style.transform = tf;
       lensNew.style.transform = tf;
       lensMarkers.forEach(function(el) { el.style.transform = tf; });
+    }
+    // RAF-throttled wrapper: coalesces rapid pointermove events to one
+    // placeLens call per animation frame, preventing layout thrashing.
+    function schedulePlaceLens(cx, cy) {
+      pendingCx = cx; pendingCy = cy;
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(function() {
+        rafId = null;
+        placeLens(pendingCx, pendingCy);
+      });
     }
     function localXY(e) {
       const r = stage.getBoundingClientRect();
@@ -4225,7 +4321,7 @@
         if (overControls(e)) { hideLens(); return; }
         const xy = localXY(e);
         lens.classList.add('visible');
-        placeLens(xy[0], xy[1]);
+        schedulePlaceLens(xy[0], xy[1]);
       });
       stage.addEventListener('pointerleave', function() { if (!pinned) hideLens(); });
       stage.addEventListener('click', function(e) {
