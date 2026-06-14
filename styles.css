@@ -2842,7 +2842,8 @@ ul.changes li.ability-row-end {
   border-radius: 6px;
   width: max-content;
   min-width: 150px;
-  max-width: 340px;
+  max-width: min(340px, calc(100vw - 16px));
+  overflow-wrap: break-word;
   text-align: left;
   line-height: 1.55;
   letter-spacing: 0.1px;
