@@ -15,7 +15,7 @@ def build():
 
     # ===== NEUTRAL ITEM UPDATES =====
     W(section("Neutral Item Updates"))
-    W(plain_header("Enchantment changes", dynamics=False))
+    W(plain_header("Enchantment changes", dynamics=False, sublabel=True))
     W(enchant_header("Crude", "crude"))
     W(ul_open())
     W(li("Base Attack Time Reduction bonus worsened from 8/12/16% to 6/9/12%", b([8, 12, 16], [6, 9, 12])))

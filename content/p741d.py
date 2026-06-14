@@ -41,7 +41,7 @@ def build():
     # ===== NEUTRAL ITEM UPDATES =====
     W(section("Neutral Item Updates"))
 
-    W(plain_header("Artifacts", dynamics=False))
+    W(plain_header("Artifacts", dynamics=False, sublabel=True))
     W(item_header("Flayer's Bota"))
     W(ul_open())
     W(li("Bloodrush range increased from 1200 to 1500", b(1200, 1500)))
@@ -81,7 +81,7 @@ def build():
     W(li("Cleanse: Mana Cost decreased from 150 to 50", b(150, 50, l=True)))
     W(ul_close())
 
-    W(plain_header("Enchantments", dynamics=False))
+    W(plain_header("Enchantments", dynamics=False, sublabel=True))
     W(enchant_header("Alert"))
     W(ul_open())
     W(li("Night Vision bonus decreased from +0/150/225/300 to +0/125/175/225", b([0, 150, 225, 300], [0, 125, 175, 225])))

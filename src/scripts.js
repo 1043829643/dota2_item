@@ -228,10 +228,7 @@
     // emptied section leaves a bare slab strip between two visible sections.
     // Runs AFTER the entity-block pass above so each block's f-hide is settled.
     document.querySelectorAll('section.cat-panel').forEach(panel => {
-      const hasVisible = panel.querySelector(
-        '.entity-block:not(.f-hide):not(.cat-hide), ' +
-        '.ability-change:not(.f-hide):not(.cat-hide)'
-      );
+      const hasVisible = panel.querySelector('.entity-block:not(.f-hide):not(.cat-hide)');
       panel.classList.toggle('f-hide', !hasVisible);
     });
     // The entity-block top hairline is suppressed on the section's FIRST block
@@ -245,6 +242,7 @@
       const first = panel.querySelector('.entity-block:not(.f-hide):not(.cat-hide)');
       if (first) first.classList.add('first-visible');
     });
+    drawBrewlingConnectors();
   }
   function applyFilter() {
     const isActive = activeFilters.size > 0;
@@ -579,6 +577,7 @@
   function drawAbilityTree(parentSlug, childSlugs) {
     const parentImg = document.querySelector('img[data-slug="' + parentSlug + '"]');
     if (!parentImg) return;
+    if (parentImg.closest('.f-hide, .cat-hide')) return;
     const childImgs = childSlugs
       .map((s) => document.querySelector('img[data-slug="' + s + '"]'))
       .filter(Boolean);
@@ -863,17 +862,13 @@
   // in build_patch.py. Ordered longest-first so "creep-hero" wins over "creep".
   const DYN_KINDS = ['creep-hero', 'hero', 'item', 'unit', 'plain', 'enchant'];
 
-  // Offset into manifest.patches (newest-first). 0 = show 12 newest on the
-  // right; N = shift window N steps toward older patches.
-  let _dynOffset = 0;
-
-  function dynWindow(manifest) {
+  function dynWindow(manifest, offset) {
     // manifest.patches is newest-first → slice from offset, reverse so the
     // oldest of the window is on the left in the rendered row.
-    return manifest.patches.slice(_dynOffset, _dynOffset + 12).reverse();
+    return manifest.patches.slice(offset, offset + 12).reverse();
   }
 
-  function dynRenderRow(entityDiv, manifest, windowed, currentVersion) {
+  function dynRenderRow(entityDiv, manifest, windowed, currentVersion, offset) {
     const id = entityDiv.id || '';
     if (!id.startsWith('dyn-')) return;
     const rest = id.slice(4);
@@ -885,8 +880,8 @@
     const perPatch = (rec && rec.patches) || {};
     const wrap = document.createElement('div');
     wrap.className = 'dyn-row-wrap';
-    const canLeft  = _dynOffset + 12 < manifest.patches.length;
-    const canRight = _dynOffset > 0;
+    const canLeft  = offset + 12 < manifest.patches.length;
+    const canRight = offset > 0;
     if (canLeft) {
       const btn = document.createElement('button');
       btn.className = 'dyn-nav-arrow dyn-nav-left';
@@ -1249,25 +1244,26 @@
           const buildRow = (e) => {
             if (e.dataset.dynBuilt) return;
             e.dataset.dynBuilt = '1';
-            dynRenderRow(e, manifest, dynWindow(manifest), currentVersion);
+            const off = parseInt(e.dataset.dynOffset || '0', 10);
+            dynRenderRow(e, manifest, dynWindow(manifest, off), currentVersion, off);
           };
-          // Arrow navigation: one delegate on the page, shifts the patch
-          // window for ALL already-built rows. No extra fetches.
+          // Arrow navigation: per-entity offset stored in data-dyn-offset.
+          // Each row navigates independently — clicking an arrow only rebuilds
+          // the entity whose dyn-row-wrap contains that arrow.
           document.addEventListener('click', (ev) => {
             const arrow = ev.target.closest('.dyn-nav-arrow');
             if (!arrow) return;
+            const entityDiv = arrow.closest('.entity[id^="dyn-"]');
+            if (!entityDiv) return;
             const delta = arrow.classList.contains('dyn-nav-left') ? 1 : -1;
-            const newOff = _dynOffset + delta;
+            const cur = parseInt(entityDiv.dataset.dynOffset || '0', 10);
+            const newOff = cur + delta;
             if (newOff < 0 || newOff + 12 > manifest.patches.length) return;
-            _dynOffset = newOff;
+            entityDiv.dataset.dynOffset = String(newOff);
             const cv = dynCurrentVersion();
-            const wnd = dynWindow(manifest);
-            entities.forEach(e => {
-              if (!e.dataset.dynBuilt) return;
-              const old = e.querySelector('.dyn-row-wrap');
-              if (old) old.remove();
-              dynRenderRow(e, manifest, wnd, cv);
-            });
+            const old = entityDiv.querySelector('.dyn-row-wrap');
+            if (old) old.remove();
+            dynRenderRow(entityDiv, manifest, dynWindow(manifest, newOff), cv, newOff);
           });
           // Build each entity's cell row LAZILY as it nears the viewport — on a
           // 1800-change patch that's ~3200 gradient cells; creating them all on

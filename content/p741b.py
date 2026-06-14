@@ -80,7 +80,7 @@ def build():
     W(ul_close())
     # ===== NEUTRAL ITEM UPDATES =====
     W(section("Neutral Item Updates"))
-    W(plain_header("Artifact changes", dynamics=False))
+    W(plain_header("Artifact changes", dynamics=False, sublabel=True))
     W(item_header("Jidi Pollen Bag"))
     W(ul_open())
     W(li("Pollinate radius increased from 700 to 900", b(700, 900)))
@@ -129,7 +129,7 @@ def build():
     W(ul_open())
     W(li("Refract cooldown decreased from 30s to 27s", b(30, 27, l=True)))
     W(ul_close())
-    W(plain_header("Enchantment changes", dynamics=False))
+    W(plain_header("Enchantment changes", dynamics=False, sublabel=True))
     W(enchant_header("Crude", "crude"))
     W(ul_open())
     W(li("Health Restoration bonus decreased from +10/15/20% to +9/12/15%", b([10, 15, 20], [9, 12, 15])))

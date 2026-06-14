@@ -12,6 +12,7 @@ PATCHES = [
     {"version": "7.40c", "date": "21.01.2026", "filename": "patches/7.40c.html"},
     {"version": "7.40b", "date": "23.12.2025", "filename": "patches/7.40b.html"},
     {"version": "7.40",  "date": "15.12.2025", "filename": "patches/7.40.html"},
+    {"version": "7.39e", "date": "02.10.2025", "filename": "patches/7.39e.html"},
     {"version": "7.08",  "date": "01.02.2018", "filename": "patches/7.08.html"},
 ]
 

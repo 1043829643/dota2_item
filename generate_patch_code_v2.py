@@ -42,6 +42,11 @@ import re
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+try:
+    from patch.images import ITEM_SLUG as _KNOWN_ITEM_SLUGS
+except Exception:
+    _KNOWN_ITEM_SLUGS = {}
 
 
 # ---------- LOOKUP TABLES ----------
@@ -95,6 +100,19 @@ ITEMS = _load_itemlist()
 HEROES = _load_herolist()
 ABILS = _load_abilities()
 
+# Section order used when emitting the scaffold.
+# Neither the datafeed JSON key order nor patchnotes_english.txt reliably
+# encodes the official patch-page ordering — Valve's internal order can differ
+# from what dota2.com displays. After generation, reorder sections manually
+# to match the official page if needed.
+_CANONICAL_SECTION_ORDER = [
+    'general_notes',
+    'neutral_creeps',
+    'items',
+    'neutral_items',
+    'heroes',
+]
+
 
 # ---------- TAG HEURISTICS ----------
 
@@ -126,9 +144,10 @@ CANONICAL_TAGS = [
     (re.compile(r'\bcan no longer (?:target|be cast|be used|trigger)', re.I), 'NERF'),
     (re.compile(r'\bno longer applied by illusions\b', re.I),       'DEL'),
     (re.compile(r'\bno longer (?:applies?|affects?) ', re.I),       'DEL'),
+    (re.compile(r'\bis not applied if\b', re.I),                    'DEL'),   # "X is not applied if Debuff Immune"
     (re.compile(r'\bno longer upgraded with Aghanim', re.I),        'DEL'),
     (re.compile(r"\bno longer.*'s? ability\b", re.I),               'DEL'),
-    (re.compile(r'\bno longer (?:provides|grants|deals|fires|spawns|summons|adds|increases|works|considered)\b', re.I), 'DEL'),
+    (re.compile(r'\bno longer (?:provides|grants|deals|fires|spawns|summons|adds|increases|works|considered|active|applied)\b', re.I), 'DEL'),
     (re.compile(r'\bno longer levels with\b', re.I),                'REWORK'),  # memory rule: structural
     (re.compile(r'^No longer has\b', re.I),                         'DEL'),
     (re.compile(r'\bRemoved\b', re.I),                              'DEL'),
@@ -145,13 +164,18 @@ CANONICAL_TAGS = [
 # Cost / regen-style "lower-is-buff" keywords. When the row text matches one
 # of these AND `b()` is the badge, set l=True.
 LOWER_IS_BUFF = re.compile(
-    r'\b('
+    r'(?<!reduction\s)(?<!resist\s)\b('
     r'cooldown|mana ?cost|mana cost|cast (?:point|time)|cast point|cast time'
     r'|gold cost|item cost|recipe cost|total cost|cost'
     r'|base attack time|\bBAT\b'
     r'|incoming damage|damage taken|status duration|stun resistance'
     r'|magic resistance|attack point|projectile speed.*incoming'
     r')\b',
+    re.I,
+)
+# Positive stats that contain "cooldown" but higher=better — excluded from l=True
+_NOT_LOWER_IS_BUFF = re.compile(
+    r'\bcooldown\s+reduction\b',
     re.I,
 )
 
@@ -163,36 +187,50 @@ def _guess_tag(text):
     for rx, tag in CANONICAL_TAGS:
         if rx.search(clean):
             return tag
-    # "increased/decreased by N" → leave to b() if numeric, else NERF/BUFF
+    # "increased/decreased by N" without from/to → can't make b(), emit tag
+    # has_from_to: "from X to Y" where X/Y are slash-separated levels (parseable)
+    has_parseable_from_to = bool(re.search(
+        r'\bfrom\s+[-+]?\d[\d./]*\s+to\s+[-+]?\d[\d./]*', clean, re.I
+    )) and not re.search(r'\bfrom\s+[-+]?\d+[^0-9\s./]*[–]', clean)
     if re.search(r'\b(increased|raised)\b', clean, re.I):
-        return None  # numeric badge will decide
+        return None if has_parseable_from_to else 'BUFF'
     if re.search(r'\b(decreased|reduced|lowered|worsened)\b', clean, re.I):
-        return None
+        return None if has_parseable_from_to else 'NERF'
     if re.search(r'\bimproved\b', clean, re.I):
-        return None
+        return None if has_parseable_from_to else 'BUFF'
     return 'MISC'
 
 
 def _is_lower_better(text):
-    return bool(LOWER_IS_BUFF.search(_strip_html(text)))
+    clean = _strip_html(text)
+    if _NOT_LOWER_IS_BUFF.search(clean):
+        return False
+    return bool(LOWER_IS_BUFF.search(clean))
 
 
 # ---------- B() / TEXT-TAG EMITTERS ----------
 
 _FROM_TO_RE = re.compile(
     r'\bfrom\s+'                                # 'from '
-    r'([-+]?\d+(?:\.\d+)?(?:/[-+]?\d+(?:\.\d+)?)*%?)\s+'  # OLD value(s)
+    r'([-+]?\d+(?:\.\d+)?(?:[/–][-+]?\d+(?:\.\d+)?)*[%sx]?)\s+'  # OLD value(s), optional unit suffix
     r'to\s+'                                    # 'to '
-    r'([-+]?\d+(?:\.\d+)?(?:/[-+]?\d+(?:\.\d+)?)*%?)',    # NEW value(s)
+    r'([-+]?\d+(?:\.\d+)?(?:[/–][-+]?\d+(?:\.\d+)?)*[%sx]?)',    # NEW value(s)
 )
+# For "from X–Y to A–B" style (en-dash range): take first number of range as the value
+_RANGE_FIRST_RE = re.compile(r'^([-+]?\d+(?:\.\d+)?)–')
 
 
 def _split_levels(s):
-    """'5/7/9/11' or '5' → [5, 7, 9, 11] or 5. Strips trailing %."""
-    s = s.rstrip('%')
+    """'5/7/9/11' or '5' or '52–56' → list or scalar. Strips trailing unit suffix (%/s/x).
+    En-dash ranges (52–56) are kept as-is (string); / separates levels."""
+    s = s.rstrip('%sx')
     parts = s.split('/')
     nums = []
     for p in parts:
+        # En-dash range like "52–56": not a level progression, return None
+        # so the caller falls back to a non-numeric tag for "Damage at L1" rows.
+        if '–' in p:
+            return None
         try:
             v = float(p)
             nums.append(int(v) if v == int(v) else v)
@@ -215,11 +253,59 @@ def _emit_badge(text):
     return f'b({old!r}, {new!r}{l_arg})'
 
 
-def _emit_li(text, tag_override=None, aghs=None, info=None):
+_BSTAT_RE = re.compile(
+    r'\bBase\s+(?P<stat>Damage|Armor|Strength|Agility|Intelligence|Attack Speed|Health Regen|Mana Regen|Move(?:ment)? Speed)\s+'
+    r'(?P<dir>increased|decreased)\s+by\s+(?P<delta>\d+(?:\.\d+)?)\b',
+    re.I,
+)
+_BSTAT_FIELD = {
+    'damage':           'AttackDamageMin',
+    'armor':            'ArmorPhysical',
+    'strength':         'AttributeBaseStrength',
+    'agility':          'AttributeBaseAgility',
+    'intelligence':     'AttributeBaseIntelligence',
+    'attack speed':     'AttackSpeedBase',
+    'health regen':     'StatusHealthRegen',
+    'mana regen':       'StatusManaRegen',
+    'move speed':       'MovementSpeed',
+    'movement speed':   'MovementSpeed',
+}
+
+
+def _prev_version_in_stats(version):
+    """Return the version key in _STATS_H that immediately precedes `version`.
+    Used so bstat_h/note_box get the state BEFORE the current patch changes."""
+    from patch.stats import _STATS_H
+    keys = sorted(_STATS_H.keys())
+    try:
+        idx = keys.index(version)
+        return keys[idx - 1] if idx > 0 else version
+    except ValueError:
+        return version
+
+
+def _emit_li(text, tag_override=None, aghs=None, info=None, hero_name=None, version=None):
     """Render one W(li(...)) call. tag_override overrides heuristic; aghs is
     'scepter'/'shard' (already encoded in text if from datafeed); info is
-    optional inline_note text appended."""
+    optional inline_note text appended. hero_name+version enable bstat_h."""
     txt = text.strip()
+    clean = _strip_html(txt)
+
+    # Base-stat "by N" pattern → bstat_h + note_box
+    bstat_m = _BSTAT_RE.search(clean) if hero_name and version else None
+    if bstat_m:
+        stat_key = bstat_m.group('stat').lower()
+        field = _BSTAT_FIELD.get(stat_key, 'AttackDamageMin')
+        delta = float(bstat_m.group('delta'))
+        if bstat_m.group('dir').lower() == 'decreased':
+            delta = -delta
+        delta_repr = int(delta) if delta == int(delta) else delta
+        txt_esc = txt.replace('"', '\\"')
+        h = hero_name.replace('"', '\\"')
+        prev_v = _prev_version_in_stats(version)
+        return (f'W(li("{txt_esc}", bstat_h("{h}", "{field}", "{prev_v}", {delta_repr}),'
+                f' extra=note_box(hero="{h}", field="{field}", before_patch="{prev_v}")))')
+
     badge_call = _emit_badge(txt)
     tag = tag_override or _guess_tag(txt)
     if badge_call:
@@ -231,7 +317,11 @@ def _emit_li(text, tag_override=None, aghs=None, info=None):
     extras = []
     if info:
         info_esc = info.replace('"', '\\"')
-        extras.append(f'extra=inline_note("{info_esc}")')
+        info_badge = _emit_badge(_strip_html(info))
+        if info_badge:
+            extras.append(f'extra=inline_note("{info_esc} — " + {info_badge})')
+        else:
+            extras.append(f'extra=inline_note("{info_esc}")')
     extras_str = (', ' + ', '.join(extras)) if extras else ''
     txt_esc = txt.replace('"', '\\"')
     return f'W(li("{txt_esc}", {badge_str}{extras_str}))'
@@ -239,7 +329,7 @@ def _emit_li(text, tag_override=None, aghs=None, info=None):
 
 # ---------- INDENT-TREE WALKER ----------
 
-def _emit_notes(notes, ul_open_called=False):
+def _emit_notes(notes, ul_open_called=False, hero_name=None, version=None):
     """Walk notes array, respecting indent_level hierarchy and special
     fields (hide_dot, info, aghanims). Returns list of source lines.
 
@@ -333,7 +423,7 @@ def _emit_notes(notes, ul_open_called=False):
             continue
 
         open_ul_if_needed()
-        lines.append(_emit_li(txt, info=info, aghs=aghs))
+        lines.append(_emit_li(txt, info=info, aghs=aghs, hero_name=hero_name, version=version))
         pending_parent_text = txt
         last_indent = lvl
         has_content = True
@@ -375,13 +465,18 @@ def _render_item(item, version, neutral=False):
     out = []
     aid = item.get('ability_id')
     if aid == -1:
-        # Section-header style entry like "Artifact changes"
+        # Section-header style entry like "Artifact Changes" / "Enchantment Changes"
         if item.get('title'):
-            out.append(f'\nW(plain_header("{_strip_html(item["title"]).strip()}"))')
+            out.append(f'\nW(plain_header("{_strip_html(item["title"]).strip()}", dynamics=False, sublabel=True))')
         body, _ = _emit_notes(item.get('ability_notes', []))
         out.extend(body)
         return out
     name, slug = ITEMS.get(aid, (f'item_{aid}', f'item_{aid}'))
+    # Warn if the engine slug won't be found by item_img's naive derivation
+    # (lowercase + spaces→underscores). If so, ITEM_SLUG needs an entry.
+    naive = name.lower().replace(" ", "_").replace("'", "")
+    if slug and naive != slug and name not in _KNOWN_ITEM_SLUGS:
+        print(f"  [WARN] item_img(\"{name}\") uses \"{naive}.png\" but engine slug is \"{slug}.png\" -- add to ITEM_SLUG in patch/images.py")
     deco = _entity_title_decoration(item)
     # Detect "Recipe changed" — first note with "Recipe changed" text →
     # decorate item_header(changed=True), drop that row, and emit an
@@ -405,18 +500,50 @@ def _render_item(item, version, neutral=False):
     return out
 
 
-def _render_hero(hero):
+def _render_hero(hero, version=None):
     """One heroes[] entry: hero_header + hero_notes + abilities + subsections."""
     out = []
     hid = hero.get('hero_id')
     name, slug = HEROES.get(hid, (f'hero_{hid}', f'hero_{hid}'))
     out.append(f'\n# {name}')
     out.append(f'W(hero_header("{name}"))')
-    # Top-level hero notes (stat changes etc.)
+    # Top-level hero notes (stat changes etc.) — pass hero_name+version for bstat_h.
+    # Some notes carry a "FacetName: ..." prefix (Valve places facet-specific changes
+    # in hero_notes instead of a dedicated subsection). Split those out so they render
+    # under facet_header() instead of a plain li in the hero block.
     hero_notes = hero.get('hero_notes', [])
     if hero_notes:
-        body, _ = _emit_notes(hero_notes)
-        out.extend(body)
+        # Build display-name → slug reverse map for all known facets
+        from patch.badges import FACETS
+        _facet_name_to_slug = {n.lower(): s for s, (n, _) in FACETS.items()}
+        # Partition notes: bucket by facet name prefix, or keep as general
+        _general_notes = []
+        _facet_buckets = {}   # facet_slug -> [notes]
+        _FACET_PREFIX_RE = re.compile(r'^([^:]{2,40}):\s+(.+)$', re.DOTALL)
+        for n in hero_notes:
+            raw = (n.get('note') or '').strip()
+            m = _FACET_PREFIX_RE.match(_strip_html(raw))
+            if m:
+                prefix = m.group(1).strip()
+                facet_slug = _facet_name_to_slug.get(prefix.lower())
+                if facet_slug:
+                    # Strip the "FacetName: " prefix from the note text
+                    stripped_note = dict(n)
+                    rest = m.group(2).strip()
+                    stripped_note['note'] = re.sub(
+                        re.escape(prefix) + r':\s*', '', n.get('note', ''), count=1, flags=re.I
+                    )
+                    _facet_buckets.setdefault(facet_slug, []).append(stripped_note)
+                    continue
+            _general_notes.append(n)
+        if _general_notes:
+            body, _ = _emit_notes(_general_notes, hero_name=name, version=version)
+            out.extend(body)
+        # Emit inline facet sections from hero_notes
+        for facet_slug, fnotes in _facet_buckets.items():
+            out.append(f'W(facet_header("{facet_slug}"))')
+            body, _ = _emit_notes(fnotes)
+            out.extend(body)
     # Abilities
     for a in hero.get('abilities', []):
         aid = a.get('ability_id')
@@ -430,33 +557,14 @@ def _render_hero(hero):
         out.append('W(subgroup("Talents"))')
         body, _ = _emit_notes(talents)
         out.extend(body)
-    # Facet subsections
+    # Facet subsections — new template: facet_header(slug) + ul_open/li/ul_close.
+    # No subgroup(), no facet_badge() prefix on individual li rows.
     for s in hero.get('subsections', []):
         if s.get('style') == 'hero_facet':
             facet_slug = s.get('facet')
-            facet_title = s.get("title", facet_slug)
-            out.append(f'W(subgroup("Facet: {facet_title}"))')
+            out.append(f'W(facet_header("{facet_slug}"))')
             for a in s.get('abilities', []):
-                aid = a.get('ability_id')
-                aname, aslug = ABILS.get(aid, (f'ability_{aid}', f'ability_{aid}'))
-                # Skip ability_header when the ability's display name matches
-                # the facet title — the subgroup already names the entity, and
-                # Valve often serves identical icons for both, producing a
-                # redundant visual (e.g. Naga Siren Deluge facet → Deluge
-                # active ability).
-                if aname.lower() != facet_title.lower():
-                    out.append(f'W(ability("{aname}", slug="{aslug}"))')
-                # Each row gets facet_badge() prefix
                 body, _ = _emit_notes(a.get('ability_notes', []))
-                # Decorate first li with facet_badge
-                for j, ln in enumerate(body):
-                    if ln.startswith('W(li("'):
-                        body[j] = ln.replace(
-                            'W(li("',
-                            f'W(li(facet_badge("{facet_slug}") + " " + "',
-                            1,
-                        )
-                        break
                 out.extend(body)
     return out
 
@@ -484,17 +592,27 @@ def _render_neutral_creep(creep):
     out = []
     name = creep.get('name', '') or ''
     display = creep.get('localized_name') or name or 'Unknown Creep'
+    notes = creep.get('neutral_creep_notes') or creep.get('notes') or []
+
+    # is_general_note=True means this entry is just a grouping label (no own
+    # changes). Its `name` field is a loc key like "#DOTA_Patch_7_39e_...",
+    # not a unit slug. Emit plain_header so it renders as a text label only.
+    if creep.get('is_general_note'):
+        out.append(f'\n# {display} (label — no own changes; sub-units follow)')
+        out.append(f'W(plain_header("{display}", dynamics=False))')
+        return out
+
     # Strip the npc_dota_neutral_ prefix to get the icon slug.
     slug = name.replace('npc_dota_neutral_', '', 1) if name else ''
+    # Some summoned units (e.g. Skeleton Warrior) use npc_dota_ prefix, not neutral.
+    if not slug or slug == name:
+        slug = name.replace('npc_dota_', '', 1) if name.startswith('npc_dota_') else name
     icon = f'_NC_CDN + "{slug}.png"' if slug else '""'
     out.append(f'\n# {display}')
     out.append(f'W(unit_header("{display}", {icon}))')
-    notes = creep.get('neutral_creep_notes') or creep.get('notes') or []
     if notes:
-        out.append('W(ul_open())')
-        body, _ = _emit_notes(notes)
+        body, _ = _emit_notes(notes)  # _emit_notes owns ul_open + ul_close
         out.extend(body)
-        out.append('W(ul_close())')
     return out
 
 
@@ -947,41 +1065,47 @@ def generate(version):
            f'# Source: data/{version}_datafeed.json',
            '']
 
-    # General Updates
-    if d.get('general_notes'):
-        out.append('# ===== GENERAL UPDATES =====')
-        out.append('W(section("General Updates"))')
-        for note in d['general_notes']:
-            out.extend(_render_general_note(note))
+    # Determine section order: prefer patchnotes_english.txt (matches the
+    # official patch page order); fall back to datafeed JSON key order.
+    # patchnotes_english.txt groups items + neutral_items under 'items'.
+    # We expand 'items' into ('items', 'neutral_items') so both sections are
+    # emitted together in sequence.
+    # Use the canonical section order. The official Dota 2 patch page ordering
+    # cannot be reliably derived from the datafeed or patchnotes_english.txt —
+    # after generation, reorder sections manually if needed.
+    section_order = _CANONICAL_SECTION_ORDER
 
-    # Item Updates
-    if d.get('items'):
-        out.append('\n# ===== ITEM UPDATES =====')
-        out.append('W(section("Item Updates"))')
-        for item in d['items']:
-            out.extend(_render_item(item, version))
-
-    # Neutral Creeps — per official patch page ordering, Creep Updates
-    # come BEFORE Neutral Item Updates (see https://www.dota2.com/patches).
-    if d.get('neutral_creeps'):
-        out.append('\n# ===== NEUTRAL CREEP UPDATES =====')
-        out.append('W(section("Neutral Creep Updates"))')
-        for creep in d['neutral_creeps']:
-            out.extend(_render_neutral_creep(creep))
-
-    # Neutral Items
-    if d.get('neutral_items'):
-        out.append('\n# ===== NEUTRAL ITEM UPDATES =====')
-        out.append('W(section("Neutral Item Updates"))')
-        for item in d['neutral_items']:
-            out.extend(_render_item(item, version, neutral=True))
-
-    # Hero Updates
-    if d.get('heroes'):
-        out.append('\n# ===== HERO UPDATES =====')
-        out.append('W(section("Hero Updates"))')
-        for hero in sorted(d['heroes'], key=lambda h: HEROES.get(h['hero_id'], ('', ''))[0]):
-            out.extend(_render_hero(hero))
+    _SECTION_KEYS = {
+        'general_notes':  ('GENERAL UPDATES',        'General Updates'),
+        'items':          ('ITEM UPDATES',            'Item Updates'),
+        'neutral_creeps': ('NEUTRAL CREEP UPDATES',   'Neutral Creep Updates'),
+        'neutral_items':  ('NEUTRAL ITEM UPDATES',    'Neutral Item Updates'),
+        'heroes':         ('HERO UPDATES',            'Hero Updates'),
+    }
+    _first = True
+    for key in section_order:
+        if key not in _SECTION_KEYS or not d.get(key):
+            continue
+        cap_title, section_title = _SECTION_KEYS[key]
+        prefix = '# =====' if _first else '\n# ====='
+        out.append(f'{prefix} {cap_title} =====')
+        out.append(f'W(section("{section_title}"))')
+        _first = False
+        if key == 'general_notes':
+            for note in d['general_notes']:
+                out.extend(_render_general_note(note))
+        elif key == 'items':
+            for item in d['items']:
+                out.extend(_render_item(item, version))
+        elif key == 'neutral_creeps':
+            for creep in d['neutral_creeps']:
+                out.extend(_render_neutral_creep(creep))
+        elif key == 'neutral_items':
+            for item in d['neutral_items']:
+                out.extend(_render_item(item, version, neutral=True))
+        elif key == 'heroes':
+            for hero in sorted(d['heroes'], key=lambda h: HEROES.get(h['hero_id'], ('', ''))[0]):
+                out.extend(_render_hero(hero, version=version))
 
     # Post-process passes that operate on the full emitted line list:
     # 1. Collapse aghs upgrade-row + description into canonical merged li.

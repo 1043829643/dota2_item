@@ -9,6 +9,7 @@ _HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HERE))
 
 import content.p708
+import content.p739e
 import content.p740
 import content.p740b
 import content.p740c
@@ -26,6 +27,7 @@ if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     # Build patches oldest-first (dynamics accumulate chronologically)
     content.p708.build()
+    content.p739e.build()
     content.p740.build()
     content.p740b.build()
     content.p740c.build()

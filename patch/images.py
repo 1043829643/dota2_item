@@ -225,6 +225,9 @@ ITEM_SLUG = {
     "Whisper of the Dread": "whisper_of_the_dread",
     "Wizard Hat": "wizard_hat",
     "Yasha and Kaya": "yasha_and_kaya",
+    # 7.39e Enchantments (engine slug: enhancement_<name>)
+    "Timeless": "enhancement_timeless",
+    "Boundless": "enhancement_boundless",
 }
 
 

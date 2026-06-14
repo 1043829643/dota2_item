@@ -234,13 +234,13 @@ def build():
     # ===== ITEM UPDATES =====
     W(section("Item Updates"))
 
-    W(plain_header("Shop Reshuffle", dynamics=False))
+    W(plain_header("Shop Reshuffle", dynamics=False, sublabel=True))
     W(ul_open())
     W(li("Items in all shop categories except for Consumables have been rearranged to accommodate new items", t("QoL")))
     W(li("Consumables now includes Infused Raindrops", t("QoL")))
     W(ul_close())
 
-    W(plain_header("Basic Items", dynamics=False))
+    W(plain_header("Basic Items", dynamics=False, sublabel=True))
     W(item_header("Chasm Stone", new="New Miscellaneous Item"))
     W(item_cost(800))
     W(provides('+40 Area of Effect ' + info_tip("Area of Effect bonuses from multiple Chasm Stones or its upgrades do not stack")))
@@ -288,7 +288,7 @@ def build():
     W(li("Spell Lifesteal bonus increased from +12% to +15%", b(12, 15)))
     W(ul_close())
 
-    W(plain_header("Upgrades", dynamics=False))
+    W(plain_header("Upgrades", dynamics=False, sublabel=True))
     W(item_header("Consecrated Wraps", new="New Armor Item"))
     W(components(('Vitality Booster', 1000), ('Shawl', 450), ('Crown', 450),
                  recipe=('Recipe', 700), total=2600))
@@ -707,12 +707,12 @@ def build():
     W(ul_close())
     # ===== NEUTRAL ITEM UPDATES =====
     W(section("Neutral Item Updates"))
-    W(plain_header("General changes", dynamics=False))
+    W(plain_header("General changes", dynamics=False, sublabel=True))
     W(ul_open())
     W(li("Tier 1 availability changed from 5:00 to 0:00", t("REWORK")))
     W(li("Madstone crafting cost for Tier 1 items increased from 5 to 6", t("REWORK")))
     W(ul_close())
-    W(plain_header("Artifact changes", dynamics=False))
+    W(plain_header("Artifact changes", dynamics=False, sublabel=True))
     W(ul_open())
     W(li("Number of artifact choices increased from 4 to 5 for Tiers 2-5", t("REWORK")))
     W(ul_close())
@@ -881,7 +881,7 @@ def build():
     W(li("Passive: Subjugate. Your attacks deal bonus magical damage equal to 4% of target's Max Mana", t("NEW"),
          extra=inline_note("Dormant Curio increases damage from 4% to 5.2%")))
     W(ul_close())
-    W(plain_header("Enchantment Changes", dynamics=False))
+    W(plain_header("Enchantment Changes", dynamics=False, sublabel=True))
     W(ul_open())
     W(li("Number of Enchantment choices increased from 4 to 5 for Tiers 2-5", b(4, 5)))
     W(li("Enchantments are no longer randomized. Now options are based on your hero's primary attribute, with some enchantments available to all heroes", t("REWORK")))

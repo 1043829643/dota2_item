@@ -150,6 +150,22 @@ def build():
     W(li("Sven's Storm Hammer with Aghanim's Scepter cannot target Cycloned units, but will dispel Cyclone off the units in AoE around the target", t("MISC"), extra=inline_note(_cyclone_proj_note)))
     W(ul_close())
 
+    # ===== NEUTRAL CREEP UPDATES =====
+    W(section("Neutral Creep Updates"))
+
+    W(unit_header("Satyr Mindstealer", _NC_CDN + "satyr_soulstealer.png"))
+    W(ability("Mana Burn", icon_url="../icons/abilities/satyr_soulstealer_mana_burn.png"))
+    W(ul_open())
+    W(li("Target's intelligence multiplier decreased from 2/2.5/3/4x to 1/1.5/2/2.5x",
+         b([2, 2.5, 3, 4], [1, 1.5, 2, 2.5])))
+    W(ul_close())
+
+    W(unit_header("Satyr Banisher", _NC_CDN + "satyr_trickster.png"))
+    W(ability("Purge", icon_url="../icons/abilities/satyr_trickster_purge.png"))
+    W(ul_open())
+    W(li("Can no longer target invulnerable units", t("DEL")))
+    W(ul_close())
+
     # ===== ITEM UPDATES =====
     W(section("Item Updates"))
     W(item_header("Clarity"))
@@ -422,26 +438,10 @@ def build():
     W(li("Attack Speed bonus increased from +5 to +6", b(5, 6)))
     W(ul_close())
 
-    # ===== NEUTRAL CREEP UPDATES =====
-    W(section("Neutral Creep Updates"))
-
-    W(unit_header("Satyr Mindstealer", _NC_CDN + "satyr_soulstealer.png"))
-    W(ability("Mana Burn", icon_url="../icons/abilities/satyr_soulstealer_mana_burn.png"))
-    W(ul_open())
-    W(li("Mana Burn target's intelligence multiplier decreased from 2/2.5/3/4x to 1/1.5/2/2.5x",
-         b([2, 2.5, 3, 4], [1, 1.5, 2, 2.5])))
-    W(ul_close())
-
-    W(unit_header("Satyr Banisher", _NC_CDN + "satyr_trickster.png"))
-    W(ability("Purge", icon_url="../icons/abilities/satyr_trickster_purge.png"))
-    W(ul_open())
-    W(li("Purge can no longer target invulnerable units", t("DEL")))
-    W(ul_close())
-
     # ===== NEUTRAL ITEM UPDATES =====
     W(section("Neutral Item Updates"))
 
-    W(plain_header("Artifact changes", dynamics=False))
+    W(plain_header("Artifact changes", dynamics=False, sublabel=True))
     W(item_header("Ripper's Lash"))
     W(ul_open())
     W(li("Item cycled out", t("DEL")))

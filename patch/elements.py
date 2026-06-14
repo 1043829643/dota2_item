@@ -350,20 +350,33 @@ def _close_ability_block():
 _DYN_TAG_WHITELIST = {"buff", "nerf", "new", "del", "rework", "misc", "qol"}
 
 
-def _dyn_record_li(tags):
+def _dyn_record_li(tags, extra_keys=None):
     if _State.dyn_skip_li:
         return
-    ek = _State.current_entity_key
     pv = _State.current_patch_version
-    if not ek or not pv:
+    if not pv:
         return
-    rec = _State.dynamics.get(ek)
-    if rec is None:
-        return
-    patch_bucket = rec["patches"].setdefault(pv, {})
-    for tag in tags:
-        if tag in _DYN_TAG_WHITELIST:
-            patch_bucket[tag] = patch_bucket.get(tag, 0) + 1
+    all_keys = []
+    if _State.current_entity_key:
+        all_keys.append(_State.current_entity_key)
+    if extra_keys:
+        for ek in (extra_keys if isinstance(extra_keys, list) else [extra_keys]):
+            if ek and ek not in all_keys:
+                all_keys.append(ek)
+    for ek in all_keys:
+        rec = _State.dynamics.get(ek)
+        if rec is None:
+            parts = ek.split('|', 1)
+            if len(parts) == 2:
+                kind, slug = parts
+                name = slug.replace('-', ' ').title()
+                rec = _State.dynamics.setdefault(ek, {"name": name, "kind": kind, "patches": {}})
+            else:
+                continue
+        patch_bucket = rec["patches"].setdefault(pv, {})
+        for tag in tags:
+            if tag in _DYN_TAG_WHITELIST:
+                patch_bucket[tag] = patch_bucket.get(tag, 0) + 1
 
 
 def _slugify(name):
@@ -464,7 +477,7 @@ def item_header(name, new=False, changed=False):
 </div>'''
 
 
-def plain_header(name, dynamics=True, terrain_link=None):
+def plain_header(name, dynamics=True, terrain_link=None, sublabel=False):
     out = _close_ability_block()
     _State.current_hero = None
     if dynamics:
@@ -479,7 +492,8 @@ def plain_header(name, dynamics=True, terrain_link=None):
             f'title="See these changes on the map">'
             f'<img src="../icons/ui/gothic/icon_terrain.png" alt="" width="16" height="16">'
             f'<span>View on map</span></a>')
-    return out + _open_block() + f'<div class="entity plain-entity"{eid}><div class="entity-name">{name}</div>{link_html}</div>'
+    extra_cls = ' label-only' if sublabel else ''
+    return out + _open_block(extra_cls) + f'<div class="entity plain-entity"{eid}><div class="entity-name">{name}</div>{link_html}</div>'
 
 
 def enchant_header(name, slug=None, new=False):
@@ -668,7 +682,7 @@ def ul_close():
 _TALENT_PREFIX_RE = re.compile(r'^(Level \d+ Talent) (?!:)')
 
 
-def li(text, badge="", extra="", force_tag=None, ability_row=False):
+def li(text, badge="", extra="", force_tag=None, ability_row=False, also_dyn=None):
     if isinstance(text, str):
         text = _TALENT_PREFIX_RE.sub(r'\1: ', text)
         if _State.in_stats_ul:
@@ -685,7 +699,7 @@ def li(text, badge="", extra="", force_tag=None, ability_row=False):
             dyn_tags = set(primary)
         else:
             dyn_tags = set(re.findall(r'data-overall="(\w+)"', badge))
-    _dyn_record_li(dyn_tags)
+    _dyn_record_li(dyn_tags, extra_keys=also_dyn)
     if isinstance(text, str) and 'del' in dyn_tags:
         _low = text.strip().rstrip('.').lower()
         if _low in ('removed', 'item removed from the game',

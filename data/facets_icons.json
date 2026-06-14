@@ -1202,5 +1202,13 @@
   "zuus_livewire": [
     "Blue1",
     "range"
+  ],
+  "kez_flutter": [
+    "Yellow1",
+    "kez_flutter"
+  ],
+  "kez_shadowhawk": [
+    "Blue2",
+    "kez_shadowhawk"
   ]
 }

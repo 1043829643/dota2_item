@@ -375,6 +375,15 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
 # Run scripts/fetch_facets.py to regenerate this dict for a given patch.
 # Value tuple: (display_title, valve_color_key).
 FACETS = {
+    # 7.39e — fetched 2026-06-14 from /datafeed/patchnotes?version=7.39e
+    "crystal_maiden_arcane_overflow": ("Arcane Overflow", "Blue2"),
+    "disruptor_thunderstorm":         ("Thunderstorm",    "Red1"),
+    "earthshaker_tectonic_buildup":   ("Tectonic Buildup","Red1"),
+    "naga_siren_active_riptide":      ("Deluge",          "Green2"),
+    "puck_curveball":                 ("Curveball",       "Blue2"),
+    "pugna_siphoning_ward":           ("Siphoning Ward",  "Green0"),
+    "sand_king_obscurity":            ("Sandblast",       "Yellow3"),
+    "snapfire_full_bore":             ("Full Bore",       "Red0"),
     # 7.40 — fetched 2026-05-19 from /datafeed/patchnotes?version=7.40
     "batrider_arsonist":                ("Arsonist",             "Yellow1"),
     "bounty_hunter_mugging":            ("Cutpurse",             "Yellow0"),
@@ -408,6 +417,8 @@ FACETS = {
     # 7.40b — fetched 2026-05-16 from /datafeed/patchnotes?version=7.40b
     "drow_ranger_sidestep":          ("Sidestep",         "Blue1"),
     "invoker_wex_focus":             ("Mind of Tornarus", "Purple0"),
+    "kez_flutter":                   ("Flutter",          "Yellow1"),
+    "kez_shadowhawk":                ("Shadowhawk",       "Blue2"),
     "legion_commander_spoils_of_war":("Spoils of War",    "Red0"),
     "pudge_fresh_meat":              ("Fresh Meat",       "Red0"),
     "skeleton_king_facet_bone_guard":("Bone Guard",       "Yellow0"),

@@ -9,15 +9,53 @@ import site_common as _site
 from .meta import PATCHES, RELEASE_HISTORY, _render_top_nav
 from .page import _ASSET_VERSION
 
-# What's new entries: (tag_type, label, date, href)
-# tag_type: "page" | "patch" | "hero"
-_WHATSNEW = [
+# Manual "page" entries in the What's New popup.
+# Date = when the page was added to the site (not Valve's release date).
+_WHATSNEW_PAGES = [
     ("page",  "Hero Lab",       "Jun 13", "hero_lab.html"),
     ("page",  "Item Dynamics",  "Jun 5",  "items_dyn.html"),
-    ("patch", "7.41d",          "Jun 5",  "patches/7.41d.html"),
     ("page",  "Hero Dynamics",  "Jun 3",  "heroes_dyn.html"),
     ("page",  "Neutral Creeps", "May 19", "neutral_stats.html"),
 ]
+
+# "Added to site" dates for patch pages.
+# Date = when the patch page was published on this site (not Valve's release date).
+# Add a new entry here when a new patch page is published.
+_PATCH_SITE_DATES = {
+    "7.41d": "Jun 5",
+    "7.39e": "Jun 14",
+}
+
+_WHATSNEW_MAX = 10
+
+
+def _build_whatsnew():
+    """Merge manual page entries with patch entries from PATCHES,
+    sorted newest first. Patch dates come from _PATCH_SITE_DATES;
+    patches not in that dict are omitted from the popup.
+    Total capped at _WHATSNEW_MAX entries."""
+    import datetime
+
+    def _sort_key(entry):
+        _, _, date_str, _ = entry
+        try:
+            dt = datetime.datetime.strptime(f"{date_str} 2026", "%b %d %Y")
+            ref = datetime.datetime(2026, 6, 14)
+            if dt > ref:
+                dt = dt.replace(year=2025)
+            return dt
+        except ValueError:
+            return datetime.datetime.min
+
+    patch_entries = []
+    for p in PATCHES:
+        site_date = _PATCH_SITE_DATES.get(p["version"])
+        if site_date:
+            patch_entries.append(("patch", p["version"], site_date, p["filename"]))
+
+    combined = list(_WHATSNEW_PAGES) + patch_entries
+    combined.sort(key=_sort_key, reverse=True)
+    return combined[:_WHATSNEW_MAX]
 
 # Pixel "!" SVG (crispEdges rects, same style as nav-back-arrow).
 # ViewBox 4x12: body 4×8, gap 2, dot 4×2.
@@ -32,7 +70,7 @@ _WN_EXCL_SVG = (
 
 def _whatsnew_html():
     rows = []
-    for kind, label, date, href in _WHATSNEW:
+    for kind, label, date, href in _build_whatsnew():
         tag = f'<span class="whatsnew-tag whatsnew-tag-{kind}">{kind}</span>'
         date_span = f'<span class="whatsnew-date">{date}</span>'
         rows.append(
