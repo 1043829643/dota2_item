@@ -24,8 +24,7 @@ html {
    - .creeps-page   Neutral Creeps / Neutral Abilities — the page is locked
                     (body:has(.creeps-scroll){overflow:hidden}); the real
                     scrollbar lives INSIDE the .creeps-scroll box, not here. */
-html:has(.main-page),
-html:has(.calendar-page) { scrollbar-gutter: auto; }
+html:has(.main-page) { scrollbar-gutter: auto; }
 
 body {
   background: #0a0e13;
