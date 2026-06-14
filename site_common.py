@@ -133,15 +133,26 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
     prefix = "../" if patch_context else ""
     # Header now carries a brand block (helmet logo + pixel-font title) instead
     # of inline nav tabs. The full nav list lives on the main hub page.
-    brand = (
-        f'<a class="nav-brand" href="{prefix}index.html" aria-label="Home">'
-        f'<img class="nav-brand-logo" src="{prefix}icons/logo_knight.png" '
-        f'alt="" loading="eager">'
-        f'<span class="nav-brand-text">'
-        f'<span class="nav-brand-sikle">sikle</span> | dota.vpk'
-        f'</span>'
-        f'</a>'
-    )
+    if active == "main":
+        brand = (
+            f'<span class="nav-brand">'
+            f'<img class="nav-brand-logo" src="{prefix}icons/logo_knight.png" '
+            f'alt="" loading="eager">'
+            f'<span class="nav-brand-text">'
+            f'<span class="nav-brand-sikle">sikle</span> | dota.vpk'
+            f'</span>'
+            f'</span>'
+        )
+    else:
+        brand = (
+            f'<a class="nav-brand" href="{prefix}index.html" aria-label="Home">'
+            f'<img class="nav-brand-logo" src="{prefix}icons/logo_knight.png" '
+            f'alt="" loading="eager">'
+            f'<span class="nav-brand-text">'
+            f'<span class="nav-brand-sikle">sikle</span> | dota.vpk'
+            f'</span>'
+            f'</a>'
+        )
     # Centre tabs: Patch Reader (→ latest patch) | Calendar | Materials. Shown
     # on every page so navigation is one click from anywhere.
     def _tab_href(key, href):
@@ -178,6 +189,8 @@ def render_top_nav(active, latest_href, *, patch_context=False, picker_html=None
         elif materials_label:
             ver_html = (f'<span class="version version-static version-materials">'
                         f'{materials_label}</span>')
+        elif active == "calendar":
+            ver_html = ''
         else:
             latest_ver = get_latest_version()
             ver_html = (f'<span class="version version-static">{latest_ver}</span>'
