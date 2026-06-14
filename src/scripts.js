@@ -433,6 +433,15 @@
 
   function jumpTo(target) {
     if (!target) return;
+    // If active filters are hiding the target, reset them so it becomes visible.
+    if (target.element.closest('.f-hide, .cat-hide')) {
+      activeFilters.clear();
+      buttons.forEach(b => b.classList.remove('active'));
+      activeCats.clear();
+      catButtons.forEach(b => b.classList.remove('active'));
+      applyFilter();
+      applyCatFilter();
+    }
     // Offset for the sticky nav so the heading lands just BELOW it. Plain
     // scrollIntoView({block:'start'}) parks the heading at viewport top, hidden
     // behind the nav — so you see the rows under it and it reads as "jumped
