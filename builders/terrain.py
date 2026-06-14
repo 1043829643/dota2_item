@@ -439,8 +439,8 @@ def _compare_html(old_ver, new_ver, markers_svg=""):
         f'draggable="false" loading="eager">\n'
         '    </div>\n'
         f'    {markers_svg}\n'
-        f'    <span class="tc-ver tc-ver-new">{new_ver}</span>\n'
-        f'    <span class="tc-ver tc-ver-old">{old_ver}</span>\n'
+        f'    <span class="tc-ver tc-ver-new">NEW &nbsp;{new_ver} →</span>\n'
+        f'    <span class="tc-ver tc-ver-old">← {old_ver}&nbsp; OLD</span>\n'
         '    <div class="tc-handle" role="slider" tabindex="0" '
         f'aria-label="Reveal {old_ver} versus {new_ver} terrain" '
         'aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">\n'
@@ -557,10 +557,13 @@ def save_terrain_html():
     subnav = _site.render_materials_subnav('terrain')
 
     by_patch = _terrain_changes_by_patch()
-    # Newest-first; the parser yields source order (7.41 before 7.40) already.
-    patches = list(by_patch.keys())
+    # Sort newest-first by version tuple so default is always the latest patch.
+    def _ver_key(v):
+        parts = v.split(".")
+        return tuple(int(x) if x.isdigit() else x for x in parts)
+    patches = sorted(by_patch.keys(), key=_ver_key, reverse=True)
     if not patches:                       # parser failed → degrade gracefully
-        patches = list(_MAP_PAIRS) or ["7.41"]
+        patches = sorted(_MAP_PAIRS, key=_ver_key, reverse=True) or ["7.41"]
         by_patch = {p: [] for p in patches}
     default = patches[0]
 

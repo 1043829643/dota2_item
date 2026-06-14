@@ -8092,7 +8092,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   pointer-events: none;
 }
 .tc-ver-new { right: 8px; top: 8px; }
-.tc-ver-old { left: 8px; bottom: 8px; }
+.tc-ver-old { left: 8px; top: 8px; }
 
 /* ---- tree tally + camp note under the change list ---- */
 .terrain-counts { margin: 14px 4px 2px; font-size: 13px; color: #8b949e; line-height: 1.55; }
