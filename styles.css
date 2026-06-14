@@ -267,8 +267,7 @@ body:has(.creeps-page) nav.top-nav {
   gap: 9px;
   text-decoration: none;
   color: #e6edf3;
-  padding: 5px 10px 7px 4px;
-  margin-bottom: -1px;
+  padding: 6px 10px 6px 4px;
   justify-self: start;
   border-radius: 0;
   position: relative;
@@ -972,7 +971,6 @@ body:has(.creeps-page) nav.top-nav {
   display: flex;
   align-items: center;
   gap: 10px;                   /* gap between release-info and the version-picker control */
-  margin-bottom: 8px;
   justify-self: end;
 }
 /* Wraps the previous-arrow + version-dropdown + next-arrow into a single
@@ -1141,7 +1139,7 @@ body:has(.creeps-page) nav.top-nav {
    against the tab row. On Materials (and other flat pages) that margin
    shifts the static label ABOVE the main-nav buttons' baseline. Cancel it
    so the version-static box sits at the same vertical centre as .nav-tab. */
-.nav-context.nav-context-materials { margin-bottom: 8px; }
+.nav-context.nav-context-materials { }
 .nav-context .version-chev {
   font-size: 14px;
   color: #a8b3bd;
@@ -5031,7 +5029,6 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   gap: 4px;
   align-items: center;
   justify-self: center;
-  margin-bottom: 8px;
 }
 /* Nav tabs — same block style as the version picker button. */
 .nav-tab {
