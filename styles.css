@@ -1084,6 +1084,7 @@ body:has(.creeps-page) nav.top-nav {
    no per-tab CSS — so the header height stays identical across pages
    and switching tabs doesn't make the toolbar jump. */
 .nav-context-flat {
+  justify-self: end;
   /* Reserve picker height on non-patch pages so all tabs sit on one baseline,
      even when the right side has no content. Grid layout handles horizontal
      placement — no `margin-left: auto` needed. */
@@ -1151,7 +1152,7 @@ body:has(.creeps-page) nav.top-nav {
    against the tab row. On Materials (and other flat pages) that margin
    shifts the static label ABOVE the main-nav buttons' baseline. Cancel it
    so the version-static box sits at the same vertical centre as .nav-tab. */
-.nav-context.nav-context-materials { margin-bottom: 0; }
+.nav-context.nav-context-materials { margin-bottom: 8px; }
 .nav-context .version-chev {
   font-size: 14px;
   color: #a8b3bd;
@@ -5050,11 +5051,12 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   color: #f0ece0;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
   text-decoration: none;
-  height: 36px;
+  height: 38px;
   padding: 0 16px;
   display: inline-flex;
   align-items: center;
   border: none;
+  border-radius: 0;
   background:
     linear-gradient(180deg,
       rgba(0, 0, 0, 0.60) 0%,
@@ -5064,9 +5066,6 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
     inset 0 4px 10px rgba(0, 0, 0, 0.88),
     inset 0 1px 0 rgba(0, 0, 0, 0.75),
     inset 0 -1px 0 rgba(255, 230, 115, 0.07);
-  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px,
-    100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%,
-    0 calc(100% - 4px), 0 4px);
   transition: color 0.11s ease;
 }
 .nav-tab:hover {
