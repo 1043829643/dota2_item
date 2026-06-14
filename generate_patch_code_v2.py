@@ -150,12 +150,14 @@ CANONICAL_TAGS = [
     (re.compile(r'\bno longer (?:provides|grants|deals|fires|spawns|summons|adds|increases|works|considered|active|applied)\b', re.I), 'DEL'),
     (re.compile(r'\bno longer levels with\b', re.I),                'REWORK'),  # memory rule: structural
     (re.compile(r'^No longer has\b', re.I),                         'DEL'),
+    (re.compile(r'\bno longer counts? as\b', re.I),                 'DEL'),    # "Hero Creeps no longer count as heroes"
     (re.compile(r'\bRemoved\b', re.I),                              'DEL'),
     # REWORK
     (re.compile(r'\breplaced with\b', re.I),                        'REWORK'),
     (re.compile(r'\breworked\b', re.I),                             'REWORK'),
     (re.compile(r'\brescaled\b', re.I),                             'REWORK'),
     (re.compile(r'\bchanged from\b', re.I),                         'REWORK'),
+    (re.compile(r'\bis now cancelled if.*interrupted\b', re.I),     'REWORK'),  # movement/channel cancellation behaviour change
     # General "Now ..." → NEW unless context says otherwise
     (re.compile(r'^Now also\b', re.I),                              'NEW'),
     (re.compile(r'^Now ', re.I),                                    'NEW'),
@@ -170,12 +172,14 @@ LOWER_IS_BUFF = re.compile(
     r'|base attack time|\bBAT\b'
     r'|incoming damage|damage taken|status duration|stun resistance'
     r'|magic resistance|attack point|projectile speed.*incoming'
+    r'|penalty'  # higher penalty value = worse for player (memory: sloppy_b_l_flag_direction_audit)
     r')\b',
     re.I,
 )
-# Positive stats that contain "cooldown" but higher=better — excluded from l=True
+# Stats that CONTAIN a lower-is-buff keyword but are actually higher=better
 _NOT_LOWER_IS_BUFF = re.compile(
-    r'\bcooldown\s+reduction\b',
+    r'\bcooldown\s+reduction\b'   # CDR: higher = faster cooldowns = better
+    r'|\bpenalty\s+reduction\b',  # reducing a penalty = good, but the VALUE is still directional
     re.I,
 )
 
