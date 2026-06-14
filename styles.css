@@ -812,6 +812,21 @@ body:has(.creeps-page) nav.top-nav {
   border-radius: 3px;
   text-transform: lowercase;
 }
+.support-ru-tag,
+.support-eng-tag {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  padding: 0 5px;
+  font-family: 'Jersey 10', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #14100a;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.support-ru-tag  { background: #5b8dd9; }
+.support-eng-tag { background: #29abe0; }
 
 /* ---- TELEGRAM envelope: heart-beat pulse + faint hollow hearts that drift out
    and linger, then fade when the cursor leaves (like the star's magic dust). */
