@@ -247,14 +247,12 @@ body:has(.creeps-page) nav.top-nav {
 .nav-inner {
   width: 100%;
   padding: 7px 24px 3px 10px;
-  /* Three-column grid: brand left, tabs centred in the middle column, picker
-     right. Symmetric 1fr/auto/1fr columns put the tab row at the geometric
-     centre of the header WITHOUT overlapping the brand or the version picker
-     (which the old `position: absolute` centring did when the picker grew). */
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Flex row: brand left, picker right (space-between). Nav-tabs are
+     absolutely centred so they don't depend on either side's width and
+     never shift between pages with different right-side content widths. */
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
   position: relative;
 }
 .nav-inner::after {
@@ -1079,7 +1077,6 @@ body:has(.creeps-page) nav.top-nav {
    no per-tab CSS — so the header height stays identical across pages
    and switching tabs doesn't make the toolbar jump. */
 .nav-context-flat {
-  justify-self: end;
   /* Reserve picker height on non-patch pages so all tabs sit on one baseline,
      even when the right side has no content. Grid layout handles horizontal
      placement — no `margin-left: auto` needed. */
@@ -1138,8 +1135,9 @@ body:has(.creeps-page) nav.top-nav {
   background: rgba(0, 0, 0, 0.28);
 }
 .nav-context .version.version-materials {
-  color: #d8e2ec;
-  font-size: 21px;
+  color: #c9d1d9;
+  font-size: 18px;
+  letter-spacing: 1px;
   padding: 0 16px;
 }
 /* Materials sub-nav context: the nav-inner grid is align-items:center, but
@@ -5034,7 +5032,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   display: flex;
   gap: 4px;
   align-items: center;
-  justify-self: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   margin-bottom: 8px;
 }
 /* Nav tabs — same block style as the version picker button. */
