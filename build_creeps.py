@@ -1476,7 +1476,7 @@ def save_creeps_html():
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
         'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
-        f'<link rel="stylesheet" href="styles.css?v={ASSET_VERSION}">\n'
+        f'<link rel="stylesheet" href="src/styles.css?v={ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'
         f'{nav}\n'
@@ -1528,7 +1528,7 @@ def save_creeps_html():
         '</table>\n'
         '</div>\n'
         '</div>\n'
-        f'<script src="scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
     with open('neutral_stats.html', 'w', encoding='utf-8') as f:
@@ -2433,7 +2433,7 @@ def save_creeps_html():
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
         'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
-        f'<link rel="stylesheet" href="styles.css?v={ASSET_VERSION}">\n'
+        f'<link rel="stylesheet" href="src/styles.css?v={ASSET_VERSION}">\n'
         '</head>\n<body>\n'
         f'{nav_ua}\n'
         '<div class="container creeps-page">\n'
@@ -2474,7 +2474,7 @@ def save_creeps_html():
         f'<tr class="col-row">{ua_head_html}</tr></thead>\n'
         f'<tbody>\n{chr(10).join(ua_rows)}\n</tbody>\n'
         '</table>\n</div>\n</div>\n'
-        f'<script src="scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
     with open('neutral_abilities.html', 'w', encoding='utf-8') as f:

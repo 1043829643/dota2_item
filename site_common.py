@@ -32,8 +32,8 @@ def favicon_links(prefix=""):
 def compute_asset_version():
     """Short SHA1 of styles.css + scripts.js combined content. Appended as
     ?v=<hash> to asset URLs so browsers re-fetch only when either changes."""
-    css = open(_os.path.join(_HERE, "styles.css"), encoding="utf-8").read()
-    js = open(_os.path.join(_HERE, "scripts.js"), encoding="utf-8").read()
+    css = open(_os.path.join(_HERE, "src", "styles.css"), encoding="utf-8").read()
+    js = open(_os.path.join(_HERE, "src", "scripts.js"), encoding="utf-8").read()
     return _hashlib.sha1((css + js).encode("utf-8")).hexdigest()[:10]
 
 

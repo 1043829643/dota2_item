@@ -341,13 +341,13 @@ def save_index_html():
         # Handjet = pixel/dot-matrix font WITH Cyrillic (Jersey 10 is Latin-only),
         # used for the signature wall so Cyrillic member names render in-style.
         'href="https://fonts.googleapis.com/css2?family=Handjet:wght@400..700&family=Jersey+10&family=Jersey+25&display=block">\n'
-        f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
+        f'<link rel="stylesheet" href="src/styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n'
         '<body>\n'
         f'{nav}\n'
         f'{sig_layer}\n'
         f'<div class="container main-page">{grid_html}</div>\n'
-        f'<script src="scripts.js?v={_ASSET_VERSION}"></script>\n'
+        f'<script src="src/scripts.js?v={_ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
     with open('index.html', 'w', encoding='utf-8') as f:

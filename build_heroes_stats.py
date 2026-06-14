@@ -1587,7 +1587,7 @@ def render_html() -> str:
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
         'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
-        f'<link rel="stylesheet" href="styles.css?v={ASSET_VERSION}">\n'
+        f'<link rel="stylesheet" href="src/styles.css?v={ASSET_VERSION}">\n'
         '</head>\n<body>\n'
         f'{nav}\n'
         '<div class="container creeps-page">\n'
@@ -1604,7 +1604,7 @@ def render_html() -> str:
         f'{table}\n'
         '</div>\n'
         '</div>\n'
-        f'<script src="scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
 
