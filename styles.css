@@ -260,11 +260,6 @@ body:has(.creeps-page) nav.top-nav {
 .nav-inner::after {
   content: none;
 }
-.nav-tabs {
-  display: flex;
-  gap: 0;
-  align-items: flex-end;
-}
 /* Header brand block (helmet logo + pixel-font title). Replaces the inline
    nav tabs — the full nav list now lives on the main hub page. */
 .nav-brand {
@@ -5040,6 +5035,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   gap: 4px;
   align-items: center;
   justify-self: center;
+  margin-bottom: 8px;
 }
 /* Game-panel nav buttons: warm dark panel, bevel depth, no explicit border frame
    (avoids corner artefacts). Text brightness is the main state indicator. */
