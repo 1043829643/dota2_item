@@ -3917,7 +3917,7 @@
     for (let i = 0; i < sigs.length; i++) {
       if (pos[i] && !sigs[i].classList.contains('is-lit')) pool.push(i);
     }
-    if (!pool.length) return;                  // all revealed (keep ticking cheaply)
+    if (!pool.length) { clearInterval(beamInterval); return; }
     // Usually one beam, but sometimes a volley: 20% chance of 2 beams at once,
     // 10% chance of 3 (each lights a different name).
     const roll = Math.random();
@@ -3929,7 +3929,11 @@
     }
   }
   setTimeout(spotlightOnce, 5000);              // first beam ~5s after load
-  setInterval(spotlightOnce, 2500);
+  const beamInterval = setInterval(spotlightOnce, 2500);
+
+  document.addEventListener('visibilitychange', () => {
+    sky.classList.toggle('paused', document.hidden);
+  });
 
   // Click a lit name → it "disintegrates" into pixel gold dust and returns to the
   // unlit pool, so a later beam can re-light it.

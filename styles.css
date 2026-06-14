@@ -486,6 +486,7 @@ body:has(.creeps-page) nav.top-nav {
   50%      { opacity: var(--hi, 0.42); }
 }
 @media (prefers-reduced-motion: reduce) { .star { animation: none !important; } }
+.star-sky.paused .star { animation-play-state: paused; }
 .inv-divider {
   display: block;
   width: 76%;

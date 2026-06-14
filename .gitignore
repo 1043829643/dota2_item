@@ -21,7 +21,8 @@ _ability_icons.txt
 .pytest_cache/
 
 # IDE / editor local config
-.claude/
+.claude/*
+!.claude/settings.local.json
 .vscode/
 .idea/
 

@@ -278,12 +278,21 @@ def _terrain_changes_by_patch():
     …))`` rows; we read the row text + its tag (``t("TAG")`` or a ``b(...)``
     badge inferred BUFF/NERF). Falls back to an empty dict if the source can't
     be read so the page still builds."""
-    import re
-    path = _os.path.join(_HERE, "build_patch.py")
-    try:
-        src = open(path, encoding="utf-8").read()
-    except OSError:
+    import re, glob as _glob
+    here = _HERE
+    # Scan content/*.py (modular build) then fall back to build_patch.py (legacy).
+    content_files = sorted(_glob.glob(_os.path.join(here, "content", "*.py")))
+    if not content_files:
+        content_files = [_os.path.join(here, "build_patch.py")]
+    src_parts = []
+    for p in content_files:
+        try:
+            src_parts.append(open(p, encoding="utf-8").read())
+        except OSError:
+            pass
+    if not src_parts:
         return {}
+    src = "\n".join(src_parts)
     heads = [(m.start(), m.group(1))
              for m in re.finditer(r'write_head\("([^"]+)"', src)]
 
@@ -393,7 +402,7 @@ def _controls_html(layers=True):
     ]
     if layers:
         parts.append('<span class="tc-sep" aria-hidden="true"></span>')
-        parts.append(layer_btn("trees", "Trees", "icon_tree"))
+        parts.append(layer_btn("trees", "Trees", "tc_trees"))
         parts.append(layer_btn("camps", "Neutral Camps", "creepcamp_mid", icon_dir="camps"))
         for key, label, icon, _color in _ENTITY_LAYERS:
             parts.append(layer_btn(key, label, icon))
@@ -550,7 +559,7 @@ def save_terrain_html():
     patches = list(by_patch.keys())
     if not patches:                       # parser failed → degrade gracefully
         patches = list(_MAP_PAIRS) or ["7.41"]
-        by_patch = {patches[0]: []}
+        by_patch = {p: [] for p in patches}
     default = patches[0]
 
     # ---- per-patch marker overlays + tree/camp counts: every patch that ships a
