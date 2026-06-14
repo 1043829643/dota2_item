@@ -5037,42 +5037,37 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   justify-self: center;
   margin-bottom: 8px;
 }
-/* Game-panel nav buttons: warm dark panel, bevel depth, no explicit border frame
-   (avoids corner artefacts). Text brightness is the main state indicator. */
+/* Nav tabs — same block style as the version picker button. */
 .nav-tab {
   font-family: 'Jersey 10', 'Courier New', monospace;
   font-size: 18px;
   letter-spacing: 1px;
   line-height: 1;
-  color: #f0ece0;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  color: #c9d1d9;
   text-decoration: none;
   height: 38px;
   padding: 0 16px;
   display: inline-flex;
   align-items: center;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 0;
-  background:
-    linear-gradient(180deg,
-      rgba(0, 0, 0, 0.60) 0%,
-      rgba(0, 0, 0, 0.20) 100%),
-    #100e08;
-  box-shadow:
-    inset 0 4px 10px rgba(0, 0, 0, 0.88),
-    inset 0 1px 0 rgba(0, 0, 0, 0.75),
-    inset 0 -1px 0 rgba(255, 230, 115, 0.07);
-  transition: color 0.11s ease;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px,
+    100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%,
+    0 calc(100% - 2px), 0 2px);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .nav-tab:hover {
-  color: #e3c46a;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
 }
 .nav-tab.active {
+  background: rgba(0, 0, 0, 0.45);
   color: #e3c46a;
   text-shadow:
-    0 0 12px rgba(227, 196, 106, 0.55),
-    0 0  4px rgba(227, 196, 106, 0.28),
-    0 1px 0  rgba(0, 0, 0, 0.98);
+    0 0 10px rgba(227, 196, 106, 0.45),
+    0 0  3px rgba(227, 196, 106, 0.25);
 }
 
 /* Materials sub-tabs — flat row of three browser-tab pills, hung BELOW the
