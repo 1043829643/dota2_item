@@ -243,7 +243,7 @@ def render_html() -> str:
 {_site.favicon_links()}<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">
-<link rel="stylesheet" href="src/styles.css?v={av}">
+<link rel="stylesheet" href="styles.css?v={av}">
 </head>
 <body>
 {nav}

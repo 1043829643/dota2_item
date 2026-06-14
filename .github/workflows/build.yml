@@ -147,6 +147,7 @@ jobs:
           cp heroes_dyn.html _site/
           cp items_dyn.html _site/
           cp terrain.html _site/
+          cp styles.css _site/
           cp -r src _site/
           cp _dynamics.json _site/
           cp -r patches _site/

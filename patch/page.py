@@ -41,7 +41,7 @@ def write_head(version, date):
 {_site.favicon_links(prefix="../")}<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">
-<link rel="stylesheet" href="../src/styles.css?v={_ASSET_VERSION}">
+<link rel="stylesheet" href="../styles.css?v={_ASSET_VERSION}">
 </head>
 <body class="patch-page">
 

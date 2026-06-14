@@ -407,7 +407,7 @@ def save_calendar_html():
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" '
         'href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+25&display=block">\n'
-        f'<link rel="stylesheet" href="src/styles.css?v={_ASSET_VERSION}">\n'
+        f'<link rel="stylesheet" href="styles.css?v={_ASSET_VERSION}">\n'
         '</head>\n<body>\n\n'
         + nav
         + '\n<div class="container calendar-page">\n'
