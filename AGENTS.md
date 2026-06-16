@@ -8,14 +8,14 @@
 
 Чтобы сразу быть в контексте, в начале сессии прочитай:
 - `AGENTS.md` (этот файл) — source of truth + карта правил.
-- `docs/architecture.md`, `docs/workflow.md`, `docs/data-format.md` — конвейер **патч-страниц** (`build_patch.py`).
-- `docs/tables.md` — подсистема **таблиц** (Neutral Creeps + вложенная Neutral Abilities / Mana Items: `build_creeps.py`, `build_mana_items.py`, sticky/overlay-архитектура, история ячеек, грабли).
+- `docs/architecture.md`, `docs/workflow.md`, `docs/data-format.md` — конвейер **патч-страниц** (`builders/patch.py`).
+- `docs/tables.md` — подсистема **таблиц** (Neutral Creeps + вложенная Neutral Abilities / Mana Items: `builders/creeps.py`, `builders/mana_items.py`, sticky/overlay-архитектура, история ячеек, грабли).
 
 ## ВАЖНО: source of truth
 
-`build_patch.py` — **главный файл патч-страниц**. CSS и JS читаются с диска при старте: `styles.css` и `scripts.js` — это **source files**, редактируются напрямую.
+`builders/patch.py` — **главный файл патч-страниц**. CSS и JS читаются с диска при старте: `styles.css` и `scripts.js` — это **source files**, редактируются напрямую.
 - `scripts.js` и `styles.css` — единственный источник правды для стилей и поведения всех страниц (включая `index.html` и `calendar.html`). Редактируй напрямую — IDE/linter работают нормально.
-- Сгенерированные HTML (`patches/7.41c.html` и т.д.) — результат запуска `python build_patch.py`, не редактируй вручную.
+- Сгенерированные HTML (`patches/7.41c.html` и т.д.) — результат запуска `python builders/patch.py`, не редактируй вручную.
 - Все патч-файлы лежат в `patches/` (не в корне), поэтому их CSS/JS подключаются через `../styles.css`, `../scripts.js`.
 
 ## Карта правил агента (`docs/agent-rules/`)

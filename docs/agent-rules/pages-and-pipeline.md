@@ -3,7 +3,7 @@
 ## Структура проекта
 
 ```
-build_patch.py            ← ГЛАВНЫЙ. CSS, JS, HTML-хелперы, данные всех патчей
+builders/patch.py            ← ГЛАВНЫЙ. CSS, JS, HTML-хелперы, данные всех патчей
 generate_patch_code.py    ← KV → Python-код. Запускать перед добавлением нового патча
 scripts/apply_stats.py    ← Постпроцессор: t("BUFF")→bstat_h() где есть БД
 data/
@@ -12,7 +12,7 @@ data/
   stats/{version}/
     heroes.json           ← Стоты героев (npc_heroes.txt → нужные поля)
     items.json            ← Стоты предметов (items.txt → нужные поля)
-patches/                  ← Финальные HTML, генерируются build_patch.py
+patches/                  ← Финальные HTML, генерируются builders/patch.py
 docs/
   architecture.md, data-format.md, workflow.md
 ```
@@ -25,26 +25,26 @@ docs/
 ## Как запустить
 
 ```bash
-python build_patch.py        # пересобирает все patches/*.html и calendar.html
-python build_heroes_stats.py # heroes_stats.html — таблица статов героев (после build_patch)
-python build_hero_lab.py     # hero_lab.html — калькулятор сравнения героев с предметами
-python generate_patch_code.py 7.42   # → _generated_p_7.42.py (вставлять в build_patch.py)
+python builders/patch.py        # пересобирает все patches/*.html и calendar.html
+python builders/heroes_stats.py # heroes_stats.html — таблица статов героев (после build_patch)
+python builders/hero_lab.py     # hero_lab.html — калькулятор сравнения героев с предметами
+python generate_patch_code.py 7.42   # → _generated_p_7.42.py (вставлять в builders/patch.py)
 python scripts/apply_stats.py          # упгрейдит t() → bstat_h() где можем
 python scripts/fetch_itemlist.py       # обновляет data/itemlist.json из датафида Valve
                                         # (имена предметов + ТЕКУЩИЙ ПУЛ НЕЙТРАЛОВ для items_dyn).
-                                        # Запускать с выходом нового патча, затем build_patch.py —
+                                        # Запускать с выходом нового патча, затем builders/patch.py —
                                         # добавленные/выведенные нейтралы подхватятся автоматически.
 python scripts/extract_shops.py        # извлекает scripts/shops.txt из VPK → data/shops.txt
                                         # (КАТЕГОРИИ магазина для фильтра items_dyn: Consumables/
                                         # Attributes/Weapons…). Локально (нужен `pip install vpk`).
                                         # Запускать с выходом патча (Valve тасует категории), затем
-                                        # build_patch.py — перемещения категорий подхватятся сами.
+                                        # builders/patch.py — перемещения категорий подхватятся сами.
 ```
 
 ## Предупреждения и подводные камни
 
-- При добавлении нового героя: добавить в `HERO_SLUG` (build_patch.py) И в `load_hero_internal_to_display()` (generate_patch_code.py)
-- При добавлении нового предмета: только в `ITEM_SLUG` (build_patch.py); generate_patch_code.py читает оттуда
+- При добавлении нового героя: добавить в `HERO_SLUG` (builders/patch.py) И в `load_hero_internal_to_display()` (generate_patch_code.py)
+- При добавлении нового предмета: только в `ITEM_SLUG` (builders/patch.py); generate_patch_code.py читает оттуда
 - 7.41c в HANDCRAFTED раньше был сырой HTML — теперь конвертирован в W() вызовы; следующие патчи делать только через W()
 - `_formula_id_counter` — глобальный счётчик для table-id, сбрасывается при каждом запуске
 - `.gitignore` исключает `__pycache__/`, `_generated_p_*.py`, `_insert_patches.py`. Одноразовые скрипты `_*.py` после использования можно удалять
@@ -53,11 +53,11 @@ python scripts/extract_shops.py        # извлекает scripts/shops.txt и
 
 ## Прочие генерируемые страницы (не патчи)
 
-`build_patch.py` также генерирует:
+`builders/patch.py` также генерирует:
 - **`index.html`** (`save_index_html`) — лендинг в виде игрового «инвентаря-книги»: орнаментальная панель `.inv-book` с квадратными слотами (`icons/ui/gothic/`, пак [Gothic Pixel UI](https://abyssowl.itch.io/gothic-pixel-ui)). Верхний ряд `.inv-filled` = ссылки на разделы, нижний `.inv-ph` = плейсхолдеры. Золото подогнано под бренд-слово `sikle` (`#e3c46a`). Подписи — временные плейсхолдеры (шрифт Jersey 10). Старая `.zuma-*` сетка удалена.
 - **`calendar.html`** (`save_calendar_html`) — календарь патчей + кастомный год-пикер (`.cal-year-picker`, не нативный `<select>`) + полоса-инфографика «Patch cadence» внизу (`_spark_svg`: SVG-sparkline, «красивая» 5-ступенчатая ось Y, gridlines/оси, hover-значения). Переключатель Compact живёт в шапке блока года.
-- **`terrain.html`** (`build_terrain.py`, 5-я вкладка Materials) — сравнение рельефа old→new через **шторку-слайдер** (две карты `icons/maps/map_<ver>.webp`, попиксельно совмещённые, клип через `clip-path` по `--pos`) + список Terrain Changes этого патча. Полный план и TODO — `docs/terrain.md`.
-  - **Список изменений парсится из `build_patch.py`** (никакого дублирования): `_terrain_changes_by_patch()` читает каждую секцию `plain_header("Terrain Changes")` → `{ver: [(text, TAG)]}`. Сейчас это 7.41 и 7.40 (у 7.40 свой большой ремап-список — не путать). Тег `b(...)`-строк выводится по направлению с учётом `l=True` (дешевле mana cost = BUFF, меньше capture time = BUFF).
+- **`terrain.html`** (`builders/terrain.py`, 5-я вкладка Materials) — сравнение рельефа old→new через **шторку-слайдер** (две карты `icons/maps/map_<ver>.webp`, попиксельно совмещённые, клип через `clip-path` по `--pos`) + список Terrain Changes этого патча. Полный план и TODO — `docs/terrain.md`.
+  - **Список изменений парсится из `builders/patch.py`** (никакого дублирования): `_terrain_changes_by_patch()` читает каждую секцию `plain_header("Terrain Changes")` → `{ver: [(text, TAG)]}`. Сейчас это 7.41 и 7.40 (у 7.40 свой большой ремап-список — не путать). Тег `b(...)`-строк выводится по направлению с учётом `l=True` (дешевле mana cost = BUFF, меньше capture time = BUFF).
   - **Конвенции тегов для terrain-строк:** **«demoted to a 'medium'/'small' camp» → NERF** (понижение тира лагеря = ослабление); **«Removed … tree(s)» → MISC** (удаление деревьев нейтрально, НЕ DEL); удаление вотчеров/объектов («watchers … removed») остаётся DEL; время захвата объекта (capture time) меньше → BUFF с `b(old,new,l=True)` (даёт %-бейдж).
   - **Пикер патчей** (`_picker_html`, gold-скин календарного year-picker) живёт **в заголовке списка** как версия: `[7.41 ▾] Terrain Changes` (`.terrain-list-head`). Перечисляет все патчи с изменениями рельефа; переключение (scripts.js `initTerrainPicker`) показывает соответствующую `.terrain-map-pane` + `.terrain-list-pane` по `data-patch`. Тулбара над картой больше нет.
   - **Карта-пара есть только для патчей из `_MAP_PAIRS`** (dict `патч → (old_ver, new_ver)`; сейчас `7.41`→(7.40,7.41) и `7.40`→(7.39,7.40)). `_compare_html(old_ver, new_ver, markers_svg)` строит слайдер для любой пары. **Маркеры + полная панель слоёв (Trees/Camps/10 точечных) — ПЕР-ПАТЧЕВЫЕ**: каждый патч со своим `data/terrain_diff_<ver>.json` получает тумблеры; `save_terrain_html` строит `markers_by_patch`/`counts_by_patch` (по `_load_diff(ver)`). Если у пары нет диффа → `_controls_html(layers=False)` рисует только Zoom (без мёртвых тумблеров). Общий crop-meta (`terrain_map_meta.json`) проецирует маркеры ЛЮБОГО патча одинаково (карты обрезаны ОДНИМ общим crop-box: `build_terrain_maps.py 7.39 7.40 7.41`). **scripts.js `initTerrainCompare` инициализирует ВСЕ `.terrain-compare`** (`querySelectorAll().forEach(initOneTerrainCompare)`), иначе скрытая по умолчанию вторая панель не получит рабочий слайдер. Для патчей без карты-пары — `_fallback_html` (последняя карта в блюре + «Map comparison for X isn't available yet»).
