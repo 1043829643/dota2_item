@@ -1170,7 +1170,7 @@ def fetch_datafeed(version):
     os.makedirs(os.path.join(_HERE, 'data'), exist_ok=True)
     with open(p, 'w', encoding='utf-8') as f:
         json.dump(d, f, ensure_ascii=False, indent=2)
-    print(f'Saved → {p} ({len(raw):,} bytes)')
+    print(f'Saved -> {p} ({len(raw):,} bytes)')
     return d
 
 
