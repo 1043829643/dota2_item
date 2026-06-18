@@ -33,7 +33,6 @@
 :root {
   /* -- Backgrounds -- */
   --bg-page:          #0a0e13;
-  --bg-body:          #0d1117;
   --bg-panel:         #0d1117;
   --bg-panel-2:       #11161d;
   --bg-panel-3:       #161b22;
@@ -62,15 +61,10 @@
   --line-soft:        rgba(139, 148, 158, 0.18);
   --line-bright:      rgba(238, 250, 255, 0.14);
 
-  /* -- Shadows -- */
-  --shadow-deep:      0 8px 28px rgba(0, 0, 0, 0.65);
-  --shadow-card:      0 4px 12px rgba(0, 0, 0, 0.45);
-
   /* -- Typography -- */
   --font-ui:          'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-j25:         'Jersey 25', 'Courier New', monospace;
   --font-j10:         'Jersey 10', 'Courier New', monospace;
-  --font-pixel:       'Handjet', 'Jersey 10', monospace;
 
   /* -- Z-index ladder --
      Keep every z-index in the file anchored to one of these layers.     */
@@ -82,6 +76,36 @@
   --z-nav:            100;    /* top nav bar                             */
   --z-modal:          1000;   /* modal overlays                          */
   --z-modal-top:      1100;   /* above modal (e.g. inner dropdowns)      */
+
+  /* -- Alpha overlays & tints -- */
+  --gold-95:          rgba(231, 196, 106, 0.95);
+  --gold-14:          rgba(227, 196, 106, 0.14);
+  --gold-0:           rgba(227, 196, 106, 0);
+  --blue-18:          rgba(170, 220, 240, 0.18);
+  --blue-30:          rgba(170, 220, 240, 0.30);
+  --blue-35:          rgba(170, 220, 240, 0.35);
+  --blue-40:          rgba(170, 220, 240, 0.4);
+  --blue-cold-10:     rgba(190, 225, 240, 0.10);
+  --blue-bright-85:   rgba(120, 200, 235, 0.85);
+  --muted-04:         rgba(139, 148, 158, 0.04);
+  --muted-35:         rgba(139, 148, 158, 0.35);
+  --muted-45:         rgba(139, 148, 158, 0.45);
+  --bg-deep-60:       rgba(13, 17, 23, 0.6);
+  --bg-deep-97:       rgba(13, 17, 23, 0.97);
+  --shadow-28:        rgba(0, 0, 0, 0.28);
+  --shadow-35:        rgba(0, 0, 0, 0.35);
+  --shadow-40:        rgba(0, 0, 0, 0.4);
+  --shadow-45:        rgba(0, 0, 0, 0.45);
+  --shadow-50:        rgba(0, 0, 0, 0.5);
+  --shadow-55:        rgba(0, 0, 0, 0.55);
+  --shadow-60:        rgba(0, 0, 0, 0.6);
+  --shadow-65:        rgba(0, 0, 0, 0.65);
+  --white-12:         rgba(255, 255, 255, 0.12);
+  --white-22:         rgba(255, 255, 255, 0.22);
+  --bg-warm-dark:     #3b2e1d;
+  --bg-warm-darker:   #2a2014;
+  --text-muted-blue:  #9fb0c0;
+  --text-muted-blue-2: #a8b3bd;
 }
 
 /* ==========================================================================
@@ -94,17 +118,17 @@
 html {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 148, 158, 0.45) rgba(13, 17, 23, 0.6);
+  scrollbar-color: var(--muted-45) var(--bg-deep-60);
 }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: rgba(13, 17, 23, 0.6); }
+::-webkit-scrollbar-track { background: var(--bg-deep-60); }
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 148, 158, 0.45);
+  background: var(--muted-45);
   border-radius: 5px;
-  border: 2px solid rgba(13, 17, 23, 0.6);
+  border: 2px solid var(--bg-deep-60);
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(227, 196, 106, 0.7); }
-::-webkit-scrollbar-corner { background: rgba(13, 17, 23, 0.6); }
+::-webkit-scrollbar-corner { background: var(--bg-deep-60); }
 /* …except pages that don't scroll at the page level, where the reserved gutter
    just looks like an empty gap on the right:
    - .main-page    single-screen index
@@ -299,11 +323,11 @@ nav.top-nav::before {
   height: 1px;
   pointer-events: none;
   background: linear-gradient(90deg,
-    rgba(227, 196, 106, 0) 0%,
+    var(--gold-0) 0%,
     rgba(227, 196, 106, 0.08) 20%,
     rgba(227, 196, 106, 0.12) 50%,
     rgba(227, 196, 106, 0.08) 80%,
-    rgba(227, 196, 106, 0) 100%);
+    var(--gold-0) 100%);
 }
 nav.top-nav::after {
   content: "";
@@ -314,11 +338,11 @@ nav.top-nav::after {
   height: 1px;
   pointer-events: none;
   background: linear-gradient(90deg,
-    rgba(227, 196, 106, 0) 0%,
+    var(--gold-0) 0%,
     rgba(227, 196, 106, 0.10) 12%,
-    rgba(227, 196, 106, 0.14) 50%,
+    var(--gold-14) 50%,
     rgba(227, 196, 106, 0.10) 88%,
-    rgba(227, 196, 106, 0) 100%);
+    var(--gold-0) 100%);
   opacity: 0.88;
 }
 /* Table pages (Neutral Creeps / Unit Abilities / Mana Items, all wrap their
@@ -418,13 +442,13 @@ body:has(.creeps-page) nav.top-nav {
   padding: 26px 38px 36px;
   background:
     radial-gradient(120% 90% at 50% 0%, rgba(120, 92, 48, 0.20), rgba(0, 0, 0, 0) 60%),
-    linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+    linear-gradient(180deg, var(--bg-warm-dark) 0%, var(--bg-warm-darker) 100%);
   border: 3px solid var(--gold);          /* "sikle" gold */
   border-radius: 8px;
   box-shadow:
     inset 0 0 0 2px #7a5c28,
-    inset 0 0 40px rgba(0, 0, 0, 0.45),
-    0 12px 44px rgba(0, 0, 0, 0.55);
+    inset 0 0 40px var(--shadow-45),
+    0 12px 44px var(--shadow-55);
 }
 .inv-head { text-align: center; }
 .inv-title {
@@ -1085,13 +1109,13 @@ body:has(.creeps-page) nav.top-nav {
   display: inline-block;
   width: 26px;
   height: 38px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--shadow-28);
   background-repeat: no-repeat;
   background-position: center;
   background-size: 14px 18px;
   image-rendering: pixelated;
   border-radius: 0;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 2px var(--shadow-50);
   text-decoration: none;
   cursor: pointer;
   user-select: none;
@@ -1110,7 +1134,7 @@ body:has(.creeps-page) nav.top-nav {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 18" shape-rendering="crispEdges"><g fill="%23e3c46a"><rect x="2" y="0" width="2" height="2"/><rect x="2" y="2" width="4" height="2"/><rect x="2" y="4" width="6" height="2"/><rect x="2" y="6" width="8" height="2"/><rect x="2" y="8" width="10" height="2"/><rect x="2" y="10" width="8" height="2"/><rect x="2" y="12" width="6" height="2"/><rect x="2" y="14" width="4" height="2"/><rect x="2" y="16" width="2" height="2"/></g></svg>');
 }
 .version-nav-arrow:hover {
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: var(--shadow-45);
   filter: brightness(1.2);
 }
 /* Tactile nudge: the chevron drifts a hair in the arrow's own direction
@@ -1130,8 +1154,8 @@ body:has(.creeps-page) nav.top-nav {
   align-items: flex-end;
   justify-content: center;
   gap: 1px;
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: var(--shadow-28);
+  box-shadow: inset 0 1px 2px var(--shadow-50);
   border: 1px solid transparent;
   padding: 0 12px;
   height: 38px;
@@ -1181,7 +1205,7 @@ body:has(.creeps-page) nav.top-nav {
   height: auto;
 }
 .nav-context .patch-age {
-  color: #a8b3bd;
+  color: var(--text-muted-blue-2);
   font-family: var(--font-j25);
   font-size: 13px;
   font-weight: 400;
@@ -1196,8 +1220,8 @@ body:has(.creeps-page) nav.top-nav {
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.8px;
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: var(--shadow-28);
+  box-shadow: inset 0 1px 2px var(--shadow-50);
   border: 1px solid transparent;
   padding: 0 14px;
   height: 38px;
@@ -1214,7 +1238,7 @@ body:has(.creeps-page) nav.top-nav {
     0 calc(100% - 2px), 0 2px);
 }
 .nav-context .version:hover {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--shadow-40);
 }
 /* Non-clickable version display on non-patch pages. Same look as the dropdown
    button on patch pages, but no chevron, no hover, no cursor. */
@@ -1222,7 +1246,7 @@ body:has(.creeps-page) nav.top-nav {
   cursor: default;
 }
 .nav-context .version.version-static:hover {
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--shadow-28);
 }
 .nav-context .version.version-materials {
   color: var(--text-main);
@@ -1246,7 +1270,7 @@ body:has(.creeps-page) nav.top-nav {
 }
 .nav-context .version-chev {
   font-size: 14px;
-  color: #a8b3bd;
+  color: var(--text-muted-blue-2);
   line-height: 1;
   margin-top: 2px;
   font-weight: 600;
@@ -1265,7 +1289,7 @@ body:has(.creeps-page) nav.top-nav {
   background: var(--bg-panel);
   border: 1px solid var(--line);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px var(--shadow-40);
   padding: 6px;
   display: none;
   z-index: 100;
@@ -1331,8 +1355,8 @@ body:has(.creeps-page) nav.top-nav {
   border-radius: 50%;
   border: 2px solid var(--gold);
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.10),
-    0 5px 16px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 var(--blue-cold-10),
+    0 5px 16px var(--shadow-55);
   background-repeat: no-repeat;
   background-position: center;
   image-rendering: pixelated;
@@ -1347,7 +1371,7 @@ body:has(.creeps-page) nav.top-nav {
   /* Solid pixel triangle (same chunky style as the patch-picker prev arrow). */
   background-image:
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 18" shape-rendering="crispEdges"><g fill="%23e3c46a"><rect x="10" y="0" width="2" height="2"/><rect x="8" y="2" width="4" height="2"/><rect x="6" y="4" width="6" height="2"/><rect x="4" y="6" width="8" height="2"/><rect x="2" y="8" width="10" height="2"/><rect x="4" y="10" width="8" height="2"/><rect x="6" y="12" width="6" height="2"/><rect x="8" y="14" width="4" height="2"/><rect x="10" y="16" width="2" height="2"/></g></svg>'),
-    linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+    linear-gradient(180deg, var(--bg-warm-dark) 0%, var(--bg-warm-darker) 100%);
   background-size: auto 18px, cover;
 }
 .back-to-top {
@@ -1355,7 +1379,7 @@ body:has(.creeps-page) nav.top-nav {
   /* Solid pixel triangle pointing up. */
   background-image:
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 10" shape-rendering="crispEdges"><g fill="%23e3c46a"><rect x="8" y="0" width="2" height="2"/><rect x="6" y="2" width="6" height="2"/><rect x="4" y="4" width="10" height="2"/><rect x="2" y="6" width="14" height="2"/><rect x="0" y="8" width="18" height="2"/></g></svg>'),
-    linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+    linear-gradient(180deg, var(--bg-warm-dark) 0%, var(--bg-warm-darker) 100%);
   background-size: 18px auto, cover;
 }
 .nav-back-arrow.visible,
@@ -1366,7 +1390,7 @@ body:has(.creeps-page) nav.top-nav {
   filter: brightness(1.18);
   box-shadow:
     inset 0 1px 0 rgba(190, 225, 240, 0.14),
-    0 8px 20px rgba(0, 0, 0, 0.6);
+    0 8px 20px var(--shadow-60);
 }
 
 /* ==========================================================================
@@ -1588,8 +1612,8 @@ body:has(.creeps-page) nav.top-nav {
   margin-right: -140px;
   border-color: rgba(170, 220, 240, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.10),
-    0 4px 18px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 var(--blue-cold-10),
+    0 4px 18px var(--shadow-35);
 }
 .cal-year-block.is-current .cal-year-label {
   font-size: 20px;
@@ -1608,14 +1632,14 @@ body:has(.creeps-page) nav.top-nav {
 .cal-compact-toggle.ua-upgrades-toggle {
   background:
     linear-gradient(180deg, rgba(38, 46, 56, 0.95) 0%, rgba(26, 34, 42, 0.95) 100%);
-  border: 1px solid rgba(170, 220, 240, 0.35);
+  border: 1px solid var(--blue-35);
   border-radius: 6px;
   color: var(--text-bright);
   padding: 6px 12px;
   gap: 9px;
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.10),
-    0 2px 6px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 var(--blue-cold-10),
+    0 2px 6px var(--shadow-35);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .cal-compact-toggle.ua-upgrades-toggle:hover { border-color: rgba(170, 220, 240, 0.6); }
@@ -1641,7 +1665,7 @@ body:has(.creeps-page) nav.top-nav {
   min-width: 90px;             /* symmetric slot keeps the value optically centred */
   background:
     linear-gradient(180deg, rgba(38, 46, 56, 0.95) 0%, rgba(26, 34, 42, 0.95) 100%);
-  border: 1px solid rgba(170, 220, 240, 0.35);
+  border: 1px solid var(--blue-35);
   border-radius: 6px;
   color: var(--text-bright);
   font: inherit;
@@ -1651,14 +1675,14 @@ body:has(.creeps-page) nav.top-nav {
   cursor: pointer;
   padding: 5px 11px;
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.10),
-    0 2px 6px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 var(--blue-cold-10),
+    0 2px 6px var(--shadow-35);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .cal-year-current-val { font-variant-numeric: tabular-nums; }
 .cal-year-caret {
   font-size: 10px;
-  color: #a8b3bd;
+  color: var(--text-muted-blue-2);
   line-height: 1;
   transition: transform 0.15s;
 }
@@ -1685,9 +1709,9 @@ body:has(.creeps-page) nav.top-nav {
   /* No max-height / overflow → the full year list shows without a scrollbar
      (there are only ~9–15 years). */
   background: var(--bg-panel-2);
-  border: 1px solid rgba(170, 220, 240, 0.30);
+  border: 1px solid var(--blue-30);
   border-radius: 8px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 28px var(--shadow-55);
 }
 .cal-year-menu[hidden] { display: none; }
 .cal-year-opt {
@@ -1746,8 +1770,8 @@ body:has(.creeps-page) nav.top-nav {
   border: 1px solid rgba(170, 220, 240, 0.28);
   border-radius: 6px;
   box-shadow:
-    inset 0 1px 0 rgba(190, 225, 240, 0.10),
-    0 4px 18px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 var(--blue-cold-10),
+    0 4px 18px var(--shadow-35);
 }
 @media (max-width: 1400px) {
   .cal-infographic { margin-left: 0; margin-right: 0; }
@@ -1781,7 +1805,7 @@ body:has(.creeps-page) nav.top-nav {
   background: rgba(170, 220, 240, 0.14);
 }
 .cal-ig-h {
-  font-size: 10.5px; font-weight: 600; color: #9fb0c0; text-transform: uppercase;
+  font-size: 10.5px; font-weight: 600; color: var(--text-muted-blue); text-transform: uppercase;
   letter-spacing: 0.6px; margin-bottom: 8px; text-align: center;
 }
 /* Sparkline (SVG) — smooth line + gradient area + point dots. */
@@ -1799,8 +1823,8 @@ body:has(.creeps-page) nav.top-nav {
 }
 .cal-ig-grid { stroke: rgba(170, 220, 240, 0.07); stroke-width: 1; }
 .cal-ig-grid-v { stroke: rgba(170, 220, 240, 0.045); }   /* minor vertical lines */
-.cal-ig-axis { stroke: rgba(170, 220, 240, 0.18); stroke-width: 1; }
-.cal-ig-axis.is-base { stroke: rgba(170, 220, 240, 0.30); }
+.cal-ig-axis { stroke: var(--blue-18); stroke-width: 1; }
+.cal-ig-axis.is-base { stroke: var(--blue-30); }
 .cal-ig-ytick {
   fill: var(--text-dimmer);
   font-size: 9px;
@@ -1907,7 +1931,7 @@ body:has(.creeps-page) nav.top-nav {
 .cal-patch.major .cal-day {
   color: #fff;
   font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px var(--shadow-35);
 }
 .cal-patch.major .cal-version {
   color: rgba(255, 255, 255, 0.82);
@@ -1924,7 +1948,7 @@ body:has(.creeps-page) nav.top-nav {
     /* pre-divided by the brightness(1.2) filter above so the ring renders
        as the site gold var(--gold) on screen (filter brightens box-shadows too) */
     0 0 0 2px rgba(189, 163, 88, 0.90),
-    0 2px 6px rgba(0, 0, 0, 0.4);
+    0 2px 6px var(--shadow-40);
 }
 .cal-patch.current:hover {
   z-index: 4;
@@ -1933,7 +1957,7 @@ body:has(.creeps-page) nav.top-nav {
     inset 0 1px 0 rgba(255, 235, 205, 0.50),
     /* pre-divided by brightness(1.35) — renders as var(--gold) */
     0 0 0 2.5px rgba(168, 145, 79, 1),
-    0 3px 10px rgba(0, 0, 0, 0.5);
+    0 3px 10px var(--shadow-50);
 }
 span.cal-patch {
   cursor: default;
@@ -2024,7 +2048,7 @@ table tr.cross-row > td.cross-col {
   transform: scale(1.6);
   z-index: 5;
   filter: brightness(1.25);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 8px var(--shadow-60);
 }
 .cal-full-day.has-patch.sub {
   background: rgba(110, 118, 129, 0.4);
@@ -2045,7 +2069,7 @@ table tr.cross-row > td.cross-col {
   box-shadow:
     /* pre-divided by brightness(1.2) — renders as var(--gold) */
     0 0 0 2px rgba(189, 163, 88, 0.90),
-    0 2px 8px rgba(0, 0, 0, 0.55);
+    0 2px 8px var(--shadow-55);
 }
 .cal-full-day.has-patch.current:hover {
   z-index: 6;
@@ -2053,7 +2077,7 @@ table tr.cross-row > td.cross-col {
   box-shadow:
     /* pre-divided by brightness(1.35) — renders as var(--gold) */
     0 0 0 2.5px rgba(168, 145, 79, 1),
-    0 4px 12px rgba(0, 0, 0, 0.65);
+    0 4px 12px var(--shadow-65);
 }
 
 span.cal-full-day.has-patch {
@@ -2124,7 +2148,7 @@ span.cal-full-day.has-patch {
 .toolbar-patch-info > span:first-child { padding-left: 0; }
 .toolbar-patch-info > span:last-child { padding-right: 0; }
 .toolbar-patch-info > span + span {
-  border-left: 1px solid rgba(170, 220, 240, 0.18);
+  border-left: 1px solid var(--blue-18);
 }
 .toolbar-patch-info b {
   color: var(--text-bright);
@@ -2227,7 +2251,7 @@ span.cal-full-day.has-patch {
   overflow-y: auto;
   overscroll-behavior: contain;
   z-index: 50;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 18px var(--shadow-50);
 }
 .search-results.show { display: block; }
 .search-results .result-item {
@@ -2277,7 +2301,7 @@ span.cal-full-day.has-patch {
 /* MAJOR SECTION */
 h2.section {
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, transparent 18%, transparent 82%, rgba(0, 0, 0, 0.45) 100%),
+    linear-gradient(90deg, var(--shadow-45) 0%, transparent 18%, transparent 82%, var(--shadow-45) 100%),
     linear-gradient(180deg, #b53528 0%, #4a120c 100%);
   color: #fff;
   font-family: var(--font-j25);
@@ -2290,13 +2314,13 @@ h2.section {
   letter-spacing: 1.2px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.4);
+    inset 0 -1px 0 var(--shadow-40),
+    0 2px 8px var(--shadow-40);
   text-shadow:
-    1px 1px 0 rgba(0, 0, 0, 0.55),
-    -1px 0 0 rgba(0, 0, 0, 0.35),
+    1px 1px 0 var(--shadow-55),
+    -1px 0 0 var(--shadow-35),
     0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 0 8px rgba(0, 0, 0, 0.5);
+    0 0 8px var(--shadow-50);
 }
 
 /* ENTITY (HERO/ITEM HEADER WITH ICON) */
@@ -2351,7 +2375,7 @@ h2.section {
   gap: 7px;
   padding: 5px 12px;
   border-radius: 6px;
-  background: linear-gradient(180deg, #3b2e1d, #2a2014);
+  background: linear-gradient(180deg, var(--bg-warm-dark), var(--bg-warm-darker));
   border: 1px solid var(--gold);
   color: var(--gold);
   font-size: 13px;
@@ -2424,12 +2448,12 @@ h2.section {
   height: 24px;
   padding: 0;
   border: none;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--shadow-28);
   background-repeat: no-repeat;
   background-position: center;
   background-size: 6px 10px;
   image-rendering: pixelated;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 2px var(--shadow-50);
   clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px,
     100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%,
     0 calc(100% - 2px), 0 2px);
@@ -2452,7 +2476,7 @@ h2.section {
   pointer-events: auto;
 }
 .dyn-nav-arrow:hover {
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: var(--shadow-45);
   filter: brightness(1.2);
 }
 /* Wrapper holds the rounded-rectangle pill AND the absolutely-positioned
@@ -2511,9 +2535,9 @@ h2.section {
      neighbour (later in DOM) paints over it mid-descent. */
   transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, z-index 0s linear 0.14s;
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px var(--shadow-55),
+    inset 0 1px 0 var(--white-22),
+    inset 0 -1px 0 var(--shadow-35),
     inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 /* Misc-only patch — every tag was MISC. The dimmed look is achieved by
@@ -2528,7 +2552,7 @@ h2.section {
 .dyn-cell-wrap.empty .dyn-cell {
   background: rgba(5, 6, 9, 0.92);
   box-shadow:
-    inset 0  1px 0 rgba(0, 0, 0, 0.45),
+    inset 0  1px 0 var(--shadow-45),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
   opacity: 0.9;
 }
@@ -2542,9 +2566,9 @@ h2.section {
      entity-block gradient mid-tone (~#181b25). */
   background-color: rgb(24, 27, 37);
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 0 8px rgba(255, 255, 255, 0.22);
+    0 2px 4px var(--shadow-60),
+    inset 0 0 0 1px var(--white-12),
+    0 0 8px var(--white-22);
   /* 6 — strictly ABOVE a just-left neighbour, which keeps its hover z (5,
      via the delayed z-index revert) for 0.14s while it shrinks back.
      Without this, the descending cell paints OVER the newly hovered one. */
@@ -2556,9 +2580,9 @@ h2.section {
    wins for the current cell. */
 .dyn-cell-wrap.current:hover .dyn-cell {
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 0 8px rgba(255, 255, 255, 0.22),
+    0 2px 4px var(--shadow-60),
+    inset 0 0 0 1px var(--white-12),
+    0 0 8px var(--white-22),
     0 0 0 1.5px rgba(227, 196, 106, 0.95),
     0 0 0 2.5px rgba(0, 0, 0, 0.85);
 }
@@ -2573,7 +2597,7 @@ h2.section {
      covers the inner 1.5px of the wider 2.5px black layer and leaves
      1px of black exposed as the outermost ring. */
   box-shadow:
-    0 1px 1.5px rgba(0, 0, 0, 0.5),
+    0 1px 1.5px var(--shadow-50),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06),
     0 0 0 1.5px rgba(227, 196, 106, 0.95),
     0 0 0 2.5px rgba(0, 0, 0, 0.85);
@@ -2590,16 +2614,16 @@ h2.section {
   position: fixed;
   left: 0;
   top: 0;
-  background: rgba(13, 17, 23, 0.97);
+  background: var(--bg-deep-97);
   color: var(--text-main);
   padding: 8px 10px;
-  border: 1px solid rgba(139, 148, 158, 0.35);
+  border: 1px solid var(--muted-35);
   border-radius: 6px;
   pointer-events: none;
   z-index: 1000;
   text-align: left;
   line-height: 1.3;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 18px var(--shadow-45);
   display: none;
   flex-direction: column;
   gap: 6px;
@@ -2678,7 +2702,7 @@ ul.changes li.ability-row-solo,
 ul.changes li.ability-row-start,
 ul.changes li.ability-row-cont,
 ul.changes li.ability-row-end {
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border-left:  1px solid var(--line-soft);
   border-right: 1px solid var(--line-soft);
 }
@@ -2742,7 +2766,7 @@ ul.changes li.ability-row-end {
   gap: 12px;
   margin: 6px 0 4px;
   padding: 8px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
@@ -2803,7 +2827,7 @@ ul.changes li.ability-row-end {
   gap: 0;
   margin: 8px 0 10px;
   padding: 8px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
@@ -2847,7 +2871,7 @@ ul.changes li.ability-row-end {
   width: 10px;
   height: 10px;
   object-fit: contain;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 1px 1px var(--shadow-55));
 }
 .enchant-attr-name { letter-spacing: 0.2px; }
 .enchant-attr-name.is-str { color: #e73c06; }
@@ -2876,7 +2900,7 @@ ul.changes li.ability-row-end {
   cursor: help;
 }
 .enchant-chip:hover {
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--shadow-35);
   border-color: rgba(139, 148, 158, 0.4);
 }
 .enchant-chip img {
@@ -2884,7 +2908,7 @@ ul.changes li.ability-row-end {
   height: 22px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px var(--shadow-40);
   flex-shrink: 0;
 }
 /* Tooltip — appears above the chip on hover. Multi-line via pre-line. */
@@ -2895,12 +2919,12 @@ ul.changes li.ability-row-end {
   left: 50%;
   transform: translateX(-50%);
   white-space: pre-line;
-  background: rgba(13, 17, 23, 0.97);
+  background: var(--bg-deep-97);
   color: var(--text-main);
   font-size: 12px;
   font-weight: 400;
   padding: 7px 11px;
-  border: 1px solid rgba(139, 148, 158, 0.35);
+  border: 1px solid var(--muted-35);
   border-radius: 6px;
   opacity: 0;
   pointer-events: none;
@@ -2911,7 +2935,7 @@ ul.changes li.ability-row-end {
   line-height: 1.45;
   letter-spacing: 0.1px;
   transition: opacity 0.12s 0.05s;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 18px var(--shadow-45);
 }
 .enchant-chip[data-tooltip]:hover::after {
   opacity: 1;
@@ -2999,7 +3023,7 @@ ul.changes li.ability-row-end {
   text-wrap: pretty;
   /* No slide — the popup just appears on hover/focus (no transform anim). */
   transition: none;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 18px var(--shadow-45);
 }
 /* Hover/focus handled by JS body-level popup — suppress CSS-driven version. */
 .info-tip:hover .info-pop,
@@ -3030,7 +3054,7 @@ ul.changes li.ability-row-end {
   line-height: 1.55;
   letter-spacing: 0.1px;
   text-wrap: pretty;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 18px var(--shadow-45);
 }
 .info-pop-body.is-visible { display: block; }
 .info-pop-h {
@@ -3074,7 +3098,7 @@ ul.changes li.ability-row-end {
 .provides-box {
   margin: 4px 0;
   padding: 6px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
   color: var(--text-main);
@@ -3089,7 +3113,7 @@ ul.changes li.ability-row-end {
   gap: 8px;
   margin: 6px 0 4px;
   padding: 8px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
@@ -3203,7 +3227,7 @@ ul.changes li.ability-row-end {
   flex-direction: column;
   gap: 8px;
   padding: 10px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
   min-width: 0;
@@ -3231,7 +3255,7 @@ ul.changes li.ability-row-end {
   height: 100%;
   border-radius: 4px;
   object-fit: cover;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1px var(--shadow-50);
   display: block;
 }
 /* Innate marker — matches `.ability-block > .ability-icon-wrap > .innate-marker`
@@ -3399,7 +3423,7 @@ ul.changes li.ability-row-end {
      as an underlay when the old ability had no real icon) still render as
      a proper square with border instead of looking see-through. */
   background: #0e1116;
-  box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px var(--shadow-40);
   display: block;
   transition: transform 0.32s cubic-bezier(0.42, 0, 0.16, 1.1),
               opacity 0.22s ease,
@@ -3585,7 +3609,7 @@ ul.changes li.ability-row-end {
   row-gap: 4px;
   align-items: center;
   padding: 8px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
@@ -3641,7 +3665,7 @@ ul.changes li.ability-row-end {
   flex-wrap: wrap;
   gap: 7px;
   padding: 8px 10px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
@@ -3686,18 +3710,18 @@ ul.changes li.ability-row-end {
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  background: rgba(13, 17, 23, 0.97);
+  background: var(--bg-deep-97);
   color: var(--text-main);
   font-size: 12px;
   font-weight: 400;
   padding: 6px 10px;
-  border: 1px solid rgba(139, 148, 158, 0.35);
+  border: 1px solid var(--muted-35);
   border-radius: 6px;
   opacity: 0;
   pointer-events: none;
   z-index: 100;
   transition: opacity 0.12s 0.05s;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 18px var(--shadow-45);
 }
 .ao-icon[data-tooltip]:hover::after {
   opacity: 1;
@@ -3752,7 +3776,7 @@ h4.subgroup {
   height: 48px;
   border-radius: 6px;
   object-fit: cover;
-  box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px var(--shadow-40);
 }
 /* Facet block — same 48px geometry as ability(), but the icon-wrap renders
    the facet's gradient color + the generic facet icon (extracted from
@@ -3765,7 +3789,7 @@ h4.subgroup {
   border-radius: 6px;
   background-size: cover;
   background-repeat: no-repeat;
-  box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(210, 168, 255, 0.18), 0 2px 6px var(--shadow-40);
   position: relative;
   display: flex;
   align-items: center;
@@ -3775,7 +3799,7 @@ h4.subgroup {
   width: 36px;
   height: 36px;
   object-fit: contain;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 1px 1px var(--shadow-55));
   opacity: 0.95;
 }
 /* Innate-icon overlay: bottom-center of the ability icon */
@@ -3815,13 +3839,13 @@ h4.subgroup {
 .ability-block.talents-block > .ability-icon-wrap > .ability-icon-img {
   background: rgba(121, 192, 255, 0.05);
   padding: 6px;
-  box-shadow: 0 0 0 1px rgba(121, 192, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(121, 192, 255, 0.18), 0 2px 6px var(--shadow-40);
 }
 /* Other-block: neutral grey framing for the inline-SVG sliders icon */
 .ability-block.other-block > .ability-icon-wrap > .ability-icon-img {
   background: rgba(139, 148, 158, 0.05);
   padding: 6px;
-  box-shadow: 0 0 0 1px var(--line-soft), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px var(--line-soft), 0 2px 6px var(--shadow-40);
 }
 /* Formula tables INSIDE .ability-block — extend back to entity-block left edge,
    not just within content column (else they look right-aligned past the icon). */
@@ -4166,7 +4190,7 @@ ul.subnote-items > li::before {
 .formula-input {
   width: 150px;
   padding: 4px 9px;
-  background: rgba(13, 17, 23, 0.6);
+  background: var(--bg-deep-60);
   border: 1px solid rgba(120, 140, 170, 0.30);
   border-radius: 5px;
   color: var(--text-bright);
@@ -4192,7 +4216,7 @@ ul.subnote-items > li::before {
   gap: 12px;
   min-width: 0;
   padding: 12px 14px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
@@ -4252,7 +4276,7 @@ ul.subnote-items > li::before {
   padding: 10px 12px;
   border: 1px solid var(--line-soft);
   border-radius: 6px;
-  background: rgba(139, 148, 158, 0.04);
+  background: var(--muted-04);
 }
 /* Arrow between the Old and New blocks — same glyph/style as .ability-change-arrow. */
 .cm-arrow {
@@ -4403,7 +4427,7 @@ ul.subnote-items > li::before {
   min-width: 0;
   text-align: right;
   color: #ffffff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 1px var(--shadow-60);
   /* Transparent 1px border keeps total height (19px) matching the
      adjacent tag-badges which carry their own 1px colored border.
      `background-origin: border-box` makes the gradient span the FULL
@@ -4414,7 +4438,7 @@ ul.subnote-items > li::before {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background-origin: border-box;
   background-repeat: no-repeat;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 1px var(--shadow-35);
   margin-right: 4px;
   box-sizing: border-box;
   /* Nudge up to share horizontal line of tag-badges. row-text inline
@@ -4529,7 +4553,7 @@ ul.changes li > .badge-group {
 .badge.buff6, .badge.buff7, .badge.buff8, .badge.buff9, .badge.buff10,
 .badge.nerf1, .badge.nerf2, .badge.nerf3, .badge.nerf4, .badge.nerf5,
 .badge.nerf6, .badge.nerf7, .badge.nerf8, .badge.nerf9, .badge.nerf10 {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 2px var(--shadow-55);
 }
 
 /* Text-tag versions of BUFF/NERF (used by t() for non-numeric changes; pick mid tier) */
@@ -4669,7 +4693,7 @@ ul.changes li.aghanim-shard {
 }
 /* OLD FORMULA — just a subtle dotted underline so it stands out as "the old one" */
 .formula-old {
-  text-decoration: underline dotted rgba(139, 148, 158, 0.45);
+  text-decoration: underline dotted var(--muted-45);
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
@@ -4814,7 +4838,7 @@ body.cat-filter-active .cat-hide { display: none !important; }
   outline: 2px solid currentColor;
   outline-offset: 2px;
   filter: brightness(1.35);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+  box-shadow: 0 0 0 1px var(--shadow-40) inset;
 }
 
 /* ENTITY-BLOCK wrapper (used for filtering hide/show). NOTE: we tried
@@ -4921,22 +4945,22 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
      scroll line is then invisible. Custom thin scrollbar keeps the line
      visible everywhere and matches the site's dark theme. */
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 148, 158, 0.45) rgba(13, 17, 23, 0.6);
+  scrollbar-color: var(--muted-45) var(--bg-deep-60);
 }
 .creeps-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
 .creeps-scroll::-webkit-scrollbar-track {
-  background: rgba(13, 17, 23, 0.6);
+  background: var(--bg-deep-60);
 }
 .creeps-scroll::-webkit-scrollbar-thumb {
-  background: rgba(139, 148, 158, 0.45);
+  background: var(--muted-45);
   border-radius: 5px;
-  border: 2px solid rgba(13, 17, 23, 0.6);
+  border: 2px solid var(--bg-deep-60);
 }
 .creeps-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(227, 196, 106, 0.7);
 }
 .creeps-scroll::-webkit-scrollbar-corner {
-  background: rgba(13, 17, 23, 0.6);
+  background: var(--bg-deep-60);
 }
 .creeps-table {
   /* width:max-content + min-width:100% = stretch evenly to fill the container
@@ -4973,7 +4997,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-weight: 600;
   color: var(--blue);
   background: rgba(170, 220, 240, 0.05);
-  border-right: 1px solid rgba(170, 220, 240, 0.18);
+  border-right: 1px solid var(--blue-18);
 }
 /* Identity columns (Ур. / icon / Юнит) pinned to the left on horizontal
    scroll. scripts.js sets per-cell `left`; we provide position:sticky +
@@ -5019,11 +5043,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
                             hover-zoomed icon (z-index: 9) */
 }
 .sticky-frame {
-  border-left: 2px solid rgba(120, 200, 235, 0.85);
+  border-left: 2px solid var(--blue-bright-85);
   box-shadow: 6px 0 12px -2px rgba(0, 0, 0, 0.7);
 }
 .sticky-frame-top {
-  border-top: 2px solid rgba(120, 200, 235, 0.85);
+  border-top: 2px solid var(--blue-bright-85);
   box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.7);
 }
 .sticky-frame.visible, .sticky-frame-top.visible { display: block; }
@@ -5107,19 +5131,19 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   align-items: center;
   border: 1px solid transparent;
   border-radius: 0;
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: var(--shadow-28);
+  box-shadow: inset 0 1px 2px var(--shadow-50);
   clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px,
     100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%,
     0 calc(100% - 2px), 0 2px);
   transition: background 0.15s ease, color 0.15s ease;
 }
 .nav-tab:hover {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--shadow-40);
   color: #ffffff;
 }
 .nav-tab.active {
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--shadow-45);
   color: var(--gold);
   text-shadow:
     0 0 10px var(--gold-line),
@@ -5130,7 +5154,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    main header on a thin bar (so the header itself stays compact). */
 .materials-subnav {
   background: var(--bg-panel-2);
-  border-bottom: 1px solid rgba(170, 220, 240, 0.18);
+  border-bottom: 1px solid var(--blue-18);
   width: 100%;
 }
 .materials-subnav-inner {
@@ -5161,7 +5185,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .nav-subtab {
   font-size: 13px;
   font-weight: 600;
-  color: #9fb0c0;
+  color: var(--text-muted-blue);
   text-decoration: none;
   padding: 7px 16px;
   border: 1px solid transparent;
@@ -5177,7 +5201,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .nav-subtab.active {
   color: var(--gold);
   background: var(--bg-page);          /* matches the page background → tab merges into page */
-  border-color: rgba(170, 220, 240, 0.18);
+  border-color: var(--blue-18);
 }
 .nav-subtab-label { color: inherit; }
 /* ---- Grouped sub-nav dropdowns (Creeps ▾ / Items ▾ / Heroes ▾) ---- */
@@ -5199,7 +5223,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   /* Above the submenu's own stacking context; the bar is lifted so this paints
      over the table, sticky header and dynamics cells. */
   z-index: 125;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 22px var(--shadow-55);
   opacity: 0;
   visibility: hidden;
   transform: translateY(5px);
@@ -5220,7 +5244,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .nav-subitem {
   font-size: 12.5px;
   font-weight: 600;
-  color: #9fb0c0;
+  color: var(--text-muted-blue);
   text-decoration: none;
   padding: 7px 12px;
   border-radius: 5px;
@@ -5330,13 +5354,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   display: none;
   white-space: nowrap;
   background: var(--bg-panel);
-  border: 1px solid rgba(170, 220, 240, 0.4);
+  border: 1px solid var(--blue-40);
   border-radius: 6px;
   padding: 5px 9px;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--text-bright);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 22px var(--shadow-55);
   pointer-events: none;
 }
 .lvl-popover.show { display: block; }
@@ -5346,7 +5370,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    col-row + every body cell). */
 .unit-abilities-table th.cat-edge,
 .unit-abilities-table td.cat-edge {
-  border-left: 2px solid rgba(170, 220, 240, 0.30);
+  border-left: 2px solid var(--blue-30);
 }
 /* "Only Auras" view filter — hide non-aura rows + irrelevant columns. The
    super-category header STAYS in Auras view (scripts.js reorders columns into
@@ -5414,7 +5438,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .unit-abilities-table td.ua-effect2,
 .unit-abilities-table td.ua-effect3,
 .unit-abilities-table td.ua-as_effect,
-.unit-abilities-table td.ua-ms_effect { white-space: nowrap; color: #9fb0c0; }
+.unit-abilities-table td.ua-ms_effect { white-space: nowrap; color: var(--text-muted-blue); }
 /* Damage cell allows wrapping for long compound expressions (e.g. Mana Burn:
    "20/25/30/35 + 200/250/350/400% Int"). */
 .unit-abilities-table td.ua-damage { white-space: normal; }
@@ -5493,7 +5517,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border-radius: 5px;
   font-size: 11px;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 12px var(--shadow-45);
   white-space: normal;
   text-align: center;
 }
@@ -5537,8 +5561,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   width: 16px;
   height: 18px;
   vertical-align: middle;
-  -webkit-mask: linear-gradient(to top, #000 70%, rgba(0, 0, 0, 0.55) 100%);
-          mask: linear-gradient(to top, #000 70%, rgba(0, 0, 0, 0.55) 100%);
+  -webkit-mask: linear-gradient(to top, #000 70%, var(--shadow-55) 100%);
+          mask: linear-gradient(to top, #000 70%, var(--shadow-55) 100%);
 }
 .unit-abilities-table .ua-stack-yes::before,
 .unit-abilities-table .ua-stack-yes::after,
@@ -5594,7 +5618,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border-radius: 4px;
   display: inline-block;
   vertical-align: middle;
-  border: 1px solid rgba(170, 220, 240, 0.18);
+  border: 1px solid var(--blue-18);
   transform-origin: center center;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -5607,8 +5631,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   z-index: 30;            /* above the sticky header (z 5/6) and neighbours */
   background: #0e1217;    /* opaque so underlying text doesn't show through */
   box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(170, 220, 240, 0.4);
+    0 3px 8px var(--shadow-60),
+    0 0 0 1px var(--blue-40);
 }
 /* Autocast marker — animated golden ring + pulsing glow around the ability
    icon, mirroring the in-game autocast toggle. The wrapper is needed because
@@ -5771,7 +5795,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9fb0c0;
+  color: var(--text-muted-blue);
   font-weight: 700;
   /* Same colour as the column-name row below (base thead th = var(--bg-panel-3)). A
      single uniform header colour means there's NO colour boundary between the
@@ -5803,8 +5827,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
         kills the band where body content showed through, regardless of how
         --cat-row-h rounds. */
   box-shadow:
-    inset 0 -2px 0 rgba(120, 200, 235, 0.85),
-    0 4px 10px rgba(0, 0, 0, 0.45),
+    inset 0 -2px 0 var(--blue-bright-85),
+    0 4px 10px var(--shadow-45),
     0 -14px 0 0 var(--bg-panel-3);
 }
 .creeps-table thead tr.cat-row .cat-head + .cat-head { border-left: 2px solid rgba(170, 220, 240, 0.22); }
@@ -5859,7 +5883,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   /* RULE (all tables): a vertical divider after the frozen identity column(s).
      2px col-sep line at rest; the .sticky-frame overlay continues it during
      horizontal scroll (Chrome drops borders on sticky cells mid-scroll). */
-  border-right: 2px solid rgba(170, 220, 240, 0.30);
+  border-right: 2px solid var(--blue-30);
 }
 /* The identity-column HEADER ("Hero" / "Item") is centred; the body cells stay
    left-aligned (icon + name). */
@@ -5883,7 +5907,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hd-hero-inner { display: inline-flex; align-items: center; gap: 22px; line-height: 1; }
 .hd-hero-inner img {
   width: 40px; height: 23px; object-fit: cover; border-radius: 3px;
-  border: 1px solid rgba(170, 220, 240, 0.18); flex: 0 0 auto;
+  border: 1px solid var(--blue-18); flex: 0 0 auto;
   /* Anchor the zoom at the LEFT edge so it grows rightward only — never past the
      box's left edge (which would clip it behind the frozen-column boundary). */
   transform-origin: left center;
@@ -5902,7 +5926,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   /* 1.5× from the left edge → grows 20px right, clearing the 22px gap so it
      stops short of the name; z-index lifts it ABOVE the name text. */
   transform: scale(1.5); position: relative; z-index: 41;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(170, 220, 240, 0.4);
+  box-shadow: 0 3px 8px var(--shadow-60), 0 0 0 1px var(--blue-40);
 }
 /* ==========================================================================
    07. TABLES SHARED
@@ -5962,7 +5986,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   gap: 6px;
   height: 28px;
   padding: 0 8px 0 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--white-12);
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.035);
   color: var(--text-main);
@@ -5978,7 +6002,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   width: 30px;
   height: 28px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--white-12);
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.035);
   cursor: pointer;
@@ -5996,13 +6020,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hs-attack-filter.active,
 .hs-attack-filter[aria-pressed="true"] {
   border-color: rgba(227, 196, 106, 0.82);
-  background: rgba(227, 196, 106, 0.14);
+  background: var(--gold-14);
   box-shadow: inset 0 0 0 1px rgba(227, 196, 106, 0.12);
 }
 .hs-attr-filter.active,
 .hs-attr-filter[aria-pressed="true"] {
   border-color: rgba(227, 196, 106, 0.82);
-  background: rgba(227, 196, 106, 0.14);
+  background: var(--gold-14);
   box-shadow: inset 0 0 0 1px rgba(227, 196, 106, 0.12);
 }
 .hs-attack-filter .atk-badge {
@@ -6054,7 +6078,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border: 1px solid rgba(122, 111, 88, 0.55);
   box-shadow:
     inset 0 1px 0 rgba(255, 242, 200, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 var(--shadow-45),
     0 8px 18px rgba(0, 0, 0, 0.3);
   border-radius: 6px;
   padding: 16px;
@@ -6102,7 +6126,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   object-position: center;
   border-radius: 4px;
   display: block;
-  border: 1px solid rgba(170, 220, 240, 0.18);
+  border: 1px solid var(--blue-18);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
   background: #0e1115;
 }
@@ -6370,7 +6394,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   height: 26px;
   border-radius: 3px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--shadow-55);
   background: #040608;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
@@ -6410,7 +6434,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   opacity: 0.24;
   background:
     radial-gradient(34px 70px at 0% 50%, rgba(255, 255, 255, 0.26), transparent 72%),
-    radial-gradient(42px 80px at 100% 50%, rgba(255, 255, 255, 0.22), transparent 72%);
+    radial-gradient(42px 80px at 100% 50%, var(--white-22), transparent 72%);
   animation: hl-bar-edge-flow 5.8s ease-in-out infinite alternate;
 }
 .hl-bar-hp .hl-bar-fill::before,
@@ -6845,7 +6869,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hd-tag:hover { filter: brightness(1.18); transform: translateY(-1px); }
 .hd-tag.removed {
   filter: grayscale(1) brightness(0.62); opacity: 0.5; transform: translateY(1px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 2px 4px var(--shadow-55);
 }
 /* Multi-select dropdown (items_dyn Type / Category): the button is FLAT inside the
    panel — no own box/border, just text + caret like the switches, so every control
@@ -6872,7 +6896,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: fixed; z-index: 1000;
   min-width: 150px; white-space: nowrap; max-height: 70vh; overflow: auto;
   background: var(--bg-panel); border: 1px solid var(--line); border-radius: 6px;
-  padding: 5px; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  padding: 5px; box-shadow: 0 6px 22px var(--shadow-50);
   display: flex; flex-direction: column; gap: 1px;
 }
 .hd-dd-menu[hidden] { display: none; }
@@ -6934,7 +6958,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    through the super-category row. (Beats the shared .cat-head:first-child 0.22
    rule via the extra .heroes-dyn-table class + later source order.) */
 .creeps-table.heroes-dyn-table thead tr.cat-row th.hd-hero-cat {
-  border-right: 2px solid rgba(170, 220, 240, 0.30);
+  border-right: 2px solid var(--blue-30);
 }
 /* Cell holding one dyn-cell pill (or the empty-diamond pseudo). */
 .heroes-dyn-table td.hd-cell {
@@ -7029,10 +7053,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   /* Depth treatment — the bare crops read as flat rectangles otherwise.
      A 1px cool rim + soft drop shadow + inner top highlight give the
      portrait a "card" dimensionality matching the dark-glass nav. */
-  border: 1px solid rgba(170, 220, 240, 0.18);
+  border: 1px solid var(--blue-18);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 1px 3px var(--shadow-45),
+    inset 0 1px 0 var(--white-12);
   /* Scale symmetrically about the exact center so the zoomed portrait
      stays vertically aligned with the unit name beside it. */
   transform-origin: center center;
@@ -7044,9 +7068,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   z-index: 30;            /* above sticky header + neighbours */
   background: #0e1217;    /* opaque under the portrait */
   box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.6),
+    0 3px 8px var(--shadow-60),
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 0 0 1px rgba(170, 220, 240, 0.4);
+    0 0 0 1px var(--blue-40);
 }
 /* Last row: grow the zoom UPWARD so the enlarged portrait isn't clipped by the
    scroll box / hidden under the horizontal scrollbar at the bottom edge.
@@ -7063,7 +7087,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    (always a Standard column, so it shows in both views). */
 .creeps-table th.col-sep,
 .creeps-table td.col-sep {
-  border-left: 2px solid rgba(170, 220, 240, 0.30);
+  border-left: 2px solid var(--blue-30);
 }
 /* Sortable headers — click to sort. The ▾ indicator brightens to ▲/▼ on
    the active column. */
@@ -7146,10 +7170,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   display: none;
   min-width: 180px;
   padding: 7px 11px;
-  background: rgba(13, 17, 23, 0.97);
-  border: 1px solid rgba(170, 220, 240, 0.35);
+  background: var(--bg-deep-97);
+  border: 1px solid var(--blue-35);
   border-radius: 6px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 18px var(--shadow-50);
   font-size: 11.5px;
   color: var(--text-main);
   text-align: center;
@@ -7170,7 +7194,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .stat-hist-tip .stat-net {
   padding: 1px 0 6px;
   margin-bottom: 5px;
-  border-bottom: 1px solid rgba(170, 220, 240, 0.30);
+  border-bottom: 1px solid var(--blue-30);
   font-weight: 600;
   white-space: nowrap;
   text-align: center;
@@ -7257,9 +7281,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-weight: 600;
   color: var(--text-bright);
   background: rgba(13, 17, 23, 0.92);
-  border: 1px solid rgba(170, 220, 240, 0.35);
+  border: 1px solid var(--blue-35);
   border-radius: 5px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px var(--shadow-50);
   opacity: 0;
   transition: opacity 0.18s ease, transform 0.35s ease;
 }
@@ -7278,7 +7302,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-weight: 600;
   text-align: center;
   padding: 6px 6px;
-  border-bottom: 1px solid rgba(139, 148, 158, 0.35);
+  border-bottom: 1px solid var(--muted-35);
   white-space: nowrap;
   line-height: 1.2;
 }
@@ -7321,22 +7345,22 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    (clicking another row moves the mark). */
 .creeps-table tbody tr.row-marked > td {
   box-shadow:
-    inset 0  2px 0 rgba(231, 196, 106, 0.95),
-    inset 0 -2px 0 rgba(231, 196, 106, 0.95);
+    inset 0  2px 0 var(--gold-95),
+    inset 0 -2px 0 var(--gold-95);
   background-image: linear-gradient(rgba(231, 196, 106, 0.12),
                                     rgba(231, 196, 106, 0.12));
 }
 .creeps-table tbody tr.row-marked > td:first-child {
   box-shadow:
-    inset  2px  0  0 rgba(231, 196, 106, 0.95),
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
+    inset  2px  0  0 var(--gold-95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95);
 }
 .creeps-table tbody tr.row-marked > td:last-child {
   box-shadow:
-    inset -2px  0  0 rgba(231, 196, 106, 0.95),
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
+    inset -2px  0  0 var(--gold-95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95);
 }
 /* Sticky identity cells inside a marked row pick up the same tint without
    the inset frame (the frame would double-paint through the sticky cell). */
@@ -7351,22 +7375,22 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    the LAST shadow (painted beneath the earlier gold frame lines). */
 .creeps-table tbody tr.row-marked > td.sticky-col {
   box-shadow:
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95),
     inset  0    0   0 9999px var(--sticky-bg);
 }
 .creeps-table tbody tr.row-marked > td.sticky-col:first-child {
   box-shadow:
-    inset  2px  0  0 rgba(231, 196, 106, 0.95),
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95),
+    inset  2px  0  0 var(--gold-95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95),
     inset  0    0   0 9999px var(--sticky-bg);
 }
 .creeps-table tbody tr.row-marked > td.sticky-col:last-child {
   box-shadow:
-    inset -2px  0  0 rgba(231, 196, 106, 0.95),
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95),
+    inset -2px  0  0 var(--gold-95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95),
     inset  0    0   0 9999px var(--sticky-bg);
 }
 /* Legacy .row-flash class (one-shot fade) is no longer applied by JS but
@@ -7468,8 +7492,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
      Chrome drops collapsed borders on sticky cells mid-scroll (the line
      vanished). An inset box-shadow repaints reliably while stuck. */
   box-shadow:
-    inset 0 -2px 0 rgba(120, 200, 235, 0.85),
-    0 4px 10px rgba(0, 0, 0, 0.45);
+    inset 0 -2px 0 var(--blue-bright-85),
+    0 4px 10px var(--shadow-45);
   cursor: pointer;
   user-select: none;
   position: sticky;
@@ -7571,7 +7595,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   object-fit: cover;
   border-radius: 3px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(170, 220, 240, 0.18);
+  box-shadow: 0 0 0 1px var(--blue-18);
   transform-origin: center center;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -7583,8 +7607,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: relative;
   z-index: 30;
   box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(170, 220, 240, 0.4);
+    0 3px 8px var(--shadow-60),
+    0 0 0 1px var(--blue-40);
 }
 .mr-ico-blank {
   background: rgba(110, 118, 129, 0.15);
@@ -7595,7 +7619,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* "Hide Active" toolbar toggle uses the existing ua-upgrades-toggle pill
    styling; rows tagged .mr-active-row collapse via display: none. */
 .mr-table tbody tr.mr-active-row.mr-hide-active { display: none; }
-.mr-active-row .mr-name-text { color: #a8b3bd; font-style: italic; }
+.mr-active-row .mr-name-text { color: var(--text-muted-blue-2); font-style: italic; }
 
 /* Price range combo — one bordered container holds both inputs + the
    clear-X so they read as a single control. Inputs are borderless inside
@@ -7655,22 +7679,22 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    together they form one continuous gold frame around the row. */
 .mr-table tbody tr.mr-row-selected > td {
   box-shadow:
-    inset 0  2px 0 rgba(231, 196, 106, 0.95),
-    inset 0 -2px 0 rgba(231, 196, 106, 0.95);
+    inset 0  2px 0 var(--gold-95),
+    inset 0 -2px 0 var(--gold-95);
   background-image: linear-gradient(rgba(231, 196, 106, 0.10),
                                     rgba(231, 196, 106, 0.10));
 }
 .mr-table tbody tr.mr-row-selected > td:first-child {
   box-shadow:
-    inset  2px  0  0 rgba(231, 196, 106, 0.95),
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
+    inset  2px  0  0 var(--gold-95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95);
 }
 .mr-table tbody tr.mr-row-selected > td:last-child {
   box-shadow:
-    inset -2px  0  0 rgba(231, 196, 106, 0.95),
-    inset  0    2px 0 rgba(231, 196, 106, 0.95),
-    inset  0   -2px 0 rgba(231, 196, 106, 0.95);
+    inset -2px  0  0 var(--gold-95),
+    inset  0    2px 0 var(--gold-95),
+    inset  0   -2px 0 var(--gold-95);
 }
 .mr-table tbody tr.mr-row-selected .mr-name-text { color: #fff8e0; }
 
@@ -7696,7 +7720,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9fb0c0;
+  color: var(--text-muted-blue);
   font-weight: 700;
   background: var(--bg-panel-3);
   padding: 3px 4px;
@@ -7709,8 +7733,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   z-index: 50;
   border-bottom: none;
   box-shadow:
-    inset 0 -2px 0 rgba(120, 200, 235, 0.85),
-    0 4px 10px rgba(0, 0, 0, 0.45),
+    inset 0 -2px 0 var(--blue-bright-85),
+    0 4px 10px var(--shadow-45),
     0 -14px 0 0 var(--bg-panel-3);
 }
 .mr-table.hs-table thead tr.cat-row .cat-head + .cat-head {
@@ -7718,7 +7742,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .mr-table.hs-table th.col-sep,
 .mr-table.hs-table td.col-sep {
-  border-left: 2px solid rgba(170, 220, 240, 0.30);
+  border-left: 2px solid var(--blue-30);
 }
 .mr-table.hs-table thead th .th-sub {
   display: inline-block;
@@ -7784,9 +7808,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .mr-table.hs-table tbody tr.mr-row-selected td.hs-name {
   box-shadow: none;
   background:
-    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) left   / 2px 100% no-repeat,
-    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) top    / 100% 2px no-repeat,
-    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) bottom / 100% 2px no-repeat,
+    linear-gradient(var(--gold-95), var(--gold-95)) left   / 2px 100% no-repeat,
+    linear-gradient(var(--gold-95), var(--gold-95)) top    / 100% 2px no-repeat,
+    linear-gradient(var(--gold-95), var(--gold-95)) bottom / 100% 2px no-repeat,
     linear-gradient(rgba(231, 196, 106, 0.12), rgba(231, 196, 106, 0.12)),
     var(--bg-panel-2);
   /* MUST come AFTER the `background` shorthand (which resets origin to its
@@ -7798,9 +7822,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .mr-table.hs-table tbody tr.mr-row-selected:hover td.hs-name {
   background:
-    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) left   / 2px 100% no-repeat,
-    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) top    / 100% 2px no-repeat,
-    linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) bottom / 100% 2px no-repeat,
+    linear-gradient(var(--gold-95), var(--gold-95)) left   / 2px 100% no-repeat,
+    linear-gradient(var(--gold-95), var(--gold-95)) top    / 100% 2px no-repeat,
+    linear-gradient(var(--gold-95), var(--gold-95)) bottom / 100% 2px no-repeat,
     linear-gradient(rgba(231, 196, 106, 0.16), rgba(231, 196, 106, 0.16)),
     #1a212b;
   background-origin: border-box;
@@ -7888,7 +7912,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   background: #11140f;
   box-shadow:
     inset 0 1px 0 rgba(190, 225, 240, 0.08),
-    0 6px 22px rgba(0, 0, 0, 0.5);
+    0 6px 22px var(--shadow-50);
   cursor: grab;
   touch-action: none;          /* JS owns the pointer drag — no scroll hijack */
   user-select: none;
@@ -7941,7 +7965,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   width: 2px;
   transform: translateX(-50%);
   background: var(--gold);
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 0 6px var(--shadow-65);
 }
 .tc-grip {
   position: relative;
@@ -7949,10 +7973,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   height: 38px;
   border-radius: 50%;
   border: 2px solid var(--gold);
-  background: linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+  background: linear-gradient(180deg, var(--bg-warm-dark) 0%, var(--bg-warm-darker) 100%);
   box-shadow:
     inset 0 1px 0 rgba(190, 225, 240, 0.12),
-    0 4px 12px rgba(0, 0, 0, 0.55);
+    0 4px 12px var(--shadow-55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8099,7 +8123,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-size: 13px;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 0 var(--shadow-40);
   transition: filter 0.12s ease, background 0.12s ease;
 }
 /* icon-only square buttons (the layer toggles) */
@@ -8126,7 +8150,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   background: rgba(28, 28, 28, 0.66);
   border-color: rgba(120, 120, 120, 0.5);
   color: #9aa0a6;
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 2px 3px var(--shadow-55);
 }
 .tc-btn[aria-pressed="false"] img { filter: grayscale(0.85) brightness(0.85); }
 .tc-inline-loupe { image-rendering: pixelated; vertical-align: -3px; margin: 0 3px 0 1px; }
@@ -8186,7 +8210,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    while it's open so its menu paints on top. */
 .tc-picker.is-open { z-index: 80; }
 .tc-picker .cal-year-current {
-  background: linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
+  background: linear-gradient(180deg, var(--bg-warm-dark) 0%, var(--bg-warm-darker) 100%);
   border: 1px solid var(--gold);
   color: #f4e6bf;
   /* Match the map toolbar's 28px control height so the heading row lines up
@@ -8208,7 +8232,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border: 1px solid rgba(227, 196, 106, 0.4);
 }
 .tc-picker .cal-year-opt { color: #d8c79a; }
-.tc-picker .cal-year-opt:hover { background: rgba(227, 196, 106, 0.14); color: #fff5dc; }
+.tc-picker .cal-year-opt:hover { background: var(--gold-14); color: #fff5dc; }
 .tc-picker .cal-year-opt.is-selected {
   background: rgba(227, 196, 106, 0.2);
   box-shadow: inset 0 0 0 1px var(--gold-line);
@@ -8227,7 +8251,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   overflow: hidden;
   background: #11140f;
   box-shadow: inset 0 1px 0 rgba(190, 225, 240, 0.08),
-              0 6px 22px rgba(0, 0, 0, 0.5);
+              0 6px 22px var(--shadow-50);
 }
 .tc-fallback-img {
   position: absolute;
@@ -8298,7 +8322,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border: 3px solid var(--gold);
   box-shadow:
     0 0 0 2px rgba(8, 8, 8, 0.7),
-    0 6px 18px rgba(0, 0, 0, 0.6);
+    0 6px 18px var(--shadow-60);
   pointer-events: none;        /* clicks pass through to the stage */
   display: none;
   will-change: transform;
@@ -8327,7 +8351,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   inset: 0;
   border-radius: 50%;
   pointer-events: none;
-  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 16px var(--shadow-55);
 }
 
 /* ---- What's New badge (index.html, anchored to BETA label) ---- */
@@ -8355,11 +8379,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: fixed;
   z-index: 200;
   background: var(--bg-panel);
-  border: 1px solid rgba(170, 220, 240, 0.35);
+  border: 1px solid var(--blue-35);
   border-radius: 7px;
   min-width: 240px;
   max-width: 310px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 8px 28px var(--shadow-65);
   display: none;
   overflow: hidden;
 }
