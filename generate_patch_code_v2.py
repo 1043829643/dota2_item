@@ -163,7 +163,8 @@ CANONICAL_TAGS = [
     # MISC — mechanic toggle, classification change, polish, fix, no effective change
     (re.compile(r'\bNow can be toggled while silenced\b', re.I),    'MISC'),
     (re.compile(r'\bClassified as\b', re.I),                        'MISC'),
-    (re.compile(r'^\s*Fixed\b', re.I),                              'MISC'),  # "Fixed X" — bug fix
+    (re.compile(r'^\s*Fixed\s+(?:item\s+|ability\s+|spell\s+)?(?:description|tooltip|text)\b', re.I), 'QoL'),  # "Fixed description stating..." — tooltip fix
+    (re.compile(r'^\s*Fixed\b', re.I),                              'MISC'),  # "Fixed X" — gameplay bug fix
     (re.compile(r'\bunchanged\b', re.I),                            'MISC'),  # "X is unchanged"
     # DEL — explicit removal / no-longer-targets / no-longer-applies
     (re.compile(r'\bcan no longer (?:target|be cast|be used|trigger)', re.I), 'NERF'),
