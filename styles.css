@@ -115,13 +115,13 @@ html {
 html:has(.main-page) { scrollbar-gutter: auto; }
 
 body {
-  background: #0a0e13;
+  background: var(--bg-page);
   background-image:
     radial-gradient(at 20% 0%, rgba(179, 45, 35, 0.08) 0, transparent 50%),
     radial-gradient(at 80% 100%, rgba(255, 100, 50, 0.05) 0, transparent 50%);
   background-attachment: fixed;
-  color: #c9d1d9;
-  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text-main);
+  font-family: var(--font-ui);
   line-height: 1.55;
   font-size: 15px;
   min-height: 100vh;
@@ -179,7 +179,7 @@ body.patch-page h2.section {
   border-left: 2px solid #ff5005;
   background: linear-gradient(to right, #833312, rgba(131, 51, 18, 0));
   box-shadow: 0 0 30px #000;
-  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-family: var(--font-j25);
   font-size: 28px;
   letter-spacing: 1.5px;
 }
@@ -192,7 +192,7 @@ body.patch-page .entity-block {
   padding: 0 22px 16px;
   margin: 0;
   border-top: 1px solid;
-  border-image: linear-gradient(to right, rgba(238, 250, 255, 0.14), rgba(238, 250, 255, 0.09) 62%, rgba(238, 250, 255, 0.055)) 1;
+  border-image: linear-gradient(to right, var(--line-bright), rgba(238, 250, 255, 0.09) 62%, rgba(238, 250, 255, 0.055)) 1;
 }
 body.patch-page h2.section + .entity-block {
   border-top: 0;
@@ -358,7 +358,7 @@ body:has(.creeps-page) nav.top-nav {
   align-items: center;
   gap: 9px;
   text-decoration: none;
-  color: #e6edf3;
+  color: var(--text-bright);
   padding: 6px 10px 6px 4px;
   justify-self: start;
   border-radius: 0;
@@ -381,7 +381,7 @@ body:has(.creeps-page) nav.top-nav {
     drop-shadow(0 0 3px rgba(227, 196, 106, 0.05));
 }
 .nav-brand-text {
-  font-family: 'Jersey 10', 'Courier New', monospace;
+  font-family: var(--font-j10);
   font-size: 22px;
   letter-spacing: 1px;
   line-height: 1;
@@ -390,7 +390,7 @@ body:has(.creeps-page) nav.top-nav {
     0 1px 0 rgba(0, 0, 0, 0.68);
 }
 .nav-brand-sikle {
-  color: #d6b764;
+  color: var(--gold-dim);
   text-shadow:
     0 1px 0 rgba(0, 0, 0, 0.72),
     0 0 4px rgba(227, 196, 106, 0.05);
@@ -419,7 +419,7 @@ body:has(.creeps-page) nav.top-nav {
   background:
     radial-gradient(120% 90% at 50% 0%, rgba(120, 92, 48, 0.20), rgba(0, 0, 0, 0) 60%),
     linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
-  border: 3px solid #e3c46a;          /* "sikle" gold */
+  border: 3px solid var(--gold);          /* "sikle" gold */
   border-radius: 8px;
   box-shadow:
     inset 0 0 0 2px #7a5c28,
@@ -429,11 +429,11 @@ body:has(.creeps-page) nav.top-nav {
 .inv-head { text-align: center; }
 .inv-title {
   margin: 0;
-  font-family: "Jersey 25", monospace;
+  font-family: var(--font-j25);
   font-size: 30px;
   line-height: 1;
   letter-spacing: 2px;
-  color: #e3c46a;                     /* "sikle" gold */
+  color: var(--gold);                     /* "sikle" gold */
   text-shadow: 2px 2px 0 #1a1206, 0 0 14px rgba(227, 196, 106, 0.25);
 }
 
@@ -460,7 +460,7 @@ body:has(.creeps-page) nav.top-nav {
   white-space: nowrap;
   /* Handjet first: a pixel/dot-matrix font WITH Cyrillic, so Russian member
      names render in-style (Jersey 10 has no Cyrillic → it falls through). */
-  font-family: "Handjet", "Jersey 10", monospace;
+  font-family: "Handjet", var(--font-j10);
   font-size: 18px;
   letter-spacing: 0.5px;
   color: rgba(243, 220, 150, 0.72);   /* glowing gold — only seen once revealed */
@@ -472,7 +472,7 @@ body:has(.creeps-page) nav.top-nav {
 .inv-sig.is-lit {                /* revealed by the laser — fades in and stays */
   visibility: visible;
   opacity: 1;
-  text-shadow: 0 0 8px rgba(227, 196, 106, 0.45);
+  text-shadow: 0 0 8px var(--gold-line);
 }
 /* Colour emoji inside a signature (Telegram names sometimes carry a gold star,
    blue check, party popper, etc.) → flatten to the sig's own colour. Classic
@@ -507,7 +507,7 @@ body:has(.creeps-page) nav.top-nav {
     rgba(255, 243, 205, 0.8) 100%);
   box-shadow:
     0 0 6px 1px rgba(255, 225, 150, 0.6),
-    0 0 13px 2px rgba(227, 196, 106, 0.35);
+    0 0 13px 2px var(--gold-glow);
   will-change: transform, opacity;
 }
 @media (prefers-reduced-motion: reduce) { .sig-beam-layer { display: none; } }
@@ -517,7 +517,7 @@ body:has(.creeps-page) nav.top-nav {
   position: absolute;
   width: 2px;
   height: 2px;
-  background: #e3c46a;                 /* "sikle" gold */
+  background: var(--gold);                 /* "sikle" gold */
   image-rendering: pixelated;
   will-change: transform, opacity;
 }
@@ -737,12 +737,12 @@ body:has(.creeps-page) nav.top-nav {
 }
 .inv-cap {
   max-width: 86px;
-  font-family: "Jersey 10", monospace;
+  font-family: var(--font-j10);
   font-size: 15px;
   line-height: 1.05;
   letter-spacing: 0.5px;
   text-align: center;
-  color: #e3c46a;                     /* "sikle" gold */
+  color: var(--gold);                     /* "sikle" gold */
 }
 /* Placeholder slots — filled for the inventory look but not links. */
 .inv-ph { cursor: default; }
@@ -870,7 +870,7 @@ body:has(.creeps-page) nav.top-nav {
   font-family: 'Jersey 10', monospace;
   font-size: 15px;
   letter-spacing: 0.5px;
-  color: #e3c46a;
+  color: var(--gold);
   transition: color 0.15s ease;
 }
 .support-btn:hover .inv-slot { transform: translateY(-3px); filter: brightness(1.22); }
@@ -890,7 +890,7 @@ body:has(.creeps-page) nav.top-nav {
   font-size: 11px;
   letter-spacing: 0.5px;
   color: #14100a;
-  background: #e3c46a;
+  background: var(--gold);
   border-radius: 3px;
   text-transform: lowercase;
 }
@@ -908,7 +908,7 @@ body:has(.creeps-page) nav.top-nav {
   text-transform: uppercase;
 }
 .support-ru-tag,
-.support-eng-tag { background: #e3c46a; }
+.support-eng-tag { background: var(--gold); }
 
 /* ---- TELEGRAM envelope: heart-beat pulse + faint hollow hearts that drift out
    and linger, then fade when the cursor leaves (like the star's magic dust). */
@@ -1026,7 +1026,7 @@ body:has(.creeps-page) nav.top-nav {
 .support-back:focus-visible { outline: none; }
 .support-back:focus-visible .support-back-orn {
   opacity: 1;
-  filter: drop-shadow(0 0 2px #e3c46a);
+  filter: drop-shadow(0 0 2px var(--gold));
 }
 @media (prefers-reduced-motion: reduce) {
   .inv-book.support-open .support-panel,
@@ -1040,7 +1040,7 @@ body:has(.creeps-page) nav.top-nav {
 
 .nav-tab {
   padding: 7px 14px 10px;
-  color: #c9d1d9;
+  color: var(--text-main);
   border-radius: 6px 6px 0 0;
   cursor: pointer;
   text-decoration: none;
@@ -1141,8 +1141,8 @@ body:has(.creeps-page) nav.top-nav {
     0 calc(100% - 2px), 0 2px);
 }
 .nav-context .release-date {
-  color: #c9d1d9;
-  font-family: 'Jersey 25', 'Courier New', monospace;
+  color: var(--text-main);
+  font-family: var(--font-j25);
   font-size: 17px;
   font-weight: 400;
   letter-spacing: 0.3px;
@@ -1150,7 +1150,7 @@ body:has(.creeps-page) nav.top-nav {
   line-height: 1;
 }
 .nav-context .release-version {
-  color: #79c0ff;
+  color: var(--blue);
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1182,7 +1182,7 @@ body:has(.creeps-page) nav.top-nav {
 }
 .nav-context .patch-age {
   color: #a8b3bd;
-  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-family: var(--font-j25);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.3px;
@@ -1190,8 +1190,8 @@ body:has(.creeps-page) nav.top-nav {
   line-height: 1.05;
 }
 .nav-context .version {
-  color: #c9d1d9;
-  font-family: 'Jersey 10', 'Courier New', monospace;
+  color: var(--text-main);
+  font-family: var(--font-j10);
   font-size: 24px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
@@ -1225,7 +1225,7 @@ body:has(.creeps-page) nav.top-nav {
   background: rgba(0, 0, 0, 0.28);
 }
 .nav-context .version.version-materials {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 18px;
   letter-spacing: 1px;
   padding: 0 16px;
@@ -1252,7 +1252,7 @@ body:has(.creeps-page) nav.top-nav {
   align-items: stretch;
   flex: 0 0 auto;
   height: 30px;
-  border: 1px solid rgba(227, 196, 106, 0.28);
+  border: 1px solid var(--gold-line-soft);
   background: rgba(0, 0, 0, 0.28);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -1262,7 +1262,7 @@ body:has(.creeps-page) nav.top-nav {
   border: 0;
   background: transparent;
   color: #9aa6b2;
-  font-family: 'Jersey 10', 'Courier New', monospace;
+  font-family: var(--font-j10);
   font-size: 18px;
   letter-spacing: 0.6px;
   padding: 0 11px;
@@ -1274,12 +1274,12 @@ body:has(.creeps-page) nav.top-nav {
   border-left: 1px solid rgba(227, 196, 106, 0.22);
 }
 .lang-switch .lang-btn:hover {
-  color: #e6edf3;
+  color: var(--text-bright);
   background: rgba(255, 255, 255, 0.06);
 }
 .lang-switch .lang-btn.active {
   color: #1a1206;
-  background: #e3c46a;                 /* "sikle" gold — matches nav accent */
+  background: var(--gold);                 /* "sikle" gold — matches nav accent */
 }
 .nav-context .version-chev {
   font-size: 14px;
@@ -1299,8 +1299,8 @@ body:has(.creeps-page) nav.top-nav {
   top: calc(100% + 6px);
   right: 0;
   min-width: 180px;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   padding: 6px;
@@ -1310,7 +1310,7 @@ body:has(.creeps-page) nav.top-nav {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #30363d transparent;
+  scrollbar-color: var(--line) transparent;
 }
 .version-menu.open {
   display: block;
@@ -1322,16 +1322,16 @@ body:has(.creeps-page) nav.top-nav {
   padding: 8px 12px;
   border-radius: 4px;
   text-decoration: none;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 14px;
   transition: background 0.12s ease;
 }
 .version-item:hover {
-  background: #21262d;
+  background: var(--bg-panel-4);
 }
 .version-item.current {
   background: rgba(88, 166, 255, 0.10);
-  color: #58a6ff;
+  color: var(--blue-bright);
   cursor: default;
   pointer-events: none;
 }
@@ -1340,7 +1340,7 @@ body:has(.creeps-page) nav.top-nav {
   letter-spacing: 0.3px;
 }
 .version-item .vi-date {
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   margin-left: 14px;
@@ -1350,7 +1350,7 @@ body:has(.creeps-page) nav.top-nav {
 }
 
 /* NAV BACK ARROW + BACK-TO-TOP — pixel-art chevrons on an index-style gold /
-   leather circle (matches the inventory landing page). Arrows are gold (#e3c46a)
+   leather circle (matches the inventory landing page). Arrows are gold (var(--gold))
    PNGs at icons/ui/gothic/arrow_left|up.png. Both float in the BOTTOM corners so
    neither overlaps the toolbar tags (the back arrow used to sit at top-left, over
    the tag block). url() is relative to styles.css (repo root) → works on every
@@ -1366,7 +1366,7 @@ body:has(.creeps-page) nav.top-nav {
   appearance: none;
   -webkit-appearance: none;
   border-radius: 50%;
-  border: 2px solid #e3c46a;
+  border: 2px solid var(--gold);
   box-shadow:
     inset 0 1px 0 rgba(190, 225, 240, 0.10),
     0 5px 16px rgba(0, 0, 0, 0.55);
@@ -1424,7 +1424,7 @@ body:has(.creeps-page) nav.top-nav {
   margin-bottom: 8px;
   padding-left: 0;
   font-size: 13px;
-  color: #8b949e;
+  color: var(--text-dim);
 }
 /* One height for every toolbar control so the bar never measures differently
    between Neutral Creeps / Unit Abilities / Mana Items. */
@@ -1443,7 +1443,7 @@ body:has(.creeps-page) nav.top-nav {
   position: sticky;
   left: 0;
   z-index: 6;
-  background: #0a0e13;
+  background: var(--bg-page);
   /* As block children of the scroll box, these are already the box's VISIBLE
      width (percentages/auto resolve against the padding box, not the wide
      table's scroll width), so sticky-left keeps them filling the viewport. */
@@ -1467,16 +1467,16 @@ body:has(.creeps-page) nav.top-nav {
   gap: 10px;
 }
 .cal-toggle-bar strong {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
 .cal-mode-select {
-  background: #161b22;
-  border: 1px solid #30363d;
-  color: #c9d1d9;
+  background: var(--bg-panel-3);
+  border: 1px solid var(--line);
+  color: var(--text-main);
   padding: 5px 28px 5px 12px;
   /* Fixed width so the View select on every page is the same size regardless
      of which option label is longest (Expanded vs. Auras vs. Standard). */
@@ -1492,7 +1492,7 @@ body:has(.creeps-page) nav.top-nav {
   background-position: right 10px center;
 }
 .cal-mode-select:hover {
-  border-color: #58a6ff;
+  border-color: var(--blue-bright);
 }
 /* "Upgrades" binary switch — iOS-style toggle, defaults ON. When ON, the
    table gains .show-upgrades and each <span class="upg-val"> inside a
@@ -1503,15 +1503,15 @@ body:has(.creeps-page) nav.top-nav {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--bg-panel-3);
+  border: 1px solid var(--line);
   border-radius: 5px;
   font-size: 12.5px;
-  color: #c9d1d9;
+  color: var(--text-main);
   cursor: pointer;
   user-select: none;
 }
-.ua-upgrades-toggle:hover { border-color: #58a6ff; }
+.ua-upgrades-toggle:hover { border-color: var(--blue-bright); }
 .ua-upgrades-toggle .ua-switch-input {
   position: absolute;
   opacity: 0;
@@ -1524,7 +1524,7 @@ body:has(.creeps-page) nav.top-nav {
   display: inline-block;
   width: 30px;
   height: 16px;
-  background: #30363d;
+  background: var(--line);
   border-radius: 999px;
   transition: background 150ms ease;
   flex-shrink: 0;
@@ -1535,19 +1535,19 @@ body:has(.creeps-page) nav.top-nav {
   top: 2px; left: 2px;
   width: 12px;
   height: 12px;
-  background: #c9d1d9;
+  background: var(--text-main);
   border-radius: 50%;
   transition: transform 150ms ease, background 150ms ease;
 }
-/* ON state = the site-wide gold accent (#e3c46a — the "sikle" wordmark gold, same
+/* ON state = the site-wide gold accent (var(--gold) — the "sikle" wordmark gold, same
    as the active terrain-toolbar buttons). Unifies every toggle's on-colour. */
-.ua-upgrades-toggle .ua-switch-input:checked + .ua-switch { background: #e3c46a; }
+.ua-upgrades-toggle .ua-switch-input:checked + .ua-switch { background: var(--gold); }
 .ua-upgrades-toggle .ua-switch-input:checked + .ua-switch::after {
   transform: translateX(14px);
   background: #fff;
 }
 .ua-upgrades-toggle .ua-switch-input:focus-visible + .ua-switch {
-  outline: 2px solid #e3c46a;
+  outline: 2px solid var(--gold);
   outline-offset: 2px;
 }
 /* Inline link inside an Effect cell — used when an effect mentions another
@@ -1592,7 +1592,7 @@ body:has(.creeps-page) nav.top-nav {
 .cal-year-block {
   margin-bottom: 6px;
   background: #14191f;
-  border: 1px solid #21262d;
+  border: 1px solid var(--bg-panel-4);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -1602,7 +1602,7 @@ body:has(.creeps-page) nav.top-nav {
    block is only as tall as its header so the dropdown has nowhere to show. */
 .cal-year-block:has(.cal-year-picker.is-open) { overflow: visible; }
 .cal-year-label {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -1647,7 +1647,7 @@ body:has(.creeps-page) nav.top-nav {
     linear-gradient(180deg, rgba(38, 46, 56, 0.95) 0%, rgba(26, 34, 42, 0.95) 100%);
   border: 1px solid rgba(170, 220, 240, 0.35);
   border-radius: 6px;
-  color: #e6edf3;
+  color: var(--text-bright);
   padding: 6px 12px;
   gap: 9px;
   box-shadow:
@@ -1680,7 +1680,7 @@ body:has(.creeps-page) nav.top-nav {
     linear-gradient(180deg, rgba(38, 46, 56, 0.95) 0%, rgba(26, 34, 42, 0.95) 100%);
   border: 1px solid rgba(170, 220, 240, 0.35);
   border-radius: 6px;
-  color: #e6edf3;
+  color: var(--text-bright);
   font: inherit;
   font-size: 16px;
   font-weight: 700;
@@ -1721,7 +1721,7 @@ body:has(.creeps-page) nav.top-nav {
   min-width: 100%;
   /* No max-height / overflow → the full year list shows without a scrollbar
      (there are only ~9–15 years). */
-  background: #11161d;
+  background: var(--bg-panel-2);
   border: 1px solid rgba(170, 220, 240, 0.30);
   border-radius: 8px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
@@ -1731,7 +1731,7 @@ body:has(.creeps-page) nav.top-nav {
   text-align: center;
   font-size: 15px;
   font-weight: 600;
-  color: #c9d1d9;
+  color: var(--text-main);
   padding: 7px 22px;
   border-radius: 5px;
   cursor: pointer;
@@ -1751,15 +1751,15 @@ body:has(.creeps-page) nav.top-nav {
   align-items: center;
   padding: 8px 12px 0;
   margin-top: -8px;
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  border-top: 1px solid #21262d;
+  border-top: 1px solid var(--bg-panel-4);
   margin-bottom: 8px;
 }
-.cal-year-summary-key { color: #6e7681; text-transform: uppercase; letter-spacing: 0.4px; font-size: 10.5px; }
-.cal-year-summary-val { color: #c9d1d9; font-weight: 600; }
-.cal-year-summary-meta { color: #6e7681; font-size: 11px; }
+.cal-year-summary-key { color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 0.4px; font-size: 10.5px; }
+.cal-year-summary-val { color: var(--text-main); font-weight: 600; }
+.cal-year-summary-meta { color: var(--text-dimmer); font-size: 11px; }
 .cal-year-block[data-collapsed="true"] .cal-year-summary { display: none; }
 .cal-year-block[data-collapsed="true"] .cal-mode-full,
 .cal-year-block[data-collapsed="true"] .cal-mode-compact {
@@ -1797,19 +1797,19 @@ body:has(.creeps-page) nav.top-nav {
   flex-direction: column;
   justify-content: center;
 }
-.cal-ig-panel + .cal-ig-panel { border-left: 1px solid #21262d; }
+.cal-ig-panel + .cal-ig-panel { border-left: 1px solid var(--bg-panel-4); }
 .cal-ig-lead { flex: 0 0 auto; gap: 1px; }
-.cal-ig-title { font-size: 15px; font-weight: 700; color: #e6edf3; letter-spacing: 0.3px; }
+.cal-ig-title { font-size: 15px; font-weight: 700; color: var(--text-bright); letter-spacing: 0.3px; }
 .cal-ig-sub {
-  font-size: 10.5px; color: #6e7681; text-transform: uppercase;
+  font-size: 10.5px; color: var(--text-dimmer); text-transform: uppercase;
   letter-spacing: 0.5px; margin-bottom: 9px;
 }
-.cal-ig-statline { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #8b949e; }
+.cal-ig-statline { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-dim); }
 .cal-ig-statline b {
-  color: #79c0ff; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--blue); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 /* Major-patch count in the calendar's blue (matches .cal-*.major cells + chart). */
-.cal-ig-statline b.cal-ig-major { color: #79c0ff; }
+.cal-ig-statline b.cal-ig-major { color: var(--blue); }
 /* Faint horizontal divider between stat groups. */
 .cal-ig-rule {
   height: 1px;
@@ -1829,7 +1829,7 @@ body:has(.creeps-page) nav.top-nav {
   overflow: visible;
 }
 .cal-ig-spark-lbl {
-  fill: #6e7681;
+  fill: var(--text-dimmer);
   font-size: 11px;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
@@ -1839,7 +1839,7 @@ body:has(.creeps-page) nav.top-nav {
 .cal-ig-axis { stroke: rgba(170, 220, 240, 0.18); stroke-width: 1; }
 .cal-ig-axis.is-base { stroke: rgba(170, 220, 240, 0.30); }
 .cal-ig-ytick {
-  fill: #6e7681;
+  fill: var(--text-dimmer);
   font-size: 9px;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
@@ -1850,7 +1850,7 @@ body:has(.creeps-page) nav.top-nav {
 .cal-ig-dot { r: 2.1; transition: r 0.12s; }
 .cal-ig-pt:hover .cal-ig-dot { r: 4; }
 .cal-ig-pt-val {
-  fill: #e6edf3;
+  fill: var(--text-bright);
   font-size: 11px;
   font-weight: 700;
   font-family: inherit;
@@ -1859,14 +1859,14 @@ body:has(.creeps-page) nav.top-nav {
   transition: opacity 0.12s;
   pointer-events: none;
   paint-order: stroke;
-  stroke: #0d1117;
+  stroke: var(--bg-panel);
   stroke-width: 3px;
   stroke-linejoin: round;
 }
 .cal-ig-pt:hover .cal-ig-pt-val { opacity: 1; }
 @media (max-width: 760px) {
   .cal-infographic { flex-direction: column; gap: 14px; }
-  .cal-ig-panel + .cal-ig-panel { border-left: none; border-top: 1px solid #21262d; padding-top: 12px; }
+  .cal-ig-panel + .cal-ig-panel { border-left: none; border-top: 1px solid var(--bg-panel-4); padding-top: 12px; }
 }
 
 /* MODE 2: COMPACT */
@@ -1882,7 +1882,7 @@ body:has(.creeps-page) nav.top-nav {
 .cal-month-name {
   text-align: center;
   font-size: 10.5px;
-  color: #6e7681;
+  color: var(--text-dimmer);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin-bottom: 6px;
@@ -1893,7 +1893,7 @@ body:has(.creeps-page) nav.top-nav {
   gap: 3px;
   min-height: 44px;
   padding: 2px;
-  border-left: 1px solid #21262d;
+  border-left: 1px solid var(--bg-panel-4);
 }
 .cal-patch {
   display: flex;
@@ -1930,7 +1930,7 @@ body:has(.creeps-page) nav.top-nav {
 .cal-patch .cal-day {
   font-size: 13px;
   font-weight: 600;
-  color: #c9d1d9;
+  color: var(--text-main);
   line-height: 1;
 }
 .cal-patch.sub {
@@ -1959,7 +1959,7 @@ body:has(.creeps-page) nav.top-nav {
   box-shadow:
     inset 0 1px 0 rgba(255, 235, 205, 0.35),
     /* pre-divided by the brightness(1.2) filter above so the ring renders
-       as the site gold #e3c46a on screen (filter brightens box-shadows too) */
+       as the site gold var(--gold) on screen (filter brightens box-shadows too) */
     0 0 0 2px rgba(189, 163, 88, 0.90),
     0 2px 6px rgba(0, 0, 0, 0.4);
 }
@@ -1968,7 +1968,7 @@ body:has(.creeps-page) nav.top-nav {
   filter: brightness(1.35);
   box-shadow:
     inset 0 1px 0 rgba(255, 235, 205, 0.50),
-    /* pre-divided by brightness(1.35) — renders as #e3c46a */
+    /* pre-divided by brightness(1.35) — renders as var(--gold) */
     0 0 0 2.5px rgba(168, 145, 79, 1),
     0 3px 10px rgba(0, 0, 0, 0.5);
 }
@@ -1985,7 +1985,7 @@ span.cal-patch {
   font-variant-numeric: tabular-nums;
 }
 .cal-full-month-name {
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -2022,7 +2022,7 @@ span.cal-patch {
   background: rgba(170, 220, 240, 0.16);
 }
 .cal-full-month-name.cross-row {
-  color: #e6edf3;
+  color: var(--text-bright);
 }
 
 /* Universal table cross-highlight — applies to every <table> on every page.
@@ -2065,7 +2065,7 @@ table tr.cross-row > td.cross-col {
 }
 .cal-full-day.has-patch.sub {
   background: rgba(110, 118, 129, 0.4);
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 /* Major patches — unified solid blue (full grid), matches the cadence chart */
 .cal-full-day.has-patch.major {
@@ -2080,7 +2080,7 @@ table tr.cross-row > td.cross-col {
   z-index: 4;
   filter: brightness(1.20);
   box-shadow:
-    /* pre-divided by brightness(1.2) — renders as #e3c46a */
+    /* pre-divided by brightness(1.2) — renders as var(--gold) */
     0 0 0 2px rgba(189, 163, 88, 0.90),
     0 2px 8px rgba(0, 0, 0, 0.55);
 }
@@ -2088,7 +2088,7 @@ table tr.cross-row > td.cross-col {
   z-index: 6;
   filter: brightness(1.35);
   box-shadow:
-    /* pre-divided by brightness(1.35) — renders as #e3c46a */
+    /* pre-divided by brightness(1.35) — renders as var(--gold) */
     0 0 0 2.5px rgba(168, 145, 79, 1),
     0 4px 12px rgba(0, 0, 0, 0.65);
 }
@@ -2111,11 +2111,11 @@ span.cal-full-day.has-patch {
   width: 100%;
   margin: 0;
   padding: 0;
-  background: #161b22;
-  border-top: 1px solid #30363d;
-  border-bottom: 1px solid #30363d;
+  background: var(--bg-panel-3);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   font-size: 13px;
-  color: #8b949e;
+  color: var(--text-dim);
   position: sticky;
   top: var(--site-nav-h, 44px);
   z-index: 80;
@@ -2164,7 +2164,7 @@ span.cal-full-day.has-patch {
   border-left: 1px solid rgba(170, 220, 240, 0.18);
 }
 .toolbar-patch-info b {
-  color: #e6edf3;
+  color: var(--text-bright);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -2198,7 +2198,7 @@ span.cal-full-day.has-patch {
   visibility: hidden;
 }
 .legend-tags strong {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
@@ -2219,19 +2219,19 @@ span.cal-full-day.has-patch {
 }
 .search-box input {
   width: 100%;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 6px 12px;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-family: inherit;
   font-size: 13px;
   transition: border-color 0.15s;
 }
-.search-box input::placeholder { color: #6e7681; }
+.search-box input::placeholder { color: var(--text-dimmer); }
 .search-box input:focus {
   outline: none;
-  border-color: #58a6ff;
+  border-color: var(--blue-bright);
   box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
 }
 /* Inside the patch toolbar the search is ALWAYS expanded — a full-width
@@ -2240,7 +2240,7 @@ span.cal-full-day.has-patch {
   width: 100%;
   padding: 6px 12px 6px 34px;
   cursor: text;
-  color: #c9d1d9;
+  color: var(--text-main);
   text-align: center;
   background-image:
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="%2398a2b0" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4 L13.6 13.6" stroke-linecap="round"/></svg>');
@@ -2248,7 +2248,7 @@ span.cal-full-day.has-patch {
   background-position: 11px center;
   background-size: 15px 15px;
 }
-.toolbar .search-box input::placeholder { color: #6e7681; }
+.toolbar .search-box input::placeholder { color: var(--text-dimmer); }
 .toolbar .search-box input:focus { text-align: left; }
 .search-results {
   display: none;
@@ -2256,8 +2256,8 @@ span.cal-full-day.has-patch {
   top: 100%;
   left: 0;
   right: 0;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--bg-panel-3);
+  border: 1px solid var(--line);
   border-radius: 6px;
   margin-top: 4px;
   max-height: 320px;
@@ -2274,8 +2274,8 @@ span.cal-full-day.has-patch {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #c9d1d9;
-  border-bottom: 1px solid #21262d;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--bg-panel-4);
 }
 .search-results .result-item:last-child { border-bottom: none; }
 .search-results .result-item:hover,
@@ -2288,19 +2288,19 @@ span.cal-full-day.has-patch {
   height: 18px;
   object-fit: cover;
   border-radius: 2px;
-  background: #21262d;
+  background: var(--bg-panel-4);
   flex-shrink: 0;
 }
 .search-results .result-item .kind {
   margin-left: auto;
   font-size: 10.5px;
-  color: #6e7681;
+  color: var(--text-dimmer);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 .search-results .empty {
   padding: 10px 12px;
-  color: #8b949e;
+  color: var(--text-dim);
   font-style: italic;
   font-size: 12.5px;
 }
@@ -2317,7 +2317,7 @@ h2.section {
     linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, transparent 18%, transparent 82%, rgba(0, 0, 0, 0.45) 100%),
     linear-gradient(180deg, #b53528 0%, #4a120c 100%);
   color: #fff;
-  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-family: var(--font-j25);
   font-size: 25px;
   font-weight: 400;
   padding: 12px 18px;
@@ -2341,7 +2341,7 @@ h2.section {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(90deg, #1a1f29 0%, #161b22 100%);
+  background: linear-gradient(90deg, #1a1f29 0%, var(--bg-panel-3) 100%);
   border-radius: 4px;
   padding: 8px 14px;
   margin: 20px 0 8px;
@@ -2350,7 +2350,7 @@ h2.section {
   color: #f0c674;
   /* Site pixel font (same family as the brand/nav). Jersey renders narrow
      and has a single weight — bigger size + slight tracking compensate. */
-  font-family: 'Jersey 25', 'Courier New', monospace;
+  font-family: var(--font-j25);
   font-size: 22px;
   font-weight: 400;
   letter-spacing: 0.5px;
@@ -2376,7 +2376,7 @@ h2.section {
   border-radius: 4px;
 }
 .plain-entity .entity-name {
-  color: #79c0ff;
+  color: var(--blue);
 }
 /* "View on map" jump button on the Terrain Changes header → terrain.html with
    this patch preselected. Gold-leather pill matching the site nav-arrow skin. */
@@ -2389,8 +2389,8 @@ h2.section {
   padding: 5px 12px;
   border-radius: 6px;
   background: linear-gradient(180deg, #3b2e1d, #2a2014);
-  border: 1px solid #e3c46a;
-  color: #e3c46a;
+  border: 1px solid var(--gold);
+  color: var(--gold);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -2403,7 +2403,7 @@ h2.section {
 }
 .terrain-jump-btn:hover {
   filter: brightness(1.18);
-  box-shadow: 0 0 10px rgba(227, 196, 106, 0.35);
+  box-shadow: 0 0 10px var(--gold-glow);
 }
 .terrain-jump-btn:active {
   transform: translateY(1px);
@@ -2628,7 +2628,7 @@ h2.section {
   left: 0;
   top: 0;
   background: rgba(13, 17, 23, 0.97);
-  color: #c9d1d9;
+  color: var(--text-main);
   padding: 8px 10px;
   border: 1px solid rgba(139, 148, 158, 0.35);
   border-radius: 6px;
@@ -2648,7 +2648,7 @@ h2.section {
 }
 .dyn-tip-header {
   font-size: 12px;
-  color: #e6edf3;
+  color: var(--text-bright);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.4px;
@@ -2678,7 +2678,7 @@ h2.section {
 }
 .dyn-tip-count {
   font-size: 11px;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -2716,8 +2716,8 @@ ul.changes li.ability-row-start,
 ul.changes li.ability-row-cont,
 ul.changes li.ability-row-end {
   background: rgba(139, 148, 158, 0.04);
-  border-left:  1px solid rgba(139, 148, 158, 0.18);
-  border-right: 1px solid rgba(139, 148, 158, 0.18);
+  border-left:  1px solid var(--line-soft);
+  border-right: 1px solid var(--line-soft);
 }
 /* Apply Hydras-Breath-style layout (no tag column, text flush-left with 12px
    padding) to ALL ability-row li, not just inside .is-new blocks. Tag column
@@ -2754,7 +2754,7 @@ ul.changes li.ability-row-end > .row-text::before {
 }
 ul.changes li.ability-row-solo,
 ul.changes li.ability-row-start {
-  border-top: 1px solid rgba(139, 148, 158, 0.18);
+  border-top: 1px solid var(--line-soft);
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   padding-top: 6px;
@@ -2762,7 +2762,7 @@ ul.changes li.ability-row-start {
 }
 ul.changes li.ability-row-solo,
 ul.changes li.ability-row-end {
-  border-bottom: 1px solid rgba(139, 148, 158, 0.18);
+  border-bottom: 1px solid var(--line-soft);
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
   padding-bottom: 6px;
@@ -2780,7 +2780,7 @@ ul.changes li.ability-row-end {
   margin: 6px 0 4px;
   padding: 8px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
 }
@@ -2805,7 +2805,7 @@ ul.changes li.ability-row-end {
 }
 .component-price {
   font-size: 11px;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 600;
   background: rgba(0, 0, 0, 0.30);
   padding: 1px 6px;
@@ -2814,13 +2814,13 @@ ul.changes li.ability-row-end {
   text-align: center;
 }
 .components-plus {
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-size: 16px;
   font-weight: 700;
   padding: 0 2px;
 }
 .components-total {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -2841,7 +2841,7 @@ ul.changes li.ability-row-end {
   margin: 8px 0 10px;
   padding: 8px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
 .enchant-attr-row {
@@ -2852,7 +2852,7 @@ ul.changes li.ability-row-end {
   padding: 3px 0;
 }
 .enchant-attr-row + .enchant-attr-row {
-  border-top: 1px dashed rgba(139, 148, 158, 0.18);
+  border-top: 1px dashed var(--line-soft);
 }
 .enchant-attr-label {
   display: flex;
@@ -2891,7 +2891,7 @@ ul.changes li.ability-row-end {
 .enchant-attr-name.is-agi { color: #3dcb37; }
 .enchant-attr-name.is-int { color: #00d3e7; }
 .enchant-attr-name.is-uni { color: #d3e700; }
-.enchant-attr-name.is-all { color: #c9d1d9; }
+.enchant-attr-name.is-all { color: var(--text-main); }
 .enchant-attr-list {
   display: flex;
   flex-wrap: wrap;
@@ -2907,7 +2907,7 @@ ul.changes li.ability-row-end {
   border: 1px solid rgba(139, 148, 158, 0.22);
   border-radius: 14px;
   font-size: 12.5px;
-  color: #c9d1d9;
+  color: var(--text-main);
   line-height: 1.2;
   transition: background 0.15s, border-color 0.15s;
   cursor: help;
@@ -2933,7 +2933,7 @@ ul.changes li.ability-row-end {
   transform: translateX(-50%);
   white-space: pre-line;
   background: rgba(13, 17, 23, 0.97);
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 12px;
   font-weight: 400;
   padding: 7px 11px;
@@ -2985,7 +2985,7 @@ ul.changes li.ability-row-end {
   border: 1px solid #6b7682;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.04);
-  color: #e3c46a;
+  color: var(--gold);
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
@@ -3001,7 +3001,7 @@ ul.changes li.ability-row-end {
 }
 .info-tip:hover,
 .info-tip:focus {
-  border-color: #e3c46a;
+  border-color: var(--gold);
   background: rgba(227, 196, 106, 0.15);
   outline: none;
 }
@@ -3013,13 +3013,13 @@ ul.changes li.ability-row-end {
   left: 50%;
   transform: translateX(-50%);
   background: rgba(13, 17, 23, 0.98);
-  color: #c9d1d9;
+  color: var(--text-main);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
   padding: 8px 12px;
-  border: 1px solid rgba(227, 196, 106, 0.35);
+  border: 1px solid var(--gold-glow);
   border-radius: 6px;
   opacity: 0;
   visibility: hidden;
@@ -3052,12 +3052,12 @@ ul.changes li.ability-row-end {
   pointer-events: none;
   display: none;
   background: rgba(13, 17, 23, 0.98);
-  color: #c9d1d9;
+  color: var(--text-main);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 12px;
   font-weight: 400;
   padding: 8px 12px;
-  border: 1px solid rgba(227, 196, 106, 0.35);
+  border: 1px solid var(--gold-glow);
   border-radius: 6px;
   width: max-content;
   min-width: 150px;
@@ -3074,7 +3074,7 @@ ul.changes li.ability-row-end {
   display: block;
   margin-bottom: 5px;
   font-weight: 700;
-  color: #e3c46a;
+  color: var(--gold);
 }
 /* Trailing cluster (Aghanim glyph + (i) tip) — kept on one line and bound to
    the preceding word (via a leading nbsp) so it never orphans onto an
@@ -3112,9 +3112,9 @@ ul.changes li.ability-row-end {
   margin: 4px 0;
   padding: 6px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 13.5px;
 }
 /* Flat purchase price for a basic (no-recipe) new item — same bordered box as
@@ -3127,12 +3127,12 @@ ul.changes li.ability-row-end {
   margin: 6px 0 4px;
   padding: 8px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
 }
 .item-cost-label {
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 13px;
   font-weight: 600;
 }
@@ -3153,7 +3153,7 @@ ul.changes li.ability-row-end {
   margin-left: 8px;
   /* The entity name itself is pixel-font (Jersey 25); these add-on labels
      ("NEW ARMAMENT ITEM", "Recipe changed") stay in the regular UI font. */
-  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.4px;
@@ -3167,12 +3167,12 @@ ul.changes li.ability-row-end {
    'Recipe changed' on items whose components changed in this patch. */
 .entity-name .entity-changed-type {
   margin-left: 8px;
-  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  color: #c9d1d9;
+  color: var(--text-main);
   opacity: 0.65;
   vertical-align: middle;
 }
@@ -3198,7 +3198,7 @@ ul.changes li.ability-row-end {
   justify-self: center;
   font-size: 22px;
   font-weight: 700;
-  color: #c9d1d9;
+  color: var(--text-main);
   opacity: 0.85;
   padding: 0 2px;
 }
@@ -3231,7 +3231,7 @@ ul.changes li.ability-row-end {
   justify-self: center;
   font-size: 22px;
   font-weight: 700;
-  color: #c9d1d9;
+  color: var(--text-main);
   opacity: 0.85;
   padding: 0 2px;
 }
@@ -3241,7 +3241,7 @@ ul.changes li.ability-row-end {
   gap: 8px;
   padding: 10px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
   min-width: 0;
 }
@@ -3281,7 +3281,7 @@ ul.changes li.ability-row-end {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #0a0e13;
+  background: var(--bg-page);
   padding: 1px;
   box-shadow: 0 0 0 1px rgba(220, 175, 95, 0.45);
   pointer-events: none;
@@ -3291,7 +3291,7 @@ ul.changes li.ability-row-end {
   font-size: 14.5px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 .ability-change-body {
   display: flex;
@@ -3299,7 +3299,7 @@ ul.changes li.ability-row-end {
   gap: 6px;
   font-size: 13.5px;
   line-height: 1.5;
-  color: #c9d1d9;
+  color: var(--text-main);
   min-width: 0;
 }
 .ability-change-row { padding: 4px 0; line-height: 1.45; }
@@ -3623,7 +3623,7 @@ ul.changes li.ability-row-end {
   align-items: center;
   padding: 8px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
 .properties-change .pane-old { grid-column: 1; }
@@ -3645,7 +3645,7 @@ ul.changes li.ability-row-end {
 .properties-change.old-only .pane-old { grid-column: 1; }
 .properties-change .property-text {
   min-width: 0;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 13.5px;
   line-height: 1.5;
 }
@@ -3679,7 +3679,7 @@ ul.changes li.ability-row-end {
   gap: 7px;
   padding: 8px 10px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
 .ability-order-flow .ao-icon {
@@ -3689,7 +3689,7 @@ ul.changes li.ability-row-end {
   flex: 0 0 auto;
   border: 1px solid rgba(139, 148, 158, 0.4);
   border-radius: 4px;
-  background: #11161d;
+  background: var(--bg-panel-2);
   overflow: visible;          /* tooltip must escape the box */
 }
 .ability-order-flow .ao-icon img {
@@ -3710,7 +3710,7 @@ ul.changes li.ability-row-end {
   filter: grayscale(0.5);
 }
 .ability-order-flow .ao-arrow {
-  color: #e3c46a;
+  color: var(--gold);
   font-size: 18px;
   margin: 0 4px;
   flex: 0 0 auto;
@@ -3724,7 +3724,7 @@ ul.changes li.ability-row-end {
   transform: translateX(-50%);
   white-space: nowrap;
   background: rgba(13, 17, 23, 0.97);
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 12px;
   font-weight: 400;
   padding: 6px 10px;
@@ -3758,14 +3758,14 @@ ul.changes li.ability-row-end {
    Tormentor / Roshan / Wisdom Shrines / Health Restoration / Lifesteal /
    Miscellaneous / Talents etc. all read as section dividers, not links. */
 h4.subgroup {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 700;
   margin: 16px 0 4px 0;      /* aligned with entity-block left edge */
   text-transform: uppercase;
   letter-spacing: 0.6px;
   border-bottom: 1px solid;
-  border-image: linear-gradient(to right, #21262d 0%, #21262d 61%, transparent 71%) 1;
+  border-image: linear-gradient(to right, var(--bg-panel-4) 0%, var(--bg-panel-4) 61%, transparent 71%) 1;
   padding-bottom: 4px;
 }
 /* ABILITY BLOCK — icon (left, full-height) + title (top-right) + changes (below title) */
@@ -3824,7 +3824,7 @@ h4.subgroup {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #0a0e13;
+  background: var(--bg-page);
   padding: 1px;
   box-shadow: 0 0 0 1px rgba(220, 175, 95, 0.45);
 }
@@ -3832,7 +3832,7 @@ h4.subgroup {
   grid-column: 2;
   margin: -3px 0 0 0;        /* compensate for font cap-height offset (~3px below box top) */
   padding: 0 0 4px 0;
-  color: #c9d1d9;            /* same as body text — not coloured */
+  color: var(--text-main);            /* same as body text — not coloured */
   font-size: 17px;
   font-weight: 600;
   line-height: 1;
@@ -3858,7 +3858,7 @@ h4.subgroup {
 .ability-block.other-block > .ability-icon-wrap > .ability-icon-img {
   background: rgba(139, 148, 158, 0.05);
   padding: 6px;
-  box-shadow: 0 0 0 1px rgba(139, 148, 158, 0.18), 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px var(--line-soft), 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 /* Formula tables INSIDE .ability-block — extend back to entity-block left edge,
    not just within content column (else they look right-aligned past the icon). */
@@ -3899,7 +3899,7 @@ ul.changes li {
   align-items: baseline;
   padding: 1px 0;
   line-height: 1.5;
-  color: #c9d1d9;
+  color: var(--text-main);
   position: relative;
 }
 /* Hover ruler: dashed line spanning from text toward the % so the eye can
@@ -4006,7 +4006,7 @@ ul.changes li:not(:has(> .row-text)) > .correction-note {
 ul.changes li:not(:has(> .row-text))[data-tag*="buff"]::before  { content: "BUFF"; background: rgba(85,205,115,0.10); color: #6da375; border-color: rgba(85,205,115,0.28); }
 ul.changes li:not(:has(> .row-text))[data-tag*="nerf"]::before  { content: "NERF"; }
 ul.changes li:not(:has(> .row-text))[data-tag*="qol"]::before   { content: "QoL"; background: rgba(121,192,255,0.06); color: #87a3bf; border-color: rgba(121,192,255,0.20); }
-ul.changes li:not(:has(> .row-text))[data-tag*="misc"]::before  { content: "MISC"; background: rgba(139,148,158,0.06); color: #6e7681; border-color: rgba(139,148,158,0.18); }
+ul.changes li:not(:has(> .row-text))[data-tag*="misc"]::before  { content: "MISC"; background: rgba(139,148,158,0.06); color: var(--text-dimmer); border-color: rgba(139,148,158,0.18); }
 ul.changes li:not(:has(> .row-text))[data-tag*="new"]::before   { content: "NEW"; background: rgba(220,175,95,0.06); color: #9a7f4d; border-color: rgba(220,175,95,0.22); }
 ul.changes li:not(:has(> .row-text))[data-tag*="del"]::before   { content: "DEL"; background: rgba(180,70,70,0.07); color: #a86060; border-color: rgba(180,70,70,0.25); }
 ul.changes li:not(:has(> .row-text))[data-tag*="rework"]::before { content: "REWORK"; background: rgba(180,145,220,0.05); color: #7d6e93; border-color: rgba(180,145,220,0.15); }
@@ -4029,12 +4029,12 @@ ul.subnotes {
                                   above it in the same hero row). */
 }
 ul.subnotes li {
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 13.5px;
   padding: 1px 0;
   line-height: 1.4;
 }
-ul.subnotes li::before { content: "↳ "; color: #6e7681; }
+ul.subnotes li::before { content: "↳ "; color: var(--text-dimmer); }
 /* When the subnote is collapsible, drop the ↳ arrow — the rotating ▶ chevron
    on <summary> already serves as the indicator, putting both side-by-side
    reads as visual noise. */
@@ -4055,13 +4055,13 @@ ul.subnotes li:has(> .subnote-collapse)::before { content: ""; }
   width: 10px;
   margin-right: 4px;
   font-size: 9px;
-  color: #6e7681;
+  color: var(--text-dimmer);
   transition: transform 0.15s;
 }
 .subnote-collapse[open] > summary::before { transform: rotate(90deg); }
-.subnote-collapse > summary:hover { color: #c9d1d9; }
+.subnote-collapse > summary:hover { color: var(--text-main); }
 .subnote-count {
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-weight: 500;
   font-size: 12px;
 }
@@ -4072,12 +4072,12 @@ ul.subnote-items {
 ul.subnote-items > li {
   padding: 1px 0;
   line-height: 1.45;
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 13px;
 }
 ul.subnote-items > li::before {
   content: "•  ";
-  color: #6e7681;
+  color: var(--text-dimmer);
 }
 
 /* Block-level 'Show list (N)' info row that drops to a new line below the
@@ -4094,7 +4094,7 @@ ul.subnote-items > li::before {
   gap: 4px;
   list-style: none;
   cursor: pointer;
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 12.5px;
   user-select: none;
 }
@@ -4105,19 +4105,19 @@ ul.subnote-items > li::before {
 .show-list-inline > summary::before {
   content: '\21B3';           /* ↳ */
   display: inline-block;
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-size: 12.5px;
   margin-right: 2px;
 }
 .show-list-inline > summary > .show-list-chevron {
   display: inline-block;
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-size: 11px;
   transition: transform 0.15s ease;
 }
 .show-list-inline[open] > summary > .show-list-chevron { transform: rotate(90deg); }
-.show-list-inline > summary:hover { color: #c9d1d9; }
-.show-list-inline[open] > summary { color: #c9d1d9; }
+.show-list-inline > summary:hover { color: var(--text-main); }
+.show-list-inline[open] > summary { color: var(--text-main); }
 .show-list-inline > .show-list-body {
   display: block;
   margin: 6px 0 2px 6px;
@@ -4126,13 +4126,13 @@ ul.subnote-items > li::before {
 .show-list-inline > .show-list-body > .show-list-item {
   display: block;
   padding: 1px 0;
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 13px;
   line-height: 1.45;
 }
 .show-list-inline > .show-list-body > .show-list-item::before {
   content: "•  ";
-  color: #6e7681;
+  color: var(--text-dimmer);
 }
 
 /* One-liner ↳ note hanging off a li (passed via extra= on li()). Drops to a
@@ -4145,7 +4145,7 @@ ul.subnote-items > li::before {
   grid-column: 1 / -1;
   margin-top: 4px;
   font-size: 12.5px;
-  color: #8b949e;
+  color: var(--text-dim);
   line-height: 1.45;
   /* ↳ pseudo is absolute-positioned so the note's body content (including
      wrapping lines and <br>-separated entries) all share the same left
@@ -4158,7 +4158,7 @@ ul.subnote-items > li::before {
   position: absolute;
   left: 0;
   top: 1px;
-  color: #6e7681;
+  color: var(--text-dimmer);
 }
 /* ---- Section intro (section_intro): descriptive lead-in under a header ----
    Frames a category in prose; deliberately NOT a tagged change row (no badge,
@@ -4171,7 +4171,7 @@ ul.subnote-items > li::before {
   font-style: italic;
   line-height: 1.5;
   color: #9aa4b1;
-  border-left: 2px solid rgba(227, 196, 106, 0.45);
+  border-left: 2px solid var(--gold-line);
   background: rgba(227, 196, 106, 0.05);
   border-radius: 0 5px 5px 0;
 }
@@ -4206,7 +4206,7 @@ ul.subnote-items > li::before {
   background: rgba(13, 17, 23, 0.6);
   border: 1px solid rgba(120, 140, 170, 0.30);
   border-radius: 5px;
-  color: #e6edf3;
+  color: var(--text-bright);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   appearance: textfield;
@@ -4230,7 +4230,7 @@ ul.subnote-items > li::before {
   min-width: 0;
   padding: 12px 14px;
   background: rgba(139, 148, 158, 0.04);
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
 }
 .formula-expr {
@@ -4287,7 +4287,7 @@ ul.subnote-items > li::before {
    rework panes (.ability-change-pane). */
 .cm-board {
   padding: 10px 12px;
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
   background: rgba(139, 148, 158, 0.04);
 }
@@ -4297,7 +4297,7 @@ ul.subnote-items > li::before {
   align-self: center;
   font-size: 22px;
   font-weight: 700;
-  color: #c9d1d9;
+  color: var(--text-main);
   opacity: 0.85;
   padding: 0 2px;
 }
@@ -4491,7 +4491,7 @@ ul.changes li > .badge-group {
 /* Comma separator between multi-level badges */
 .badge-group .badge:not(:last-child)::after {
   content: ", ";
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-weight: 400;
 }
 /* Slash separator for paired dimensions (e.g. daytime / nighttime). */
@@ -4504,8 +4504,8 @@ ul.changes li > .badge-group {
 /* NEUTRAL & TEXT TAGS */
 .badge.neutral {
   background: rgba(139, 148, 158, 0.06);
-  color: #6e7681;
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  color: var(--text-dimmer);
+  border: 1px solid var(--line-soft);
 }
 .badge.rework {
   background: rgba(180, 145, 220, 0.05);
@@ -4514,8 +4514,8 @@ ul.changes li > .badge-group {
 }
 .badge.misc {
   background: rgba(139, 148, 158, 0.06);
-  color: #6e7681;
-  border: 1px solid rgba(139, 148, 158, 0.18);
+  color: var(--text-dimmer);
+  border: 1px solid var(--line-soft);
 }
 .badge.qol {
   background: rgba(121, 192, 255, 0.06);
@@ -4588,7 +4588,7 @@ ul.changes li > .badge-group {
 /* "(N days ago)" annotation — fainter so it reads as a side-note. */
 .correction-note .days-ago {
   font-style: normal;
-  color: #6e7681;
+  color: var(--text-dimmer);
   font-size: 11.5px;
   font-weight: 500;
 }
@@ -4610,7 +4610,7 @@ ul.changes li > .badge-group {
   font-style: normal;
 }
 /* IMAGE FALLBACK STYLE */
-.entity-icon img[alt]:not([src*="//"]) { background: #21262d; }
+.entity-icon img[alt]:not([src*="//"]) { background: var(--bg-panel-4); }
 img { max-width: 100%; }
 
 /* BACK TO TOP — fixed bottom-right */
@@ -4656,7 +4656,7 @@ ul.changes li.aghanim-shard {
 /* WRONG-WORD HIGHLIGHT — subtle, neutral marker (no strikethrough) */
 .wrong-word {
   background: rgba(139, 148, 158, 0.08);
-  color: #8b949e;
+  color: var(--text-dim);
   padding: 0 5px;
   border-radius: 3px;
 }
@@ -4668,7 +4668,7 @@ ul.changes li.aghanim-shard {
   padding: 0 5px;
   border-radius: 3px;
   background: rgba(139, 148, 158, 0.08);
-  color: #8b949e;
+  color: var(--text-dim);
   border: 1px solid rgba(139, 148, 158, 0.30);
   font-size: inherit;
   cursor: pointer;
@@ -4684,7 +4684,7 @@ ul.changes li.aghanim-shard {
   font-size: 10px;
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  color: #6e7681;
+  color: var(--text-dimmer);
   margin: 0 4px 0 -2px;
   font-weight: 500;
 }
@@ -4697,12 +4697,12 @@ ul.changes li.aghanim-shard {
 .formula-trigger:hover {
   background: rgba(139, 148, 158, 0.16);
   border-color: rgba(139, 148, 158, 0.50);
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 .formula-trigger.active {
   background: rgba(139, 148, 158, 0.22);
   border-color: rgba(139, 148, 158, 0.60);
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 /* OLD FORMULA — just a subtle dotted underline so it stands out as "the old one" */
 .formula-old {
@@ -4731,7 +4731,7 @@ ul.changes li.aghanim-shard {
 .formula-table[hidden] { display: none; }
 .formula-table thead th {
   background: rgba(48, 54, 61, 0.55);
-  color: #79c0ff;
+  color: var(--blue);
   font-weight: 600;
   font-size: 10.5px;
   padding: 4px 0;
@@ -4743,7 +4743,7 @@ ul.changes li.aghanim-shard {
   text-align: left;
   padding: 4px 8px;
   background: rgba(48, 54, 61, 0.5);
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 700;
   font-size: 10.5px;
   border-radius: 3px;
@@ -4753,7 +4753,7 @@ ul.changes li.aghanim-shard {
   padding: 4px 4px;
   text-align: center;
   background: rgba(48, 54, 61, 0.30);
-  color: #c9d1d9;
+  color: var(--text-main);
   border-radius: 3px;
   font-size: 11px;
 }
@@ -4798,7 +4798,7 @@ ul.changes li.aghanim-shard {
   white-space: nowrap;
 }
 .legend-categories strong {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
@@ -4825,12 +4825,12 @@ ul.changes li.aghanim-shard {
 .cat-filter-btn:hover {
   background: rgba(121, 192, 255, 0.10);
   border-color: rgba(121, 192, 255, 0.40);
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 .cat-filter-btn.active {
   background: rgba(121, 192, 255, 0.22);
   border-color: rgba(121, 192, 255, 0.60);
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 body.cat-filter-active .cat-hide { display: none !important; }
 
@@ -4994,7 +4994,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
      and fills the whole inner area, masking any seam during scroll. */
   border-collapse: collapse;
   font-size: 11.5px;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -5008,7 +5008,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    group's full height. */
 .creeps-table .lvl-cell {
   font-weight: 600;
-  color: #79c0ff;
+  color: var(--blue);
   background: rgba(170, 220, 240, 0.05);
   border-right: 1px solid rgba(170, 220, 240, 0.18);
 }
@@ -5031,7 +5031,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   --sticky-bg: #161d27;   /* match the row-hover tint, stay opaque */
 }
 .creeps-table .lvl-cell.sticky-col {
-  --sticky-bg: #11161d;   /* keep the level cell's faint blue-tint readable */
+  --sticky-bg: var(--bg-panel-2);   /* keep the level cell's faint blue-tint readable */
 }
 /* Overlay frame outlining the pinned identity block while scrolled.
    Drawn as a separate absolutely-positioned element in .creeps-page
@@ -5132,11 +5132,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 /* Nav tabs — same block style as the version picker button. */
 .nav-tab {
-  font-family: 'Jersey 10', 'Courier New', monospace;
+  font-family: var(--font-j10);
   font-size: 18px;
   letter-spacing: 1px;
   line-height: 1;
-  color: #c9d1d9;
+  color: var(--text-main);
   text-decoration: none;
   height: 38px;
   padding: 0 16px;
@@ -5157,16 +5157,16 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .nav-tab.active {
   background: rgba(0, 0, 0, 0.45);
-  color: #e3c46a;
+  color: var(--gold);
   text-shadow:
-    0 0 10px rgba(227, 196, 106, 0.45),
+    0 0 10px var(--gold-line),
     0 0  3px rgba(227, 196, 106, 0.25);
 }
 
 /* Materials sub-tabs — flat row of three browser-tab pills, hung BELOW the
    main header on a thin bar (so the header itself stays compact). */
 .materials-subnav {
-  background: #11161d;
+  background: var(--bg-panel-2);
   border-bottom: 1px solid rgba(170, 220, 240, 0.18);
   width: 100%;
 }
@@ -5210,10 +5210,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   align-items: center;
   gap: 0;
 }
-.nav-subtab:hover { color: #e6edf3; background: rgba(48, 54, 61, 0.45); }
+.nav-subtab:hover { color: var(--text-bright); background: rgba(48, 54, 61, 0.45); }
 .nav-subtab.active {
-  color: #e3c46a;
-  background: #0a0e13;          /* matches the page background → tab merges into page */
+  color: var(--gold);
+  background: var(--bg-page);          /* matches the page background → tab merges into page */
   border-color: rgba(170, 220, 240, 0.18);
 }
 .nav-subtab-label { color: inherit; }
@@ -5226,7 +5226,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   top: 100%;
   left: 0;
   min-width: 184px;
-  background: #11161d;
+  background: var(--bg-panel-2);
   border: 1px solid rgba(170, 220, 240, 0.20);
   border-radius: 0 8px 8px 8px;
   padding: 5px;
@@ -5268,9 +5268,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   gap: 14px;
   transition: background 0.12s ease, color 0.12s ease;
 }
-.nav-subitem:hover { color: #e6edf3; background: rgba(48, 54, 61, 0.55); }
+.nav-subitem:hover { color: var(--text-bright); background: rgba(48, 54, 61, 0.55); }
 .nav-subitem.active {
-  color: #e6edf3;
+  color: var(--text-bright);
   background: rgba(56, 139, 253, 0.18);
 }
 .nav-subitem-soon { color: #5b6672; cursor: default; }
@@ -5287,7 +5287,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border-radius: 8px;
 }
 /* The nested parent stays visually "open" (highlighted) while its flyout shows. */
-.nav-subgroup-nested:hover > .nav-subitem-parent { color: #e6edf3; background: rgba(48, 54, 61, 0.55); }
+.nav-subgroup-nested:hover > .nav-subitem-parent { color: var(--text-bright); background: rgba(48, 54, 61, 0.55); }
 .nav-soon-tag {
   font-size: 8.5px;
   text-transform: uppercase;
@@ -5319,14 +5319,14 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   gap: 13px;            /* room so the hover-zoomed icon doesn't cover the name */
   white-space: nowrap;
 }
-.unit-abilities-table .ua-ability-name { font-weight: 600; color: #e6edf3; }
+.unit-abilities-table .ua-ability-name { font-weight: 600; color: var(--text-bright); }
 /* Neutral Creeps "Unit" name cell matches the Neutral Abilities ability-name:
    left-aligned, semibold, same colour, single line — so both Materials tables
    share one look AND the same row height (no wrap-induced tall creep rows). */
 .creeps-table td.col-name {
   text-align: left;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--text-bright);
   white-space: nowrap;
 }
 /* Type — plain coloured fills (no glass effect). */
@@ -5366,13 +5366,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   z-index: 80;
   display: none;
   white-space: nowrap;
-  background: #0d1117;
+  background: var(--bg-panel);
   border: 1px solid rgba(170, 220, 240, 0.4);
   border-radius: 6px;
   padding: 5px 9px;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: #e6edf3;
+  color: var(--text-bright);
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
@@ -5429,7 +5429,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* Cell dashes — half size. */
 .unit-abilities-table .ua-dash,
 .creeps-table .ua-dash,
-.mr-table .ua-dash { color: #6e7681; font-size: 0.4em; }
+.mr-table .ua-dash { color: var(--text-dimmer); font-size: 0.4em; }
 /* "Ability" header centred; Type values left-aligned so the words line up. */
 .unit-abilities-table th.ua-ability { text-align: center; }
 .unit-abilities-table th.ua-type,
@@ -5498,7 +5498,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border: 1px solid #6b7682;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.04);
-  color: #e3c46a;
+  color: var(--gold);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -5510,7 +5510,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .qhint:hover,
 .qhint:focus-visible {
   color: #f4e3b3;
-  border-color: #e3c46a;
+  border-color: var(--gold);
   background: rgba(227, 196, 106, 0.15);
   outline: none;
 }
@@ -5525,8 +5525,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   max-width: 320px;
   padding: 5px 9px;
   background: #1b212a;
-  color: #e6edf3;
-  border: 1px solid #30363d;
+  color: var(--text-bright);
+  border: 1px solid var(--line);
   border-radius: 5px;
   font-size: 11px;
   font-weight: 500;
@@ -5545,14 +5545,14 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* Keep the colored Yes/No glyph + dash on the same line as the start of the
    description — only the trailing words flow onto a new line if needed. */
 .qhint-tip .qh-line .ua-yn { white-space: nowrap; }
-.qhint-tip .qh-line + .qh-line { border-top: 1px solid rgba(139, 148, 158, 0.18); }
+.qhint-tip .qh-line + .qh-line { border-top: 1px solid var(--line-soft); }
 .qhint-tip .ua-yn { font-weight: 600; font-size: 11px; }
 .qhint-tip .ua-yn-yes    { color: #6aa775; }
 .qhint-tip .ua-yn-no     { color: #c97f78; }
 .qhint-tip .ua-yn-strong { color: #c4ad5e; }
 /* Valve description variables (%hero_stun_duration% etc.) — values aren't
    resolved here, so just colour the placeholder name to mark it as "variable". */
-.qhint-tip .abil-var { color: #79c0ff; }
+.qhint-tip .abil-var { color: var(--blue); }
 /* Damage-type colour swatches inside the Damage header tooltip — mirror the
    in-table `td.dt-*` palette so the words match the actual cell numbers. */
 .qhint-tip .dt-magical   { color: #5fb1ff; font-weight: 600; }
@@ -5789,7 +5789,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .stat-hist-tip .abil-tip-name {
   text-align: center;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--text-bright);
   padding-bottom: 3px;
   margin-bottom: 3px;
   border-bottom: 1px solid rgba(139, 148, 158, 0.25);
@@ -5810,16 +5810,16 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   text-transform: uppercase;
   color: #9fb0c0;
   font-weight: 700;
-  /* Same colour as the column-name row below (base thead th = #161b22). A
+  /* Same colour as the column-name row below (base thead th = var(--bg-panel-3)). A
      single uniform header colour means there's NO colour boundary between the
      two rows, so the zoom-dependent seam/gap is gone at every scale. The
      category labels stay distinct through their uppercase dim styling. */
-  background: #161b22;
+  background: var(--bg-panel-3);
   padding: 3px 4px;
   /* Opaque lip extending 6px down past the edge: covers any sub-pixel sticky
      positioning gap with the SAME colour, so nothing ever shows through at
      scroll time regardless of zoom level. */
-  box-shadow: 0 6px 0 0 #161b22;
+  box-shadow: 0 6px 0 0 var(--bg-panel-3);
 }
 /* Column-name row — pinned under the category row. The blue scrolled-edge line
    is painted flush on this row's bottom via box-shadow (matches the Mana Items
@@ -5842,7 +5842,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   box-shadow:
     inset 0 -2px 0 rgba(120, 200, 235, 0.85),
     0 4px 10px rgba(0, 0, 0, 0.45),
-    0 -14px 0 0 #161b22;
+    0 -14px 0 0 var(--bg-panel-3);
 }
 .creeps-table thead tr.cat-row .cat-head + .cat-head { border-left: 2px solid rgba(170, 220, 240, 0.22); }
 /* Freeze the FIRST category cell (Basic = the frozen identity columns) on the
@@ -5930,7 +5930,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    hero box (40×23) crops them top/bottom. Size the box to the item aspect (40×29)
    so cover fills it without cropping (mirrors mana_items' .mr-ico approach). */
 .items-dyn-table .hd-hero-inner img { height: 29px; }
-.hd-hero-name { font-weight: 600; color: #e6edf3; }
+.hd-hero-name { font-weight: 600; color: var(--text-bright); }
 /* RULE (all tables): hovering a hero/unit portrait pops it out — like Neutral
    Creeps. The 18px gap + name-fitted column width keep the 1.8× zoom from ever
    covering the name. The icon's stacking sits under the sticky header (sticky-col
@@ -5957,7 +5957,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .toolbar-panel {
   display: flex; flex-wrap: wrap; align-items: center;
   gap: 6px 6px; width: 100%; flex: 1 1 100%; box-sizing: border-box;
-  background: #11161d; border: 1px solid #30363d; border-radius: 8px;
+  background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 8px;
   padding: 7px 12px;
 }
 /* Switches + chip/label groups go FLAT (transparent) — the panel border replaces
@@ -5980,7 +5980,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .toolbar-panel > *:not(:first-child) { position: relative; padding-left: 12px; }
 .toolbar-panel > *:not(:first-child)::before {
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 1px; height: 18px; background: #30363d;
+  width: 1px; height: 18px; background: var(--line);
 }
 .toolbar-panel > .ua-upgrades-toggle + .ua-upgrades-toggle { padding-left: 4px; }
 .toolbar-panel > .ua-upgrades-toggle + .ua-upgrades-toggle::before { content: none; }
@@ -6002,7 +6002,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.035);
-  color: #c9d1d9;
+  color: var(--text-main);
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -6023,11 +6023,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hs-attack-filter:hover {
   color: #fff;
-  border-color: rgba(227, 196, 106, 0.45);
+  border-color: var(--gold-line);
   filter: brightness(1.12);
 }
 .hs-attr-filter:hover {
-  border-color: rgba(227, 196, 106, 0.45);
+  border-color: var(--gold-line);
   filter: brightness(1.12);
 }
 .hs-attack-filter.active,
@@ -6250,7 +6250,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   padding: 4px 8px;
   background:
     linear-gradient(180deg, rgba(23, 28, 34, 0.96), rgba(14, 18, 22, 0.98)),
-    #11161d;
+    var(--bg-panel-2);
   border: 1px solid rgba(170, 220, 240, 0.14);
   border-radius: 8px;
   box-shadow:
@@ -6573,7 +6573,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hl-diff-row strong.pos { color: #7ee787; }
 .hl-diff-row strong.neg { color: #ff7b72; }
-.hl-diff-row strong.zero { color: #6e7681; }
+.hl-diff-row strong.zero { color: var(--text-dimmer); }
 .hl-overlay {
   position: fixed;
   inset: 0;
@@ -6817,11 +6817,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   }
 }
 .hs-level-group {
-  color: #c9d1d9;
+  color: var(--text-main);
   font-size: 12px;
 }
 .hs-level-group span {
-  color: #8b949e;
+  color: var(--text-dim);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -6830,10 +6830,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   width: 44px;
   height: 28px;
   box-sizing: border-box;
-  border: 1px solid #30363d;
+  border: 1px solid var(--line);
   border-radius: 5px;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-panel);
+  color: var(--text-bright);
   font: inherit;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -6849,7 +6849,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hs-level-group input:focus {
   outline: none;
-  border-color: #e3c46a;
+  border-color: var(--gold);
   box-shadow: 0 0 0 1px rgba(227, 196, 106, 0.22);
 }
 .hs-level-group input:disabled {
@@ -6869,7 +6869,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hd-remove-group {
   display: inline-flex; align-items: center; gap: 6px;
   height: 32px; box-sizing: border-box; padding: 0 10px;
-  background: #161b22; border: 1px solid #30363d; border-radius: 5px;
+  background: var(--bg-panel-3); border: 1px solid var(--line); border-radius: 5px;
 }
 .hd-search { flex: 0 1 240px; min-width: 150px; }
 .hd-search input { height: 32px; box-sizing: border-box; }
@@ -6894,21 +6894,21 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   display: inline-flex; align-items: center; gap: 6px;
   height: 32px; box-sizing: border-box; padding: 0 2px;
   background: transparent; border: none; border-radius: 0;
-  color: #c9d1d9; font-family: inherit; font-size: 12.5px;
+  color: var(--text-main); font-family: inherit; font-size: 12.5px;
   cursor: pointer; user-select: none; transition: color 0.12s;
 }
 .hd-dd-btn:hover .hd-dd-label,
 .hd-dd-btn[aria-expanded="true"] .hd-dd-label { color: #fff; }
-.hd-dd-caret { color: #8b949e; flex: none; transition: transform 0.12s; }
-.hd-dd-btn[aria-expanded="true"] .hd-dd-caret { transform: rotate(180deg); color: #c9d1d9; }
-.hd-dd-badge { color: #e3c46a; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hd-dd-caret { color: var(--text-dim); flex: none; transition: transform 0.12s; }
+.hd-dd-btn[aria-expanded="true"] .hd-dd-caret { transform: rotate(180deg); color: var(--text-main); }
+.hd-dd-badge { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
 .hd-dd-badge:empty { display: none; }
 /* Popover is PORTALED to <body> + positioned `fixed` by JS (top/left), so it escapes
    .creeps-scroll's contain:paint clip and never pushes a scrollbar on an empty table. */
 .hd-dd-menu {
   position: fixed; z-index: 1000;
   min-width: 150px; white-space: nowrap; max-height: 70vh; overflow: auto;
-  background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: 6px;
   padding: 5px; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
   display: flex; flex-direction: column; gap: 1px;
 }
@@ -6916,12 +6916,12 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hd-dd-opt {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 10px; border-radius: 4px;
-  font-size: 12.5px; color: #c9d1d9; cursor: pointer; user-select: none;
+  font-size: 12.5px; color: var(--text-main); cursor: pointer; user-select: none;
 }
-.hd-dd-opt:hover { background: #161b22; }
-.hd-dd-opt input { accent-color: #e3c46a; width: 14px; height: 14px; cursor: pointer; flex: none; }
-.hd-dd-all { font-weight: 700; color: #e3c46a; }   /* the "All" master row */
-.hd-dd-sep { height: 1px; background: #30363d; margin: 3px 2px; }
+.hd-dd-opt:hover { background: var(--bg-panel-3); }
+.hd-dd-opt input { accent-color: var(--gold); width: 14px; height: 14px; cursor: pointer; flex: none; }
+.hd-dd-all { font-weight: 700; color: var(--gold); }   /* the "All" master row */
+.hd-dd-sep { height: 1px; background: var(--line); margin: 3px 2px; }
 /* The dynamics toolbar must out-stack the table's sticky header/corner cells
    (z up to 52, hover-zoom 60) so an open dropdown popover isn't hidden under them.
    Overrides the z-index:6 from `.creeps-scroll > .inbox-bar`. */
@@ -6937,13 +6937,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .mr-price-label {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
-  color: #8b949e; padding-right: 4px; user-select: none;
+  color: var(--text-dim); padding-right: 4px; user-select: none;
 }
 .toolbar-panel .mr-price-input {
   width: 44px; padding: 3px 2px;
-  border-bottom: 1px solid #30363d; border-radius: 0; transition: border-color 0.12s;
+  border-bottom: 1px solid var(--line); border-radius: 0; transition: border-color 0.12s;
 }
-.toolbar-panel .mr-price-input:focus { border-bottom-color: #e3c46a; }
+.toolbar-panel .mr-price-input:focus { border-bottom-color: var(--gold); }
 .toolbar-panel .mr-price-clear { border-left: none; }
 /* Uniform 32px height for the flat switches too, so every panel control lines up. */
 .toolbar-panel .ua-upgrades-toggle { height: 32px; }
@@ -6955,7 +6955,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* Patch column header: just the version; release date shows in the hover tip. */
 .heroes-dyn-table th.hd-patch {
   white-space: nowrap; padding: 4px 2px; font-weight: 600; font-size: 12px;
-  color: #c9d1d9; text-align: center; vertical-align: bottom; cursor: help;
+  color: var(--text-main); text-align: center; vertical-align: bottom; cursor: help;
   overflow: hidden;
 }
 /* Super-category row: base version (e.g. 7.41) spanning its lettered variants
@@ -7136,7 +7136,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   width: 11px;
   height: 11px;
   /* Coloured via background-color through a PNG mask — neutral default
-     greyish, gold when the column is actively sorted (site accent #e3c46a). */
+     greyish, gold when the column is actively sorted (site accent var(--gold)). */
   background-color: rgba(201, 209, 217, 0.55);
   -webkit-mask: url('icons/sort/sort.png') center / contain no-repeat;
   mask: url('icons/sort/sort.png') center / contain no-repeat;
@@ -7147,13 +7147,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .creeps-table th.sort-asc .sort-ind,
 .mr-table thead th.sort-desc .sort-ind,
 .mr-table thead th.sort-asc .sort-ind {
-  background-color: #e3c46a;
+  background-color: var(--gold);
 }
 .creeps-table th.sort-desc .th-label,
 .creeps-table th.sort-asc .th-label,
 .mr-table thead th.sort-desc .th-label,
 .mr-table thead th.sort-asc .th-label {
-  color: #e3c46a;
+  color: var(--gold);
 }
 .creeps-table th.sort-desc .sort-ind,
 .mr-table thead th.sort-desc .sort-ind {
@@ -7188,7 +7188,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border-radius: 6px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
   font-size: 11.5px;
-  color: #c9d1d9;
+  color: var(--text-main);
   text-align: center;
   /* Tall histories (e.g. Guardian Greaves) would overflow the viewport.
      Cap height and let the tooltip scroll internally; JS clamps the top so
@@ -7200,7 +7200,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .stat-hist-tip.is-visible { display: block; }
 .stat-hist-tip .stat-chg { padding: 3px 0; }
 .stat-hist-tip .stat-chg + .stat-chg {
-  border-top: 1px solid rgba(139, 148, 158, 0.18);
+  border-top: 1px solid var(--line-soft);
   margin-top: 3px;
 }
 /* Net first→today summary pinned at the top of the tooltip, divider below. */
@@ -7214,7 +7214,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-variant-numeric: tabular-nums;
 }
 .stat-hist-tip .stat-net-label {
-  color: #8b949e;
+  color: var(--text-dim);
   font-size: 0.82em;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -7231,8 +7231,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   margin-bottom: 2px;
   border-bottom: 1px solid rgba(139, 148, 158, 0.14);
 }
-.stat-hist-tip .chg-patch { font-weight: 600; color: #79c0ff; }
-.stat-hist-tip .chg-date { color: #8b949e; font-size: 10px; }
+.stat-hist-tip .chg-patch { font-weight: 600; color: var(--blue); }
+.stat-hist-tip .chg-date { color: var(--text-dim); font-size: 10px; }
 .stat-hist-tip .stat-chg-line {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -7240,7 +7240,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   margin-top: 1px;
 }
 .stat-hist-tip .chg-label { color: #adbac7; }
-.stat-hist-tip .chg-cycle { color: #c9d1d9; padding: 0 3px; }
+.stat-hist-tip .chg-cycle { color: var(--text-main); padding: 0 3px; }
 /* Ability tags — same palette as the changelog NEW/DEL badges. */
 .stat-hist-tip .chg-tag {
   display: inline-block;
@@ -7262,7 +7262,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .stat-hist-tip .stat-pct { font-weight: 600; margin-left: 7px; }
 .stat-hist-tip .stat-pct.up   { color: #7fb88c; }
 .stat-hist-tip .stat-pct.down { color: #cf8b8b; }
-.stat-hist-tip .stat-pct.flat { color: #8b949e; }
+.stat-hist-tip .stat-pct.flat { color: var(--text-dim); }
 /* Per-column value tints. */
 .creeps-table td.col-hp_regen { color: #9ae66e; }   /* light green (салатовый) */
 .creeps-table td.col-mp_regen { color: #6fc3ec; }   /* light blue (голубоватый) */
@@ -7292,7 +7292,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   padding: 4px 10px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--text-bright);
   background: rgba(13, 17, 23, 0.92);
   border: 1px solid rgba(170, 220, 240, 0.35);
   border-radius: 5px;
@@ -7310,8 +7310,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   z-index: 50;           /* above body cells AND the hover-zoomed icon/ability
                             (z 30/40 below), so a hovered row near the top never
                             paints over the pinned header */
-  background: #161b22;
-  color: #e6edf3;
+  background: var(--bg-panel-3);
+  color: var(--text-bright);
   font-weight: 600;
   text-align: center;
   padding: 6px 6px;
@@ -7325,7 +7325,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .creeps-table thead th .th-sub {
   font-size: 8.5px;
   font-weight: 400;
-  color: #8b949e;
+  color: var(--text-dim);
   margin-left: 1px;
   /* Nudge down like a subscript via relative offset + zero line-height so the
      sub-label does NOT grow the header's line box. vertical-align:sub would
@@ -7425,13 +7425,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* Tier legend footer rows (no data, just label in column 3). */
 .creeps-table tr.creeps-footer td {
   background: rgba(139, 148, 158, 0.06);
-  color: #8b949e;
+  color: var(--text-dim);
   font-style: italic;
   border-bottom: none;
 }
 .creeps-table tr.creeps-footer td:nth-child(3) {
   font-style: normal;
-  color: #c9d1d9;
+  color: var(--text-main);
   font-weight: 600;
   padding-left: 16px;
 }
@@ -7449,15 +7449,15 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 1.55;
-  color: #8b949e;
+  color: var(--text-dim);
 }
-.mr-blurb strong { color: #c9d1d9; font-weight: 600; }
+.mr-blurb strong { color: var(--text-main); font-weight: 600; }
 .mr-blurb code {
   background: rgba(110, 118, 129, 0.12);
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 12px;
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 .mr-table {
   width: 100%;
@@ -7495,8 +7495,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   /* Typography matched 1:1 to .creeps-table thead th — inherits the 11.5px
      table font size (no override), same weight, colour, padding, casing,
      line-height so all three tables share one header design. */
-  background: #161b22;
-  color: #e6edf3;
+  background: var(--bg-panel-3);
+  color: var(--text-bright);
   font-weight: 600;
   text-align: center;
   padding: 6px 6px;
@@ -7532,7 +7532,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
      var(--mr-thead-top) so column names remain visible. */
   position: relative;
   z-index: 5;
-  background: #0a0e13;
+  background: var(--bg-page);
   box-sizing: content-box;
   /* Unified breathing room: 28px above the toolbar + 14px below, matching
      the Neutral Creeps / Neutral Abilities / Calendar pages. JS reads the
@@ -7541,7 +7541,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   padding: 28px 0 14px;
 }
 /* OPAQUE hover background — a translucent one let table rows scrolling
-   beneath the sticky header bleed through. This is the #161b22 base blended
+   beneath the sticky header bleed through. This is the var(--bg-panel-3) base blended
    with the old rgba(48,54,61,0.5) tint, fully opaque. */
 .mr-table thead th:hover { background: #232930; }
 /* Sort indicator — identical glyph + dim/active logic to the creeps-table
@@ -7558,7 +7558,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   padding: 6px 10px;
   border-bottom: 1px solid rgba(48, 54, 61, 0.5);
   text-align: center;
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 .mr-table tbody tr:hover { background: rgba(48, 54, 61, 0.3); }
 /* Item-name cell: icon stays in a fixed-width left column so every icon
@@ -7584,7 +7584,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   text-align: left;
   white-space: nowrap;
 }
-.mr-name-text { color: #e6edf3; font-weight: 500; }
+.mr-name-text { color: var(--text-bright); font-weight: 500; }
 
 /* Engine-constant inline chip (+12 max mana, +0.05 mana regen per Int).
    Visually it's just a bold value with the same dotted-underline cue used
@@ -7594,7 +7594,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    scraped patchnotes_english.txt). */
 .mr-const {
   font-weight: 600;
-  color: #c9d1d9;
+  color: var(--text-main);
 }
 .mr-const.has-history {
   cursor: help;
@@ -7640,42 +7640,42 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .mr-price-range {
   display: inline-flex;
   align-items: center;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--bg-panel-3);
+  border: 1px solid var(--line);
   border-radius: 5px;
   transition: border-color 0.12s;
 }
-.mr-price-range:focus-within { border-color: #58a6ff; }
+.mr-price-range:focus-within { border-color: var(--blue-bright); }
 .mr-price-input {
   width: 56px;
   background: transparent;
   border: none;
-  color: #c9d1d9;
+  color: var(--text-main);
   padding: 4px 6px;
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   text-align: center;
   outline: none;
 }
-.mr-price-input::placeholder { color: #6e7681; }
+.mr-price-input::placeholder { color: var(--text-dimmer); }
 .mr-price-input::-webkit-outer-spin-button,
 .mr-price-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .mr-price-input { -moz-appearance: textfield; }
-.mr-price-sep { color: #6e7681; font-size: 12px; padding: 0 2px; user-select: none; }
+.mr-price-sep { color: var(--text-dimmer); font-size: 12px; padding: 0 2px; user-select: none; }
 /* X button — flush against the right edge of the combo, no own border.
    `hidden` attr on render hides it until at least one bound is set; JS
    un-hides on input. */
 .mr-price-clear {
   border: none;
   background: transparent;
-  color: #8b949e;
+  color: var(--text-dim);
   cursor: pointer;
   padding: 4px 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: color 0.12s;
-  border-left: 1px solid #30363d;
+  border-left: 1px solid var(--line);
 }
 .mr-price-clear:hover { color: #f85149; }
 .mr-price-clear[hidden] { display: none; }
@@ -7735,9 +7735,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   text-transform: uppercase;
   color: #9fb0c0;
   font-weight: 700;
-  background: #161b22;
+  background: var(--bg-panel-3);
   padding: 3px 4px;
-  box-shadow: 0 6px 0 0 #161b22;
+  box-shadow: 0 6px 0 0 var(--bg-panel-3);
   cursor: default;
   user-select: none;
 }
@@ -7748,7 +7748,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   box-shadow:
     inset 0 -2px 0 rgba(120, 200, 235, 0.85),
     0 4px 10px rgba(0, 0, 0, 0.45),
-    0 -14px 0 0 #161b22;
+    0 -14px 0 0 var(--bg-panel-3);
 }
 .mr-table.hs-table thead tr.cat-row .cat-head + .cat-head {
   border-left: 2px solid rgba(170, 220, 240, 0.22);
@@ -7764,7 +7764,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   margin-left: 1px;
   font-size: 8.5px;
   line-height: 0;
-  color: #8b949e;
+  color: var(--text-dim);
   font-weight: 400;
 }
 /* Sticky hero column (single frozen column → plain CSS sticky, no JS lefts).
@@ -7774,7 +7774,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: sticky;
   left: 0;
   z-index: 3;
-  background: #11161d;
+  background: var(--bg-panel-2);
 }
 /* The shared .mr-name rule sets display:grid on the <td>. A grid (or flex) <td>
    drops out of the table's automatic ROW-HEIGHT equalisation, so the icon-tall
@@ -7825,7 +7825,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
     linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) top    / 100% 2px no-repeat,
     linear-gradient(rgba(231, 196, 106, 0.95), rgba(231, 196, 106, 0.95)) bottom / 100% 2px no-repeat,
     linear-gradient(rgba(231, 196, 106, 0.12), rgba(231, 196, 106, 0.12)),
-    #11161d;
+    var(--bg-panel-2);
   /* MUST come AFTER the `background` shorthand (which resets origin to its
      padding-box default). border-box origin puts the top/bottom bars on the
      cell's full-height edges, matching the box-shadow frame on the other
@@ -7919,7 +7919,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  border: 2px solid #e3c46a;
+  border: 2px solid var(--gold);
   border-radius: 8px;
   overflow: hidden;
   background: #11140f;
@@ -7977,7 +7977,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   left: 50%;
   width: 2px;
   transform: translateX(-50%);
-  background: #e3c46a;
+  background: var(--gold);
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.65);
 }
 .tc-grip {
@@ -7985,7 +7985,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 2px solid #e3c46a;
+  border: 2px solid var(--gold);
   background: linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
   box-shadow:
     inset 0 1px 0 rgba(190, 225, 240, 0.12),
@@ -8017,7 +8017,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .tc-handle:focus-visible { outline: none; }
 .tc-handle:focus-visible .tc-grip {
   box-shadow:
-    0 0 0 3px rgba(227, 196, 106, 0.45),
+    0 0 0 3px var(--gold-line),
     inset 0 1px 0 rgba(190, 225, 240, 0.12);
 }
 /* While actively dragging, hide the I-beam everywhere + brighten the grip. */
@@ -8050,7 +8050,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   font-weight: 400;
   font-size: 24px;
   letter-spacing: 0.5px;
-  color: #e3c46a;
+  color: var(--gold);
 }
 .terrain-list { padding-left: 4px; }
 .terrain-list li { padding: 3px 0; }
@@ -8120,7 +8120,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   align-self: stretch;
   min-height: 22px;
   margin: 0 3px;
-  background: rgba(227, 196, 106, 0.35);
+  background: var(--gold-glow);
 }
 .tc-btn {
   display: inline-flex;
@@ -8132,7 +8132,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   border-radius: 5px;
   border: 1px solid rgba(227, 196, 106, 0.55);
   background: rgba(20, 16, 9, 0.72);
-  color: #e6edf3;
+  color: var(--text-bright);
   font-size: 13px;
   cursor: pointer;
   user-select: none;
@@ -8156,7 +8156,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* ON = lit gold chip; OFF (default) = greyed + pressed-in */
 .tc-btn[aria-pressed="true"] {
   background: rgba(227, 196, 106, 0.22);
-  border-color: #e3c46a;
+  border-color: var(--gold);
   color: #fff8e0;
 }
 .tc-btn[aria-pressed="false"] {
@@ -8187,11 +8187,11 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .tc-ver-old { left: 8px; top: 8px; }
 
 /* ---- tree tally + camp note under the change list ---- */
-.terrain-counts { margin: 14px 4px 2px; font-size: 13px; color: #8b949e; line-height: 1.55; }
+.terrain-counts { margin: 14px 4px 2px; font-size: 13px; color: var(--text-dim); line-height: 1.55; }
 /* Trees + Neutral-camps lines are one logical block — keep them tight (the
    default 14px top would read as an empty line between them). */
 .terrain-counts + .terrain-counts { margin-top: 1px; }
-.terrain-counts b { color: #e6edf3; }
+.terrain-counts b { color: var(--text-bright); }
 .tm-add-text { color: #6fe089; font-weight: 600; }
 .tm-rem-text { color: #ff7a7a; font-weight: 600; }
 
@@ -8200,15 +8200,15 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   margin: 12px 2px 0;
   font-size: 12px;
   line-height: 1.5;
-  color: #6e7681;
+  color: var(--text-dimmer);
   text-align: center;
 }
 .tc-source a {
-  color: #e3c46a;
+  color: var(--gold);
   text-decoration: none;
-  border-bottom: 1px dotted rgba(227, 196, 106, 0.45);
+  border-bottom: 1px dotted var(--gold-line);
 }
-.tc-source a:hover { border-bottom-color: #e3c46a; }
+.tc-source a:hover { border-bottom-color: var(--gold); }
 
 /* ---- patch picker (lives in the change-list heading) + per-patch panes ---- */
 /* The picker reuses the calendar year-picker structure but in the terrain
@@ -8224,7 +8224,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .tc-picker.is-open { z-index: 80; }
 .tc-picker .cal-year-current {
   background: linear-gradient(180deg, #3b2e1d 0%, #2a2014 100%);
-  border: 1px solid #e3c46a;
+  border: 1px solid var(--gold);
   color: #f4e6bf;
   /* Match the map toolbar's 28px control height so the heading row lines up
      with the toolbar and the first change row meets the map's top edge. */
@@ -8232,13 +8232,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   padding-top: 0;
   padding-bottom: 0;
 }
-.tc-picker .cal-year-caret { color: #e3c46a; }
-.tc-picker .cal-year-current:hover { border-color: #f0d896; }
+.tc-picker .cal-year-caret { color: var(--gold); }
+.tc-picker .cal-year-current:hover { border-color: var(--gold-strong); }
 .tc-picker.is-open .cal-year-current,
 .tc-picker .cal-year-current:focus-visible {
-  border-color: #f0d896;
+  border-color: var(--gold-strong);
   box-shadow: inset 0 1px 0 rgba(190, 225, 240, 0.12),
-              0 0 0 3px rgba(227, 196, 106, 0.28);
+              0 0 0 3px var(--gold-line-soft);
 }
 .tc-picker .cal-year-menu {
   background: #15110a;
@@ -8248,7 +8248,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .tc-picker .cal-year-opt:hover { background: rgba(227, 196, 106, 0.14); color: #fff5dc; }
 .tc-picker .cal-year-opt.is-selected {
   background: rgba(227, 196, 106, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(227, 196, 106, 0.45);
+  box-shadow: inset 0 0 0 1px var(--gold-line);
 }
 .terrain-map-pane[hidden],
 .terrain-list-pane[hidden] { display: none; }
@@ -8259,7 +8259,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  border: 2px solid #e3c46a;
+  border: 2px solid var(--gold);
   border-radius: 8px;
   overflow: hidden;
   background: #11140f;
@@ -8302,7 +8302,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .tc-fallback-sub {
   font-family: 'Jersey 25', 'Jersey 10', sans-serif;
   font-size: 20px;
-  color: #e3c46a;
+  color: var(--gold);
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
 }
 .tc-fallback-note {
@@ -8332,7 +8332,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   height: var(--lens, 184px);
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid #e3c46a;
+  border: 3px solid var(--gold);
   box-shadow:
     0 0 0 2px rgba(8, 8, 8, 0.7),
     0 6px 18px rgba(0, 0, 0, 0.6);
@@ -8383,15 +8383,15 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .version-beta-wrap { cursor: pointer; }
 .version-beta-wrap .version.version-beta { cursor: pointer; }
 @keyframes whatsnew-breathe {
-  0%   { color: #c9d1d9; transform: scale(1);    }
-  50%  { color: #d6b764; transform: scale(1.12); }
-  100% { color: #c9d1d9; transform: scale(1);    }
+  0%   { color: var(--text-main); transform: scale(1);    }
+  50%  { color: var(--gold-dim); transform: scale(1.12); }
+  100% { color: var(--text-main); transform: scale(1);    }
 }
 
 .whatsnew-popup {
   position: fixed;
   z-index: 200;
-  background: #0d1117;
+  background: var(--bg-panel);
   border: 1px solid rgba(170, 220, 240, 0.35);
   border-radius: 7px;
   min-width: 240px;
@@ -8403,10 +8403,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .whatsnew-popup.wn-open { display: block; }
 .whatsnew-popup-head {
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(139, 148, 158, 0.18);
+  border-bottom: 1px solid var(--line-soft);
   font-family: 'Jersey 10', monospace;
   font-size: 15px;
-  color: #e3c46a;
+  color: var(--gold);
   letter-spacing: 0.4px;
 }
 .whatsnew-list { padding: 5px 0; }
@@ -8417,13 +8417,13 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   gap: 8px;
   padding: 5px 12px;
   font-size: 12px;
-  color: #c9d1d9;
+  color: var(--text-main);
   text-decoration: none;
   transition: background 0.12s;
 }
 a.whatsnew-row:hover {
   background: rgba(139, 148, 158, 0.1);
-  color: #e6edf3;
+  color: var(--text-bright);
 }
 .whatsnew-tag {
   font-size: 10px;
