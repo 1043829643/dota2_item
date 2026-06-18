@@ -15,9 +15,11 @@ Pages are built in dependency order:
   terrain -- terrain comparison
 """
 
+import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 STEPS = [
     ("patch",   "builders/patch.py",       "Patch pages (index + calendar + changelogs)"),
@@ -57,6 +59,26 @@ def main() -> int:
         print(f"  [{status}] {elapsed:.1f}s")
         if result.returncode != 0:
             failed.append(desc)
+
+    # Copy static assets into dist/ so local `python -m http.server --directory dist` works.
+    # CI does the same in the "Copy static assets" workflow step.
+    _root = Path(__file__).parent
+    _dist = _root / "dist"
+    print(f"\n{SEP}")
+    print("  Copying static assets into dist/")
+    print(SEP)
+    for name in ("styles.css", "_dynamics.json"):
+        src = _root / name
+        if src.exists():
+            shutil.copy2(src, _dist / name)
+    for name in ("src", "icons"):
+        src = _root / name
+        if src.exists():
+            dst = _dist / name
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+    print("  [OK]")
 
     total = time.monotonic() - t0
     print(f"\n{SEP2}")
