@@ -106,19 +106,17 @@ def save_index_html():
     # Heroes, which expand in place like Support instead of redirecting), then
     # Terrain. Each link tile swaps its static PNG for an animated GIF on hover:
     # calendar (date burn, JS), patch (page-flip, CSS), terrain (levitate, CSS).
-    # (label, href, i18n_key) — i18n_key reuses the shared nav/materials keys
-    # where the caption matches a nav label, so RU translations live in one place.
     _INV_LINKS = {
-        'patch':    ('Changelogs', f'patches/{latest}.html' if latest else 'calendar.html', 'nav.changelogs'),
-        'calendar': ('Calendar',   'calendar.html', 'nav.calendar'),
-        'terrain':  ('Terrain',    'terrain.html', 'mat.terrain'),
+        'patch':    ('Changelogs', f'patches/{latest}.html' if latest else 'calendar.html'),
+        'calendar': ('Calendar',   'calendar.html'),
+        'terrain':  ('Terrain',    'terrain.html'),
     }
     # Arcana (Neutral Abilities) lives under the Materials sub-nav, so it has no
     # hub tile of its own.
     _INV_PLACEHOLDERS = []
 
     def _link_tile(key):
-        label, href, i18n_key = _INV_LINKS[key]
+        label, href = _INV_LINKS[key]
         if key == "terrain":
             # Terrain = a floating earth block: on hover it levitates + bobs and
             # sheds occasional pixel "dirt" from its underside (CSS particles).
@@ -130,7 +128,7 @@ def save_index_html():
                 + '<i class="dirt"></i>' * 5 +
                 '</span>'
                 '</span>'
-                f'<span class="inv-cap" data-i18n="{i18n_key}">{label}</span>'
+                f'<span class="inv-cap">{label}</span>'
                 '</a>'
             )
         return (
@@ -138,11 +136,11 @@ def save_index_html():
             f'<span class="inv-slot">'
             f'<img class="inv-icon" src="icons/ui/gothic/icon_{key}.png" alt="">'
             f'</span>'
-            f'<span class="inv-cap" data-i18n="{i18n_key}">{label}</span>'
+            f'<span class="inv-cap">{label}</span>'
             f'</a>'
         )
 
-    def _opener_tile(key, label, panel, icon, i18n_key):
+    def _opener_tile(key, label, panel, icon):
         # A tile that expands a sub-panel in place (like Support). `key` doubles
         # as the .inv-cell-<key> hover class, so passing 'creeps' keeps the
         # beetle-crawl GIF; placeholder openers (items/heroes) use a key with no
@@ -153,7 +151,7 @@ def save_index_html():
             '<span class="inv-slot">'
             f'<img class="inv-icon" src="icons/ui/gothic/{icon}" alt="">'
             '</span>'
-            f'<span class="inv-cap" data-i18n="{i18n_key}">{label}</span>'
+            f'<span class="inv-cap">{label}</span>'
             '</a>'
         )
 
@@ -161,11 +159,11 @@ def save_index_html():
         _link_tile('patch'),
         _link_tile('calendar'),
         # Creeps opener keeps the beetle-crawl hover (.inv-cell-creeps).
-        _opener_tile('creeps', 'Creeps', 'creeps', 'icon_creeps.png', 'mat.creeps_grp'),
+        _opener_tile('creeps', 'Creeps', 'creeps', 'icon_creeps.png'),
         # Items opener: closed treasure chest at rest; hover plays the chest-open
         # APNG (key → lid opens → gold beam + treasure). See .inv-cell-items CSS.
-        _opener_tile('items', 'Items', 'items', 'icon_chest.png', 'mat.items_grp'),
-        _opener_tile('heroes', 'Heroes', 'heroes', 'icon_hat.png', 'mat.heroes_grp'),
+        _opener_tile('items', 'Items', 'items', 'icon_chest.png'),
+        _opener_tile('heroes', 'Heroes', 'heroes', 'icon_hat.png'),
         _link_tile('terrain'),
     ]
     # Special "star" tile — the slot emits a faint pixel-gold glow (hinting it's
@@ -186,7 +184,7 @@ def save_index_html():
         '</span><span class="dust-burst">' + '<i class="spark"></i>' * 8 +
         '</span></span>'
         '</span>'
-        '<span class="inv-cap" data-i18n="idx.support">Support</span>'
+        '<span class="inv-cap">Support</span>'
         '</a>'
     )
     empties = ''.join(
@@ -226,7 +224,7 @@ def save_index_html():
         '<img class="inv-icon" src="icons/ui/gothic/icon_donation.png" alt="">'
         '<span class="don-coin" aria-hidden="true"></span>'
         '<span class="support-ru-tag">RU</span></span>'
-        '<span class="inv-cap" data-i18n="idx.donation">Donation</span></a>'
+        '<span class="inv-cap">Donation</span></a>'
         '<a class="support-btn support-kofi" '
         'href="https://ko-fi.com/sikle" target="_blank" rel="noopener">'
         '<span class="inv-slot">'
@@ -240,46 +238,46 @@ def save_index_html():
     # Support). Buttons reuse the .support-btn shell; an .inv-cell-<key> class on
     # a button carries over that tile's hover animation (creeps crawl, dynamics
     # bars, mana fill). Unwired buttons render as inert "soon" tiles.
-    def _panel_link_btn(anim_cls, href, icon, label, i18n_key):
+    def _panel_link_btn(anim_cls, href, icon, label):
         cls = ('support-btn ' + anim_cls).strip()
         return (
             f'<a class="{cls}" href="{href}">'
             '<span class="inv-slot">'
             f'<img class="inv-icon" src="icons/ui/gothic/{icon}" alt="">'
             '</span>'
-            f'<span class="inv-cap" data-i18n="{i18n_key}">{label}</span></a>'
+            f'<span class="inv-cap">{label}</span></a>'
         )
 
-    def _panel_soon_btn(icon, label, i18n_key):
+    def _panel_soon_btn(icon, label):
         return (
             '<span class="support-btn support-soon" '
-            'aria-disabled="true" title="Coming soon" data-i18n-title="ui.coming_soon">'
+            'aria-disabled="true" title="Coming soon">'
             '<span class="inv-slot">'
             f'<img class="inv-icon" src="icons/ui/gothic/{icon}" alt="">'
-            '<span class="support-soon-tag" data-i18n="ui.soon">soon</span></span>'
-            f'<span class="inv-cap" data-i18n="{i18n_key}">{label}</span></span>'
+            '<span class="support-soon-tag">soon</span></span>'
+            f'<span class="inv-cap">{label}</span></span>'
         )
 
     creeps_panel = (
         '<div class="inv-panel creeps-panel" data-panel="creeps" aria-hidden="true">'
         '<div class="support-options">'
-        + _panel_link_btn('inv-cell-creeps', 'neutral_stats.html', 'icon_creeps.png', 'Neutrals', 'mat.creeps')
-        + _panel_soon_btn('icon_abilities.png', 'Summons', 'mat.summons')
-        + _panel_soon_btn('icon_tree.png', 'Lane Creeps', 'mat.lane')
+        + _panel_link_btn('inv-cell-creeps', 'neutral_stats.html', 'icon_creeps.png', 'Neutrals')
+        + _panel_soon_btn('icon_abilities.png', 'Summons')
+        + _panel_soon_btn('icon_tree.png', 'Lane Creeps')
         + '</div></div>'
     )
     heroes_panel = (
         '<div class="inv-panel heroes-panel" data-panel="heroes" aria-hidden="true">'
         '<div class="support-options">'
-        + _panel_link_btn('inv-cell-dynamics', 'heroes_dyn.html', 'icon_dynamics.png', 'Dynamics', 'idx.dynamics')
-        + _panel_link_btn('', 'heroes_stats.html', 'icon_typewriter.png', 'Stats', 'idx.stats')
+        + _panel_link_btn('inv-cell-dynamics', 'heroes_dyn.html', 'icon_dynamics.png', 'Dynamics')
+        + _panel_link_btn('', 'heroes_stats.html', 'icon_typewriter.png', 'Stats')
         + '</div></div>'
     )
     items_panel = (
         '<div class="inv-panel items-panel" data-panel="items" aria-hidden="true">'
         '<div class="support-options">'
-        + _panel_link_btn('inv-cell-mana', 'mana_items.html', 'icon_mana.png', 'Mana', 'idx.mana')
-        + _panel_link_btn('inv-cell-dynamics', 'items_dyn.html', 'icon_dynamics.png', 'Dynamics', 'idx.dynamics')
+        + _panel_link_btn('inv-cell-mana', 'mana_items.html', 'icon_mana.png', 'Mana')
+        + _panel_link_btn('inv-cell-dynamics', 'items_dyn.html', 'icon_dynamics.png', 'Dynamics')
         + '</div></div>'
     )
     # The divider keeps its place under the title; when the Support panel is
@@ -288,8 +286,7 @@ def save_index_html():
     divider_row = (
         '<div class="inv-divider-row">'
         '<button type="button" class="support-back" data-panel-close '
-        'aria-label="Back to menu" title="Back" '
-        'data-i18n-aria-label="idx.back_menu" data-i18n-title="ui.back">'
+        'aria-label="Back to menu" title="Back">'
         '<img class="support-back-orn" src="icons/ui/gothic/divider_arrow_left.png" alt="">'
         '</button>'
         '<img class="inv-divider" src="icons/ui/gothic/divider.png" alt="" aria-hidden="true">'
@@ -302,7 +299,7 @@ def save_index_html():
     grid_html = (
         '<div class="inv-book">'
         '<div class="inv-head">'
-        '<h1 class="inv-title" data-i18n="idx.title">What does a hero truly need?</h1>'
+        '<h1 class="inv-title">What does a hero truly need?</h1>'
         '</div>'
         f'{divider_row}'
         '<div class="inv-stage">'
