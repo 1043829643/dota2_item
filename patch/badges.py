@@ -351,7 +351,7 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
     uniform_delta = len({(cls, disp) for cls, disp, _, _ in pct_data}) == 1
 
     pct_row = "" if uniform_delta else (
-        f'<tr><th>Delta %</th>{"".join(pct_cells)}</tr>'
+        f'<tr><th>Δ%</th>{"".join(pct_cells)}</tr>'
     )
 
     table = (
