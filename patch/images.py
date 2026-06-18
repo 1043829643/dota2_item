@@ -91,6 +91,7 @@ ITEM_SLUG = {
     # (lowercase + spaces->underscores + strip apostrophes). Verify against
     # the live Valve datafeed: dota2.com/datafeed/itemlist
     "Khanda": "angels_demise",
+    "Parasma": "devastator",
     "Book of the Dead": "demonicon",
     "Witchbane": "heavy_blade",
     "Gunpowder Gauntlet": "gunpowder_gauntlets",
