@@ -559,8 +559,11 @@ def save_terrain_html():
     by_patch = _terrain_changes_by_patch()
     # Sort newest-first by version tuple so default is always the latest patch.
     def _ver_key(v):
-        parts = v.split(".")
-        return tuple(int(x) if x.isdigit() else x for x in parts)
+        import re
+        def _part(s):
+            m = re.match(r'^(\d+)([a-z]*)$', s)
+            return (int(m.group(1)), m.group(2)) if m else (0, s)
+        return tuple(_part(x) for x in v.split("."))
     patches = sorted(by_patch.keys(), key=_ver_key, reverse=True)
     if not patches:                       # parser failed → degrade gracefully
         patches = sorted(_MAP_PAIRS, key=_ver_key, reverse=True) or ["7.41"]
