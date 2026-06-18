@@ -1020,9 +1020,10 @@ def main() -> int:
     m60_hist = load_metric_history("mana_per_60s")
     html = render_html(rows, cost_hist, intel_hist, mana_hist, regen_hist,
                        cpr_hist, rpg_hist, m60_hist)
-    out = _HERE / "mana_items.html"
+    (_HERE / "dist").mkdir(exist_ok=True)
+    out = _HERE / "dist" / "mana_items.html"
     out.write_text(html, encoding="utf-8")
-    print(f"  -> mana_items.html: {len(html):,} bytes "
+    print(f"  -> dist/mana_items.html: {len(html):,} bytes "
           f"({len(rows)} items)")
     return 0
 

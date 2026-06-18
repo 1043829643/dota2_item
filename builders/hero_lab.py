@@ -278,8 +278,9 @@ def render_html() -> str:
 
 def main() -> int:
     html = render_html()
-    (_HERE / "hero_lab.html").write_text(html, encoding="utf-8")
-    print(f"  -> hero_lab.html: {len(html):,} bytes")
+    (_HERE / "dist").mkdir(exist_ok=True)
+    (_HERE / "dist" / "hero_lab.html").write_text(html, encoding="utf-8")
+    print(f"  -> dist/hero_lab.html: {len(html):,} bytes")
     return 0
 
 

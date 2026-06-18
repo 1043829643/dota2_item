@@ -13,6 +13,7 @@ import hashlib as _hashlib
 import os as _os
 
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
+DIST_DIR = _os.path.join(_HERE, "dist")
 
 
 def favicon_links(prefix=""):

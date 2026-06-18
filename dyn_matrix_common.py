@@ -461,8 +461,10 @@ def save_dyn_matrix(*, kind, roster_key, out_file, page_title, subtab, noun,
         f'<script src="src/scripts.js?v={_site.compute_asset_version()}"></script>\n'
         '</body>\n</html>\n'
     )
-    out = _os.path.join(_HERE, out_file)
+    dist = _os.path.join(_HERE, "dist")
+    _os.makedirs(dist, exist_ok=True)
+    out = _os.path.join(dist, out_file)
     with open(out, "w", encoding="utf-8") as f:
         f.write(page)
-    print(f"  -> {out_file}: {len(page):,} bytes "
+    print(f"  -> dist/{out_file}: {len(page):,} bytes "
           f"({len(rows_data)} {kind}s x {len(patches)} patches)")

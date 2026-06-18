@@ -1622,10 +1622,11 @@ def _latest_href() -> str:
 
 def main() -> int:
     html = render_html()
-    out = _HERE / "heroes_stats.html"
+    (_HERE / "dist").mkdir(exist_ok=True)
+    out = _HERE / "dist" / "heroes_stats.html"
     out.write_text(html, encoding="utf-8")
     n_rows = html.count("<tr data-slug=")
-    print(f"  -> heroes_stats.html: {len(html):,} bytes ({n_rows} heroes)")
+    print(f"  -> dist/heroes_stats.html: {len(html):,} bytes ({n_rows} heroes)")
     return 0
 
 

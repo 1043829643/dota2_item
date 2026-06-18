@@ -343,11 +343,11 @@ def save_html(filename):
     # Perf: let the browser decode images off the main thread (smoother render
     # on icon-heavy pages — 600+ icons). Safe + universal; no visual change.
     out = out.replace('<img ', '<img decoding="async" ')
-    path = filename
-    os.makedirs(os.path.dirname(path), exist_ok=True) if os.path.dirname(path) else None
+    path = os.path.join(_site.DIST_DIR, filename)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         f.write(out)
-    print(f"  → {filename}: {len(out):,} bytes")
+    print(f"  → dist/{filename}: {len(out):,} bytes")
     H.clear()
     _State.block_open = False
     _State.current_sections = []

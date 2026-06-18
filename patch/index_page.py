@@ -435,6 +435,7 @@ def save_index_html():
         f'<script src="src/scripts.js?v={_ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    with open('index.html', 'w', encoding='utf-8') as f:
+    _os.makedirs(_site.DIST_DIR, exist_ok=True)
+    with open(_os.path.join(_site.DIST_DIR, 'index.html'), 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"  → index.html: {len(html):,} bytes")
+    print(f"  → dist/index.html: {len(html):,} bytes")

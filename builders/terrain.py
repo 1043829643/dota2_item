@@ -651,11 +651,12 @@ def save_terrain_html():
         f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    out = _os.path.join(_HERE, "terrain.html")
+    _os.makedirs(_site.DIST_DIR, exist_ok=True)
+    out = _os.path.join(_site.DIST_DIR, "terrain.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(page)
     total = sum(len(v) for v in by_patch.values())
-    print(f"  -> terrain.html: {len(page):,} bytes "
+    print(f"  -> dist/terrain.html: {len(page):,} bytes "
           f"({len(patches)} patches, {total} terrain changes; "
           f"default {default})")
 

@@ -1544,15 +1544,16 @@ def save_creeps_html():
         f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    with open('neutral_stats.html', 'w', encoding='utf-8') as f:
+    _os.makedirs(_site.DIST_DIR, exist_ok=True)
+    with open(_os.path.join(_site.DIST_DIR, 'neutral_stats.html'), 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"  -> neutral_stats.html: {len(html):,} bytes")
+    print(f"  -> dist/neutral_stats.html: {len(html):,} bytes")
     # Backward-compat redirects: any old bookmark / external link to the former
     # /neutral_creeps.html, /creeps.html or /materials.html bounces to
     # /neutral_stats.html. Removed
     # once we're confident no traffic references the old URLs.
     for _old in ('neutral_creeps.html', 'creeps.html', 'materials.html'):
-        with open(_old, 'w', encoding='utf-8') as f:
+        with open(_os.path.join(_site.DIST_DIR, _old), 'w', encoding='utf-8') as f:
             f.write(
                 '<!DOCTYPE html><html><head><meta charset="UTF-8">'
                 '<meta http-equiv="refresh" content="0; url=neutral_stats.html">'
@@ -2490,9 +2491,9 @@ def save_creeps_html():
         f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
-    with open('neutral_abilities.html', 'w', encoding='utf-8') as f:
+    with open(_os.path.join(_site.DIST_DIR, 'neutral_abilities.html'), 'w', encoding='utf-8') as f:
         f.write(ua_html)
-    print(f"  -> neutral_abilities.html: {len(ua_html):,} bytes")
+    print(f"  -> dist/neutral_abilities.html: {len(ua_html):,} bytes")
     # Tiny redirect for the old URL so existing links (including from
     # generated patch pages, bookmarks, external references) don't 404.
     redirect_html = (
@@ -2503,9 +2504,9 @@ def save_creeps_html():
         '<p>This page moved to <a href="neutral_abilities.html">'
         'neutral_abilities.html</a>.</p></body></html>'
     )
-    with open('unit_abilities.html', 'w', encoding='utf-8') as f:
+    with open(_os.path.join(_site.DIST_DIR, 'unit_abilities.html'), 'w', encoding='utf-8') as f:
         f.write(redirect_html)
-    print(f"  -> unit_abilities.html: {len(redirect_html)} bytes (redirect)")
+    print(f"  -> dist/unit_abilities.html: {len(redirect_html)} bytes (redirect)")
 
 if __name__ == "__main__":
     save_creeps_html()

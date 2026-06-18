@@ -23,7 +23,7 @@ from pathlib import Path
 
 _HERE = Path(__file__).parent.parent
 DATA_DIR = _HERE / "data" / "stats"
-OUT_DIR = _HERE / "patches" / "silent"
+OUT_DIR = _HERE / "dist" / "patches" / "silent"
 
 # Newest-first. Mirrors RELEASE_HISTORY in fetch_stats.py; kept inline so this
 # script has no cross-file dependency.
