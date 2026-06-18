@@ -160,9 +160,11 @@ CANONICAL_TAGS = [
     (re.compile(r'\bCan now be disassembled\b', re.I),              'NEW'),
     (re.compile(r'^Now (?:also )?(?:passively |actively )?(?:grants|provides|gains?|adds?|applies?|deals?|increases|fires?|spawns?|summons?)', re.I), 'NEW'),
     (re.compile(r'^Added\b', re.I),                                 'NEW'),
-    # MISC — mechanic toggle, classification change, polish
+    # MISC — mechanic toggle, classification change, polish, fix, no effective change
     (re.compile(r'\bNow can be toggled while silenced\b', re.I),    'MISC'),
     (re.compile(r'\bClassified as\b', re.I),                        'MISC'),
+    (re.compile(r'^\s*Fixed\b', re.I),                              'MISC'),  # "Fixed X" — bug fix
+    (re.compile(r'\bunchanged\b', re.I),                            'MISC'),  # "X is unchanged"
     # DEL — explicit removal / no-longer-targets / no-longer-applies
     (re.compile(r'\bcan no longer (?:target|be cast|be used|trigger)', re.I), 'NERF'),
     (re.compile(r'\bno longer applied by illusions\b', re.I),       'DEL'),
@@ -196,6 +198,11 @@ LOWER_IS_BUFF = re.compile(
     r'|incoming damage|damage taken|status duration|stun resistance'
     r'|magic resistance|attack point|projectile speed.*incoming'
     r'|penalty'  # higher penalty value = worse for player (memory: sloppy_b_l_flag_direction_audit)
+    r'|(?:intelligence|agility|strength)\s+required'  # attribute requirements on items
+    r'|recharge\s+(?:time|cooldown)'   # charge-based item recharge
+    r'|channel\s+time'                 # channeling cast time
+    r'|activation\s+time'             # activation delay
+    r'|restore\s+time'                # restore/respawn time
     r')\b',
     re.I,
 )
@@ -207,10 +214,27 @@ _NOT_LOWER_IS_BUFF = re.compile(
 )
 
 
+# Exact-substring overrides for cases where heuristics give the wrong tag.
+# Key = substring to look for (case-insensitive), Value = forced tag.
+# Add here when a generated scaffold consistently gets the wrong tag.
+TAG_OVERRIDES = {
+    "starts with all":          "MISC",   # "Hallowed now starts with all 3 charges" — REWORK heuristic fires on "now"
+    "no longer separate":       "MISC",   # "No longer has a separate heal reduction" — consolidation, not removal
+    "health restoration":       "MISC",   # health restore consolidation entries
+    "now shares cooldown":      "MISC",   # shared cooldown = mechanic change, not pure NERF
+    "now has a shared cooldown":"MISC",
+}
+
+
 def _guess_tag(text):
     """Heuristic tag from row text. Returns 'BUFF'/'NERF'/'REWORK'/'NEW'/'DEL'/
     'MISC'/'QoL'/None. None means caller should derive from b()/badge."""
     clean = _strip_html(text)
+    # Manual overrides checked first — highest priority
+    clean_lower = clean.lower()
+    for substr, tag in TAG_OVERRIDES.items():
+        if substr.lower() in clean_lower:
+            return tag
     for rx, tag in CANONICAL_TAGS:
         if rx.search(clean):
             return tag
