@@ -384,7 +384,7 @@ def build_page(version: str) -> str | None:
     body = render_diff_html(version, prev, diff)
     n_heroes = len(diff)
     n_changes = sum(len(f) for ab in diff.values() for f in ab.values())
-    print(f"  → silent/{version}.html  ({n_heroes} heroes, {n_changes} field deltas)")
+    print(f"  -> silent/{version}.html  ({n_heroes} heroes, {n_changes} field deltas)")
     return PAGE_TEMPLATE.format(version=version, prev=prev, body=body)
 
 
