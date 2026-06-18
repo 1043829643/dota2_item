@@ -136,7 +136,6 @@ jobs:
           cp _dynamics.json dist/
           cp -r src dist/
           cp -r icons dist/
-          cp -r patches dist/
 
       - name: Stage site for Pages
         if: github.ref == 'refs/heads/main'
