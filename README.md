@@ -12,7 +12,7 @@ A static site that turns Valve's raw Dota 2 patch notes into a readable, filtera
 - **Ability reworks as before/after panes** with icons stacked side-by-side.
 - **Filter by tag.** Click a chip to surface only BUFF, NERF, DEL, etc. rows across the page.
 - **Calendar view.** Chronological patch list with lifespans, sparklines, and yearly stats.
-- **Terrain comparison.** Side-by-side map diff slider for 7.40 layout changes.
+- **Terrain comparison.** Side-by-side map diff slider comparing Dota 2 map layouts across patches.
 - **Hero/item dynamics matrix.** Tag breakdown per entity across all patches.
 
 ## Repository layout
