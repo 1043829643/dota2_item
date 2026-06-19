@@ -235,7 +235,7 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
 
     _formula_id_counter[0] += 1
     fid = f"f{_formula_id_counter[0]}"
-    axis_th = f'<th class="axis-label">{axis_label}</th>' if axis_label else '<th></th>'
+    axis_th = '<th></th>'
 
     # Caller-declared reformulation: Valve's patch note explicitly states
     # "Effective values are not changed" (formula re-parametrized but the
