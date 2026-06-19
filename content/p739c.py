@@ -356,7 +356,7 @@ def build():
     W(hero_header("Primal Beast"))
     W(facet_header("primal_beast_provoke_the_beast"))
     W(ul_open())
-    W(li("Uproar: Now also provides stacks upon being leashed", t("MISC")))
+    W(li("Uproar: Now also provides stacks upon being leashed", t("NEW")))
     W(ul_close())
     W(ability("Rock Throw", slug="primal_beast_rock_throw"))
     W(ul_open())
