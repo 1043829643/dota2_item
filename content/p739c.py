@@ -89,7 +89,16 @@ def build():
     W(ul_close())
     W(item_header("Mana Draught"))
     W(ul_open())
-    W(li("Bottoms Up mana restore rescaled from 60 + 4% to 70 + 3%", t("REWORK"), extra=inline_note("Dormant Curio Max Mana Restoration decreased from 5.2% to 3.9% — " + b(5.2, 3.9))))
+    W(li_formula(
+        "Bottoms Up mana restore rescaled",
+        "60 + 4% max mana", "70 + 3% max mana",
+        old_fn=lambda m: 60 + 0.04 * m,
+        new_fn=lambda m: 70 + 0.03 * m,
+        levels=[300, 500, 750, 1000, 1500, 2000],
+        label="Max Mana",
+        headline_level=750,
+        inline_note_text="Dormant Curio Max Mana Restoration decreased from 5.2% to 3.9% — " + b(5.2, 3.9),
+    ))
     W(ul_close())
     W(item_header("Searing Signet"))
     W(ul_open())

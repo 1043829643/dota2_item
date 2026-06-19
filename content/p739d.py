@@ -19,7 +19,15 @@ def build():
     W(item_header("Blade Mail"))
     W(ul_open())
     W(li("Damage bonus decreased from +18 to +15", b(18, 15)))
-    W(li("Damage Return passive attack damage returned decreased from 20 + 20% to 10 + 15%", t("NERF")))
+    W(li_formula(
+        "Damage Return passive attack damage returned decreased",
+        "20 + 20% attack damage", "10 + 15% attack damage",
+        old_fn=lambda d: 20 + 0.20 * d,
+        new_fn=lambda d: 10 + 0.15 * d,
+        levels=[50, 100, 150, 200, 300, 400],
+        label="Attack Damage",
+        headline_level=200,
+    ))
     W(ul_close())
 
     W(item_header("Dragon Lance"))

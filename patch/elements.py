@@ -1551,8 +1551,11 @@ def note_box(text=None, *, hero=None, item=None, unit=None, field=None, before_p
 
 
 def li_formula(prefix, old_formula, new_formula, old_fn, new_fn, l=False,
-               rework_badge=True, inline_note_text=None, **bf_kwargs):
+               rework_badge=True, inline_note_text=None, label=None, **bf_kwargs):
     from .badges import bf
+    if label:
+        bf_kwargs.setdefault('axis_label', label)
+        bf_kwargs.setdefault('jump_at', None)
     trigger, badge, table = bf(old_fn, new_fn, new_formula, l=l, **bf_kwargs)
     full_text = (f'{prefix} from <span class="formula-old">{old_formula}</span> '
                  f'to {trigger}')

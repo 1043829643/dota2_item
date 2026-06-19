@@ -210,7 +210,7 @@ def fold(text):
 
 def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
        level_prefix='L', level_fmt=None, jump_at=20, headline_level=1,
-       effective_unchanged=False):
+       effective_unchanged=False, axis_label=None):
     """Formula-based change. Returns (trigger_html, badge_html, table_html).
     The trigger wraps formula_text as a clickable pill that toggles the table.
     Tag is determined by `headline_level` (default L1).
@@ -231,10 +231,11 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
         levels = list(range(1, levels + 1))
 
     if level_fmt is None:
-        level_fmt = lambda L: f'{level_prefix}{L}'
+        level_fmt = str if axis_label else lambda L: f'{level_prefix}{L}'
 
     _formula_id_counter[0] += 1
     fid = f"f{_formula_id_counter[0]}"
+    axis_th = f'<th class="axis-label">{axis_label}</th>' if axis_label else '<th></th>'
 
     # Caller-declared reformulation: Valve's patch note explicitly states
     # "Effective values are not changed" (formula re-parametrized but the
@@ -243,13 +244,13 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
     # table and an empty badge-group so the left REWORK tag carries the
     # row's meaning.
     if effective_unchanged:
-        def _cls(L): return ' class="lvl-jump"' if L == jump_at else ''
+        def _cls(L): return ' class="lvl-jump"' if (jump_at is not None and L == jump_at) else ''
         head_cells = "".join(f'<th{_cls(L)}>{level_fmt(L)}</th>' for L in levels)
         val_cells  = "".join(f'<td{_cls(L)}>{value_fmt.format(new_fn(L))}</td>' for L in levels)
         trigger = f'<span class="formula-trigger" data-formula="{fid}">{formula_text}</span>'
         badge   = '<span class="badge-group"></span>'
         table   = (f'<table class="formula-table" id="{fid}" hidden>'
-                   f'<thead><tr><th></th>{head_cells}</tr></thead>'
+                   f'<thead><tr>{axis_th}{head_cells}</tr></thead>'
                    f'<tbody><tr><th class="row-label-new">value</th>{val_cells}</tr></tbody>'
                    f'</table>')
         return trigger, badge, table
@@ -321,7 +322,7 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
     trigger = f'<span class="formula-trigger" data-formula="{fid}">{formula_text}</span>'
 
     def cls_for(L):
-        return ' class="lvl-jump"' if L == jump_at else ''
+        return ' class="lvl-jump"' if (jump_at is not None and L == jump_at) else ''
 
     head_cells = "".join(f'<th{cls_for(L)}>{level_fmt(L)}</th>' for L in levels)
     old_cells = "".join(f'<td{cls_for(L)}>{value_fmt.format(old_fn(L))}</td>' for L in levels)
@@ -335,7 +336,7 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
     if values_unchanged:
         table = (
             f'<table class="formula-table" id="{fid}" hidden>'
-            f'<thead><tr><th></th>{head_cells}</tr></thead>'
+            f'<thead><tr>{axis_th}{head_cells}</tr></thead>'
             f'<tbody><tr><th class="row-label-new">value</th>{new_cells}</tr></tbody>'
             f'</table>'
         )
@@ -354,7 +355,7 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
 
     table = (
         f'<table class="formula-table" id="{fid}" hidden>'
-        f'<thead><tr><th></th>{head_cells}</tr></thead>'
+        f'<thead><tr>{axis_th}{head_cells}</tr></thead>'
         f'<tbody>'
         f'<tr><th class="row-label-old">old</th>{old_cells}</tr>'
         f'<tr><th class="row-label-new">new</th>{new_cells}</tr>'
