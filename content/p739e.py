@@ -128,7 +128,7 @@ def build():
     W(hero_header("Crystal Maiden"))
     W(facet_header("crystal_maiden_arcane_overflow"))
     W(ul_open())
-    W(li("Mana Granted increased from 15% to 20%", b(15, 20)))
+    W(li("Freezing Field: Mana Granted increased from 15% to 20%", b(15, 20)))
     W(ul_close())
 
     W(hero_header("Dawnbreaker"))
@@ -138,14 +138,14 @@ def build():
     W(ul_close())
 
     W(hero_header("Disruptor"))
+    W(facet_header("disruptor_thunderstorm"))
+    W(ul_open())
+    W(li("Static Storm: Slow duration bonus decreased from +100% to +75%", b(100, 75),
+         extra=inline_note("Total duration decreased from 0.6s to 0.525s")))
+    W(ul_close())
     W(ability("Static Storm", slug="disruptor_static_storm"))
     W(ul_open())
     W(li("Cooldown increased from 90/80/70s to 100/85/70s", b([90, 80, 70], [100, 85, 70], l=True)))
-    W(ul_close())
-    W(facet_header("disruptor_thunderstorm"))
-    W(ul_open())
-    W(li("Slow duration bonus decreased from +100% to +75%", b(100, 75),
-         extra=inline_note("Total duration decreased from 0.6s to 0.525s")))
     W(ul_close())
 
     W(hero_header("Earth Spirit"))
@@ -155,6 +155,10 @@ def build():
     W(ul_close())
 
     W(hero_header("Earthshaker"))
+    W(facet_header("earthshaker_tectonic_buildup"))
+    W(ul_open())
+    W(li("Fissure: Bonus AoE decreased from 40 to 30", b(40, 30)))
+    W(ul_close())
     W(ability("Aftershock", slug="earthshaker_aftershock"))
     W(ul_open())
     W(li("Damage decreased from 70/100/130/160 to 65/90/115/140", b([70, 100, 130, 160], [65, 90, 115, 140])))
@@ -162,10 +166,6 @@ def build():
     W(subgroup("Talents"))
     W(ul_open())
     W(li("Level 10 Talent Fissure Damage decreased from +90 to +75", b(90, 75)))
-    W(ul_close())
-    W(facet_header("earthshaker_tectonic_buildup"))
-    W(ul_open())
-    W(li("Bonus AoE decreased from 40 to 30", b(40, 30)))
     W(ul_close())
 
     W(hero_header("Hoodwink"))
@@ -280,14 +280,14 @@ def build():
     W(ul_close())
 
     W(hero_header("Naga Siren"))
+    W(facet_header("naga_siren_active_riptide"))
+    W(ul_open())
+    W(li("Rip Tide: Damage decreased from 80/150/220/290 to 80/140/200/260", b([80, 150, 220, 290], [80, 140, 200, 260])))
+    W(ul_close())
     W(ability("Song of the Siren", slug="naga_siren_song_of_the_siren"))
     W(ul_open())
     W(li("Aghanim's Shard Max HP Regen per Second decreased from 5/6/7% to 4/5/6%", b([5, 6, 7], [4, 5, 6]),
          extra=inline_note("Aghanim's Shard bonus decreased from +3% to +2% — " + b(3, 2))))
-    W(ul_close())
-    W(facet_header("naga_siren_active_riptide"))
-    W(ul_open())
-    W(li("Damage decreased from 80/150/220/290 to 80/140/200/260", b([80, 150, 220, 290], [80, 140, 200, 260])))
     W(ul_close())
 
     W(hero_header("Necrophos"))
@@ -323,18 +323,18 @@ def build():
     W(hero_header("Puck"))
     W(facet_header("puck_curveball"))
     W(ul_open())
-    W(li("Bonus damage per tick decreased from 5% to 3%", b(5, 3)))
+    W(li("Illusory Orb: Bonus damage per tick decreased from 5% to 3%", b(5, 3)))
     W(ul_close())
 
     W(hero_header("Pugna"))
+    W(facet_header("pugna_siphoning_ward"))
+    W(ul_open())
+    W(li("Nether Ward: Damage to HP decreased from 30% to 25%", b(30, 25)))
+    W(li("Nether Ward: Damage to Mana decreased from 40% to 30%", b(40, 30)))
+    W(ul_close())
     W(ability("Decrepify", slug="pugna_decrepify"))
     W(ul_open())
     W(li("Ethereal form is not applied if the target is Debuff Immune", t("DEL")))
-    W(ul_close())
-    W(facet_header("pugna_siphoning_ward"))
-    W(ul_open())
-    W(li("Damage to HP decreased from 30% to 25%", b(30, 25)))
-    W(li("Damage to Mana decreased from 40% to 30%", b(40, 30)))
     W(ul_close())
 
     W(hero_header("Queen of Pain"))
@@ -370,7 +370,7 @@ def build():
     W(hero_header("Sand King"))
     W(facet_header("sand_king_obscurity"))
     W(ul_open())
-    W(li("Blind debuff no longer affects buildings", t("DEL")))
+    W(li("Sand Storm: Blind debuff no longer affects buildings", t("DEL")))
     W(ul_close())
 
     W(hero_header("Silencer"))
@@ -380,14 +380,14 @@ def build():
     W(ul_close())
 
     W(hero_header("Snapfire"))
+    W(facet_header("snapfire_full_bore"))
+    W(ul_open())
+    W(li("Scatterblast: Max range decreased from 1300 to 1200", b(1300, 1200),
+         extra=inline_note("Point-blank distance is not changed. It is still 650")))
+    W(ul_close())
     W(ability("Firesnap Cookie", slug="snapfire_firesnap_cookie"))
     W(ul_open())
     W(li("Cast Range decreased from 700 to 650", b(700, 650)))
-    W(ul_close())
-    W(facet_header("snapfire_full_bore"))
-    W(ul_open())
-    W(li("Max range decreased from 1300 to 1200", b(1300, 1200),
-         extra=inline_note("Point-blank distance is not changed. It is still 650")))
     W(ul_close())
 
     W(hero_header("Storm Spirit"))

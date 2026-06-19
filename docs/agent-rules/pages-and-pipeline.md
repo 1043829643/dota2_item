@@ -73,6 +73,24 @@ git commit -m "feat: add 7.42 patch page"
 **Фикс:** добавить в `ITEM_SLUG` в `patch/images.py`: `"Parasma": "devastator"`.
 Примеры уже в ITEM_SLUG: Khanda→angels_demise, Book of the Dead→demonicon, Parasma→devastator.
 
+### Жизненный цикл Facets
+
+**Введены в 7.36** (`"This update introduces two new mechanics for each hero: Innate abilities and Facets"`)
+**Удалены в 7.41** (`"Facets removed from the game"`)
+
+Значит `facet_header(...)` и facet-блоки применяются **только в патчах 7.36 – 7.40c** включительно.
+В патчах до 7.36 и начиная с 7.41 — facet-секций нет.
+
+### Facet slugs отсутствуют в FACETS → невидимый блок
+`facet_header(slug)` возвращает HTML-комментарий если slug не найден в `FACETS` (`patch/badges.py`).
+Блок facet рендерится невидимым без каких-либо ошибок сборки.
+
+**Фикс при создании нового патча:** для каждого `facet:*` scope из JSON убедиться что slug есть в FACETS.
+Если нет — добавить блок в `patch/badges.py`:
+1. Имя: `grep -i "Tooltip_Facet_{slug}\"" data/abilities_english.txt` (строка без `_Description`)
+2. Цвет: `data/facets_icons.json` → первый элемент массива для slug (например `"Gray3"`)
+3. Добавить в соответствующий патч-блок: `"slug": ("Display Name", "Color")`
+
 ### Иконки способностей не скачиваются автоматически
 `fetch_icons.py` нужно запускать вручную после каждой новой сборки патча.
 Иконки innate/facet (404 на CDN) — нормально, браузер использует fallback `innate_icon.png`.

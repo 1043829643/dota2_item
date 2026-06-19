@@ -26,6 +26,69 @@ W(li(...))
 W(ul_close())
 ```
 
+## Facet li() строки — префикс с названием способности
+
+Каждая `li()` внутри `facet_header()/ul_open()/ul_close()` блока должна начинаться с названия способности которую модифицирует facet:
+
+```python
+W(facet_header("undying_rotting_mitts"))
+W(ul_open())
+W(li("Flesh Golem: Zombies summoned by the facet effect now die when Undying dies", t("MISC")))
+W(ul_close())
+```
+
+Название способности — из официального патчнота или из `data/abilities_english.txt` (`Tooltip_Facet_{slug}_Description`).
+
+**Исключение:** если display name фасета (из `FACETS` dict в `badges.py`) совпадает с названием способности, которую он модифицирует — префикс `"AbilityName: "` НЕ нужен. Пример: фасет `faceless_void_chronosphere` называется «Chronosphere» и модифицирует способность «Chronosphere» — пишем `li("Cooldown decreased …")` без «Chronosphere: ». Если же facet-имя ≠ ability-имя (например, `naga_siren_active_riptide` называется «Deluge», а способность «Rip Tide») — префикс «Rip Tide: » нужен.
+
+## Порядок секций внутри hero-блока
+
+```
+hero_header(...)
+ul_open()...ul_close()      ← Stats (base stats, vision — авто-группа "Other")
+ability(..., innate=True)   ← Innates
+facet_header(...)            ← Facets
+ability(...)                 ← Abilities
+subgroup("Talents")...       ← Talents — ВСЕГДА последние
+```
+
+**stats > innates > facets > abilities > talents**
+
+Если генератор поставил секции в другом порядке — переставить вручную.
+
+## "Damage at level 1" после изменения атрибута
+
+Когда Valve указывает результирующий урон на 1-м уровне рядом с изменением базового атрибута:
+
+- **Урон изменился** → отдельная видимая строка с бейджем `br()`. НЕ `subnote`, НЕ `inline_note`:
+  ```python
+  W(li("Base Agility decreased from 15 to 13", bstat_h("Batrider", "AttributeBaseAgility", "7.39c", -2)))
+  W(li("Damage at level 1 decreased from 39–43 to 38–42", br(39, 43, 38, 42)))
+  W(ul_close())
+  ```
+- **Урон не изменился** → `extra=inline_note(...)` на строке атрибута, или `subnote()` после `ul_close()`:
+  ```python
+  W(li("Base Intelligence increased by 1", bstat_h(...), extra=inline_note("Damage at level 1 unchanged at 49-59")))
+  W(ul_close())
+  ```
+
+То же правило для "Damage gain per level increased/decreased" — своя строка с `b(old, new)`. Если «Damage gain per level» — следствие изменения attribute gain (не самостоятельный баланс), прикрепить как `extra=inline_note("Damage gain per level decreased as a result")` к родительской строке атрибута.
+
+### Base stat «increased/decreased by N» → bstat_h + note_box
+
+Строки вида «Base Armor increased by 1» (дельта без from-to) → использовать `bstat_h` + `note_box`, никогда `t("MISC")`:
+```python
+W(li("Base Armor increased by 1",
+     bstat_h("Omniknight", "ArmorPhysical", "<patch_before>", 1),
+     extra=note_box(hero="Omniknight", field="ArmorPhysical", before_patch="<patch_before>")))
+```
+
+`patch_before` = ПРЕДЫДУЩИЙ патч (не текущий). `_STATS_H[version]` хранит значение ПОСЛЕ патча.
+
+Field map: Base Armor → `ArmorPhysical`; Base Damage → `AttackDamageMin`; Min/Max Base Damage → `AttackDamageMin/Max`.
+
+**Net-neutral base-damage**: если изменение offset'нуто (Damage at level 1 unchanged) → тег `t("MISC")`, badge inline в тексте + `note_box` с `extra_note=`.
+
 ## `ability_change(old, new)` — что внутри / что снаружи блока
 
 **Внутри панелей (`old.desc`, `new.desc`)** — только официальное описание способности (как в игре / в KV патча). Без отсебятины типа «Self-buff values nerfed:», «Encouraged X», «Pre-7.41 …».
@@ -74,6 +137,19 @@ W(cm_draft(                          # F/S=бан first/second-pick team, f/s=п
 Second pick. Структура 7.34+: Бан7·Пик2·Бан3·Пик6·Бан4·Пик2 (баны 3-2-2 / 4-1-2; пик-фаза 2 — змейка).
 Полное правило (когда применять, кодировка `F/S/f/s`, что НЕ оборачивать) —
 `docs/captains-mode.md`.
+
+## info_tip — (i)-popup для clarifications
+
+`info_tip(*lines, header=None)` — circled-**(i)** hover/focus popup. Заменил visible ↳-noты и show_list для перечислений.
+
+- Помещать inline в li-текст: `li("… text " + info_tip(...), t("NEW"))`
+- `inline_note(text)` теперь тоже рендерит как (i); `li()` перемещает его в `.row-text` (inline, не под строкой)
+- `note_box(...)` тоже рендерится как (i) с заголовком «Previously:» или «Note:»
+
+Перечисления (списки named entities) → `info_tip(...)` с `header=`:
+```python
+extra=inline_note(info_tip("Batrider's Arsonist", "Magnus' Diminishing Return", header="Affected facets:"))
+```
 
 ## `correction-note` фразировка (note_box со stats DB)
 

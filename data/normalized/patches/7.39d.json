@@ -119,7 +119,7 @@
       "changes": [
         {
           "text": "Fixed item description stating that Chain Lightning deals bonus damage to illusions",
-          "tag": "misc",
+          "tag": "qol",
           "scope": "base"
         }
       ]
@@ -281,7 +281,7 @@
         },
         {
           "text": "Units can no longer attack buildings while under the effect of Death Delay",
-          "tag": "misc",
+          "tag": "del",
           "scope": "base"
         }
       ]
@@ -549,7 +549,7 @@
       "changes": [
         {
           "text": "Allies can no longer target Dark Willow while active (Dark Willow can still target herself)",
-          "tag": "nerf",
+          "tag": "del",
           "scope": "Shadow Realm"
         }
       ]

@@ -198,6 +198,24 @@ def wisdom_icon(color):
     return Image.alpha_composite(ol, img)
 
 
+def spawnbox_icon():
+    """Spawn-box icon: a teal-green rectangle outline (no fill) on a transparent
+    background — communicates a bounding-box / trigger zone at a glance."""
+    from PIL import ImageDraw
+    img = Image.new("RGBA", (ICON_RES, ICON_RES), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    pad = PAD + 2
+    color = (77, 212, 172, 255)   # #4dd4ac — matches the CSS stroke
+    draw.rectangle([pad, pad, ICON_RES - pad - 1, ICON_RES - pad - 1],
+                   outline=color, width=3)
+    # thin dark outline so it reads on varied backgrounds
+    from PIL import ImageFilter
+    dil = img.split()[3].filter(ImageFilter.MaxFilter(3))
+    ol = Image.new("RGBA", img.size, (20, 17, 14, 255))
+    ol.putalpha(dil)
+    return Image.alpha_composite(ol, img)
+
+
 # Icons kept in their NATURAL colours (the game icon is already the right colour
 # + reads on the dark marker backing) instead of tinted to the type colour.
 NATURAL = {"tc_bounty"}
@@ -215,6 +233,12 @@ for name, color in COLORS.items():
     im.save(os.path.join(_OUT, f"{name}.png"))
     cells.append((name, im))
     print("wrote", name)
+
+# ---- spawnbox icon (custom drawn) ----
+im = spawnbox_icon()
+im.save(os.path.join(_OUT, "icon_spawnbox.png"))
+cells.append(("icon_spawnbox", im))
+print("wrote icon_spawnbox")
 
 # ---- 7 power runes (natural colours) → tc_rune_0..6.png; tc_power.png defaults
 # to the regeneration rune (green, matches the layer). scripts.js cycles them. ----

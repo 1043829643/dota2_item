@@ -18,14 +18,22 @@ _WHATSNEW_PAGES = [
     ("page",  "Neutral Creeps", "May 19", "neutral_stats.html"),
 ]
 
-# "Added to site" dates for patch pages.
-# Date = when the patch page was published on this site (not Valve's release date).
-# Add a new entry here when a new patch page is published.
-_PATCH_SITE_DATES = {
+# "Added to site" dates for patch pages — loaded from data/site_meta.json at runtime.
+# Fallback dict covers entries that existed before the auto-registration was added.
+_PATCH_SITE_DATES_FALLBACK = {
     "7.41d": "Jun 5",
-    "7.39e": "Jun 14",
+    "7.39c": "Jun 19",
     "7.39d": "Jun 18",
+    "7.39e": "Jun 14",
 }
+
+def _load_patch_site_dates():
+    import json, os
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "..", "data", "site_meta.json"), encoding="utf-8") as f:
+            return json.load(f).get("patch_site_dates") or _PATCH_SITE_DATES_FALLBACK
+    except Exception:
+        return _PATCH_SITE_DATES_FALLBACK
 
 _WHATSNEW_MAX = 10
 
@@ -48,9 +56,10 @@ def _build_whatsnew():
         except ValueError:
             return datetime.datetime.min
 
+    patch_site_dates = _load_patch_site_dates()
     patch_entries = []
     for p in PATCHES:
-        site_date = _PATCH_SITE_DATES.get(p["version"])
+        site_date = patch_site_dates.get(p["version"])
         if site_date:
             patch_entries.append(("patch", p["version"], site_date, p["filename"]))
 

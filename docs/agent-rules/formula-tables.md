@@ -28,6 +28,26 @@ _pill, _table = scale_pill("45.75s − 0.75s per level",
 - Скейл каждые **X>1 уровней** («per 5 levels», «per 3 level ups»): сетка с шагом X до 30 (точки, где значение реально меняется, + L1). При смене шага old→new («per 7 → per 6 levels») — объединение точек перелома обеих формул.
 - **Внутри панелей `ability_change`** (пол-ширины): компактная `levels=[1, 5, 10, 15, 20, 25, 30]` — полная сетка туда физически не влезает (`table-layout:fixed`, колонки сжимаются нечитаемо).
 
+## Clarifications для li_formula → inline_note_text kwarg
+
+Clarifying notes к per-level formula («Up to 5.5s at level 30», «Also increased by 1s with Aghs») → передавать через `inline_note_text=` kwarg на `li_formula(...)`. Никогда не `W(subnote(...))` после `ul_close()` — это визуально отрывает ноту от строки.
+
+```python
+W(li_formula("Wraith Duration changed",
+             "3.5/4/4.5/5s", "4.25s + 0.25s per 6 levels",
+             lambda L: 5.0, lambda L: 4.25 + 0.25*(L//6),
+             value_fmt="{:.2f}s",
+             inline_note_text="Up to 5.5s at level 30. Also increased by 1s with Aghanim's Scepter."))
+```
+
+## formula_change — для game-economy формул
+
+`formula_change(name, old, new, *, tag="REWORK", vary=, fixed=, unit=)` — только для истинных многопеременных игровых формул (Assist Gold, XP streak, bounty — входные параметры типа NumHeroes/VictimNetworth).
+
+**НЕ использовать** для per-level value changes (`X → Y + Z per level`) → это `li_formula`. Одиночный value tweak → `b(old, new)`.
+
+Первое применение в 7.40 General Changes (Assist Gold formula). Таблица известных формул: `docs/formula-change.md`.
+
 ## li_formula с `effective_unchanged=True` → левый тег MISC
 
 `li_formula` авто-вешает REWORK слева по умолчанию. Когда `effective_unchanged=True` — переключается на MISC (семантически нейтральная переформулировка, не структурная переработка). Глобальная строка `"Abilities that had 'per level up' scaling changed to be 'per level'"` тоже MISC, не REWORK.

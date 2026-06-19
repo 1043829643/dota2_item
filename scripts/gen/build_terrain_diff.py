@@ -39,7 +39,7 @@ import os
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.dirname(_HERE)
+_ROOT = os.path.dirname(os.path.dirname(_HERE))  # scripts/gen -> scripts -> repo root
 _CACHE = os.path.join(_ROOT, ".cache", "leamare")
 
 # old_code -> new_code pairs. Each NEW patch gets its own diff file. Codes are the
@@ -153,6 +153,12 @@ def _diff_pair(old_code, new_code):
     entities = {name: {"old": coords(A, key), "new": coords(B, key)}
                 for name, key in _ENTITY_KEYS.items()}
 
+    # ---- spawnboxes: 4-point polygons from trigger_multiple ----
+    spawnboxes_old = [[{"x": p["x"], "y": p["y"]} for p in box["points"]]
+                      for box in A.get("trigger_multiple", [])]
+    spawnboxes_new = [[{"x": p["x"], "y": p["y"]} for p in box["points"]]
+                      for box in B.get("trigger_multiple", [])]
+
     return {
         "oldVer": _dotted(old_code), "newVer": _dotted(new_code),
         "world": {"minX": -10464, "maxX": 10400, "minY": -10464, "maxY": 10400},
@@ -160,6 +166,8 @@ def _diff_pair(old_code, new_code):
         "treesNew": [[x, y] for x, y in trees_new],
         "campsOld": camps_old,
         "campsNew": camps_new,
+        "spawnboxesOld": spawnboxes_old,
+        "spawnboxesNew": spawnboxes_new,
         # toggleable point-entity layers (full old+new sets, split by slider)
         "entities": entities,
         # move data kept for reference (not drawn)

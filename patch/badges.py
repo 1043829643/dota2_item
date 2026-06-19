@@ -63,18 +63,16 @@ def b(old, new, l=False, slash=False, force_overall=None):
             signed_pcts.append(0)
             continue
         if o == 0:
-            # Old value was 0 -> % delta is undefined (0 -> X has no meaningful
-            # percentage). Emit a plain BUFF / NERF text-tag with no numeric
-            # chip; the row still classifies for filtering.
+            # Old value was 0 -> % delta is undefined. Show absolute change
+            # as a numeric chip (+N / -N) so all levels are visually present.
             is_buff = (n < o) if l else (n > o)
-            if is_buff:
-                parts.append('<span class="badge buff-text" data-overall="buff">BUFF</span>')
-                keys.append(("buff-text", "BUFF"))
-                signed_pcts.append(1)
-            else:
-                parts.append('<span class="badge nerf-text" data-overall="nerf">NERF</span>')
-                keys.append(("nerf-text", "NERF"))
-                signed_pcts.append(-1)
+            delta = n - o
+            sign = '+' if delta > 0 else ''
+            cls = 'buff' if is_buff else 'nerf'
+            label = f'{sign}{delta:g}'
+            parts.append(f'<span class="badge {cls}" data-overall="{cls}">{label}</span>')
+            keys.append((cls, label))
+            signed_pcts.append(1 if is_buff else -1)
             continue
         raw = (n - o) / o * 100
         pct = round(raw)
@@ -375,6 +373,13 @@ def bf(old_fn, new_fn, formula_text, levels=None, l=False, value_fmt="{:g}",
 # Run scripts/fetch/fetch_facets.py to regenerate this dict for a given patch.
 # Value tuple: (display_title, valve_color_key).
 FACETS = {
+    # 7.39d — names from abilities_english.txt, colours from facets_icons.json
+    "dawnbreaker_solar_charged":      ("Solar Charged",        "Gray3"),
+    "faceless_void_chronosphere":     ("Chronosphere",         "Green0"),
+    "faceless_void_time_zone":        ("Time Zone",            "Purple1"),
+    "furion_soothing_saplings":       ("Soothing Saplings",    "Green0"),
+    "monkey_king_transfiguration":    ("Changing of the Guard","Red2"),
+    "undying_rotting_mitts":          ("Rotting Mitts",        "Green4"),
     # 7.39e — fetched 2026-06-14 from /datafeed/patchnotes?version=7.39e
     "crystal_maiden_arcane_overflow": ("Arcane Overflow", "Blue2"),
     "disruptor_thunderstorm":         ("Thunderstorm",    "Red1"),
@@ -495,6 +500,9 @@ _FACET_COLOR_GRADIENT = {
     "Purple0": "linear-gradient(to right, #B57789, #412755)",
     "Purple1": "linear-gradient(to right, #9C70A4, #282752)",
     "Purple2": "linear-gradient(to right, #675CAE, #261C44)",
+    # 7.39c — auto-registered by generate_patch_code_v2.py
+    "lich_cryophobia": ("Evil Eye", "Red0"),
+    "primal_beast_provoke_the_beast": ("Provoke the Beast", "Red0"),
 }
 
 

@@ -158,6 +158,10 @@ CANONICAL_TAGS = [
     # NEW — new mechanic / capability added
     (re.compile(r'\bAdded to Captains Mode\b', re.I),               'NEW'),
     (re.compile(r'\bCan now be disassembled\b', re.I),              'NEW'),
+    (re.compile(r'\bis now dispellable\b', re.I),                   'NEW'),   # adding dispel-ability to a buff/debuff
+    (re.compile(r'\bno longer dispellable\b', re.I),                'DEL'),   # removing dispel-ability from a buff/debuff
+    (re.compile(r'\bis now disjointable\b', re.I),                  'NEW'),   # adding disjoint-ability to a projectile
+    (re.compile(r'\bno longer disjointable\b', re.I),               'DEL'),
     (re.compile(r'^Now (?:also )?(?:passively |actively )?(?:grants|provides|gains?|adds?|applies?|deals?|increases|fires?|spawns?|summons?)', re.I), 'NEW'),
     (re.compile(r'^Added\b', re.I),                                 'NEW'),
     # MISC — mechanic toggle, classification change, polish, fix, no effective change
@@ -168,14 +172,14 @@ CANONICAL_TAGS = [
     (re.compile(r'\bunchanged\b', re.I),                            'MISC'),  # "X is unchanged"
     # DEL — explicit removal / no-longer-targets / no-longer-applies
     (re.compile(r'\bcan no longer (?:target|be cast|be used|trigger|attack|move|stack|proc|crit|bash|leap|fly|deny|sell|disassemble)', re.I), 'DEL'),
-    (re.compile(r'\bno longer applied by illusions\b', re.I),       'DEL'),
+    (re.compile(r'\bno longer (?:be )?applied by illusions\b', re.I), 'DEL'),
     (re.compile(r'\bno longer (?:applies?|affects?) ', re.I),       'DEL'),
     (re.compile(r'\bis not applied if\b', re.I),                    'DEL'),   # "X is not applied if Debuff Immune"
     (re.compile(r'\bno longer upgraded with Aghanim', re.I),        'DEL'),
     (re.compile(r"\bno longer.*'s? ability\b", re.I),               'DEL'),
     (re.compile(r'\bno longer (?:provides|grants|deals|fires|spawns|summons|adds|increases|works|considered|active|applied)\b', re.I), 'DEL'),
     (re.compile(r'\bno longer levels with\b', re.I),                'REWORK'),  # memory rule: structural
-    (re.compile(r'^No longer has\b', re.I),                         'DEL'),
+    (re.compile(r'\bno longer has\b(?! (?:an? |the )?(?:\w+ )?(?:penalty|restriction|drawback|downside|debuff slow|separate))', re.I), 'DEL'),  # "X no longer has True Strike/feature" → DEL; excludes BUFF-pattern exceptions
     (re.compile(r'\bno longer counts? as\b', re.I),                 'DEL'),    # "Hero Creeps no longer count as heroes"
     (re.compile(r'\bRemoved\b', re.I),                              'DEL'),
     # REWORK
@@ -184,6 +188,8 @@ CANONICAL_TAGS = [
     (re.compile(r'\brescaled\b', re.I),                             'REWORK'),
     (re.compile(r'\bchanged from\b', re.I),                         'REWORK'),
     (re.compile(r'\bis now cancelled if.*interrupted\b', re.I),     'REWORK'),  # movement/channel cancellation behaviour change
+    (re.compile(r'\bare now treated as\b', re.I),                   'REWORK'),  # reclassification: "X are now treated as Y"
+    (re.compile(r'\bno longer considers?\b', re.I),                 'REWORK'),  # scoping: "no longer considers X for Y"
     # General "Now ..." → NEW unless context says otherwise
     (re.compile(r'^Now also\b', re.I),                              'NEW'),
     (re.compile(r'^Now ', re.I),                                    'NEW'),
@@ -305,6 +311,14 @@ def _emit_badge(text):
     return f'b({old!r}, {new!r}{l_arg})'
 
 
+# "Damage at level 1 increased/decreased from X–Y to A–B"
+# also matches "decreased by N (from X–Y to A–B)"
+_DMG_L1_RE = re.compile(
+    r'\bDamage at level 1\s+(?:increased|decreased)(?:\s+by\s+\d+(?:\.\d+)?\s*\()?'
+    r'\s*from\s+(\d+)[–\-](\d+)\s+to\s+(\d+)[–\-](\d+)',
+    re.I,
+)
+
 _BSTAT_RE = re.compile(
     r'\bBase\s+(?P<stat>Damage|Armor|Strength|Agility|Intelligence|Attack Speed|Health Regen|Mana Regen|Move(?:ment)? Speed)\s+'
     r'(?P<dir>increased|decreased)\s+by\s+(?P<delta>\d+(?:\.\d+)?)\b',
@@ -342,6 +356,13 @@ def _emit_li(text, tag_override=None, aghs=None, info=None, hero_name=None, vers
     optional inline_note text appended. hero_name+version enable bstat_h."""
     txt = text.strip()
     clean = _strip_html(txt)
+
+    # "Damage at level 1 changed from X–Y to A–B" → br(X, Y, A, B)
+    dmg_m = _DMG_L1_RE.search(clean)
+    if dmg_m:
+        old_min, old_max, new_min, new_max = (int(x) for x in dmg_m.groups())
+        txt_esc = txt.replace('"', '\\"')
+        return f'W(li("{txt_esc}", br({old_min}, {old_max}, {new_min}, {new_max})))'
 
     # Base-stat "by N" pattern → bstat_h + note_box
     bstat_m = _BSTAT_RE.search(clean) if hero_name and version else None
@@ -628,28 +649,69 @@ def _render_hero(hero, version=None):
             out.append(f'W(facet_header("{facet_slug}"))')
             body, _ = _emit_notes(fnotes)
             out.extend(body)
+    # Facet subsections — before Abilities (order: stats > innates > facets > abilities > talents)
+    from patch.badges import FACETS as _FACETS
+    for s in hero.get('subsections', []):
+        if s.get('style') == 'hero_facet':
+            facet_slug = s.get('facet')
+            facet_title = s.get('title', '')
+            facet_color = s.get('facet_color', '')
+            # Warn if slug missing from FACETS so user can register it in badges.py
+            if facet_slug not in _FACETS:
+                print(f'[WARN] facet "{facet_slug}" not in FACETS — add to badges.py: '
+                      f'"{facet_slug}": ("{facet_title}", "{facet_color}")')
+            out.append(f'W(facet_header("{facet_slug}"))')
+            # Collect all notes from all abilities in this facet into one list
+            all_facet_notes = []
+            for a in s.get('abilities', []):
+                aid = a.get('ability_id')
+                abil_name = ABILS.get(aid, (None, None))[0]
+                # Prefix "AbilityName: " unless facet display name == ability name
+                prefix = ''
+                if abil_name and abil_name.lower() != facet_title.lower():
+                    prefix = f'{abil_name}: '
+                notes = a.get('ability_notes', [])
+                if prefix and notes:
+                    prefixed = []
+                    for ni, note in enumerate(notes):
+                        n2 = dict(note)
+                        if ni == 0:
+                            n2['note'] = prefix + n2.get('note', '')
+                        prefixed.append(n2)
+                    all_facet_notes.extend(prefixed)
+                else:
+                    all_facet_notes.extend(notes)
+            body, _ = _emit_notes(all_facet_notes)
+            out.extend(body)
+            # talent_notes inside facet subsection (e.g. NP Soothing Saplings)
+            facet_talents = s.get('talent_notes', [])
+            if facet_talents:
+                out.append('W(subgroup("Talents"))')
+                tbody, _ = _emit_notes(facet_talents)
+                out.extend(tbody)
     # Abilities
     for a in hero.get('abilities', []):
         aid = a.get('ability_id')
         aname, aslug = ABILS.get(aid, (f'ability_{aid}', f'ability_{aid}'))
-        out.append(f'W(ability("{aname}", slug="{aslug}"))')
-        body, _ = _emit_notes(a.get('ability_notes', []))
+        innate_kwarg = ', innate=True' if '_innate_' in aslug else ''
+        out.append(f'W(ability("{aname}", slug="{aslug}"{innate_kwarg}))')
+        # Strip "AbilityName: " prefix from notes — the ability() block already shows the name
+        notes = a.get('ability_notes', [])
+        stripped = []
+        for ni, note in enumerate(notes):
+            n2 = dict(note)
+            txt = n2.get('note', '')
+            if ni == 0 and aname and txt.lower().startswith(aname.lower() + ': '):
+                n2['note'] = txt[len(aname) + 2:]
+            stripped.append(n2)
+        body, _ = _emit_notes(stripped)
         out.extend(body)
-    # Talents
+    # Talents — always last
     talents = hero.get('talent_notes', [])
     if talents:
         out.append('W(subgroup("Talents"))')
         body, _ = _emit_notes(talents)
         out.extend(body)
-    # Facet subsections — new template: facet_header(slug) + ul_open/li/ul_close.
-    # No subgroup(), no facet_badge() prefix on individual li rows.
-    for s in hero.get('subsections', []):
-        if s.get('style') == 'hero_facet':
-            facet_slug = s.get('facet')
-            out.append(f'W(facet_header("{facet_slug}"))')
-            for a in s.get('abilities', []):
-                body, _ = _emit_notes(a.get('ability_notes', []))
-                out.extend(body)
     return out
 
 
@@ -734,7 +796,15 @@ def _render_neutral_creep(creep):
         a_icon = f'"../icons/abilities/{a_slug}.png"'
         dname_esc = dname.replace('"', '\\"')
         out.append(f'W(ability("{dname_esc}", icon_url={a_icon}))')
-        body, _ = _emit_notes(bucket)
+        # Strip "AbilityName: " prefix from first note — ability() block already shows the name
+        stripped = []
+        for ni, note in enumerate(bucket):
+            n2 = dict(note)
+            txt = n2.get('note', '')
+            if ni == 0 and txt.lower().startswith(dname.lower() + ': '):
+                n2['note'] = txt[len(dname) + 2:]
+            stripped.append(n2)
+        body, _ = _emit_notes(stripped)
         out.extend(body)
 
     return out
@@ -1515,12 +1585,56 @@ def generate(version):
     return '\n'.join(out)
 
 
+def _auto_register_facets(version, datafeed):
+    """Add any missing facet slugs from datafeed into patch/badges.py FACETS dict.
+
+    Reads the datafeed for facet subsections, checks each slug against the
+    current FACETS dict, and appends missing entries at the end of the FACETS
+    block in badges.py.
+    """
+    from patch.badges import FACETS
+    badges_path = os.path.join(_HERE, 'patch', 'badges.py')
+
+    missing = {}
+    for hero in datafeed.get('heroes', []):
+        for s in hero.get('subsections', []):
+            if s.get('style') == 'hero_facet':
+                slug = s.get('facet', '')
+                if slug and slug not in FACETS and slug not in missing:
+                    missing[slug] = (s.get('title', slug), s.get('facet_color', 'Gray3'))
+
+    if not missing:
+        return
+
+    src = open(badges_path, encoding='utf-8').read()
+    # Find the closing brace of FACETS dict and insert before it
+    # Look for the last line that is just "}" preceded by facet entries
+    insert_marker = '\n}'
+    last_brace_idx = src.rfind('\n}')
+    if last_brace_idx == -1:
+        print(f'[WARN] Could not auto-register facets — could not find FACETS closing brace')
+        return
+
+    new_lines = [f'    # {version} — auto-registered by generate_patch_code_v2.py']
+    for slug, (title, color) in missing.items():
+        new_lines.append(f'    "{slug}": ("{title}", "{color}"),')
+        print(f'[INFO] Auto-registered facet: "{slug}": ("{title}", "{color}")')
+
+    insertion = '\n'.join(new_lines)
+    new_src = src[:last_brace_idx] + '\n' + insertion + src[last_brace_idx:]
+    open(badges_path, 'w', encoding='utf-8').write(new_src)
+    print(f'[INFO] Updated patch/badges.py with {len(missing)} new facet(s)')
+
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print('Usage: python generate_patch_code_v2.py <version>', file=sys.stderr)
         sys.exit(1)
     version = sys.argv[1]
     d = fetch_datafeed(version)
+
+    # 0. Auto-register any new facet slugs into patch/badges.py
+    _auto_register_facets(version, d)
 
     # 1. W()-scaffold (existing primary output).
     src = generate(version)

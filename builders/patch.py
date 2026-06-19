@@ -9,6 +9,7 @@ _HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HERE))
 
 import content.p708
+import content.p739c
 import content.p739d
 import content.p739e
 import content.p740
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     else:
         # Build oldest-first (dynamics accumulate chronologically)
         content.p708.build()
+        content.p739c.build()
         content.p739d.build()
         content.p739e.build()
         content.p740.build()

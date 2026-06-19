@@ -72,7 +72,7 @@ def build():
     W(hero_header("Broodmother"))
     W(facet_header("broodmother_necrotic_webs"))
     W(ul_open())
-    W(li("Spin Web enemy Restoration Reduction decreased from 10/30/50/70% to 10/25/40/55%", b([10, 30, 50, 70], [10, 25, 40, 55])))
+    W(li("Spin Web: Enemy Restoration Reduction decreased from 10/30/50/70% to 10/25/40/55%", b([10, 30, 50, 70], [10, 25, 40, 55])))
     W(ul_close())
     W(ability("Spin Web"))
     W(ul_open())
@@ -168,7 +168,7 @@ def build():
     W(hero_header("Huskar"))
     W(facet_header("huskar_cauterize"))
     W(ul_open())
-    W(li("Berserker's Blood cooldown increased from 50/40/30/20s to 60/50/40/30s", b([50, 40, 30, 20], [60, 50, 40, 30], l=True)))
+    W(li("Berserker's Blood: Cooldown increased from 50/40/30/20s to 60/50/40/30s", b([50, 40, 30, 20], [60, 50, 40, 30], l=True)))
     W(ul_close())
 
     # Jakiro
@@ -304,7 +304,7 @@ def build():
     W(ul_close())
     W(facet_header("ringmaster_carny_classics"))
     W(ul_open())
-    W(li("Whoopee Cushion stink cloud radius increased from 200 to 250", b(200, 250)))
+    W(li("Whoopee Cushion: Stink cloud radius increased from 200 to 250", b(200, 250)))
     W(ul_close())
 
     # Rubick
@@ -318,7 +318,7 @@ def build():
     W(hero_header("Shadow Demon"))
     W(facet_header("shadow_demon_promulgate"))
     W(ul_open())
-    W(li("Disseminate health loss decreased from 9/11/13/15% to 9/10/11/12%", b([9, 11, 13, 15], [9, 10, 11, 12], l=True)))
+    W(li("Disseminate: Health loss decreased from 9/11/13/15% to 9/10/11/12%", b([9, 11, 13, 15], [9, 10, 11, 12], l=True)))
     W(ul_close())
 
     # Slardar

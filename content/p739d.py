@@ -161,8 +161,8 @@ def build():
     # Batrider
     W(hero_header("Batrider"))
     W(ul_open())
-    W(li("Base Agility decreased from 15 to 13", b(15, 13),
-         inline_note("Damage at level 1 decreased from 39–43 to 38–42")))
+    W(li("Base Agility decreased from 15 to 13", bstat_h("Batrider", "AttributeBaseAgility", "7.39c", -2)))
+    W(li("Damage at level 1 decreased from 39–43 to 38–42", br(39, 43, 38, 42)))
     W(ul_close())
     W(ability("Flamebreak", slug="batrider_flamebreak"))
     W(ul_open())
@@ -198,18 +198,18 @@ def build():
     W(hero_header("Dark Willow"))
     W(ability("Shadow Realm", slug="dark_willow_shadow_realm"))
     W(ul_open())
-    W(li("Allies can no longer target Dark Willow while active (Dark Willow can still target herself)", t("DEL")))
+    W(li("Allies can no longer target Dark Willow while active (Dark Willow can still target herself)", t("MISC")))
     W(ul_close())
 
     # Dawnbreaker
     W(hero_header("Dawnbreaker"))
+    W(facet_header("dawnbreaker_solar_charged"))
+    W(ul_open())
+    W(li("Luminosity: Cooldown Reduction decreased from 1s to 0.8s", b(1, 0.8)))
+    W(ul_close())
     W(subgroup("Talents"))
     W(ul_open())
     W(li("Level 15 Talent Solar Guardian Cooldown Reduction decreased from 20s to 15s", b(20, 15)))
-    W(ul_close())
-    W(facet_header("dawnbreaker_solar_charged"))
-    W(ul_open())
-    W(li("Cooldown Reduction decreased from 1s to 0.8s", b(1, 0.8)))
     W(ul_close())
 
     # Dazzle
@@ -252,10 +252,6 @@ def build():
 
     # Faceless Void
     W(hero_header("Faceless Void"))
-    W(ability("Time Lock", slug="faceless_void_time_lock"))
-    W(ul_open())
-    W(li("Bonus Damage increased from 12/18/24/30 to 18/22/26/30", b([12, 18, 24, 30], [18, 22, 26, 30])))
-    W(ul_close())
     W(facet_header("faceless_void_chronosphere"))
     W(ul_open())
     W(li("Cooldown decreased from 160/150/140s to 155/145/135s", b([160, 150, 140], [155, 145, 135], l=True)))
@@ -263,6 +259,10 @@ def build():
     W(facet_header("faceless_void_time_zone"))
     W(ul_open())
     W(li("Cooldown decreased from 130/125/120s to 125/120/115s", b([130, 125, 120], [125, 120, 115], l=True)))
+    W(ul_close())
+    W(ability("Time Lock", slug="faceless_void_time_lock"))
+    W(ul_open())
+    W(li("Bonus Damage increased from 12/18/24/30 to 18/22/26/30", b([12, 18, 24, 30], [18, 22, 26, 30])))
     W(ul_close())
 
     # Grimstroke
@@ -310,38 +310,38 @@ def build():
 
     # Monkey King
     W(hero_header("Monkey King"))
-    W(ability("Boundless Strike", slug="monkey_king_boundless_strike"))
-    W(ul_open())
-    W(li("Aghanim's Shard portion of Primal Spring's max power decreased from 60% to 40%", b(60, 40)))
-    W(ul_close())
     W(facet_header("monkey_king_transfiguration"))
     W(ul_open())
     W(li("Initial cooldown increased from 0.5s to 1s", b(0.5, 1, l=True)))
     W(ul_close())
+    W(ability("Boundless Strike", slug="monkey_king_boundless_strike"))
+    W(ul_open())
+    W(li("Aghanim's Shard portion of Primal Spring's max power decreased from 60% to 40%", b(60, 40)))
+    W(ul_close())
 
     # Naga Siren
     W(hero_header("Naga Siren"))
+    W(facet_header("naga_siren_active_riptide"))
+    W(ul_open())
+    W(li("Rip Tide: Duration decreased from 3.5s to 2.6/2.9/3.2/3.5s", b(3.5, [2.6, 2.9, 3.2, 3.5])))
+    W(ul_close())
     W(ability("Song of the Siren", slug="naga_siren_song_of_the_siren"))
     W(ul_open())
     W(li("Radius decreased from 1000/1200/1400 to 900/1150/1400", b([1000, 1200, 1400], [900, 1150, 1400])))
-    W(ul_close())
-    W(facet_header("naga_siren_active_riptide"))
-    W(ul_open())
-    W(li("Duration decreased from 3.5s to 2.6/2.9/3.2/3.5s", b(3.5, [2.6, 2.9, 3.2, 3.5])))
     W(ul_close())
 
     # Nature's Prophet
     W(hero_header("Nature's Prophet"))
     W(ul_open())
-    W(li("Agility gain decreased from 3.2 to 3.0", b(3.2, 3)))
+    W(li("Agility gain decreased from 3.2 to 3.0", bstat_h("Nature's Prophet", "AttributeAgilityGain", "7.39c", -0.2)))
+    W(ul_close())
+    W(facet_header("furion_soothing_saplings"))
+    W(ul_open())
+    W(li("Sprout: Heal per second decreased from 14/26/38/50 to 10/15/20/25", b([14, 26, 38, 50], [10, 15, 20, 25])))
     W(ul_close())
     W(ability("Sprout", slug="furion_sprout"))
     W(ul_open())
     W(li("Damage decreased from 70/135/200/265 to 70/130/190/250", b([70, 135, 200, 265], [70, 130, 190, 250])))
-    W(ul_close())
-    W(facet_header("furion_soothing_saplings"))
-    W(ul_open())
-    W(li("Heal per second decreased from 14/26/38/50 to 10/15/20/25", b([14, 26, 38, 50], [10, 15, 20, 25])))
     W(ul_close())
 
     # Necrophos
@@ -391,7 +391,7 @@ def build():
     # Puck
     W(hero_header("Puck"))
     W(ul_open())
-    W(li("Agility gain decreased from 2.5 to 2.3", b(2.5, 2.3)))
+    W(li("Agility gain decreased from 2.5 to 2.3", bstat_h("Puck", "AttributeAgilityGain", "7.39c", -0.2)))
     W(ul_close())
 
     # Queen of Pain
@@ -498,6 +498,10 @@ def build():
 
     # Undying
     W(hero_header("Undying"))
+    W(facet_header("undying_rotting_mitts"))
+    W(ul_open())
+    W(li("Flesh Golem: Zombies summoned by the facet effect now die when Undying dies", t("MISC")))
+    W(ul_close())
     W(ability("Tombstone", slug="undying_tombstone"))
     W(ul_open())
     W(li("Zombie vision range decreased from 900/900 to 800/800", b([900, 900], [800, 800])))
@@ -505,10 +509,6 @@ def build():
     W(subgroup("Talents"))
     W(ul_open())
     W(li("Level 10 Talent Decay Damage decreased from +40 to +30", b(40, 30)))
-    W(ul_close())
-    W(facet_header("undying_rotting_mitts"))
-    W(ul_open())
-    W(li("Zombies summoned by the facet effect now die when Undying dies", t("MISC")))
     W(ul_close())
 
     # Ursa
@@ -526,7 +526,7 @@ def build():
     W(hero_header("Vengeful Spirit"))
     W(ul_open())
     W(li("Min base damage increased by 2", bstat_h("Vengeful Spirit", "AttackDamageMin", "7.39c", 2), extra=note_box(hero="Vengeful Spirit", field="AttackDamageMin", before_patch="7.39c")))
-    W(li("Agility gain decreased from 3.2 to 3.0", b(3.2, 3)))
+    W(li("Agility gain decreased from 3.2 to 3.0", bstat_h("Vengeful Spirit", "AttributeAgilityGain", "7.39c", -0.2)))
     W(ul_close())
 
     # Viper

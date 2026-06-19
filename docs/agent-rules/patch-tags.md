@@ -4,6 +4,12 @@
 
 ## Хелперы для строк изменений
 - `b(old, new, l=False)` — числовой бейдж в %. `l=True`: меньше = лучше (cooldown, mana cost, BAT, gold cost, penalty, channel time, recharge, cast point)
+
+**Overall direction для массивов (b() и bf()):** знаковое среднее по всем уровням/рангам включая нули. Нули включаются в знаменатель (честное среднее, не только non-zero пики).
+
+**`bf()` — два бейджа** когда L1 и L30 дают разный знак: `start` / `end` лейблы. Левый тег по avg-знаку.
+
+**Flatten rescale** (список → одно плоское значение): тег по сравнению плоского со средним старых. Flat ≥ avg → BUFF; flat < avg → NERF. l=True инвертирует. Перекрывает max-rank правило.
   - **Исключение**: «X Cooldown Reduction», «X Mana Cost Reduction», «Cooldown Advance» — это **значения талантов**, НЕ применять l=True
   - **Общий тег — по МАКС-уровню** (последний ненулевой ранг). Два авто-уточнения:
     - **Front-loaded рескейл:** макс-ранг — мелкий нерф (≤12%), но среднее знаковое % положительное (ранние баффы перевешивают незначительный поздний минус) → **бафф** (Riki Blink Strike 15/30/45/60→25/35/45/55 = +67/+17/0/−8).
@@ -74,6 +80,8 @@ W(subnote("Abilities that improve each level provide their increment value at le
 
 Дополнительно: **слово «Provides» в начале строки нужно убирать** — оно избыточно, строка и так показывает свойство.
 
+Исключение: если «Provides» — часть предложения (не начальный prefix), оставить.
+
 ```python
 # WRONG
 W(li("Provides +5% Max Health, +1.5% Max Health Regen, -30% Attack Speed", t("NEW")))
@@ -98,7 +106,23 @@ W(li("-20% <font color='#e03e2e'>Vision</font>", t("NEW")))                # pen
 
 **Не красить** в строках с числовым `b()` badge'ом — там бейдж уже даёт цветовую индикацию (например `Intelligence Penalty increased from 5% to 6%` с `b(5, 6, l=True)` уже показывает красный `+20%` справа — повторная подкраска избыточна).
 
+## Сводная таблица b() направления (l=True)
+
+`l=True` применять к: cooldown, mana cost, gold cost, BAT, cast point, channel time, recharge, penalty/drawback, incoming damage, damage taken, damage vulnerability, building damage penalty.
+
+**НЕ применять** к: damage dealt to enemies, durations (buff/debuff/stun на враге — longer = BUFF), talent value rows ("X Cooldown Reduction", "Cooldown Advance").
+
+**Penalty-значения** (gold/XP reduction, lifesteal penalty, stack penalty) → `l=True`: higher penalty = worse for player = NERF.
+
+**Durations** — стандартное направление (longer = BUFF) для buff/channel/summon/стан-на-враге. l=True только для self-debuff/drawback.
+
 ## Канонические фразы и спецслучаи тегов
+
+### DEL vs NERF — базовое правило
+
+`t("DEL")` — удаление фичи/эффекта/поведения. `t("NERF")` — количественное ослабление.
+
+«No longer …» → всегда DEL. «Level N Talent X replaced with Y» → REWORK. «No longer levels with X» (innate decoupling) → REWORK (эффект остаётся, только coupling убирается).
 
 ### «No longer has a X penalty» — это BUFF, не DEL
 
