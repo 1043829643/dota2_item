@@ -33,6 +33,12 @@ STEPS = [
     ("terrain", "builders/terrain.py",      "Terrain comparison"),
 ]
 
+# Steps that must be (re)built whenever a dependency step is explicitly requested.
+# E.g. "patch" produces _dynamics.json consumed by hdyn and idyn.
+DEPENDENTS: dict[str, list[str]] = {
+    "patch": ["hdyn", "idyn"],
+}
+
 SEP  = "-" * 60
 SEP2 = "=" * 60
 
@@ -43,6 +49,12 @@ def main() -> int:
     # --latest with no explicit keys: only the patch step (skips creeps/terrain/etc.)
     if latest and not filter_keys:
         filter_keys = {"patch"}
+    # Expand filter_keys with any dependents that must rebuild when a dep changes.
+    if filter_keys:
+        extra = set()
+        for key in filter_keys:
+            extra.update(DEPENDENTS.get(key, []))
+        filter_keys = filter_keys | (extra - filter_keys)
     steps = [(k, s, d) for k, s, d in STEPS if not filter_keys or k in filter_keys]
 
     if not steps:
