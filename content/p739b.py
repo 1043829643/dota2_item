@@ -233,7 +233,7 @@ def build():
     W(facet_header("ringmaster_sideshow_secrets"))
     W(ul_open())
     W(li("Crystal Ball: Clairvoyance Scan duration increased from 4s to 5s", b(4, 5)))
-    W(li("Weighted Pie: Pie Toss vision recovery time increased from 2s to 3s", b(2, 3, l=True)))
+    W(li("Weighted Pie: Pie Toss vision recovery time increased from 2s to 3s", b(2, 3)))
     W(ul_close())
 
     # Sand King
