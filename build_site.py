@@ -33,11 +33,35 @@ STEPS = [
     ("terrain", "builders/terrain.py",      "Terrain comparison"),
 ]
 
-# Steps that must be (re)built whenever a dependency step is explicitly requested.
-# E.g. "patch" produces _dynamics.json consumed by hdyn and idyn.
-DEPENDENTS: dict[str, list[str]] = {
-    "patch": ["hdyn", "idyn"],
+# Map: artifact filename -> key of the step that produces it.
+_PRODUCERS = {
+    "_dynamics.json": "patch",
 }
+
+def _build_dependents() -> dict[str, list[str]]:
+    """Auto-detect step dependencies by scanning builder scripts for artifact references.
+
+    For each artifact in _PRODUCERS, find every other builder script that
+    references that filename — those steps must rebuild whenever the producer runs.
+    """
+    root = Path(__file__).parent
+    step_scripts = {key: root / script for key, script, _ in STEPS}
+    result: dict[str, list[str]] = {}
+    for artifact, producer_key in _PRODUCERS.items():
+        consumers = []
+        for key, path in step_scripts.items():
+            if key == producer_key:
+                continue
+            try:
+                if artifact in path.read_text(encoding="utf-8"):
+                    consumers.append(key)
+            except OSError:
+                pass
+        if consumers:
+            result[producer_key] = consumers
+    return result
+
+DEPENDENTS = _build_dependents()
 
 SEP  = "-" * 60
 SEP2 = "=" * 60
