@@ -1607,13 +1607,15 @@ def _auto_register_facets(version, datafeed):
         return
 
     src = open(badges_path, encoding='utf-8').read()
-    # Find the closing brace of FACETS dict and insert before it
-    # Look for the last line that is just "}" preceded by facet entries
-    insert_marker = '\n}'
-    last_brace_idx = src.rfind('\n}')
-    if last_brace_idx == -1:
-        print(f'[WARN] Could not auto-register facets — could not find FACETS closing brace')
+    # Find the closing brace of the FACETS dict specifically.
+    # FACETS is followed by the _FACET_COLOR_GRADIENT comment block, so we
+    # search for "}\n\n# Mapping from Valve" which is unique to the FACETS end.
+    import re as _re
+    facets_end = _re.search(r'\n}\n\n# Mapping from Valve', src)
+    if not facets_end:
+        print(f'[WARN] Could not auto-register facets — could not locate FACETS closing brace')
         return
+    last_brace_idx = facets_end.start()
 
     new_lines = [f'    # {version} — auto-registered by generate_patch_code_v2.py']
     for slug, (title, color) in missing.items():
