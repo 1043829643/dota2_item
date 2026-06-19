@@ -14,7 +14,7 @@ def build():
     W(li("Tormentor: Reflect no longer considers creep-heroes for the damage reflected", t("REWORK"), extra=inline_note("Lone Druid's Spirit Bear is an exception for this")))
     W(ul_close())
 
-    W(plain_header("Terrain Changes"))
+    W(plain_header("Terrain Changes", terrain_link="7.39c"))
     W(ul_open())
     W(li("Watchers by the respective Wisdom shrines have been slightly moved away from the nearby ramps", t("MISC")))
     W(li("Watcher activation range decreased from 300 to 200", b(300, 200)))

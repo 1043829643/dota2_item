@@ -4723,6 +4723,12 @@ ul.changes li.aghanim-shard {
 .formula-table td:first-child {
   width: 42px;
 }
+.formula-table .axis-label {
+  white-space: nowrap;
+  width: auto;
+  font-style: italic;
+  opacity: 0.75;
+}
 .formula-table[hidden] { display: none; }
 .formula-table thead th {
   background: rgba(48, 54, 61, 0.55);
