@@ -182,14 +182,17 @@ class TestB:
         assert "+50%" in result
         assert "-50%" in result
 
-    def test_old_zero_emits_text_badge(self):
+    def test_old_zero_emits_absolute_chip(self):
         result = b(0, 10)
-        assert "BUFF" in result
+        # When old==0 we emit an absolute "+N" chip, not a BUFF text badge
+        assert "+10" in result
+        assert 'class="badge buff"' in result
 
-    def test_old_zero_nerf_emits_text_badge(self):
+    def test_old_zero_nerf_emits_absolute_chip(self):
         result = b(0, -10)
-        # 0 -> negative is a nerf
-        assert "NERF" in result
+        # 0 -> negative: emit absolute "-N" nerf chip
+        assert "-10" in result
+        assert 'class="badge nerf"' in result
 
     def test_returns_badge_group_span(self):
         result = b(100, 110)
