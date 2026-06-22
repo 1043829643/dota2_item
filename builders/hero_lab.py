@@ -498,7 +498,7 @@ def render_html() -> str:
 </div>
 </div>
 </div>
-<script src="src/scripts.js?v={av}"></script>
+<script defer src="src/scripts.js?v={av}"></script>
 </body>
 </html>
 """

@@ -436,7 +436,7 @@ def hero_header(name):
     _State.seen_facets_subgroup = False
     eid = _register_entity("hero", name)
     return _open_block() + f'''<div class="entity hero-entity"{eid}>
-  <div class="entity-icon hero-icon"><img src="{hero_img(name)}" alt="{name}" loading="lazy"></div>
+  <div class="entity-icon hero-icon"><img src="{hero_img(name)}" alt="{name}" loading="lazy" width="256" height="144"></div>
   <div class="entity-name">{name}</div>
 </div>'''
 
@@ -447,7 +447,7 @@ def unit_header(name, icon_url, kind=None):
     entity_kind = "creep-hero" if (kind and kind.lower().startswith("creep-hero")) else "unit"
     eid = _register_entity(entity_kind, name)
     return _open_block() + f'''<div class="entity unit-entity"{kind_attr}{eid}>
-  <div class="entity-icon hero-icon"><img src="{icon_url}" alt="{name}" loading="lazy"></div>
+  <div class="entity-icon hero-icon"><img src="{icon_url}" alt="{name}" loading="lazy" width="128" height="72"></div>
   <div class="entity-name">{name}</div>
 </div>'''
 
@@ -473,7 +473,7 @@ def item_header(name, new=False, changed=False):
         block_data_attr = ''
     eid = _register_entity("item", name)
     return out + _open_block(extra_cls, block_data_attr) + f'''<div class="entity item-entity"{eid}>
-  <div class="entity-icon item-icon"><img src="{item_img(name)}" alt="{name}" loading="lazy"></div>
+  <div class="entity-icon item-icon"><img src="{item_img(name)}" alt="{name}" loading="lazy" width="88" height="64"></div>
   <div class="entity-name">{name}{type_label}</div>
 </div>'''
 
@@ -554,7 +554,7 @@ def subgroup(title):
             f"this.src='{MISSING_ICON_URL}';"
         )
         icon = (f'<img src="{TALENT_ICON_URL}" alt="" '
-                f'class="ability-icon-img" loading="lazy" onerror="{on_err}">')
+                f'class="ability-icon-img" loading="lazy" width="128" height="128" onerror="{on_err}">')
         _State.ability_icons.add(TALENT_ICON_URL)
         _State.ability_block_open = True
         return out + (f'<h4 class="subgroup">{title}</h4>'
@@ -592,18 +592,18 @@ def ability(title, slug=None, innate=None, icon_url=None):
     skip_marker = False
     if not (icon_url or slug):
         icon_inner = (f'<img src="{MISSING_ICON_URL}" alt="" '
-                      f'class="ability-icon-img" loading="lazy" '
+                      f'class="ability-icon-img" loading="lazy" width="128" height="128" '
                       f'title="missing icon: {title}">')
     elif slug and not icon_url and slug not in _LOCAL_ABIL_ICONS:
         _State.ability_icons.add(f"{ABIL_CDN}{slug}.png")
         if is_innate:
             icon_inner = (f'<img src="{INNATE_ICON_URL}" alt="{title}" '
-                          f'class="ability-icon-img" loading="lazy" '
+                          f'class="ability-icon-img" loading="lazy" width="128" height="128" '
                           f'data-slug="{slug}">')
             skip_marker = True
         else:
             icon_inner = (f'<img src="{MISSING_ICON_URL}" alt="{title}" '
-                          f'class="ability-icon-img" loading="lazy" '
+                          f'class="ability-icon-img" loading="lazy" width="128" height="128" '
                           f'data-slug="{slug}" title="missing icon: {slug}">')
     if (icon_url or slug) and not icon_inner:
         src = icon_url if icon_url else f"{ABIL_CDN}{slug}.png"
@@ -623,7 +623,7 @@ def ability(title, slug=None, innate=None, icon_url=None):
         if slug and not is_innate:
             on_err += (f"this.title='missing icon: {slug}';")
         icon_inner = (f'<img src="{src}" alt="{title}" '
-                      f'class="ability-icon-img" loading="lazy"{slug_attr} '
+                      f'class="ability-icon-img" loading="lazy" width="128" height="128"{slug_attr} '
                       f'onerror="{on_err}">')
         if not icon_url:
             _State.ability_icons.add(src)
@@ -668,7 +668,7 @@ def facet_header(slug):
     _State.ability_block_open = True
     _State.current_block_is_facet = True
     icon_overlay = (f'<img src="../icons/facets/{icon_name}.png" alt="" '
-                    f'class="facet-icon-overlay" loading="lazy">') if icon_name else ''
+                    f'class="facet-icon-overlay" loading="lazy" width="72" height="72">') if icon_name else ''
     icon_html = (f'<div class="ability-icon-wrap facet-icon-wrap" '
                  f'style="background-image:{gradient}">{icon_overlay}</div>')
     return out + (f'<div class="ability-block facet-block">'
@@ -684,7 +684,7 @@ def ul_open():
             f"this.src='{OTHER_ICON_URL}';"
         )
         icon = (f'<img src="{OTHER_ICON_URL}" alt="" '
-                f'class="ability-icon-img" loading="lazy" onerror="{on_err}">')
+                f'class="ability-icon-img" loading="lazy" width="128" height="128" onerror="{on_err}">')
         out += ('<h4 class="subgroup">STATS</h4>'
                 '<div class="ability-block other-block">'
                 f'<div class="ability-icon-wrap">{icon}</div>')
@@ -1328,7 +1328,7 @@ def ability_change(old, new, summary=None, tag=None):
             f'<div class="{wrap_cls}">'
             f'{old_underlay_html}'
             f'<img src="{unified_icon}" alt="{new["name"]}" '
-            f'class="ability-icon-img" loading="lazy" onerror="{on_err}">'
+            f'class="ability-icon-img" loading="lazy" width="128" height="128" onerror="{on_err}">'
             f'{new_marker_html}'
             f'{old_marker_html}'
             f'</div>'

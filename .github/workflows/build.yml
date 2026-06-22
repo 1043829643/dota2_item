@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: pip install pytest
+        run: pip install pytest rcssmin rjsmin
 
       - name: Run unit tests
         run: python -m pytest tests/ -v

@@ -773,7 +773,7 @@ def _build_terrain_page(ver, patches, by_patch, markers_by_patch, counts_by_patc
         '</div>\n'
         '</div>\n'
         '</div>\n'
-        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script defer src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
 

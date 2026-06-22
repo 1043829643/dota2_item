@@ -446,7 +446,7 @@ def save_index_html():
         f'{sig_layer}\n'
         f'<div class="container main-page">{grid_html}</div>\n'
         f'{_whatsnew_html()}\n'
-        f'<script src="src/scripts.js?v={_ASSET_VERSION}"></script>\n'
+        f'<script defer src="src/scripts.js?v={_ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
     _os.makedirs(_site.DIST_DIR, exist_ok=True)

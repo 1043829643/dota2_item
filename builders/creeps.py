@@ -28,15 +28,17 @@ ASSET_VERSION = _site.compute_asset_version()
 
 
 def _latest_href():
-    """Latest patch page href for the Changelogs nav tab. Read from the
-    meta file build_patch.py emits; fall back to the newest patches/*.html
-    if absent."""
+    """Latest patch page href for the Changelogs nav tab. Prefer the meta file
+    the patch build emits; fall back to patch.meta (the canonical source)
+    rather than a stale hardcoded version."""
+    from patch.meta import latest_patch_filename as _lpf
+    _fallback = _lpf()
     meta_path = _os.path.join(_HERE, "data", "site_meta.json")
     try:
         meta = _json.loads(open(meta_path, encoding="utf-8").read())
-        return meta.get("latest_patch_filename", "patches/7.41c.html")
+        return meta.get("latest_patch_filename", _fallback)
     except Exception:
-        return "patches/7.41c.html"
+        return _fallback
 
 
 def save_creeps_html():
@@ -1377,7 +1379,7 @@ def save_creeps_html():
             slug = d.get(k + '_slug', '')
             if _has_abil_icon(slug):
                 img = (f'<img class="abil-ico" src="icons/abilities/{slug}.png" '
-                       f'alt="{_esc(v)}" loading="lazy">')
+                       f'alt="{_esc(v)}" loading="lazy" width="128" height="128">')
                 if slug in AUTOCAST_ABILITIES:
                     # Thin "snake" stroke that crawls along the icon's rounded
                     # frame at constant speed (incl. corners) — SVG dash offset
@@ -1430,7 +1432,7 @@ def save_creeps_html():
                     cells.append(
                         f'<td class="creep-icon-cell {_col_cls(k)}">'
                         f'<img class="creep-copy" src="{_esc(v)}" alt="" '
-                        f'loading="lazy" data-cmd="{_esc(cmd)}" '
+                        f'loading="lazy" width="128" height="72" data-cmd="{_esc(cmd)}" '
                         f'title="{_esc(cmd)}" '
                         f'onerror="this.style.visibility=\'hidden\'"></td>'
                     )
@@ -1541,7 +1543,7 @@ def save_creeps_html():
         '</table>\n'
         '</div>\n'
         '</div>\n'
-        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script defer src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
     _os.makedirs(_site.DIST_DIR, exist_ok=True)
@@ -1573,9 +1575,11 @@ def save_creeps_html():
     # files, so they render blank (would need a manual/external source).
     # Current patch — pick the chronologically newest version with extracted
     # ability data. `_patches_chrono` is already sorted via `_ver_key`; fall
-    # back to '7.41c' if it's empty (e.g. clean checkout without stats dump).
+    # back to the canonical latest stats version if it's empty (e.g. clean
+    # checkout without stats dump).
+    from patch.meta import latest_stats_version as _lsv
     CUR_VER = next((v for v in reversed(_patches_chrono)
-                    if v in _abil_by_patch), '7.41c')
+                    if v in _abil_by_patch), _lsv())
     print(f"  neutral_abilities source patch: {CUR_VER}")
     cur_ab = _abil_by_patch.get(CUR_VER, {})
     DMG_TYPE = {'DAMAGE_TYPE_MAGICAL': 'Magical', 'DAMAGE_TYPE_PHYSICAL': 'Physical',
@@ -2392,7 +2396,7 @@ def save_creeps_html():
             p = _abil_props(slug)
             if _has_abil_icon(slug):
                 img_tag = (f'<img class="abil-ico" src="icons/abilities/{slug}.png" '
-                           f'alt="{_esc(name)}" loading="lazy">')
+                           f'alt="{_esc(name)}" loading="lazy" width="128" height="128">')
                 if slug in AUTOCAST_ABILITIES:
                     aico = (f'<span class="abil-ico-wrap abil-autocast">'
                             f'{img_tag}{_autocast_snake_svg()}</span>')
@@ -2488,7 +2492,7 @@ def save_creeps_html():
         f'<tr class="col-row">{ua_head_html}</tr></thead>\n'
         f'<tbody>\n{chr(10).join(ua_rows)}\n</tbody>\n'
         '</table>\n</div>\n</div>\n'
-        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script defer src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
     with open(_os.path.join(_site.DIST_DIR, 'neutral_abilities.html'), 'w', encoding='utf-8') as f:

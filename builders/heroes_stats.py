@@ -1449,7 +1449,7 @@ def render_html() -> str:
         has_stat_innate = slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "ogre_magi", "razor", "sven", "techies", "ursa", "void_spirit"}
         attack_type = _attack_type(latest, hero, raw)
         icon = (f'<img class="mr-ico hs-ico" src="icons/heroes/{slug}.png" '
-                f'alt="" loading="lazy">'
+                f'alt="" loading="lazy" width="256" height="144">'
                 if (_HERE / "icons" / "heroes" / f"{slug}.png").exists()
                 else '<span class="mr-ico mr-ico-blank"></span>')
         cells = [
@@ -1607,7 +1607,7 @@ def render_html() -> str:
         f'{table}\n'
         '</div>\n'
         '</div>\n'
-        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script defer src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
 

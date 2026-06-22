@@ -413,7 +413,7 @@ def save_calendar_html():
         + '\n<div class="container calendar-page">\n'
         + '\n'.join(body)
         + '\n</div>\n\n'
-        + f'<script src="src/scripts.js?v={_ASSET_VERSION}"></script>\n'
+        + f'<script defer src="src/scripts.js?v={_ASSET_VERSION}"></script>\n'
         + toggle_script + '\n'
         + '</body>\n</html>\n'
     )

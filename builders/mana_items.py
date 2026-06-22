@@ -42,30 +42,11 @@ ITEMS_TXT = _HERE / "data" / "stats" / _lsv() / "items.txt"
 STATS_ROOT = _HERE / "data" / "stats"
 
 def _load_release_history() -> list[tuple[str, str]]:
-    """Parse RELEASE_HISTORY out of build_patch.py via regex (don't import —
-    that file runs the whole patch build on import). Falls back to a small
-    inline list (newest only) if build_patch.py is unreachable. Returns
-    newest-first list of (version, date)."""
-    out: list[tuple[str, str]] = []
-    bp = _HERE / "builders" / "patch.py"
-    if bp.exists():
-        src = bp.read_text(encoding="utf-8")
-        # Anchor on the RELEASE_HISTORY assignment to avoid duplicating
-        # entries from the parallel PATCHES list (which has an extra
-        # `filename` key per entry).
-        block_m = re.search(
-            r'RELEASE_HISTORY\s*=\s*\[(.+?)\n\]', src, re.DOTALL
-        )
-        if block_m:
-            for m in re.finditer(
-                r'\{"version":\s*"([^"]+)",\s*"date":\s*"([^"]+)"',
-                block_m.group(1),
-            ):
-                out.append((m.group(1), m.group(2)))
-    if out:
-        return out
-    # Minimum-viable fallback (current cycle only)
-    return [("7.41c", "06.05.2026")]
+    """Read RELEASE_HISTORY from patch.meta (the canonical source) as a
+    newest-first list of (version, date). patch.meta is import-safe — it only
+    defines data + helpers and runs no build side effects."""
+    from patch.meta import RELEASE_HISTORY as _RH
+    return [(p["version"], p["date"]) for p in _RH]
 
 
 RELEASE_HISTORY = _load_release_history()
@@ -715,7 +696,7 @@ def _icon_html(slug: str) -> str:
         # redundant (the page is about mana metrics, not item descriptions) and
         # added a tooltip payload + JS hint handler to every row.
         return (f'<img class="mr-ico" src="icons/items/{short}.png" '
-                f'alt="" loading="lazy">')
+                f'alt="" loading="lazy" width="88" height="64">')
     return '<span class="mr-ico mr-ico-blank"></span>'
 
 
@@ -988,7 +969,7 @@ def render_html(rows: list[dict], cost_hist: dict[str, list] | None = None,
         f'{table}\n'
         '</div>\n'   # close .creeps-scroll
         '</div>\n'   # close .creeps-page
-        f'<script src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
+        f'<script defer src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )
 

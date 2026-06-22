@@ -21,6 +21,32 @@ import sys
 import time
 from pathlib import Path
 
+
+def _minify_assets(dist: Path):
+    """Minify CSS and JS files in dist/ (source files untouched)."""
+    try:
+        import rcssmin
+        css = dist / "styles.css"
+        if css.exists():
+            raw = css.read_text(encoding="utf-8")
+            mini = rcssmin.cssmin(raw)
+            css.write_text(mini, encoding="utf-8")
+            pct = (1 - len(mini) / len(raw)) * 100 if raw else 0
+            print(f"  minified styles.css: {len(raw):,} -> {len(mini):,} ({pct:.0f}% smaller)")
+    except ImportError:
+        print("  [skip] rcssmin not installed -- CSS not minified")
+    try:
+        import rjsmin
+        js = dist / "src" / "scripts.js"
+        if js.exists():
+            raw = js.read_text(encoding="utf-8")
+            mini = rjsmin.jsmin(raw)
+            js.write_text(mini, encoding="utf-8")
+            pct = (1 - len(mini) / len(raw)) * 100 if raw else 0
+            print(f"  minified scripts.js: {len(raw):,} -> {len(mini):,} ({pct:.0f}% smaller)")
+    except ImportError:
+        print("  [skip] rjsmin not installed -- JS not minified")
+
 STEPS = [
     ("patch",   "builders/build_patches.py",       "Patch pages (index + calendar + changelogs)"),
     ("silent",  "builders/silent.py",       "Silent changes pages"),
@@ -125,6 +151,8 @@ def main() -> int:
             if dst.exists():
                 shutil.rmtree(dst)
             shutil.copytree(src, dst)
+    # Minify CSS and JS copies in dist/ (source files stay readable)
+    _minify_assets(_dist)
     print("  [OK]")
 
     total = time.monotonic() - t0

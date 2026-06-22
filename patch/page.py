@@ -80,7 +80,7 @@ def write_footer():
         W('</section>')
         _State.section_panel_open = False
     W('<button class="back-to-top" aria-label="Back to top" title="Back to top" onclick="window.scrollTo({top:0, behavior:\'smooth\'})"></button>')
-    W(f'<script src="../src/scripts.js?v={_ASSET_VERSION}"></script>')
+    W(f'<script defer src="../src/scripts.js?v={_ASSET_VERSION}"></script>')
     W('</div></body></html>')
 
 
