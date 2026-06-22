@@ -144,7 +144,7 @@ jobs:
 
           sys.path.insert(0, '.')
           from patch.meta import latest_stats_version, _current_version
-          from builders.patch import _stem_to_version, _STEM_RE
+          from builders.build_patches import _stem_to_version, _STEM_RE
 
           ver = _current_version()
           stats_ver = latest_stats_version()

@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 STEPS = [
-    ("patch",   "builders/patch.py",       "Patch pages (index + calendar + changelogs)"),
+    ("patch",   "builders/build_patches.py",       "Patch pages (index + calendar + changelogs)"),
     ("silent",  "builders/silent.py",       "Silent changes pages"),
     ("creeps",  "builders/creeps.py",       "Neutral Stats / Abilities tables"),
     ("mana",    "builders/mana_items.py",   "Mana Items table"),
