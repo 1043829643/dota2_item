@@ -5064,15 +5064,13 @@
     // line; surface the active-upgrade mini-markers the ability carries.
     linesSet.forEach(ln => {
       const anyVal = [...ln.querySelectorAll('.aoe-val')].some(v => !v.hidden);
-      ln.style.visibility = anyVal ? '' : 'hidden';
+      ln.hidden = !anyVal;
     });
     abilities.forEach(ab => {
       const granted = ab.dataset.grantedBy;
       const grantedHidden = granted && !up[granted];
       const anyVisible = !grantedHidden && [...ab.querySelectorAll('.aoe-line')].some(l => !l.hidden);
-      // visibility:hidden keeps the cell height stable — row height never changes
-      // so the sticky hero column border doesn't repaint at the wrong position.
-      ab.style.visibility = anyVisible ? '' : 'hidden';
+      ab.style.display = anyVisible ? '' : 'none';
       ['talent', 'scepter', 'shard'].forEach(t => {
         const mark = ab.querySelector('.aoe-mark-' + t);
         if (mark) mark.hidden = !(up[t] && ab.dataset['has' + t[0].toUpperCase() + t.slice(1)] === '1' && anyVisible);
@@ -5080,10 +5078,18 @@
     });
     // Hero rows are always visible — empty/filter-hidden slots show dashes.
 
-    // Ability divs changing display causes row-height changes; the sticky hero
-    // column repaints at the old height in Chrome's composited layer.
-    // offsetHeight read forces a synchronous layout flush + full repaint.
-    requestAnimationFrame(() => { void table.offsetHeight; });
+    // When ability divs show/hide, row heights change. Chrome's compositor
+    // caches the sticky cell's bottom edge and doesn't repaint the border there.
+    // Fix: after layout settles, explicitly set each sticky cell's height to
+    // match its row — this tells Chrome the exact border-bottom position.
+    requestAnimationFrame(() => {
+      table.querySelectorAll('tbody tr').forEach(tr => {
+        const td = tr.querySelector('td.aoe-name');
+        if (!td) return;
+        td.style.height = '';
+        td.style.height = tr.offsetHeight + 'px';
+      });
+    });
   }
 
   itemBtns.forEach(btn => btn.addEventListener('click', () => {
