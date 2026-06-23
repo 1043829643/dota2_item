@@ -8185,6 +8185,14 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   position: relative;
   z-index: 30;
 }
+/* First row: zoom down so icon doesn't clip under the header. */
+.mr-table.aoe-table tbody tr:first-child .aoe-ico-wrap {
+  transform-origin: center top;
+}
+/* Last two rows: zoom up so icon doesn't clip below the table edge. */
+.mr-table.aoe-table tbody tr:nth-last-child(-n+2) .aoe-ico-wrap {
+  transform-origin: center bottom;
+}
 .aoe-ico-wrap:hover .aoe-ico {
   box-shadow: 0 3px 8px var(--shadow-60, rgba(0, 0, 0, 0.6)),
               0 0 0 1px var(--blue-40);
