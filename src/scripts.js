@@ -5064,7 +5064,7 @@
     // line; surface the active-upgrade mini-markers the ability carries.
     linesSet.forEach(ln => {
       const anyVal = [...ln.querySelectorAll('.aoe-val')].some(v => !v.hidden);
-      ln.hidden = !anyVal;
+      ln.style.visibility = anyVal ? '' : 'hidden';
     });
     abilities.forEach(ab => {
       const granted = ab.dataset.grantedBy;
