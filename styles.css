@@ -7006,9 +7006,12 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hs-level-group span {
   color: var(--text-dim);
-  font-weight: 700;
+  /* Match the "View" label spec (the toolbar-label standard): 600 / 11px /
+     0.6px tracking — was 700 / 12px, which read taller than its neighbours. */
+  font-weight: 600;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.6px;
 }
 .hs-level-group input {
   width: 44px;
@@ -7120,7 +7123,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   background: transparent; border-color: transparent;
 }
 .mr-price-label {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
   color: var(--text-dim); padding-right: 4px; user-select: none;
 }
 .toolbar-panel .mr-price-input {
@@ -8072,6 +8075,164 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .mr-table.hs-table tbody td {
   white-space: nowrap;
+}
+
+/* ============================================================================
+   AOE INCREASE  (aoe_increase.html — Heroes » AoE Increase)
+   One row per hero; each slot column = an ability whose radius is flagged
+   affected_by_aoe_increase. The item filter bar rewrites every .aoe-val to
+   "base > increased" live (see scripts.js AOE IIFE).
+   ========================================================================== */
+/* Exception to the usual rule (toolbar scrolls away): here the filter toolbar
+   STAYS pinned at the top of the scroll box so the AoE / Upgrade filters are
+   always reachable. The thead pins just below it (top offset set by JS to the
+   toolbar's height). */
+.aoe-toolbar.inbox-bar {
+  top: 0;
+  z-index: 60;
+  background: var(--bg-panel);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* Item filter buttons reuse the .hs-attr-filter shell but are rectangular so
+   the (wide) item icon fills its box rather than being cropped to a circle. */
+.aoe-item-btn {
+  width: auto;
+  padding: 0;
+  overflow: hidden;
+}
+.aoe-item-btn img {
+  width: 40px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+/* Upgrade toggles (talent / scepter / shard) use the same rectangular shell
+   as the item buttons so their icons fill the box (Scepter/Shard art is wide). */
+.aoe-up-btn {
+  width: auto;
+  padding: 0;
+  overflow: hidden;
+}
+.aoe-up-btn img {
+  width: 40px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+/* The talent icon is a thin tree silhouette — `cover` would crop it. Keep it
+   centred and only as tall as the box allows. */
+.aoe-up-btn[data-aoe-upgrade="talent"] img {
+  object-fit: contain;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+/* ---- table cells: centered headers + content, narrow columns ---- */
+.mr-table.aoe-table thead th.aoe-slot-th {
+  min-width: 84px;
+  text-align: center;
+  color: var(--text-muted, #8698b0);
+}
+.mr-table.aoe-table td.aoe-cell {
+  vertical-align: middle;
+  padding: 4px 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: normal;
+  text-align: left;   /* icons hug the left edge so they line up vertically */
+}
+.mr-table.aoe-table td.aoe-cell-empty {
+  background: rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+/* border-collapse:collapse + position:sticky = Chrome repaint bug (borders vanish
+   when filter toggles hide/show content). Switching to separate+spacing:0 gives
+   each sticky cell its own independent border that always repaints correctly. */
+.mr-table.aoe-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.aoe-ability {
+  display: grid;
+  grid-template-columns: 30px auto;
+  align-items: center;
+  /* Wide gap so the hover-zoomed icon (scale 1.8 ≈ +12px each side) never
+     reaches the radius text — same room the hero-icon column leaves. */
+  column-gap: 18px;
+}
+/* Wrapper anchors the upgrade mini-markers AND is what scales on hover, so the
+   markers pop together with the icon (not left behind). */
+.aoe-ico-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  transform-origin: center center;
+  transition: transform 0.12s ease;
+}
+.aoe-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 3px;
+  /* Opaque panel backing so transparent innate icons aren't see-through when
+     zoomed. Blue ring matches the hero icon (.mr-ico) base exactly. */
+  background: var(--bg-panel-2, #161c24);
+  box-shadow: 0 0 0 1px var(--blue-18);
+  transition: box-shadow 0.12s ease;
+}
+/* Hover: pop exactly like a hero icon (.mr-ico) — scale 1.8, lift, same ring. */
+.aoe-ico-wrap:hover {
+  transform: scale(1.8);
+  position: relative;
+  z-index: 30;
+}
+.aoe-ico-wrap:hover .aoe-ico {
+  box-shadow: 0 3px 8px var(--shadow-60, rgba(0, 0, 0, 0.6)),
+              0 0 0 1px var(--blue-40);
+}
+/* Upgrade mini-markers: pinned to the bottom-centre of the ability icon, like
+   the innate markers on /patches/. */
+.aoe-marks {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1px;
+  pointer-events: none;
+}
+.aoe-mark {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 3px;
+  background: var(--bg-panel-2, #161c24);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+.aoe-radii {
+  display: flex;
+  flex-direction: column;   /* one radius per line */
+  gap: 1px;
+  min-width: 0;
+}
+.aoe-line {
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.aoe-line[hidden] { display: none; }
+.aoe-val {
+  color: var(--text, #b9cce5);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-right: 4px;
+}
+.aoe-val.aoe-val-up { color: #e3c46a; }        /* boosted by any item — gold */
+.aoe-val[hidden] { display: none; }
+.aoe-slash { color: var(--text-muted, #8698b0); margin: 0 1px; }
+.aoe-sep { color: var(--text-muted, #8698b0); margin-right: 4px; }
+.aoe-lbl {
+  color: var(--text-muted, #8698b0);
+  font-size: 10.5px;
 }
 
 /* ==========================================================================

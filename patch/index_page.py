@@ -285,6 +285,8 @@ def save_index_html():
         '<div class="support-options">'
         + _panel_link_btn('inv-cell-dynamics', 'heroes_dyn.html', 'icon_dynamics.png', 'Dynamics')
         + _panel_link_btn('', 'heroes_stats.html', 'icon_typewriter.png', 'Stats')
+        + _panel_link_btn('', 'hero_lab.html', 'icon_teapot.png', 'Hero Lab')
+        + _panel_link_btn('', 'aoe_increase.html', 'icon_abilities.png', 'AoE')
         + '</div></div>'
     )
     items_panel = (
