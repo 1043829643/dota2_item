@@ -5070,7 +5070,9 @@
       const granted = ab.dataset.grantedBy;
       const grantedHidden = granted && !up[granted];
       const anyVisible = !grantedHidden && [...ab.querySelectorAll('.aoe-line')].some(l => !l.hidden);
-      ab.style.display = anyVisible ? '' : 'none';
+      // visibility:hidden keeps the cell height stable — row height never changes
+      // so the sticky hero column border doesn't repaint at the wrong position.
+      ab.style.visibility = anyVisible ? '' : 'hidden';
       ['talent', 'scepter', 'shard'].forEach(t => {
         const mark = ab.querySelector('.aoe-mark-' + t);
         if (mark) mark.hidden = !(up[t] && ab.dataset['has' + t[0].toUpperCase() + t.slice(1)] === '1' && anyVisible);
