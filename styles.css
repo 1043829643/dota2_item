@@ -8329,6 +8329,7 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .aoe-mark-talent { background-image: url('icons/misc/talents.svg'); }
 .aoe-mark-scepter { background-image: url('icons/items/ultimate_scepter.png'); }
 .aoe-mark-shard { background-image: url('icons/items/aghanims_shard.png'); }
+.aoe-mark[hidden] { display: none; }
 .aoe-radii {
   display: flex;
   flex-direction: column;   /* one radius per line */
