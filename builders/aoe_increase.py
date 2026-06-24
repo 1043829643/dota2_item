@@ -63,6 +63,13 @@ KV_GRANTED_OVERRIDE: dict[str, str] = {
     "disruptor_kinetic_fence": "shard",  # replaces Kinetic Field; KV lacks IsGrantedByShard
 }
 
+# Some current KV blocks still carry AoE-marked upgrade links that no longer
+# belong to that ability in-game. Keyed by (ability_slug, radius_key, bonus_key).
+STALE_AOE_BONUSES: set[tuple[str, str, str]] = {
+    ("silencer_curse_of_the_silent", "radius", "special_bonus_unique_silencer_arcane_curse_radius"),
+    ("snapfire_scatterblast", "shard_knockback_distance", "special_bonus_shard"),
+}
+
 # Sub-abilities folded into their parent that DON'T share a slug prefix.
 # Slug → canonical slug.
 MANUAL_CANON = {
@@ -229,7 +236,7 @@ def _sum_levels(a: list[float], b: list[float]) -> list[float]:
     return [x + y for x, y in zip(a, b)]
 
 
-def _find_aoe_radii(block: dict) -> list[dict]:
+def _find_aoe_radii(block: dict, ability_slug: str) -> list[dict]:
     """Walk an ability block; return every sub-block flagged
     affected_by_aoe_increase, in document order. Each entry keeps the RAW base
     value plus the per-upgrade deltas separately, so the page can apply
@@ -259,6 +266,8 @@ def _find_aoe_radii(block: dict) -> list[dict]:
                        "talent_set": [], "scepter_set": [], "shard_set": [],
                        "talent_global": []}
                 def _add_bonus(row_: dict, bk: str, bv) -> None:
+                    if (ability_slug, row_["key"], bk) in STALE_AOE_BONUSES:
+                        return
                     d, ovr = _delta_for(bv)
                     if not d:
                         return
@@ -283,6 +292,10 @@ def _find_aoe_radii(block: dict) -> list[dict]:
                         for inner_mk, inner_mv in mv.items():
                             if inner_mk.startswith("special_bonus_"):
                                 _add_bonus(row, inner_mk, inner_mv)
+                    elif mk.startswith("special_bonus_facet_"):
+                        # Facet-specific scalar overrides are not talents and
+                        # must not be controlled by the Talent filter.
+                        continue
                     else:
                         _add_bonus(row, mk, mv)
                 found.append(row)
@@ -434,8 +447,9 @@ def _hero_abilities(version: str, hero_slug: str, kit: set[str] | None) -> list[
             continue
         if kit and slug not in kit:
             continue
-        radii = _find_aoe_radii(block)
-        radii = [r for r in radii if not _is_junk_key(r["key"])]
+        radii = _find_aoe_radii(block, slug)
+        radii = [r for r in radii
+                 if not _is_junk_key(r["key"])]
         if radii:
             granted_by = ""
             if str(block.get("IsGrantedByScepter", "")).strip() == "1":
