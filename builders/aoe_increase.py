@@ -366,12 +366,13 @@ def _hero_abilities(version: str, hero_slug: str, kit: set[str] | None) -> list[
         radii = _find_aoe_radii(block)
         radii = [r for r in radii if (slug, r["key"]) not in EXCLUDE_RADII]
         if radii:
-            innate = str(block.get("Innate", "")).strip() == "1"
             granted_by = ""
             if str(block.get("IsGrantedByScepter", "")).strip() == "1":
                 granted_by = "scepter"
             elif str(block.get("IsGrantedByShard", "")).strip() == "1":
                 granted_by = "shard"
+            # Scepter/shard ultimates carry Innate "1" in KV but are not true innates.
+            innate = (str(block.get("Innate", "")).strip() == "1" and not granted_by)
             abilities.append({"slug": slug, "radii": radii, "innate": innate,
                               "granted_by": granted_by})
     return abilities
@@ -620,7 +621,11 @@ def render_html() -> str:
                 if i in merged_map:
                     lines.append(merged_map[i])
                 elif i not in handled:
-                    label = _clean_label(r["key"]) if multi else ""
+                    lbl = _clean_label(r["key"])
+                    # Always show label when it carries real context (not just
+                    # generic "Radius"). For multi-radius cells labels are always
+                    # shown so values can be told apart.
+                    label = lbl if (multi or lbl.lower() not in {"", "radius"}) else ""
                     lines.append(_line(_val_span(r), label))
             granted_by = ab.get("granted_by", "")
             data_has = (f' data-has-talent="{1 if has["talent"] else 0}"'
