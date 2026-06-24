@@ -5024,7 +5024,7 @@
   const abilities = [...table.querySelectorAll('.aoe-ability')];
 
   let flat = 0, pct = 0;
-  const up = { talent: false, scepter: false, shard: false };
+  const up = { talent: true, scepter: true, shard: true };
 
   // base[] + delta[] elementwise (delta broadcasts a single value over levels).
   function add(arr, delta) {
@@ -5057,8 +5057,12 @@
       if (!visible) return;
       const shown = (flat || pct) ? radius.map(r => (r + flat) * (1 + pct / 100)) : radius;
       V.el.textContent = fmt(shown);
-      // Any item boost → gold (site-wide accent colour).
-      V.el.classList.toggle('aoe-val-up', !!(flat || pct));
+      // Gold when any active upgrade or item boost changes this value from base.
+      const upgradedUp =
+        (up.talent  && (V.talent.some(n => n)  || V.talentSet.length))  ||
+        (up.scepter && (V.scepter.some(n => n) || V.scepterSet.length)) ||
+        (up.shard   && (V.shard.some(n => n)   || V.shardSet.length));
+      V.el.classList.toggle('aoe-val-up', !!(flat || pct || upgradedUp));
     });
     // Hide a line whose every value is hidden, then an ability with no visible
     // line; surface the active-upgrade mini-markers the ability carries.
@@ -5118,7 +5122,15 @@
     recompute();
   }));
 
-  recompute();   // default: no item, no upgrades — gated radii start hidden
+  recompute();   // initial render: upgrades ON by default
+  // Freeze column widths after first render so ability cells appearing/disappearing
+  // (shard/scepter/talent toggle) cannot cause horizontal layout shift.
+  requestAnimationFrame(() => {
+    table.querySelectorAll('thead th').forEach(th => {
+      th.style.minWidth = th.offsetWidth + 'px';
+      th.style.maxWidth = th.offsetWidth + 'px';
+    });
+  });
 
   // Pin the filter toolbar at the top of the scroll box and drop the table
   // header just below it (exception to the usual "toolbar scrolls away" rule).

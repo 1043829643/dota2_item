@@ -57,6 +57,12 @@ UPGRADE_FILTERS = [
     ("shard",   "Aghanim's Shard",   "icons/items/aghanims_shard.png"),
 ]
 
+# Abilities whose KV block omits IsGrantedByShard/IsGrantedByScepter even though
+# they are shard/scepter replacements in-game. Keyed by slug → granted_by value.
+KV_GRANTED_OVERRIDE: dict[str, str] = {
+    "disruptor_kinetic_fence": "shard",  # replaces Kinetic Field; KV lacks IsGrantedByShard
+}
+
 # Sub-abilities folded into their parent that DON'T share a slug prefix.
 # Slug → canonical slug.
 MANUAL_CANON = {
@@ -371,6 +377,8 @@ def _hero_abilities(version: str, hero_slug: str, kit: set[str] | None) -> list[
                 granted_by = "scepter"
             elif str(block.get("IsGrantedByShard", "")).strip() == "1":
                 granted_by = "shard"
+            elif slug in KV_GRANTED_OVERRIDE:
+                granted_by = KV_GRANTED_OVERRIDE[slug]
             # Scepter/shard ultimates carry Innate "1" in KV but are not true innates.
             innate = (str(block.get("Innate", "")).strip() == "1" and not granted_by)
             abilities.append({"slug": slug, "radii": radii, "innate": innate,
@@ -391,7 +399,7 @@ def _item_filter_bar(items: list[tuple]) -> str:
     def _up_btn(key, label, icon):
         return (
             f'<button type="button" class="hs-attr-filter aoe-up-btn" '
-            f'data-aoe-upgrade="{key}" aria-pressed="false" '
+            f'data-aoe-upgrade="{key}" aria-pressed="true" '
             f'title="Show radii gained from {_esc(label)}">'
             f'<img src="{icon}" alt="{_esc(label)}" loading="lazy"></button>'
         )
@@ -498,6 +506,10 @@ def render_html() -> str:
                 continue
             has = {u: any(r[u] or r[u + "_set"] for r in ab["radii"])
                    for u in ("talent", "scepter", "shard")}
+            # Abilities fully granted by an upgrade always carry its mark even
+            # when the radius itself doesn't change with that upgrade.
+            if ab.get("granted_by") in has:
+                has[ab["granted_by"]] = True
             # Ability icon (innate-marker fallback for CDN-less innates) wrapped
             # so upgrade mini-markers can pin to its bottom-centre, like the
             # innate markers on /patches/. Name shows via the hover title; the
