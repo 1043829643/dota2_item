@@ -5016,6 +5016,7 @@
     talent: nums(el.dataset.talent),
     scepter: nums(el.dataset.scepter),
     shard: nums(el.dataset.shard),
+    talentGlobal: nums(el.dataset.talentGlobal),
     // Absolute overrides ("=800") — when the upgrade is on, REPLACE base.
     talentSet: nums(el.dataset.talentSet),
     scepterSet: nums(el.dataset.scepterSet),
@@ -5077,6 +5078,9 @@
       if (up.scepter) radius = V.scepterSet.length ? V.scepterSet : add(radius, V.scepter);
       if (up.shard)   radius = V.shardSet.length   ? V.shardSet   : add(radius, V.shard);
       const visible = Math.max(...radius) > 0;
+      // Generic +AoE talents (special_bonus_spell_aoe_N) affect every real
+      // AoE radius, but they must not reveal zero-base upgrade-only modes.
+      if (visible && up.talent && V.talentGlobal.length) radius = add(radius, V.talentGlobal);
       V.el.hidden = !visible;
       if (!visible) return;
       const shown = (flat || pct) ? radius.map(r => (r + flat) * (1 + pct / 100)) : radius;
@@ -5085,7 +5089,7 @@
       // Talent/Scepter/Shard is a newly enabled AoE mode, not a changed value.
       const baseVisible = Math.max(...V.base) > 0;
       const upgradedUp = baseVisible && (
-        (up.talent  && (V.talent.some(n => n)  || V.talentSet.length))  ||
+        (up.talent  && (V.talent.some(n => n)  || V.talentSet.length || V.talentGlobal.length))  ||
         (up.scepter && (V.scepter.some(n => n) || V.scepterSet.length)) ||
         (up.shard   && (V.shard.some(n => n)   || V.shardSet.length))
       );

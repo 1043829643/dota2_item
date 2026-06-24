@@ -256,7 +256,8 @@ def _find_aoe_radii(block: dict) -> list[dict]:
                 # exists when the upgrade toggle is on.
                 row = {"key": k, "base": vals,
                        "talent": [], "scepter": [], "shard": [],
-                       "talent_set": [], "scepter_set": [], "shard_set": []}
+                       "talent_set": [], "scepter_set": [], "shard_set": [],
+                       "talent_global": []}
                 def _add_bonus(row_: dict, bk: str, bv) -> None:
                     d, ovr = _delta_for(bv)
                     if not d:
@@ -322,6 +323,44 @@ def _load_hero_kits(version: str) -> dict[str, set[str]]:
             collect(block, acc)
             kits[hero.replace("npc_dota_hero_", "")] = acc
     return kits
+
+
+def _load_hero_generic_aoe_talents(version: str) -> dict[str, list[float]]:
+    """hero slug -> generic +AoE talent values.
+
+    Talents like special_bonus_spell_aoe_75 are not nested under a specific
+    AbilityValues radius. They apply to every existing AoE-affected value for
+    that hero, but should not reveal a zero-base Shard/Scepter/Talent AoE mode
+    by themselves.
+    """
+    path = STATS_DIR / version / "npc_heroes.txt"
+    if not path.exists():
+        return {}
+    text = _strip_backslash_lines(path.read_text(encoding="utf-8", errors="replace"))
+    try:
+        root = parse_kv(text).get("DOTAHeroes", {})
+    except Exception:
+        return {}
+    out: dict[str, list[float]] = {}
+    pat = _re.compile(r"^special_bonus_spell_aoe_(\d+(?:\.\d+)?)$")
+
+    def collect(d: dict) -> list[float]:
+        vals: list[float] = []
+        for k, val in d.items():
+            if isinstance(val, dict):
+                vals.extend(collect(val))
+            elif _re.fullmatch(r"Ability\d+", k):
+                m = pat.match(str(val).strip())
+                if m:
+                    vals.append(float(m.group(1)))
+        return vals
+
+    for hero, block in root.items():
+        if hero.startswith("npc_dota_hero_") and isinstance(block, dict):
+            vals = collect(block)
+            if vals:
+                out[hero.replace("npc_dota_hero_", "")] = vals
+    return out
 
 
 def _dedupe_abilities(abilities: list[dict]) -> list[dict]:
@@ -463,12 +502,18 @@ def render_html() -> str:
         key=lambda h: _display_name(h, names).lower())
 
     kits = _load_hero_kits(latest)
+    generic_aoe_talents = _load_hero_generic_aoe_talents(latest)
 
     rows = []
     max_slots = 1  # at minimum: Innate slot always exists
     for hero in heroes:
         slug = hero.replace("npc_dota_hero_", "")
         abilities = _hero_abilities(latest, slug, kits.get(slug))
+        generic_talent = generic_aoe_talents.get(slug, [])
+        if generic_talent:
+            for ab in abilities:
+                for r in ab["radii"]:
+                    r["talent_global"] = _sum_levels(r.get("talent_global", []), generic_talent)
         for ab in abilities:
             ab["name"] = abil_names.get(ab["slug"]) or _humanize(
                 ab["slug"].replace(slug + "_", ""))
@@ -477,6 +522,7 @@ def render_html() -> str:
             max(r["base"], default=0) > 0
             or r["talent"] or r["scepter"] or r["shard"]
             or r["talent_set"] or r["scepter_set"] or r["shard_set"]
+            or r.get("talent_global")
             for r in a["radii"])]
         # Slot #0 reserved for INNATE; heroes with no AoE abilities still get a row
         # (all cells will be empty dashes).
@@ -524,6 +570,7 @@ def render_html() -> str:
                 if max(r["base"], default=0) > 0
                 or r["talent"] or r["scepter"] or r["shard"]
                 or r["talent_set"] or r["scepter_set"] or r["shard_set"]
+                or r.get("talent_global")
             ]}
             if not ab["radii"]:
                 cells.append('<td class="aoe-cell aoe-cell-empty">'
@@ -531,6 +578,8 @@ def render_html() -> str:
                 continue
             has = {u: any(r[u] or r[u + "_set"] for r in ab["radii"])
                    for u in ("talent", "scepter", "shard")}
+            if any(r.get("talent_global") for r in ab["radii"]):
+                has["talent"] = True
             # Abilities fully granted by an upgrade always carry its mark even
             # when the radius itself doesn't change with that upgrade.
             if ab.get("granted_by") in has:
@@ -567,6 +616,7 @@ def render_html() -> str:
                     f' data-talent="{_attr(r["talent"])}"'
                     f' data-scepter="{_attr(r["scepter"])}"'
                     f' data-shard="{_attr(r["shard"])}"'
+                    f' data-talent-global="{_attr(r.get("talent_global", []))}"'
                     f' data-talent-set="{_attr(r["talent_set"])}"'
                     f' data-scepter-set="{_attr(r["scepter_set"])}"'
                     f' data-shard-set="{_attr(r["shard_set"])}">'
@@ -576,6 +626,7 @@ def render_html() -> str:
                 return all(a[k] == b[k] for k in (
                     "base", "talent", "scepter", "shard",
                     "talent_set", "scepter_set", "shard_set",
+                    "talent_global",
                 ))
 
             def _line(inner, label=""):
