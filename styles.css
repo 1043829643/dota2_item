@@ -8188,7 +8188,12 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   background-origin: border-box;
 }
 .aoe-ability {
-  display: grid;
+  /* inline-grid (not block grid) so the element participates in the inline
+     formatting context of its table cell. The TD uses vertical-align:middle,
+     which only centres INLINE content — a block-display child would start at
+     the content-area top regardless, misaligning the icon by 1-2px. */
+  display: inline-grid;
+  vertical-align: middle;
   grid-template-columns: 30px auto;
   align-items: center;
   /* Wide gap so the hover-zoomed icon (scale 1.8 ≈ +12px each side) never
