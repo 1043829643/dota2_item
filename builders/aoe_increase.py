@@ -269,7 +269,7 @@ def _find_aoe_radii(block: dict, ability_slug: str) -> list[dict]:
                     if (ability_slug, row_["key"], bk) in STALE_AOE_BONUSES:
                         return
                     d, ovr = _delta_for(bv)
-                    if not d:
+                    if not d or all(v == 0.0 for v in d):
                         return
                     if bk == "special_bonus_scepter" or bk.startswith("special_bonus_scepter_"):
                         bucket_ = "scepter"
@@ -298,7 +298,20 @@ def _find_aoe_radii(block: dict, ability_slug: str) -> list[dict]:
                         continue
                     else:
                         _add_bonus(row, mk, mv)
-                found.append(row)
+                # Skip rows where base and every upgrade delta are all zero —
+                # e.g. special_bonus_shard "+0" means the upgrade was planned
+                # but not yet valued; nothing meaningful to display.
+                def _has_nonzero(lst: list[float]) -> bool:
+                    return any(v != 0.0 for v in lst)
+                upgrade_buckets = (
+                    row["talent"] + row["scepter"] + row["shard"]
+                    + row["talent_set"] + row["scepter_set"] + row["shard_set"]
+                    + row["talent_global"]
+                )
+                if not (_has_nonzero(row["base"]) or _has_nonzero(upgrade_buckets)):
+                    pass  # drop silently
+                else:
+                    found.append(row)
             else:
                 walk(v)
 
