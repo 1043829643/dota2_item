@@ -91,6 +91,8 @@ STALE_RADIUS_ROWS: set[tuple[str, str]] = {
     # Oracle False Promise: radius=400 is a leftover from unreleased changes;
     # the ability is single-target and has no AoE in-game.
     ("oracle_false_promise", "radius"),
+    # Spirit Breaker Greater Bash: projectile_body_vision is a leftover; removed.
+    ("spirit_breaker_greater_bash", "projectile_body_vision"),
 }
 
 # Sub-abilities folded into their parent that DON'T share a slug prefix.
