@@ -699,8 +699,7 @@ def render_html() -> str:
             # innate icon, so a mini-marker on top would just duplicate it.
             has_own_icon = (_HERE / "icons" / "abilities" / f'{ab["slug"]}.png').exists()
             if ab.get("innate") and has_own_icon:
-                marks += ('<img class="aoe-mark aoe-mark-innate" '
-                          'src="icons/misc/innate_icon.png" alt="" title="Innate">')
+                marks += '<span class="aoe-mark aoe-mark-innate" title="Innate"></span>'
             ab_icon = (
                 f'<span class="aoe-ico-wrap">'
                 f'<img class="aoe-ico" src="icons/abilities/{ab["slug"]}.png" '

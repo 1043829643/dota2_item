@@ -8326,9 +8326,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   background-size: contain;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
 }
-.aoe-mark-talent { background-image: url('icons/misc/talents.svg'); }
+.aoe-mark-innate  { background-image: url('icons/misc/innate_icon.png'); }
+.aoe-mark-talent  { background-image: url('icons/misc/talents.svg'); }
 .aoe-mark-scepter { background-image: url('icons/items/ultimate_scepter.png'); }
-.aoe-mark-shard { background-image: url('icons/items/aghanims_shard.png'); }
+.aoe-mark-shard   { background-image: url('icons/items/aghanims_shard.png'); }
 .aoe-mark[hidden] { display: none; }
 .aoe-radii {
   display: flex;
