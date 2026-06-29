@@ -123,6 +123,24 @@ W(li("Recipe cost increased from 800 to 850 " + b(800, 850, l=True),
      extra=inline_note("Total cost unchanged at 1775g due to Chainmail cost decrease")))
 ```
 
+## Порядок строк в properties_change
+
+Совпадающие строки (присутствуют в обоих пейнах old и new) — **первыми**. Строки только в old (DEL) или только в new (NEW) — после.
+
+```python
+# ПРАВИЛЬНО: совпадающая пара (+22→+35) первая, DEL-только строки после
+properties_change(
+    old=[("BUFF", "+22 All Attributes"), ("DEL", "+250 Health"), ("DEL", "+250 Mana")],
+    new=[("",     "+35 All Attributes",  b(22, 35))])
+
+# НЕПРАВИЛЬНО: DEL строки первыми, совпадающая пара в конце
+properties_change(
+    old=[("DEL", "+250 Health"), ("DEL", "+250 Mana"), ("BUFF", "+22 All Attributes")],
+    new=[("",    "+35 All Attributes", b(22, 35))])
+```
+
+Если строки только в new (NEW-only), добавлять `None` в old для выравнивания не нужно — паддинг автоматический. `None` используется только для ручного сдвига строки вниз (редкий случай).
+
 ## Drop «Now requires X» после auto_components_change
 
 После `W(auto_components_change(name, version))` убирать текстовые строки «Now requires X», «No longer requires X», «Now requires X instead of Y» — они дублируют визуальную components-change панель. Оставлять только cost-summary строки.
