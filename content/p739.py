@@ -598,9 +598,8 @@ def build():
     W(li("Base movement speed decreased from 330 to 320", b(330, 320)))
     W(ul_close())
     W(new_facet("batrider_buff_on_displacement",
-        desc="Firefly also lights Batrider on fire. He gains increasingly more Movement Speed and Spell Amplification and burns away 2% of his max health per second. Maximum bonuses are reached at the end of Firefly's duration. Self-burn damage is magical and non-lethal."))
-    W(ul_open())
-    W(ul_close())
+        desc=["Firefly also sets Batrider on fire. He's burning away 2% of his max health per second, but gains increasingly bigger bonuses to Movement Speed and Spell Amplification over the duration. Max Movement Speed Bonus: 25/30/35/40%. Max Spell Amplification Bonus: 20%.",
+              inline_note("Max bonus values are reached at the end of Firefly's duration and don't linger after. Bonuses increase and self-burn damage are applied every 0.1s. Self-burn damage does not increase over time. Self-burn damage is magical and non-lethal")]))
     W(new_facet("batrider_arsonist",
         desc="Increases the max level of Sticky Napalm to 5. Level 5 Sticky Napalm causes every attack to apply 1 stack of Sticky Napalm."))
     W(ul_open())
