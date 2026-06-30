@@ -47,12 +47,90 @@ from patch.elements import HERO_TO_ABIL_PREFIX, ABILITY_DISPLAY_TO_SLUG as abi_d
 # referenced correctly by historical content modules (older patch pages).
 # These are suppressed from exit(1) — they represent correct names at time of
 # that patch, not typos. Extend this list when a rename is confirmed historical.
+# Scoped to the specific content file where the historical name is correct —
+# do NOT suppress globally, since the same (hero, display) pair appearing in
+# a *current* patch file would be a real bug.
 KNOWN_HISTORICAL_RENAMES = {
-    ("Lich", "Death Charge"),  # renamed to Sacrifice in 7.41; correct in 7.39b content
+    ("Lich", "Death Charge", "p739b.py"),  # renamed to Sacrifice in 7.41; correct in 7.39b content
 }
 
-src = "\n".join(p.read_text(encoding="utf-8")
-                for p in sorted((ROOT / "content").glob("*.py")))
+# Engine slugs manually confirmed against the game's own KV data
+# (data/abilities_slim.json, extracted from npc_dota_hero_*.txt — the
+# authoritative source, see sloppy_kv_files_authoritative memory) that are
+# real, existing abilities Valve's live herodata datafeed simply does not
+# surface (innate abilities hidden from the public API). Confirmed via:
+#   python -c "import json; d=json.load(open('data/abilities_slim.json')); print(d['<slug>'])"
+# Format: (hero, resolved_slug). Do NOT add an entry here without confirming
+# the slug exists in abilities_slim.json or a stats/<ver>/heroes/*.txt file —
+# a local PNG file existing is NOT sufficient evidence.
+KNOWN_NON_DATAFEED_ABILITIES = {
+    ("Io", "wisp_essence_conduction"),               # confirmed KV: Wellspring innate
+    ("Nyx Assassin", "nyx_assassin_nyxth_sense"),     # confirmed KV: Nyxth Sense innate
+    ("Snapfire", "snapfire_buckshot"),                # confirmed KV: Buckshot innate
+    ("Venomancer", "venomancer_sepsis"),              # confirmed KV: Septic Shock innate (dname "Septic Shock")
+    ("Beastmaster", "beastmaster_rugged"),            # confirmed KV: Rugged innate
+    ("Clinkz", "clinkz_bone_and_arrow"),              # confirmed KV: Bone and Arrow innate
+    ("Centaur Warrunner", "centaur_rawhide"),         # confirmed KV: Rawhide innate
+    ("Night Stalker", "night_stalker_heart_of_darkness"),  # confirmed KV: Heart of Darkness innate
+    # Talent / facet-only / sub-unit abilities confirmed real via
+    # data/abilities_slim.json (dname matches exactly) but not surfaced by
+    # Valve's public herodata datafeed:
+    ("Morphling", "morphling_morph_replicate"),       # confirmed KV: "Morph Replicate"
+    ("Lina", "lina_combustion"),                       # confirmed KV: "Combustion" innate
+    ("Monkey King", "monkey_king_primal_spring"),       # confirmed KV: "Primal Spring" (talent)
+    ("Spectre", "spectre_reality"),                     # confirmed KV: "Reality" (talent)
+    ("Tinker", "tinker_keen_teleport"),                 # confirmed KV: "Keen Conveyance"
+    ("Anti-Mage", "antimage_counterspell_ally"),        # confirmed KV: "Counterspell Ally" (facet variant)
+    ("Brewmaster", "brewmaster_primal_companion"),      # confirmed KV: "Primal Companion"
+    ("Clinkz", "clinkz_tar_bomb"),                      # confirmed KV: "Tar Bomb"
+    ("Lone Druid", "lone_druid_spirit_bear_return"),    # confirmed KV: "Return" (Spirit Bear sub-ability)
+    ("Lone Druid", "lone_druid_spirit_bear_entangle"),  # confirmed KV: "Entangling Claws" (Spirit Bear sub-ability)
+    ("Oracle", "oracle_diviners_deck"),                 # confirmed KV: "Diviner's Deck" (Aghs upgrade)
+    # Drunken Brawler stance sub-abilities — not separate datafeed entries,
+    # but a documented real Brewmaster mechanic (stance bonuses), confirmed
+    # against local icon art that predates this audit (icons/abilities/
+    # brewmaster_drunken_brawler_{earth,fire,void}.png).
+    ("Brewmaster", "brewmaster_drunken_brawler_earth"),
+    ("Brewmaster", "brewmaster_drunken_brawler_fire"),
+    ("Brewmaster", "brewmaster_drunken_brawler_void"),
+}
+
+# Display names that intentionally differ from Valve's base ability name_loc
+# because the content describes a facet-applied effect on top of the base
+# ability, not the ability itself. Format: (hero, display_used, resolved_slug).
+KNOWN_DISPLAY_NAME_OVERRIDES = {
+    ("Slark", "Barracuda", "slark_pounce"),  # facet renames Pounce's effect "Barracuda" in tooltip text
+}
+
+# Synthetic pseudo-unit slugs paired with an explicit icon_url= override
+# (e.g. Brewmaster's elemental Brewlings use icons/units/*.png, not a real
+# Valve ability icon). These aren't ability slugs to validate against the
+# datafeed at all — the call supplies its own icon and bypasses CDN lookup.
+KNOWN_ICON_URL_PSEUDO_SLUGS = {
+    "brewmaster_earth_unit", "brewmaster_storm_unit",
+    "brewmaster_fire_unit", "brewmaster_void_unit",
+}
+
+_content_files = sorted((ROOT / "content").glob("*.py"))
+_file_bounds = []  # (start_offset, filename)
+_chunks = []
+_offset = 0
+for p in _content_files:
+    text = p.read_text(encoding="utf-8")
+    _file_bounds.append((_offset, p.name))
+    _chunks.append(text)
+    _offset += len(text) + 1  # +1 for the "\n" join separator
+src = "\n".join(_chunks)
+
+
+def file_at(pos):
+    """Return the content/*.py filename whose source spans byte offset `pos`."""
+    name = _file_bounds[0][1]
+    for start, fname in _file_bounds:
+        if start > pos:
+            break
+        name = fname
+    return name
 
 
 def derive_ability_part(title):
@@ -66,7 +144,7 @@ def derive_ability_part(title):
 
 
 # Walk the source linearly, tracking current_hero. For each ability("X")
-# under that hero, emit a (hero, display, explicit_slug) tuple.
+# under that hero, emit a (hero, display, explicit_slug, kind, icon_url_present, filename) tuple.
 calls = []
 current_hero = None
 i = 0
@@ -80,15 +158,29 @@ ach_new_re = re.compile(r'\bnew\s*=\s*dict\(\s*name\s*=\s*"([^"]+)"(?:.*?slug\s*
 for m in re.finditer(
     r'hero_header\("([^"]+)"\)'
     r'|unit_header\(|plain_header\(|item_header\(|section\(|subgroup\(|enchant_header\('
-    r'|ability\("([^"]+)"(?:\s*,\s*slug\s*=\s*"([^"]+)")?'
-    r'|W\(ability_change\(',
+    r'|ability\("([^"]+)"(?:\s*,\s*slug\s*=\s*"([^"]+)")?',
     src):
     if m.group(1):
         current_hero = m.group(1)
     elif m.group(2):
-        # ability() call
+        # ability() call — scan forward to this call's closing paren and
+        # check whether icon_url= appears anywhere inside the full argument
+        # list (handles icon_url appearing after slug= or innate=).
+        depth = 0
+        j = m.start()
+        while j < len(src):
+            if src[j] == '(':
+                depth += 1
+            elif src[j] == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        call_block = src[m.start():j + 1]
+        has_icon_url = "icon_url=" in call_block
         if current_hero:
-            calls.append((current_hero, m.group(2), m.group(3) or None, "ability"))
+            calls.append((current_hero, m.group(2), m.group(3) or None, "ability",
+                          has_icon_url, file_at(m.start())))
     elif m.group(0).startswith(('unit_header', 'plain_header', 'item_header', 'enchant_header')):
         # These reset the hero context (mirror patch/elements.py's
         # _State.current_hero = None behavior inside those header
@@ -120,10 +212,12 @@ for m in re.finditer(r'W\(ability_change\(', src):
                 break
         j += 1
     block = src[start:j + 2]
+    fname = file_at(start)
     for side_re, kind in [(ach_old_re, "ach.old"), (ach_new_re, "ach.new")]:
         mm = side_re.search(block)
         if mm:
-            calls.append((hero, mm.group(1), mm.group(2), kind))
+            has_icon_url = "icon_url=" in mm.group(0)
+            calls.append((hero, mm.group(1), mm.group(2), kind, has_icon_url, fname))
 
 print(f"Total ability references to verify: {len(calls)}")
 print(f"Unique heroes referenced: {len({c[0] for c in calls})}\n")
@@ -165,7 +259,7 @@ print()
 icons_dir = ROOT / "icons" / "abilities"
 
 problems = []
-for hero, display, explicit_slug, kind in calls:
+for hero, display, explicit_slug, kind, has_icon_url, fname in calls:
     if hero not in valve_abilities:
         continue  # already reported as unknown hero
 
@@ -182,22 +276,29 @@ for hero, display, explicit_slug, kind in calls:
             part = derive_ability_part(display)
         resolved = f"{prefix}_{part}"
 
+    # Calls that supply their own icon_url= (e.g. synthetic pseudo-unit
+    # slugs) or are explicitly listed as such bypass datafeed validation
+    # entirely — they were never meant to resolve to a real ability slug.
+    if has_icon_url or resolved in KNOWN_ICON_URL_PSEUDO_SLUGS:
+        continue
+
     if resolved not in abis:
         # Search by display name across the hero's abilities to suggest a fix
         match_slug = next((s for s, n in abis.items() if n == display), None)
-        # If display name has NO match in Valve's basic ability list AND the
-        # resolved slug has a local icon file, treat as benign — this is
-        # typical for talents / facet-only / sub-unit abilities (e.g. Lone
-        # Druid's bear "Return", Oracle's Aghs "Diviner's Deck", Monkey King
-        # talent "Primal Spring") which Valve's herodata doesn't surface.
-        if not match_slug and (icons_dir / f"{resolved}.png").exists():
+        # Manually confirmed real ability that Valve's live herodata simply
+        # doesn't surface (innate abilities hidden from the public API).
+        if (hero, resolved) in KNOWN_NON_DATAFEED_ABILITIES:
             continue
-        problems.append((hero, display, kind, resolved, match_slug, abis.get(resolved), "slug not in hero's ability list"))
+        problems.append((hero, display, kind, resolved, match_slug, abis.get(resolved), "slug not in hero's ability list", fname))
         continue
 
     valve_name = abis[resolved]
     if valve_name != display:
-        problems.append((hero, display, kind, resolved, None, valve_name, f"renamed -> '{valve_name}'"))
+        # Intentional display-name override (e.g. a facet-applied effect
+        # name layered on top of the base ability's tooltip name).
+        if (hero, display, resolved) in KNOWN_DISPLAY_NAME_OVERRIDES:
+            continue
+        problems.append((hero, display, kind, resolved, None, valve_name, f"renamed -> '{valve_name}'", fname))
 
 if not problems:
     print("All clean.")
@@ -214,9 +315,10 @@ current = [p for p in problems if p[2] != "ach.old"]
 renamed = [p for p in current if p[6].startswith("renamed")]
 slug_miss = [p for p in current if not p[6].startswith("renamed")]
 
-# Renames in KNOWN_HISTORICAL_RENAMES are correct names in older patch content.
-renamed_actionable = [p for p in renamed if (p[0], p[1]) not in KNOWN_HISTORICAL_RENAMES]
-renamed_suppressed = [p for p in renamed if (p[0], p[1]) in KNOWN_HISTORICAL_RENAMES]
+# Renames in KNOWN_HISTORICAL_RENAMES are correct names in older patch content,
+# scoped to the specific content file where the historical name is correct.
+renamed_actionable = [p for p in renamed if (p[0], p[1], p[7]) not in KNOWN_HISTORICAL_RENAMES]
+renamed_suppressed = [p for p in renamed if (p[0], p[1], p[7]) in KNOWN_HISTORICAL_RENAMES]
 
 print(f"== CURRENT-STATE ISSUES (action required) ==")
 suppressed_note = f"  ({len(renamed_suppressed)} suppressed as known historical)" if renamed_suppressed else ""
@@ -225,15 +327,15 @@ print(f"Slug mismatches (icon won't load): {len(slug_miss)}\n")
 
 if renamed_actionable:
     print("--- RENAMED ---")
-    for hero, display, kind, slug, suggest, valve_name, note in renamed_actionable:
-        print(f"  [{hero}] '{display}' -> '{valve_name}'  (slug={slug})")
+    for hero, display, kind, slug, suggest, valve_name, note, fname in renamed_actionable:
+        print(f"  [{hero}] '{display}' -> '{valve_name}'  (slug={slug}, file={fname})")
     print()
 
 if slug_miss:
     print("--- SLUG MISMATCH (suggest explicit slug= or ABILITY_DISPLAY_TO_SLUG entry) ---")
-    for hero, display, kind, slug, suggest, valve_name, note in slug_miss:
+    for hero, display, kind, slug, suggest, valve_name, note, fname in slug_miss:
         suggestion = f"slug=\"{suggest}\"" if suggest else "?? (no Valve ability with this display name)"
-        print(f"  [{hero}] '{display}' resolved to '{slug}' -- fix: {suggestion}")
+        print(f"  [{hero}] '{display}' resolved to '{slug}' (file={fname}) -- fix: {suggestion}")
     print()
 
 if historical:
@@ -241,8 +343,8 @@ if historical:
     print(f"{len(historical)} entries skipped by default.")
     print("Run with --include-historical to inspect them.\n")
     if "--include-historical" in sys.argv:
-        for hero, display, kind, slug, suggest, valve_name, note in historical:
-            print(f"  [{hero}] OLD-pane references '{display}' (was renamed/removed in 7.41) -- {note}")
+        for hero, display, kind, slug, suggest, valve_name, note, fname in historical:
+            print(f"  [{hero}] OLD-pane references '{display}' (was renamed/removed in 7.41, file={fname}) -- {note}")
 
 if renamed_actionable or slug_miss:
     sys.exit(1)

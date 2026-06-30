@@ -276,7 +276,7 @@ def build():
 
     # Slark
     W(hero_header("Slark"))
-    W(ability("Barracuda", slug="slark_barracuda", innate=True))
+    W(ability("Barracuda", slug="slark_pounce", innate=True))
     W(ul_open())
     W(li("Health Gained per second decreased from 10/70/100/130 to 5/70/100/130", b([10, 70, 100, 130], [5, 70, 100, 130])))
     W(ul_close())

@@ -1,0 +1,29 @@
+name: audit-live
+
+# Live Valve datafeed audits (audit_all.py -> audit_heroes/items/abilities.py)
+# make ~128 HTTP requests to dota2.com. A transient Valve outage or rate
+# limit must never block a deploy, so this runs decoupled from build.yml's
+# Pages-deploy job: on a schedule, and on demand via workflow_dispatch.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Audit — heroes, items, abilities (live Valve names)
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python scripts/audit/audit_all.py

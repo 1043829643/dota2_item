@@ -1083,7 +1083,7 @@ def build():
     W(ul_open())
     W(li("Removed Sight Seer innate ability", t("DEL")))
     W(ul_close())
-    W(ability("Wellspring", slug="wisp_wellspring", innate=True))
+    W(ability("Wellspring", slug="wisp_essence_conduction", innate=True))
     W(ul_open())
     W(li("New Innate Ability", t("NEW"),
          extra=inline_note("Consumable items and item abilities that restore Health and Mana over time affect Io twice as fast. Total amount of restored health or mana remains the same<br>This applies to Healing Salve, Tango, Clarity, Bottle, Urn of Shadows, Spirit Vessel, Pollywog Charm, and Mana Draught")))
@@ -2082,7 +2082,7 @@ def build():
 
     # Venomancer
     W(hero_header("Venomancer"))
-    W(ability("Septic Shock", slug="venomancer_septic_shock", innate=True))
+    W(ability("Septic Shock", slug="venomancer_sepsis", innate=True))
     W(ul_open())
     W(li("Aghanim's Scepter no longer gives Plague Wards the ability to deal Septic Shock damage (moved to Plague Carrier facet)", t("MISC")))
     W(li("Aghanim's Scepter Base Damage per debuff increased from 20% to 25%", b(20, 25)))
