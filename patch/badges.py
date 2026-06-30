@@ -479,6 +479,14 @@ FACETS = {
     "visage_sepulchre":                 ("Sepulchre",           "Gray0"),
     "troll_warlord_bad_influence":      ("Bad Influence",       "Red1"),
     "ringmaster_sideshow_secrets":      ("Sideshow Secrets",    "Red0"),
+    # 7.39 — removed facets (not in auto-registration, slugs from abilities_english.txt)
+    "abaddon_mephitic_shroud":          ("Mephitic Shroud",      "Blue1"),
+    "bloodseeker_bloodrush":            ("Bloodrush",            "Gray1"),
+    "lich_frostbound":                  ("Frostbound",           "Blue0"),
+    "muerta_ofrenda":                   ("Ofrenda",              "Yellow0"),
+    "sand_king_sandshroud":             ("Sandshroud",           "Gray3"),
+    "sand_king_dust_devil":             ("Dust Devil",           "Yellow1"),
+    "witch_doctor_headhunter":          ("Headhunter",           "Gray3"),
     # 7.39 — auto-registered by generate_patch_code_v2.py
     "axe_call_out": ("Call Out", "Red2"),
     "mirana_leaps_and_bounds": ("Leaps and Bounds", "Gray3"),
