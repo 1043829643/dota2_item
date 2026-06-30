@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DIST_DIR = ROOT / "dist"
 ICONS_DIR = ROOT / "icons" / "abilities"
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from known_exceptions import KNOWN_INNATE_NO_CDN_ICON as _ALLOWED_SLUGS  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from patch.known_exceptions import KNOWN_INNATE_NO_CDN_ICON as _ALLOWED_SLUGS  # noqa: E402
 KNOWN_INNATE_NO_CDN_ICON = {f"{s}.png" for s in _ALLOWED_SLUGS}
 
 if not DIST_DIR.exists():

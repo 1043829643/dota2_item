@@ -37,6 +37,7 @@ _sys.path.insert(0, str(_HERE / "builders"))
 
 import builders.site_common as _site
 from mana_items import parse_kv
+from patch.known_exceptions import KNOWN_INNATE_NO_CDN_ICON
 from heroes_stats import (
     STATS_DIR,
     _versions,
@@ -700,12 +701,28 @@ def render_html() -> str:
             has_own_icon = (_HERE / "icons" / "abilities" / f'{ab["slug"]}.png').exists()
             if ab.get("innate") and has_own_icon:
                 marks += '<span class="aoe-mark aoe-mark-innate" title="Innate"></span>'
-            # If no local PNG exists, emit innate_icon.png directly — avoids
-            # the browser hitting a 404 before the onerror swap fires. Mirrors
-            # the same fallback path used in patch/elements.py's ability().
-            ab_src = (f'icons/abilities/{ab["slug"]}.png' if has_own_icon
-                      else 'icons/misc/innate_icon.png')
-            onerr_attr = (f' onerror="{innate_fallback}"' if has_own_icon else '')
+            # Three states only — silent blanket fallback would hide an
+            # accidentally-deleted icon from check_icons.py:
+            #   1. Local PNG exists -> use it (with onerror to innate_icon
+            #      as a last-resort defensive fallback for cache weirdness).
+            #   2. Slug is on KNOWN_INNATE_NO_CDN_ICON allowlist -> emit
+            #      innate_icon.png directly (Valve publishes no CDN art).
+            #   3. Otherwise -> hard fail the build. A missing PNG that
+            #      isn't allowlisted is a real bug, not something to mask.
+            if has_own_icon:
+                ab_src = f'icons/abilities/{ab["slug"]}.png'
+                onerr_attr = f' onerror="{innate_fallback}"'
+            elif ab["slug"] in KNOWN_INNATE_NO_CDN_ICON:
+                ab_src = 'icons/misc/innate_icon.png'
+                onerr_attr = ''
+            else:
+                raise RuntimeError(
+                    f"AoE Increase: missing local icon for ability slug "
+                    f"'{ab['slug']}' (hero={hero!r}, name={ab['name']!r}). "
+                    f"Either restore icons/abilities/{ab['slug']}.png or — "
+                    f"if it is a real innate with no public Valve CDN art — "
+                    f"add it to KNOWN_INNATE_NO_CDN_ICON in "
+                    f"patch/known_exceptions.py.")
             ab_icon = (
                 f'<span class="aoe-ico-wrap">'
                 f'<img class="aoe-ico" src="{ab_src}" data-slug="{ab["slug"]}" '

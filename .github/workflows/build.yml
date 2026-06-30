@@ -206,17 +206,25 @@ jobs:
 
           # 2b. Per-hero KV dir — AoE Increase + Hero Stats walk this
           # directory; a missing or sparse heroes/ silently degrades
-          # those tables instead of failing the build. Require it to
-          # exist and to contain the expected ~125+ npc_dota_hero_*.txt.
+          # those tables. Authoritative hero list is heroes.json; the
+          # heroes/ dir must have a KV file for every entry there (a
+          # raw file count would miss a specific hero while passing on
+          # an extra unrelated file).
+          import json as _j
           heroes_dir = stats_dir / 'heroes'
           if not heroes_dir.is_dir():
               problems.append(f'Missing data/stats/{ver}/heroes/ directory')
-          else:
-              hero_kvs = list(heroes_dir.glob('npc_dota_hero_*.txt'))
-              if len(hero_kvs) < 125:
+          elif (stats_dir / 'heroes.json').exists():
+              hjson = _j.loads((stats_dir / 'heroes.json').read_text(encoding='utf-8'))
+              expected = {k for k in hjson
+                          if k.startswith('npc_dota_hero_') and k != 'npc_dota_hero_base'}
+              present = {p.stem for p in heroes_dir.glob('npc_dota_hero_*.txt')}
+              missing_kv = sorted(expected - present)
+              if missing_kv:
                   problems.append(
-                      f'data/stats/{ver}/heroes/ has only {len(hero_kvs)} '
-                      f'npc_dota_hero_*.txt files (expected >=125).')
+                      f'data/stats/{ver}/heroes/ missing {len(missing_kv)} '
+                      f'hero KV file(s) listed in heroes.json: '
+                      f'{missing_kv[:5]}{"..." if len(missing_kv) > 5 else ""}')
 
           # 2a. Normalized JSON artifact must exist for the current patch
           norm_path = pathlib.Path('data/normalized/patches') / f'{ver}.json'

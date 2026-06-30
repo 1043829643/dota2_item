@@ -40,12 +40,12 @@ hero_id_for_loc = {h["name_loc"]: h["id"] for h in herolist}
 # Slug maps live in the patch/ package; the ability()/hero_header() calls being
 # audited live in content/p<version>.py.
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from patch.images import HERO_SLUG
 from patch.elements import HERO_TO_ABIL_PREFIX, ABILITY_DISPLAY_TO_SLUG as abi_disp_to_slug
 
-# Shared allowlists (see known_exceptions.py for maintenance rules).
-from known_exceptions import (  # noqa: E402
+# Shared allowlists. Located in patch/ rather than scripts/audit/ so
+# builders/ can also import the same source of truth.
+from patch.known_exceptions import (  # noqa: E402
     KNOWN_HISTORICAL_RENAMES,
     KNOWN_NON_DATAFEED_ABILITIES,
     KNOWN_DISPLAY_NAME_OVERRIDES,
