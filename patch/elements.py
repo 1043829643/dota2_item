@@ -10,6 +10,14 @@ from .images import (HERO_CDN, ITEM_CDN, ABIL_CDN, HERO_SLUG, ITEM_SLUG,
 from .output import H, W
 from .state import _State
 
+try:
+    _SLIM_CACHE = _json.loads(
+        open(_os.path.join(_os.path.dirname(__file__), '..', 'data', 'abilities_slim.json'),
+             encoding='utf-8').read()
+    )
+except Exception:
+    _SLIM_CACHE = {}
+
 # ---- Icon / placeholder URLs ----
 TALENT_ICON_URL  = "../icons/misc/talents.svg"
 INNATE_ICON_URL  = "../icons/misc/innate_icon.png"
@@ -734,8 +742,11 @@ def new_facet(slug, desc, summary=None, tag="new"):
     )
 
 
-def facet_change(slug, old_desc, new_desc, summary=None):
-    """Reworked facet — old→new two-pane layout with facet gradient/icon styling."""
+def facet_change(slug, old_desc, new_desc, summary=None, old_ability=None, new_ability=None):
+    """Reworked facet — old→new two-pane layout with facet gradient/icon styling.
+
+    old_ability / new_ability: ability slug shown as a mini-header inside the respective pane.
+    """
     from .badges import FACETS, _FACET_COLOR_GRADIENT
     from .images import _FACET_ICONS
     _dyn_record_li({'rework'})
@@ -766,6 +777,22 @@ def facet_change(slug, old_desc, new_desc, summary=None):
             for d in items
         )
 
+    def _ability_head(abil_slug):
+        if not abil_slug:
+            return ''
+        icon_url = f'{ABIL_CDN}{abil_slug}.png'
+        on_err = f"this.onerror=null;this.src='{MISSING_ICON_URL}';"
+        dname = _SLIM_CACHE.get(abil_slug, {}).get('dname', '') if _SLIM_CACHE else ''
+        return (
+            f'<div class="ability-change-head">'
+            f'<div class="ability-change-icon-wrap">'
+            f'<img class="ability-change-icon" src="{icon_url}" alt="{dname}" '
+            f'loading="lazy" onerror="{on_err}">'
+            f'</div>'
+            f'<div class="ability-change-name">{dname}</div>'
+            f'</div>'
+        )
+
     summary_text = summary or "Facet reworked."
     summary_row = (
         f'<ul class="changes ability-change-summary-ul">'
@@ -785,10 +812,12 @@ def facet_change(slug, old_desc, new_desc, summary=None):
     panes_html = (
         f'<div class="ability-change unified-panes is-in-place" data-tag="new del rework">'
         f'<div class="ability-change-pane ability-change-old">'
+        f'{_ability_head(old_ability)}'
         f'<div class="ability-change-body">{_pane_body(old_desc)}</div>'
         f'</div>'
         f'<span class="ability-change-arrow">→</span>'
         f'<div class="ability-change-pane ability-change-new">'
+        f'{_ability_head(new_ability)}'
         f'<div class="ability-change-body">{_pane_body(new_desc)}</div>'
         f'</div>'
         f'</div>'
