@@ -676,6 +676,59 @@ def facet_header(slug):
                   f'<h4 class="ability-title">{name}</h4>')
 
 
+def new_facet(slug, desc, summary=None):
+    """New facet introduction — renders like ability_change(old=None, tag='new') but with facet styling."""
+    from .badges import FACETS, _FACET_COLOR_GRADIENT
+    from .images import _FACET_ICONS
+    _dyn_record_li({'new'})
+    if slug not in FACETS:
+        return f'<!-- new_facet: unknown slug {slug} -->'
+    name, color = FACETS[slug]
+    gradient = _FACET_COLOR_GRADIENT.get(color, _FACET_COLOR_GRADIENT["Gray0"])
+    fi = _FACET_ICONS.get(slug)
+    icon_name = fi[1] if isinstance(fi, list) and len(fi) > 1 else None
+    out = _close_ability_block()
+    _State.next_ul_is_hero_stats = False
+    if _State.current_hero and not _State.seen_facets_subgroup:
+        out += '<h4 class="subgroup">Facets</h4>'
+        _State.seen_facets_subgroup = True
+    _State.ability_block_open = True
+    _State.current_block_is_facet = True
+    icon_overlay = (f'<img src="../icons/facets/{icon_name}.png" alt="" '
+                    f'class="facet-icon-overlay" loading="lazy" width="72" height="72">') if icon_name else ''
+    icon_html = (f'<div class="ability-icon-wrap facet-icon-wrap" '
+                 f'style="background-image:{gradient}">{icon_overlay}</div>')
+    desc_items = desc if isinstance(desc, list) else [desc]
+    desc_html = ''.join(
+        (d if isinstance(d, str) and d.lstrip().startswith('<div')
+         else f'<div class="ability-change-row">{d}</div>')
+        for d in desc_items
+    )
+    summary_text = summary or "New facet."
+    summary_row = (
+        f'<ul class="changes ability-change-summary-ul">'
+        f'<li data-tag="new">'
+        f'<span class="badge new" data-tag="new">NEW</span>'
+        f'<span class="row-text">{summary_text}</span>'
+        f'</li>'
+        f'</ul>'
+    )
+    panes_html = (
+        f'<div class="ability-change unified-panes is-single-new" data-tag="new">'
+        f'<div class="ability-change-pane ability-change-new">'
+        f'<div class="ability-change-body">{desc_html}</div>'
+        f'</div>'
+        f'</div>'
+    )
+    return out + (
+        f'<div class="ability-block facet-block ability-change-block">'
+        f'{icon_html}'
+        f'<h4 class="ability-title">{name}</h4>'
+        f'{summary_row}'
+        f'{panes_html}'
+    )
+
+
 def ul_open():
     out = ''
     if _State.next_ul_is_hero_stats and _State.current_hero:

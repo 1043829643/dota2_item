@@ -508,10 +508,9 @@ def build():
     W(ul_open())
     W(li("Instead of reducing Healing, Health Regen, Lifesteal, and Spell Lifesteal by 35%, now reduces Health Restoration by 35%", t("REWORK")))
     W(ul_close())
-    W(facet_header("abaddon_the_quickening"))
+    W(new_facet("abaddon_the_quickening",
+        desc="Mist Coil also deals 40/60/80/100% of attack damage and applies on-hit effects from items and abilities. Self damage is not affected by attack damage."))
     W(ul_open())
-    W(li("Mist Coil also deals attack damage and applies on-hit effects from items and abilities", t("NEW"),
-         extra=inline_note("Deals 40/60/80/100% of attack damage. Self damage is not affected. This is how the Aghanim's Scepter upgrade worked before 7.37")))
     W(ul_close())
     W(ability("Mist Coil", slug="abaddon_death_coil"))
     W(ul_open())
@@ -598,13 +597,13 @@ def build():
     W(ul_open())
     W(li("Base movement speed decreased from 330 to 320", b(330, 320)))
     W(ul_close())
-    W(facet_header("batrider_buff_on_displacement"))
+    W(new_facet("batrider_buff_on_displacement",
+        desc="Firefly also lights Batrider on fire. He gains increasingly more Movement Speed and Spell Amplification and burns away 2% of his max health per second. Maximum bonuses are reached at the end of Firefly's duration. Self-burn damage is magical and non-lethal."))
     W(ul_open())
-    W(li("Firefly also lights Batrider on fire. He gains increasingly more Movement Speed and Spell Amplification and burns away 2% of his max health per second. Maximum bonuses are reached at the end of Firefly's duration. Self-burn damage is magical and non-lethal", t("NEW")))
     W(ul_close())
-    W(facet_header("batrider_arsonist"))
+    W(new_facet("batrider_arsonist",
+        desc="Increases the max level of Sticky Napalm to 5. Level 5 Sticky Napalm causes every attack to apply 1 stack of Sticky Napalm."))
     W(ul_open())
-    W(li("Increases the max level of Sticky Napalm to 5. Level 5 Sticky Napalm causes every attack to apply 1 stack of Sticky Napalm", t("NEW")))
     W(li("Number of times +2 All Attributes can be skilled decreased from 7 to 6", b(7, 6)))
     W(ul_close())
     W(ability("Sticky Napalm", slug="batrider_sticky_napalm"))
@@ -648,9 +647,9 @@ def build():
     W(li("Facet Removed", t("DEL")))
     W(ul_close())
     W(ul_close())
-    W(facet_header("bloodseeker_old_blood"))
+    W(new_facet("bloodseeker_old_blood",
+        desc="Bloodrage silences the target and can be applied to enemies. Bloodrage increases base attack damage instead of spell damage."))
     W(ul_open())
-    W(li("Bloodrage silences the target and can be applied to enemies. Bloodrage increases base attack damage instead of spell damage", t("NEW")))
     W(li("Bloodrage: Base damage amplification rescaled from 15/20/25/30% (spell amp) to 10/15/20/25%", t("MISC"),
          extra=inline_note("Level 20 Talent that reduces Bloodrage's Max Health damage doesn't affect enemy hero's base damage amplification")))
     W(li("Level 10 Talent +15% Bloodrage Spell Amplification replaced with +15% Bloodrage Base Damage Amplification", t("REWORK")))
@@ -1240,10 +1239,10 @@ def build():
     W(li("Facet Removed", t("DEL")))
     W(ul_close())
     W(ul_close())
-    W(facet_header("lich_cryophobia"))
+    W(new_facet("lich_cryophobia",
+        desc=["Sinister Gaze applies a lingering effect to the target, causing it to take extra magic damage from Lich and amplify incoming movement slows.",
+              inline_note("Sinister Gaze: Applies Evil Eye debuff that deals 10/15/20/25 damage per second for 4s<br>Abilities and items that do not proc certain other abilities (Blood Grenade, Radiance, etc.) will not trigger Evil Eye's debuff")]))
     W(ul_open())
-    W(li("Sinister Gaze applies a lingering effect to the target, causing it to take extra magic damage from Lich and amplify incoming movement slows", t("NEW"),
-         extra=inline_note("Sinister Gaze: Applies Evil Eye debuff that deals 10/15/20/25 damage per second for 4s<br>Abilities and items that do not proc certain other abilities (Blood Grenade, Radiance, etc.) will not trigger Evil Eye's debuff")))
     W(ul_close())
     W(ability("Sinister Gaze", slug="lich_sinister_gaze"))
     W(ul_open())
@@ -1399,10 +1398,10 @@ def build():
     W(li("Facet Removed", t("DEL")))
     W(ul_close())
     W(ul_close())
-    W(facet_header("monkey_king_transfiguration"))
+    W(new_facet("monkey_king_transfiguration",
+        desc=["Monkey King can transform into one of his soldiers during Wukong's Command.",
+              inline_note("Wukong's Command: While active, grants Changing of the Guard ability that replaces Wukong's Command and starts on cooldown. Works with Simian Stride")]))
     W(ul_open())
-    W(li("Monkey King can transform into one of his soldiers during Wukong's Command", t("NEW"),
-         extra=inline_note("Wukong's Command: While active, grants Changing of the Guard ability that replaces Wukong's Command and starts on cooldown. Works with Simian Stride")))
     W(ul_close())
     W(facet_header("monkey_king_simian_stride"))
     W(ul_open())
@@ -1490,10 +1489,10 @@ def build():
     W(ul_open())
     W(li("Facet Removed", t("DEL")))
     W(ul_close())
-    W(facet_header("furion_natures_profit"))
+    W(new_facet("furion_natures_profit",
+        desc=["Whenever Nature's Prophet kills an enemy hero or one dies nearby, a money tree is created in their place that drops gold bags to be collected.",
+              inline_note("Bags worth 40/55/70/85 gold. Created within 200-250 radius from the tree, disappear after 15s")]))
     W(ul_open())
-    W(li("Whenever Nature's Prophet kills an enemy hero or one dies nearby, a money tree is created in their place that drops gold bags to be collected", t("NEW"),
-         extra=inline_note("Bags worth 40/55/70/85 gold. Created within 200-250 radius from the tree, disappear after 15s")))
     W(li("Level 15 Talent +100 Teleportation Barrier replaced with +1 Nature's Profit Gold Bag", t("REWORK")))
     W(ul_close())
     W(facet_header("furion_soothing_saplings"))
@@ -1758,10 +1757,10 @@ def build():
     W(li("Base Damage increased from 15/35/55/75 to 20/40/60/80", b([15, 35, 55, 75], [20, 40, 60, 80])))
     W(li("Dying Unit's Max Health as Damage decreased from 4/8/12/16% to 3/7/11/15%", b([4, 8, 12, 16], [3, 7, 11, 15])))
     W(ul_close())
-    W(facet_header("sand_king_obscurity"))
+    W(new_facet("sand_king_obscurity",
+        desc=["When Sand King attacks enemies in Sand Storm, he applies a blinding debuff to his target.",
+              inline_note("Sand Storm: Attacks apply a debuff that blinds enemies and prevents them from attacking for 1s<br>Scorpion Strike: Each enemy hero hit by Stinger in innermost radius emits Caustic Finale debuff to 3 nearby units within 500 range. Doesn't apply to Aghanim's Scepter Stinger strikes")]))
     W(ul_open())
-    W(li("When Sand King attacks enemies in Sand Storm, he applies a blinding debuff to his target", t("NEW"),
-         extra=inline_note("Sand Storm: Attacks apply a debuff that blinds enemies and prevents them from attacking for 1s<br>Scorpion Strike: Each enemy hero hit by Stinger in innermost radius emits Caustic Finale debuff to 3 nearby units within 500 range. Doesn't apply to Aghanim's Scepter Stinger strikes")))
     W(ul_close())
     W(ability("Sand Storm", slug="sandking_sand_storm"))
     W(ul_open())
@@ -1828,15 +1827,15 @@ def build():
     W(li("Facet Removed", t("DEL")))
     W(ul_close())
     W(ul_close())
-    W(facet_header("silencer_spread_the_knowledge"))
+    W(new_facet("silencer_spread_the_knowledge",
+        desc="Increases the max level of Glaives of Wisdom to 5. Level 5 Glaives of Wisdom bounce 1 time to a random target within 450 range."))
     W(ul_open())
-    W(li("Increases the max level of Glaives of Wisdom to 5. Level 5 Glaives of Wisdom bounce 1 time to a random target within 450 range", t("NEW")))
     W(li("Number of times +2 All Attributes can be skilled decreased from 7 to 6", b(7, 6)))
     W(ul_close())
-    W(facet_header("silencer_oppressive_silence"))
+    W(new_facet("silencer_oppressive_silence",
+        desc=["Silencer takes less damage from and deals more damage to silenced targets.",
+              inline_note("10/15/20/25% reduced damage taken from silenced enemies. 10/15/20/25% increased damage dealt to silenced targets")]))
     W(ul_open())
-    W(li("Silencer takes less damage from and deals more damage to silenced targets", t("NEW"),
-         extra=inline_note("10/15/20/25% reduced damage taken from silenced enemies. 10/15/20/25% increased damage dealt to silenced targets")))
     W(ul_close())
     W(ability("Glaives of Wisdom", slug="silencer_glaives_of_wisdom"))
     W(ul_open())
@@ -2083,9 +2082,9 @@ def build():
     W(li("Septic Shock: Aghanim's Scepter no longer gives Plague Wards the ability to deal Septic Shock damage (moved to Plague Carrier facet)", t("MISC")))
     W(li("Septic Shock: Aghanim's Scepter Base Damage per debuff increased from 20% to 25%", b(20, 25)))
     W(ul_close())
-    W(facet_header("venomancer_plague_carrier"))
+    W(new_facet("venomancer_plague_carrier",
+        desc="When Venomous Gale impacts enemy heroes, 2 Plague Wards are created around them. Plague Wards also deal Septic Shock damage based on their attack damage."))
     W(ul_open())
-    W(li("When Venomous Gale impacts enemy heroes, 2 Plague Wards are created around them. Plague Wards also deal Septic Shock damage based on their attack damage", t("NEW")))
     W(ul_close())
     W(ability("Plague Ward", slug="venomancer_plague_ward"))
     W(ul_open())
@@ -2189,10 +2188,10 @@ def build():
     W(li("Facet Removed", t("DEL")))
     W(ul_close())
     W(ul_close())
-    W(facet_header("witch_doctor_malpractice"))
+    W(new_facet("witch_doctor_malpractice",
+        desc=["Enemies dying while Maledicted explode.",
+              inline_note("Maledict: When an enemy dies under Maledict's effect, 75% of the next burst damage is sent as a projectile towards nearby enemies. Doesn't work on illusion death")]))
     W(ul_open())
-    W(li("Enemies dying while Maledicted explode", t("NEW"),
-         extra=inline_note("Maledict: When an enemy dies under Maledict's effect, 75% of the next burst damage is sent as a projectile towards nearby enemies. Doesn't work on illusion death")))
     W(ul_close())
     W(facet_header("witch_doctor_cleft_death"))
     W(ul_open())
