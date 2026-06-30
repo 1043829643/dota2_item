@@ -240,6 +240,7 @@ TAG_OVERRIDES = {
     "instead of":                   "REWORK",  # component/requirement swap
     "respawn time increased":       "NERF",    # "increased" heuristic gives BUFF, but higher respawn = worse
     "respawn time decreased":       "BUFF",
+    "cycled out":                   "DEL",     # item removed from the pool
 }
 
 
