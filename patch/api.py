@@ -3,7 +3,7 @@ from .output import W
 from .state import _State
 from .badges import b, br, bf, t, gradient_class, facet_badge, scale_pill
 from .elements import (
-    hero_header, item_header, unit_header, ability, facet_header,
+    hero_header, item_header, unit_header, ability, facet_header, new_facet,
     section, subgroup, li, ul_open, ul_close, li_formula, enchant_header,
     enchant_attr_row, enchant_tier_box, souvenir_chip, plain_header,
     components, item_cost, provides, properties_change, auto_components_change,
