@@ -7,6 +7,7 @@ class _State:
     ability_icons = set()  # all ability-icon URLs emitted during build (for icon-validator)
     ability_block_open = False  # tracks <div class="ability-block"> wrapper
     current_block_is_facet = False  # True when ability_block_open was set by facet_header()
+    facet_block_had_ul = False      # True once ul_open() was called inside a facet block
     # Auto-categorize hero block contents (Stats / Abilities / Talents subgroups):
     next_ul_is_hero_stats = False    # set by hero_header(), consumed by ul_open()
     in_stats_ul = False              # True while inside the auto-"STATS" ul (sanity-check facet/innate rows)

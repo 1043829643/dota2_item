@@ -344,6 +344,7 @@ def _close_ability_block():
     if _State.ability_block_open:
         _State.ability_block_open = False
         _State.current_block_is_facet = False
+        _State.facet_block_had_ul = False
         return '</div>\n'
     return ''
 
@@ -631,7 +632,7 @@ def ability(title, slug=None, innate=None, icon_url=None):
         icon_inner += (f'<img src="{INNATE_ICON_URL}" alt="" '
                        f'class="innate-marker">')
     icon_html = f'<div class="ability-icon-wrap">{icon_inner}</div>' if icon_inner else ''
-    if _State.current_block_is_facet:
+    if _State.current_block_is_facet and not _State.facet_block_had_ul:
         import sys
         print(f'[WARN] ability("{title}") called directly inside a facet block — '
               f'this closes the facet before any content. '
@@ -748,6 +749,8 @@ def ul_open():
         _State.ability_block_open = True
         _State.next_ul_is_hero_stats = False
         _State.in_stats_ul = True
+    if _State.current_block_is_facet:
+        _State.facet_block_had_ul = True
     return out + '<ul class="changes">'
 
 
