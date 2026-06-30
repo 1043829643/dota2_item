@@ -598,23 +598,23 @@ def build():
     W(li("Base movement speed decreased from 330 to 320", b(330, 320)))
     W(ul_close())
     W(facet_change("batrider_buff_on_displacement",
-        old_desc=["Batrider gains Move Speed and Spell Amplification when displacing enemies.",
-                  inline_note("After using an ability or item on an enemy hero that applies a forced movement effect, gain bonus movement speed and spell amplification. Does not stack.")],
+        old_desc=f"Batrider gains Move Speed and Spell Amplification when displacing enemies. {inline_note('After using an ability or item on an enemy hero that applies a forced movement effect, gain bonus movement speed and spell amplification. Does not stack.')}",
         new_desc=["Firefly also sets Batrider on fire. He's burning away 2% of his max health per second, but gains increasingly bigger bonuses to Movement Speed and Spell Amplification over the duration. Max Movement Speed Bonus: 25/30/35/40%. Max Spell Amplification Bonus: 20%.",
-                  inline_note("Max bonus values are reached at the end of Firefly's duration and don't linger after. Bonuses increase and self-burn damage are applied every 0.1s. Self-burn damage does not increase over time. Self-burn damage is magical and non-lethal")]))
+                  "Max bonus values are reached at the end of Firefly's duration and don't linger after. Bonuses increase and self-burn damage are applied every 0.1s. Self-burn damage does not increase over time. Self-burn damage is magical and non-lethal."],
+        new_ability="batrider_firefly"))
     W(facet_change("batrider_arsonist",
         old_desc="Sticky Napalm deals damage to structures.",
-        new_desc="Increases the max level of Sticky Napalm to 5. Level 5 Sticky Napalm causes every attack to apply 1 stack of Sticky Napalm."))
-    W(ul_open())
-    W(li("Number of times +2 All Attributes can be skilled decreased from 7 to 6", b(7, 6)))
-    W(ul_close())
+        new_desc=["Increases the max level of Sticky Napalm to 5. Level 5 Sticky Napalm causes every attack to apply 1 stack of Sticky Napalm.",
+                  f"Number of times +2 All Attributes can be skilled decreased from 7 to 6 {b(7, 6)}"],
+        old_ability="batrider_sticky_napalm",
+        new_ability="batrider_sticky_napalm"))
     W(ability("Sticky Napalm", slug="batrider_sticky_napalm"))
     W(ul_open())
     W(li("Now applies 2 stacks on cast", t("NEW")))
     W(li("Stack limit increased from 10 to 20", b(10, 20)))
     W(li("All per-stack values are halved", t("MISC"), extra=inline_note("Application Damage and Turn Rate neither halved nor doubled<br>Damage per stack decreased from 5/10/15/20 to 2.5/5/7.5/10")))
     W(li("Movement Slow per stack decreased from 1.5/3/4.5/6% to 0.75/1.5/2.25/3%", b([1.5, 3, 4.5, 6], [0.75, 1.5, 2.25, 3])))
-    W(li("Aghanim's Shard upgrade reworked", t("REWORK"), extra=inline_note("Removes the 20 stack limit and allows Sticky Napalm to deal 35% of its damage to buildings")))
+    W(li("Aghanim's Shard upgrade reworked: Removes the 20 stack limit and allows Sticky Napalm to deal 35% of its damage to buildings", t("REWORK")))
     W(ul_close())
     W(ability("Flaming Lasso", slug="batrider_flaming_lasso"))
     W(ul_open())

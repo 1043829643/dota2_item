@@ -3428,6 +3428,9 @@ ul.changes li.ability-row-end {
   align-self: center;
   padding: 0 4px;
 }
+.facet-block .ability-change.unified-panes > .ability-change-pane {
+  padding: 8px 10px 4px;
+}
 /* When a pane carries an expandable formula table (scale_pill), TOP-anchor
    both panes. Otherwise `align-items: center` re-centers the shorter pane
    every time the <details> table toggles open — visibly shoving the old
