@@ -1433,9 +1433,10 @@ def build():
     W(ul_open())
     W(li_formula("Max Health Heal changed",
                  "1.5% + 1.5% per level up", "1.5% per level",
-                 lambda L: 1.5 * L, lambda L: 1.5 * L))
+                 lambda L: 1.5 * L, lambda L: 1.5 * L,
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Bloodrage"))
     W(ul_open())
     W(li("Now a no target ability that affects only Bloodseeker", t("REWORK")))
@@ -1496,9 +1497,10 @@ def build():
     W(ul_open())
     W(li_formula("Max Status Resist changed",
                  "10.5% + 0.5% per level up", "10% + 0.5% per level",
-                 lambda L: 10.0 + 0.5 * L, lambda L: 10.0 + 0.5 * L))
+                 lambda L: 10.0 + 0.5 * L, lambda L: 10.0 + 0.5 * L,
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Primal Split"))
     W(ul_open())
     W(li("Earth Brewling's Hurl Boulder Stun Duration decreased from 1.6/1.6/1.6/2s to 1.6/1.6/1.6/1.8s", b([1.6, 1.6, 1.6, 2], [1.6, 1.6, 1.6, 1.8])))
@@ -1917,9 +1919,10 @@ def build():
                  lambda L: 0.5 + 0.75 * L, lambda L: 0.5 + 0.75 * L))
     W(li_formula("Cooldown Reduction changed",
                  "0.75% + 0.75% per level up", "0.75% per level",
-                 lambda L: 0.75 * L, lambda L: 0.75 * L))
+                 lambda L: 0.75 * L, lambda L: 0.75 * L,
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Silence"))
     W(ul_open())
     W(li("Projectile speed increased from 1400 to 1750", b(1400, 1750)))
@@ -2249,9 +2252,10 @@ def build():
     W(ul_open())
     W(li_formula("Damage Increase changed",
                  "4% + 4% per level up", "4% per level",
-                 lambda L: 4.0 * L, lambda L: 4.0 * L))
+                 lambda L: 4.0 * L, lambda L: 4.0 * L,
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Enchant"))
     W(ul_open())
     W(li("Cast Range increased from 500/550/600/650 to 500/600/700/800", b([500, 550, 600, 650], [500, 600, 700, 800])))
@@ -2682,9 +2686,10 @@ def build():
     W(ul_open())
     W(li_formula("Cooldown changed",
                  "7.75s - 0.25s per level up", "8s - 0.25s per level",
-                 lambda L: 8.0 - 0.25 * L, lambda L: 8.0 - 0.25 * L, l=True))
+                 lambda L: 8.0 - 0.25 * L, lambda L: 8.0 - 0.25 * L, l=True,
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ul_open())
     W(li("Now the first katana hit or ability will deal 12% bonus damage after switching to Katana, and after switching to Sai Kez gains +12% movement speed for 2 seconds", t("NEW")))
     W(li("Aghanim's Scepter no longer restarts the alternate ability cooldown if it was already on cooldown", t("MISC")))
@@ -2755,9 +2760,10 @@ def build():
                  # "10% + 1%·L" and the new "9% + 1%·L" produce identical
                  # numbers at the hero levels the player actually plays at
                  # (hence the "Effective values are not changed" subnote).
-                 lambda L: 9.0 + 1.0 * L, lambda L: 9.0 + 1.0 * L))
+                 lambda L: 9.0 + 1.0 * L, lambda L: 9.0 + 1.0 * L,
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Catchy Lick"))
     W(ul_open())
     W(li("Now can lick runes to pull them. Rune-licking refunds spent mana", t("NEW")))
@@ -3078,9 +3084,9 @@ def build():
     W(li_formula("Bonus Night Vision changed",
                  "250 + 25 per level up", "225 + 25 per level",
                  lambda L: 250.0 + 25.0 * L, lambda L: 225.0 + 25.0 * L,
-                 effective_unchanged=True))
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed (formulas re-parametrized with a 1-level shift)"))
     W(ul_close())
-    W(subnote("Effective values are not changed (formulas re-parametrized with a 1-level shift)"))
     W(ability("Lunar Orbit"))
     W(ul_open())
     W(li("Now applies 8/12/16/20% damage reduction while active", t("NEW")))
@@ -4038,9 +4044,9 @@ def build():
     W(li_formula("Agility Multiplier changed",
                  "0.6 + 0.05 per level up", "0.55 + 0.05 per level",
                  lambda L: 0.6 + (0.05) * L, lambda L: 0.55 + (0.05) * L,
-                 effective_unchanged=True))
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Smoke Screen"))
     W(ul_open())
     W(li("Mana Cost rescaled from 65/70/75/80 to 75", b([65, 70, 75, 80], 75, l=True)))
@@ -4423,9 +4429,9 @@ def build():
     W(li_formula("Duration changed",
                  "15s + 2.5s per level up", "12.5s + 2.5s per level",
                  lambda L: 15.0 + (2.5) * L, lambda L: 12.5 + (2.5) * L,
-                 effective_unchanged=True))
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Saltwater Shiv"))
     W(ul_open())
     W(li("Stacks now have independent durations and don't refresh previous ones", t("REWORK")))
@@ -4523,9 +4529,9 @@ def build():
     W(li_formula("Damage changed",
                  "25 + 2 per level up", "23 + 2 per level",
                  lambda L: 25.0 + (2.0) * L, lambda L: 23.0 + (2.0) * L,
-                 effective_unchanged=True))
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Shadow Step"))
     W(ul_open())
     W(li("Cooldown decreased from 30/26/22/18s to 24/21/18/15s", b([30, 26, 22, 18], [24, 21, 18, 15], l=True)))
@@ -4973,9 +4979,9 @@ def build():
     W(li_formula("Cooldown changed",
                  "35s - 1s per level up", "36s - 1s per level",
                  lambda L: 35.0 + (-1.0) * L, lambda L: 36.0 + (-1.0) * L, l=True,
-                 effective_unchanged=True))
+                 effective_unchanged=True,
+                 inline_note_text="Effective values are not changed"))
     W(ul_close())
-    W(subnote("Effective values are not changed"))
     W(ability("Living Armor"))
     W(ul_open())
     W(li("Mana Cost increased from 40/45/50/55 to 65/70/75/80", b([40, 45, 50, 55], [65, 70, 75, 80], l=True)))
