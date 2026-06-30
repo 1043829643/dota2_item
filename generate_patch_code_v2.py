@@ -241,6 +241,8 @@ TAG_OVERRIDES = {
     "respawn time increased":       "NERF",    # "increased" heuristic gives BUFF, but higher respawn = worse
     "respawn time decreased":       "BUFF",
     "cycled out":                   "DEL",     # item removed from the pool
+    "moved from tier":              "REWORK",  # tier-change is a structural move, not a buff/nerf
+    "dormant curio increases":      "NEW",     # first-ever curio upgrade on an item = new capability
 }
 
 
