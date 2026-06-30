@@ -286,7 +286,7 @@ def build():
              ("DEL",  "+250 Cast Range")],
         new=[("",    "+24 All Attributes", b(8, 24))]))
     W(ul_open())
-    W(li("Recipe cost decreased from 1600 to 900. Total cost decreased from 5375 to 5200", b(1600, 900, l=True)))
+    W(li("Recipe cost decreased from 1600 to 900 " + b(1600, 900, l=True) + ". Total cost decreased from 5375 to 5200", b(5375, 5200, l=True)))
     W(li("Ether Blast magic damage vulnerability decreased from 40% to 30%", b(40, 30)))
     W(li("Ether Blast attributes as damage changed from (1.5x the target's primary attribute) to (1x the sum of the caster's attributes)", t("REWORK")))
     W(ul_close())
@@ -300,7 +300,7 @@ def build():
         old=[("BUFF", "+4 Armor")],
         new=[("",    "+5 Armor", b(4, 5))]))
     W(ul_open())
-    W(li("Recipe cost decreased from 1450 to 1125. Total cost decreased from 5050 to 4300", b(1450, 1125, l=True)))
+    W(li("Recipe cost decreased from 1450 to 1125 " + b(1450, 1125, l=True) + ". Total cost decreased from 5050 to 4300", b(5050, 4300, l=True)))
     W(li("Guardian Aura no longer provides armor", t("DEL")))
     W(li("Guardian Aura no longer provides additional bonuses when below 25% health to anyone but the wearer", t("DEL")))
     W(li("Guardian Aura no longer provides increased armor and increased mana regeneration when below 25% health", t("DEL"), extra=inline_note("Still provides bonus health regeneration to the wearer when below 25% health")))
