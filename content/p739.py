@@ -558,7 +558,7 @@ def build():
     W(hero_header("Arc Warden"))
     W(facet_header("arc_warden_runed_replica"))
     W(ul_open())
-    W(li("Tempest Double: Level 1 now grants Arcane Rune instead of Invisibility Rune", t("MISC"), extra=inline_note("All other levels are unchanged")))
+    W(li("Tempest Double: Level 1 now grants Arcane Rune instead of Invisibility Rune", t("REWORK"), extra=inline_note("All other levels are unchanged")))
     W(ul_close())
     W(subgroup("Talents"))
     W(ul_open())
