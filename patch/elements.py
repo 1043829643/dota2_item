@@ -775,11 +775,19 @@ def facet_change(slug, old_desc, new_desc, summary=None):
         f'</li>'
         f'</ul>'
     )
+    connector_html = (
+        '<svg class="ability-change-connector" '
+        'viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+        '<path d="" fill="none" stroke="rgba(139, 148, 158, 0.45)" '
+        'stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round" />'
+        '</svg>'
+    )
     panes_html = (
-        f'<div class="ability-change unified-panes" data-tag="rework">'
+        f'<div class="ability-change unified-panes is-in-place" data-tag="new del rework">'
         f'<div class="ability-change-pane ability-change-old">'
         f'<div class="ability-change-body">{_pane_body(old_desc)}</div>'
         f'</div>'
+        f'<span class="ability-change-arrow">→</span>'
         f'<div class="ability-change-pane ability-change-new">'
         f'<div class="ability-change-body">{_pane_body(new_desc)}</div>'
         f'</div>'
@@ -790,6 +798,7 @@ def facet_change(slug, old_desc, new_desc, summary=None):
         f'{icon_html}'
         f'<h4 class="ability-title">{name}</h4>'
         f'{summary_row}'
+        f'{connector_html}'
         f'{panes_html}'
     )
 
