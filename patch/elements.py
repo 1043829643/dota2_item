@@ -676,11 +676,12 @@ def facet_header(slug):
                   f'<h4 class="ability-title">{name}</h4>')
 
 
-def new_facet(slug, desc, summary=None):
-    """New facet introduction — renders like ability_change(old=None, tag='new') but with facet styling."""
+def new_facet(slug, desc, summary=None, tag="new"):
+    """New or reworked facet — renders like ability_change(old=None, tag=...) but with facet styling."""
     from .badges import FACETS, _FACET_COLOR_GRADIENT
     from .images import _FACET_ICONS
-    _dyn_record_li({'new'})
+    tag_key = tag.lower() if tag else "new"
+    _dyn_record_li({'new'} if tag_key == 'new' else {'rework'})
     if slug not in FACETS:
         return f'<!-- new_facet: unknown slug {slug} -->'
     name, color = FACETS[slug]
@@ -704,17 +705,20 @@ def new_facet(slug, desc, summary=None):
          else f'<div class="ability-change-row">{d}</div>')
         for d in desc_items
     )
-    summary_text = summary or "New facet."
+    default_summary = "New facet." if tag_key == "new" else "Reworked facet."
+    summary_text = summary or default_summary
+    tag_label = tag_key.upper()
     summary_row = (
         f'<ul class="changes ability-change-summary-ul">'
-        f'<li data-tag="new">'
-        f'<span class="badge new" data-tag="new">NEW</span>'
+        f'<li data-tag="{tag_key}">'
+        f'<span class="badge {tag_key}" data-tag="{tag_key}">{tag_label}</span>'
         f'<span class="row-text">{summary_text}</span>'
         f'</li>'
         f'</ul>'
     )
+    pane_kind = "new" if tag_key == "new" else "new"
     panes_html = (
-        f'<div class="ability-change unified-panes is-single-new" data-tag="new">'
+        f'<div class="ability-change unified-panes is-single-new" data-tag="{tag_key}">'
         f'<div class="ability-change-pane ability-change-new">'
         f'<div class="ability-change-body">{desc_html}</div>'
         f'</div>'
