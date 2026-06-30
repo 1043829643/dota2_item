@@ -40,95 +40,19 @@ hero_id_for_loc = {h["name_loc"]: h["id"] for h in herolist}
 # Slug maps live in the patch/ package; the ability()/hero_header() calls being
 # audited live in content/p<version>.py.
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from patch.images import HERO_SLUG
 from patch.elements import HERO_TO_ABIL_PREFIX, ABILITY_DISPLAY_TO_SLUG as abi_disp_to_slug
 
-# Abilities that were legitimately renamed in a later patch but are still
-# referenced correctly by historical content modules (older patch pages).
-# These are suppressed from exit(1) — they represent correct names at time of
-# that patch, not typos. Extend this list when a rename is confirmed historical.
-# Scoped to the specific content file where the historical name is correct —
-# do NOT suppress globally, since the same (hero, display) pair appearing in
-# a *current* patch file would be a real bug.
-KNOWN_HISTORICAL_RENAMES = {
-    ("Lich", "Death Charge", "p739b.py"),  # renamed to Sacrifice in 7.41; correct in 7.39b content
-}
-
-# Engine slugs manually confirmed against the game's own KV data
-# (data/abilities_slim.json, extracted from npc_dota_hero_*.txt — the
-# authoritative source, see sloppy_kv_files_authoritative memory) that are
-# real, existing abilities Valve's live herodata datafeed simply does not
-# surface (innate abilities hidden from the public API). Confirmed via:
-#   python -c "import json; d=json.load(open('data/abilities_slim.json')); print(d['<slug>'])"
-# Format: (hero, resolved_slug). Do NOT add an entry here without confirming
-# the slug exists in abilities_slim.json or a stats/<ver>/heroes/*.txt file —
-# a local PNG file existing is NOT sufficient evidence.
-KNOWN_NON_DATAFEED_ABILITIES = {
-    ("Io", "wisp_essence_conduction"),               # confirmed KV: Wellspring innate
-    ("Nyx Assassin", "nyx_assassin_nyxth_sense"),     # confirmed KV: Nyxth Sense innate
-    ("Snapfire", "snapfire_buckshot"),                # confirmed KV: Buckshot innate
-    ("Venomancer", "venomancer_sepsis"),              # confirmed KV: Septic Shock innate (dname "Septic Shock")
-    ("Beastmaster", "beastmaster_rugged"),            # confirmed KV: Rugged innate
-    ("Clinkz", "clinkz_bone_and_arrow"),              # confirmed KV: Bone and Arrow innate
-    ("Centaur Warrunner", "centaur_rawhide"),         # confirmed KV: Rawhide innate
-    ("Night Stalker", "night_stalker_heart_of_darkness"),  # confirmed KV: Heart of Darkness innate
-    # Talent / facet-only / sub-unit abilities confirmed real via
-    # data/abilities_slim.json (dname matches exactly) but not surfaced by
-    # Valve's public herodata datafeed:
-    ("Morphling", "morphling_morph_replicate"),       # confirmed KV: "Morph Replicate"
-    ("Lina", "lina_combustion"),                       # confirmed KV: "Combustion" innate
-    ("Monkey King", "monkey_king_primal_spring"),       # confirmed KV: "Primal Spring" (talent)
-    ("Spectre", "spectre_reality"),                     # confirmed KV: "Reality" (talent)
-    ("Tinker", "tinker_keen_teleport"),                 # confirmed KV: "Keen Conveyance"
-    ("Anti-Mage", "antimage_counterspell_ally"),        # confirmed KV: "Counterspell Ally" (facet variant)
-    ("Brewmaster", "brewmaster_primal_companion"),      # confirmed KV: "Primal Companion"
-    ("Clinkz", "clinkz_tar_bomb"),                      # confirmed KV: "Tar Bomb"
-    ("Lone Druid", "lone_druid_spirit_bear_return"),    # confirmed KV: "Return" (Spirit Bear sub-ability)
-    ("Lone Druid", "lone_druid_spirit_bear_entangle"),  # confirmed KV: "Entangling Claws" (Spirit Bear sub-ability)
-    ("Oracle", "oracle_diviners_deck"),                 # confirmed KV: "Diviner's Deck" (Aghs upgrade)
-}
-
-# Synthetic visual sub-blocks of a real parent ability that do NOT exist
-# as standalone engine slugs in abilities_slim.json. Treated like
-# KNOWN_ICON_URL_PSEUDO_SLUGS: bypass datafeed validation entirely, since
-# the slug was never intended to resolve to a real Valve ability — it's a
-# layout convention to render the parent ability's per-stance bonuses
-# under their own visual heading. Each entry must document the parent
-# engine ability it visually decomposes.
-KNOWN_SYNTHETIC_SUBBLOCKS = {
-    # Brewmaster Drunken Brawler renders three per-element stance bonus
-    # blocks (Earth/Fire/Void); parent ability is brewmaster_drunken_brawler.
-    "brewmaster_drunken_brawler_earth",
-    "brewmaster_drunken_brawler_fire",
-    "brewmaster_drunken_brawler_void",
-}
-
-# Innate slugs whose engine entry exists (confirmed via abilities_slim.json
-# with is_innate=True) but for which Valve publishes no public CDN icon
-# under that slug. Rendered via the elements.py innate-icon fallback path
-# (data-slug attr + INNATE_ICON_URL) rather than a duplicated PNG file.
-# Listed here so check_icons.py can confirm the fallback is intentional,
-# not an accidental missing file.
-KNOWN_INNATE_NO_CDN_ICON = {
-    "queenofpain_succubus",   # Succubus innate
-    "terrorblade_dark_unity", # Dark Unity innate
-}
-
-# Display names that intentionally differ from Valve's base ability name_loc
-# because the content describes a facet-applied effect on top of the base
-# ability, not the ability itself. Format: (hero, display_used, resolved_slug).
-KNOWN_DISPLAY_NAME_OVERRIDES = {
-    ("Slark", "Barracuda", "slark_pounce"),  # facet renames Pounce's effect "Barracuda" in tooltip text
-}
-
-# Synthetic pseudo-unit slugs paired with an explicit icon_url= override
-# (e.g. Brewmaster's elemental Brewlings use icons/units/*.png, not a real
-# Valve ability icon). These aren't ability slugs to validate against the
-# datafeed at all — the call supplies its own icon and bypasses CDN lookup.
-KNOWN_ICON_URL_PSEUDO_SLUGS = {
-    "brewmaster_earth_unit", "brewmaster_storm_unit",
-    "brewmaster_fire_unit", "brewmaster_void_unit",
-}
+# Shared allowlists (see known_exceptions.py for maintenance rules).
+from known_exceptions import (  # noqa: E402
+    KNOWN_HISTORICAL_RENAMES,
+    KNOWN_NON_DATAFEED_ABILITIES,
+    KNOWN_DISPLAY_NAME_OVERRIDES,
+    KNOWN_ICON_URL_PSEUDO_SLUGS,
+    KNOWN_SYNTHETIC_SUBBLOCKS,
+    KNOWN_INNATE_NO_CDN_ICON,  # noqa: F401
+)
 
 _content_files = sorted((ROOT / "content").glob("*.py"))
 _file_bounds = []  # (start_offset, filename)

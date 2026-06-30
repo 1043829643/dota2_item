@@ -700,11 +700,17 @@ def render_html() -> str:
             has_own_icon = (_HERE / "icons" / "abilities" / f'{ab["slug"]}.png').exists()
             if ab.get("innate") and has_own_icon:
                 marks += '<span class="aoe-mark aoe-mark-innate" title="Innate"></span>'
+            # If no local PNG exists, emit innate_icon.png directly — avoids
+            # the browser hitting a 404 before the onerror swap fires. Mirrors
+            # the same fallback path used in patch/elements.py's ability().
+            ab_src = (f'icons/abilities/{ab["slug"]}.png' if has_own_icon
+                      else 'icons/misc/innate_icon.png')
+            onerr_attr = (f' onerror="{innate_fallback}"' if has_own_icon else '')
             ab_icon = (
                 f'<span class="aoe-ico-wrap">'
-                f'<img class="aoe-ico" src="icons/abilities/{ab["slug"]}.png" '
+                f'<img class="aoe-ico" src="{ab_src}" data-slug="{ab["slug"]}" '
                 f'alt="" loading="lazy" width="32" height="32" '
-                f'title="{_esc(ab["name"])}" onerror="{innate_fallback}">'
+                f'title="{_esc(ab["name"])}"{onerr_attr}>'
                 f'<span class="aoe-marks" aria-hidden="true">{marks}</span>'
                 f'</span>')
 

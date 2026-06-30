@@ -16,13 +16,9 @@ ROOT = Path(__file__).resolve().parents[2]
 DIST_DIR = ROOT / "dist"
 ICONS_DIR = ROOT / "icons" / "abilities"
 
-# Mirror of audit_abilities.py's KNOWN_INNATE_NO_CDN_ICON. Duplicated to
-# avoid making this script depend on the patch package / live Valve
-# fetch that audit_abilities.py performs at import time.
-KNOWN_INNATE_NO_CDN_ICON = {
-    "queenofpain_succubus.png",
-    "terrorblade_dark_unity.png",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from known_exceptions import KNOWN_INNATE_NO_CDN_ICON as _ALLOWED_SLUGS  # noqa: E402
+KNOWN_INNATE_NO_CDN_ICON = {f"{s}.png" for s in _ALLOWED_SLUGS}
 
 if not DIST_DIR.exists():
     print("dist/ not found. Run python build_site.py first.")
