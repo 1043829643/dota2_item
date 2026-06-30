@@ -734,6 +734,66 @@ def new_facet(slug, desc, summary=None, tag="new"):
     )
 
 
+def facet_change(slug, old_desc, new_desc, summary=None):
+    """Reworked facet — old→new two-pane layout with facet gradient/icon styling."""
+    from .badges import FACETS, _FACET_COLOR_GRADIENT
+    from .images import _FACET_ICONS
+    _dyn_record_li({'rework'})
+    if slug not in FACETS:
+        return f'<!-- facet_change: unknown slug {slug} -->'
+    name, color = FACETS[slug]
+    gradient = _FACET_COLOR_GRADIENT.get(color, _FACET_COLOR_GRADIENT["Gray0"])
+    fi = _FACET_ICONS.get(slug)
+    icon_name = fi[1] if isinstance(fi, list) and len(fi) > 1 else None
+    out = _close_ability_block()
+    _State.next_ul_is_hero_stats = False
+    if _State.current_hero and not _State.seen_facets_subgroup:
+        out += '<h4 class="subgroup">Facets</h4>'
+        _State.seen_facets_subgroup = True
+    _State.ability_block_open = True
+    _State.current_block_is_facet = False
+
+    icon_overlay = (f'<img src="../icons/facets/{icon_name}.png" alt="" '
+                    f'class="facet-icon-overlay" loading="lazy" width="72" height="72">') if icon_name else ''
+    icon_html = (f'<div class="ability-icon-wrap facet-icon-wrap" '
+                 f'style="background-image:{gradient}">{icon_overlay}</div>')
+
+    def _pane_body(desc):
+        items = desc if isinstance(desc, list) else [desc]
+        return ''.join(
+            (d if isinstance(d, str) and d.lstrip().startswith('<div')
+             else f'<div class="ability-change-row">{d}</div>')
+            for d in items
+        )
+
+    summary_text = summary or "Facet reworked."
+    summary_row = (
+        f'<ul class="changes ability-change-summary-ul">'
+        f'<li data-tag="rework">'
+        f'<span class="badge rework" data-tag="rework">REWORK</span>'
+        f'<span class="row-text">{summary_text}</span>'
+        f'</li>'
+        f'</ul>'
+    )
+    panes_html = (
+        f'<div class="ability-change unified-panes" data-tag="rework">'
+        f'<div class="ability-change-pane ability-change-old">'
+        f'<div class="ability-change-body">{_pane_body(old_desc)}</div>'
+        f'</div>'
+        f'<div class="ability-change-pane ability-change-new">'
+        f'<div class="ability-change-body">{_pane_body(new_desc)}</div>'
+        f'</div>'
+        f'</div>'
+    )
+    return out + (
+        f'<div class="ability-block facet-block ability-change-block">'
+        f'{icon_html}'
+        f'<h4 class="ability-title">{name}</h4>'
+        f'{summary_row}'
+        f'{panes_html}'
+    )
+
+
 def ul_open():
     out = ''
     if _State.next_ul_is_hero_stats and _State.current_hero:
