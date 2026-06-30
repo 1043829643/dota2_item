@@ -1084,7 +1084,11 @@ def build():
     W(hero_header("Io"))
     W(ul_open())
     W(li("Removed Sight Seer innate ability", t("DEL")))
-    W(li("Wellspring: New Innate Ability. Passive, can't be leveled up", t("MISC"), extra=inline_note("Consumable items and item abilities that restore Health and Mana over time affect Io twice as fast. Total amount of restored health or mana remains the same<br>This applies to Healing Salve, Tango, Clarity, Bottle, Urn of Shadows, Spirit Vessel, Pollywog Charm, and Mana Draught")))
+    W(ul_close())
+    W(ability("Wellspring", slug="wisp_wellspring", innate=True))
+    W(ul_open())
+    W(li("New Innate Ability", t("NEW"),
+         extra=inline_note("Consumable items and item abilities that restore Health and Mana over time affect Io twice as fast. Total amount of restored health or mana remains the same<br>This applies to Healing Salve, Tango, Clarity, Bottle, Urn of Shadows, Spirit Vessel, Pollywog Charm, and Mana Draught")))
     W(li("Example: Usually Clarity restores 150 mana over 25s. For Io it will restore 150 mana over 12.5s", t("MISC")))
     W(ul_close())
     W(ability("Spirits", slug="wisp_spirits"))
@@ -1279,8 +1283,9 @@ def build():
 
     # Lina
     W(hero_header("Lina"))
+    W(ability("Combustion", slug="lina_combustion", innate=True))
     W(ul_open())
-    W(li("Combustion: Overheat Damage increased from 10/30/50/70 to 15/35/55/75", b([10, 30, 50, 70], [15, 35, 55, 75])))
+    W(li("Overheat Damage increased from 10/30/50/70 to 15/35/55/75", b([10, 30, 50, 70], [15, 35, 55, 75])))
     W(ul_close())
     W(ability("Laguna Blade", slug="lina_laguna_blade"))
     W(ul_open())
@@ -1538,8 +1543,9 @@ def build():
 
     # Nyx Assassin
     W(hero_header("Nyx Assassin"))
+    W(ability("Nyxth Sense", slug="nyx_assassin_nyxth_sense", innate=True))
     W(ul_open())
-    W(li("Nyxth Sense: Radius increased from 350 to 400", b(350, 400)))
+    W(li("Radius increased from 350 to 400", b(350, 400)))
     W(ul_close())
     W(ability("Spiked Carapace", slug="nyx_assassin_spiked_carapace"))
     W(ul_open())
@@ -1881,8 +1887,9 @@ def build():
 
     # Snapfire
     W(hero_header("Snapfire"))
+    W(ability("Buckshot", slug="snapfire_buckshot", innate=True))
     W(ul_open())
-    W(li("Buckshot: Auto attack bonus damage on non-glancing shots increased from 25% to 30%", b(25, 30)))
+    W(li("Auto attack bonus damage on non-glancing shots increased from 25% to 30%", b(25, 30)))
     W(ul_close())
     W(subgroup("Talents"))
     W(ul_open())
@@ -2077,9 +2084,10 @@ def build():
 
     # Venomancer
     W(hero_header("Venomancer"))
+    W(ability("Septic Shock", slug="venomancer_septic_shock", innate=True))
     W(ul_open())
-    W(li("Septic Shock: Aghanim's Scepter no longer gives Plague Wards the ability to deal Septic Shock damage (moved to Plague Carrier facet)", t("MISC")))
-    W(li("Septic Shock: Aghanim's Scepter Base Damage per debuff increased from 20% to 25%", b(20, 25)))
+    W(li("Aghanim's Scepter no longer gives Plague Wards the ability to deal Septic Shock damage (moved to Plague Carrier facet)", t("MISC")))
+    W(li("Aghanim's Scepter Base Damage per debuff increased from 20% to 25%", b(20, 25)))
     W(ul_close())
     W(new_facet("venomancer_plague_carrier",
         desc="When Venomous Gale impacts enemy heroes, 2 Plague Wards are created around them. Plague Wards also deal Septic Shock damage based on their attack damage."))
