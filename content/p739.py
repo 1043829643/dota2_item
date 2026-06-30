@@ -605,7 +605,7 @@ def build():
     W(facet_change("batrider_arsonist",
         old_desc="Sticky Napalm deals damage to structures.",
         new_desc=["Increases the max level of Sticky Napalm to 5. Level 5 Sticky Napalm causes every attack to apply 1 stack of Sticky Napalm.",
-                  f"Number of times +2 All Attributes can be skilled decreased from 7 to 6 {b(7, 6)}"],
+                  "Number of times +2 All Attributes can be skilled decreased from 7 to 6"],
         old_ability="batrider_sticky_napalm",
         new_ability="batrider_sticky_napalm"))
     W(ability("Sticky Napalm", slug="batrider_sticky_napalm"))
@@ -643,11 +643,9 @@ def build():
 
     # Bloodseeker
     W(hero_header("Bloodseeker"))
-    W(ul_open())
     W(facet_header("bloodseeker_bloodrush"))
     W(ul_open())
     W(li("Facet Removed", t("DEL")))
-    W(ul_close())
     W(ul_close())
     W(new_facet("bloodseeker_old_blood",
         desc="Bloodrage silences the target and can be applied to enemies. Bloodrage increases base attack damage instead of spell damage."))
