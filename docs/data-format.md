@@ -1,5 +1,16 @@
 # Data format and helper API
 
+## Normalized JSON (`data/normalized/patches/<ver>.json`)
+
+`generate_patch_code_v2.py` writes this alongside the Python scaffold. It
+is the structured per-change artifact that:
+
+- `tools/validate_data.py` audits for malformed entries.
+- The strict current-patch CI gate requires for every released version.
+
+Generation is **forward-only** — never back-convert a `content/p*.py`
+already authored by hand.
+
 ## Valve KV format (patchnotes_english.txt)
 
 ```

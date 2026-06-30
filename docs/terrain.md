@@ -2,7 +2,7 @@
 
 5th tab under **Materials**. Compares the Dota map **old → new** with a swipe
 slider, plus that patch's *Terrain Changes* list. Built by `builders/terrain.py`
-(standalone, like `builders/heroes_dyn.py`); CI runs it after `builders/patch.py`.
+(standalone, like `builders/heroes_dyn.py`); CI runs it after `builders/build_patches.py`.
 
 ## Status (2026-06-04)
 

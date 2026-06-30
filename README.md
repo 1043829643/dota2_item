@@ -18,69 +18,60 @@ A static site that turns Valve's raw Dota 2 patch notes into a readable, filtera
 ## Repository layout
 
 ```
-builders/                   ← all build entry points (run from repo root)
-  patch.py                  ← thin orchestrator; calls content/ modules in order
-  creeps.py                 ← generates creeps.html
-  heroes_stats.py           ← generates heroes_stats.html
-  heroes_dyn.py             ← generates heroes_dyn.html
-  items_dyn.py              ← generates items_dyn.html
-  hero_lab.py               ← generates hero_lab.html
-  mana_items.py             ← generates mana_items.html
-  terrain.py                ← generates terrain.html
-  silent.py                 ← generates patches/silent/{version}.html (KV-level diffs)
+build_site.py               ← SINGLE entrypoint: python build_site.py [steps] [--latest]
+builders/
+  build_patches.py          ← orchestrator: auto-discovers content/p*.py
+  creeps.py                 ← generates dist/creeps.html
+  heroes_stats.py           ← generates dist/heroes_stats.html
+  heroes_dyn.py             ← generates dist/heroes_dyn.html
+  items_dyn.py              ← generates dist/items_dyn.html
+  hero_lab.py               ← generates dist/hero_lab.html
+  mana_items.py             ← generates dist/mana_items.html
+  aoe_increase.py           ← generates dist/aoe_increase.html
+  terrain.py                ← generates dist/terrain.html
+  silent.py                 ← generates dist/patches/silent/{version}.html
 
-generate_patch_code_v2.py   ← KV → Python codegen; run before integrating a new patch
-styles.css                  ← site stylesheet (url() paths relative to repo root)
-src/
-  scripts.js                ← site JavaScript
+generate_patch_code_v2.py   ← KV → Python scaffold + data/normalized/patches/<ver>.json
+styles.css                  ← site stylesheet (minified into dist/)
+src/scripts.js              ← site JavaScript (minified into dist/)
 
-patch/                      ← build infrastructure (imported by content/ and builders/)
-  output.py                 ← HTML accumulator: H list + W()
-  state.py                  ← global build state singleton
-  images.py                 ← HERO_SLUG, ITEM_SLUG, CDN URL helpers
+patch/
+  output.py / state.py      ← HTML accumulator + global build state
+  api.py                    ← public re-export consumed by content/p*.py
+  images.py                 ← HERO_SLUG, ITEM_SLUG, _LOCAL_ABIL_ICONS
   stats.py                  ← stat DB loaders, stat_h/i/u(), bstat_*()
   badges.py                 ← b(), br(), bf(), t(), facet_badge(), scale_pill()
-  elements.py               ← all HTML builders: li(), section(), ability(), headers…
-  meta.py                   ← PATCHES list, RELEASE_HISTORY, nav/date helpers
-  page.py                   ← write_head(), write_footer(), save_html(), post-processing
-  calendar.py               ← save_calendar_html()
-  index_page.py             ← save_index_html()
-  rosters.py                ← hero/item roster lists, _dynamics.json writer
+  elements.py               ← HTML builders: li(), section(), ability(), headers…
+  meta.py                   ← PATCHES, RELEASE_HISTORY, latest_stats_version()
+  page.py                   ← write_head/footer, save_html, asset minification
+  calendar.py / index_page.py / rosters.py
+  known_exceptions.py       ← shared ability/icon allowlists (audits + builders)
 
-content/                    ← per-patch note content (one file per version)
-  p708.py                   ← 7.08
-  p740.py  p740b.py  p740c.py
-  p741.py  p741a.py  p741b.py  p741c.py  p741d.py
-
-tests/                      ← pytest unit tests (166 tests, run in CI)
-  test_badges.py            ← gradient_class, b, t, br, facet_badge, scale_pill
-  test_elements.py          ← li, section, inline_note, item_cost, aghs_line…
-  test_stats.py             ← stat_h, bstat_h, prev_change_patch_h…
+content/p<version>.py       ← per-patch def build(); auto-discovered, no registration
+tests/                      ← pytest unit tests (241 tests, run in CI)
 
 data/
-  patchnotes_english.txt    ← raw Valve KV patch notes
-  abilities_slim.json       ← ability slug → display name + innate flag
-  stats/<version>/          ← heroes.json + items.json + abilities.json per patch
+  abilities_slim.json       ← authoritative ability slug → dname + is_innate
+  stats/<version>/          ← full per-patch snapshot — see docs/workflow.md
+  normalized/patches/*.json ← structured per-patch artifact (CI-required)
+  <version>_datafeed.json   ← cached Valve datafeed JSON
 
 icons/                      ← local mirror of hero, item, ability icons
-scripts/fetch/              ← data fetchers: fetch_icons.py, fetch_npc_history.py, …
-scripts/gen/                ← asset generators: gen_terrain_layer_icons.py, build_terrain_maps.py, …
-scripts/audit/              ← auditors: audit_*.py, check_icons.py, lift_old_desc.py
-docs/                       ← architecture, data format, contribution workflow
+scripts/
+  fetch/                    ← data fetchers (fetch_icons, fetch_*_history, …)
+  gen/                      ← asset generators (terrain maps, layer icons, …)
+  audit/                    ← auditors (audit_all, audit_*, check_icons)
 
-# Generated by CI — NOT committed:
-patches/*.html              ← per-patch HTML pages
-patches/silent/*.html       ← silent KV-diff pages
-calendar.html, index.html   ← support pages
-_dynamics.json              ← patch-dynamics widget payload
+# Build output — not committed:
+dist/                       ← everything served by GitHub Pages
 ```
 
 ## Quick start
 
-Requires **Python 3.10+** (uses `X | Y` type unions and `list[...]` generics).
-The build itself has **no third-party dependencies** — only the test suite does.
+Requires **Python 3.10+**. The build itself has **no third-party
+dependencies** — only the test suite does (`pytest`, `rcssmin`, `rjsmin`).
 
-```bash
+```powershell
 git clone https://github.com/sikleq/Sloppy.git
 cd Sloppy
 
@@ -90,30 +81,34 @@ python build_site.py
 # Serve locally
 python -m http.server 8765 --directory dist
 
-# Run tests (needs pytest)
+# Run tests
 pip install -r requirements-dev.txt
-python -m pytest tests/ -v
+python -m pytest tests -q
 ```
 
 ## Adding a new patch
 
-1. Drop the new patch's KV file into `data/patchnotes_english.txt`.
-2. Generate a Python scaffold:
-   ```bash
+Short version (full guide: [docs/workflow.md](docs/workflow.md)):
+
+1. Register the version in `patch/meta.py` (`PATCHES` + `RELEASE_HISTORY`).
+2. Refresh `data/stats/<version>/` via the `scripts/fetch/` helpers — the
+   strict CI manifest checks every required JSON/TXT.
+3. Generate the scaffold + normalized JSON:
+   ```powershell
    python generate_patch_code_v2.py 7.42
    ```
-   Produces `_generated_p_7.42.py` — review and edit (autodetector gets tags right ~80% of the time).
-3. Save the reviewed content as `content/p742.py`, wrapping the block in `def build():`.
-4. Add the import and call in `builders/patch.py`:
-   ```python
-   import content.p742
-   # in __main__:
-   content.p742.build()
+4. Review the scaffold and save it as `content/p742.py` (auto-discovered;
+   no registration in any builder).
+5. Register any new slugs in `HERO_SLUG` / `ITEM_SLUG`; confirm new ability
+   slugs against `data/abilities_slim.json`.
+6. Run the gates:
+   ```powershell
+   python -m pytest tests -q
+   python build_site.py
+   python tools/validate_data.py
+   python scripts/audit/check_icons.py
+   python scripts/audit/audit_all.py
    ```
-5. If new heroes/items appeared, register their slugs in `patch/images.py` (`HERO_SLUG` / `ITEM_SLUG`).
-6. Run `python builders/patch.py` and open `patches/7.42.html` to verify.
-
-Full workflow: [docs/workflow.md](docs/workflow.md).
 
 ## Architecture & data format
 
@@ -122,11 +117,19 @@ Full workflow: [docs/workflow.md](docs/workflow.md).
 
 ## CI
 
-GitHub Actions runs on every push:
-1. **pytest** — 166 unit tests for `patch/badges`, `patch/elements`, `patch/stats`
-2. **Full build** — all `builders/*.py` scripts in sequence
-3. **Audits** — BAT `l=True` check, trailing-whitespace lint, ul-balance check across all content files
-4. **Deploy** — generated `_site/` published to GitHub Pages
+Two GitHub Actions workflows:
+
+- **`.github/workflows/build.yml`** — runs on every push to `main` and on
+  PRs. Required before deploy: pytest (241 tests), full `build_site.py`,
+  minification verification, normalized-JSON validation, content-rule
+  audits (tag direction, BAT `l=True`, trailing whitespace, ul balance),
+  the strict current-patch stats manifest, and `check_icons.py`. On `main`,
+  the resulting `dist/` is published to GitHub Pages.
+- **`.github/workflows/audit-live.yml`** — runs on a daily schedule (and
+  on `workflow_dispatch`). Performs `audit_all.py`, which makes live HTTP
+  requests to `dota2.com/datafeed/...` to verify display names against
+  Valve's API. **Deliberately decoupled from the deploy path** — a Valve
+  outage or rate limit must not block a good deploy.
 
 ## Contributing
 

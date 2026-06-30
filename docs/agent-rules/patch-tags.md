@@ -1,6 +1,6 @@
 # Patch-теги и строки изменений
 
-Правила тегирования (`b()`/`t()`/`bf()`), порядка строк и канонических фраз для патч-страниц (`builders/patch.py`).
+Правила тегирования (`b()`/`t()`/`bf()`), порядка строк и канонических фраз для патч-страниц (`builders/build_patches.py`).
 
 ## Хелперы для строк изменений
 - `b(old, new, l=False)` — числовой бейдж в %. `l=True`: меньше = лучше (cooldown, mana cost, BAT, gold cost, penalty, channel time, recharge, cast point)

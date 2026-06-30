@@ -1,6 +1,6 @@
 # Tables subsystem (Creeps / Unit Abilities / Mana Items)
 
-Separate from the patch-notes pipeline (`builders/patch.py`, see [architecture.md](architecture.md)).
+Separate from the patch-notes pipeline (`builders/build_patches.py`, see [architecture.md](architecture.md)).
 This covers the sortable data tables under the **Materials** section.
 
 ## Pages & builders
@@ -29,9 +29,9 @@ Header sub-tabs (under the logo) switch between Neutral Stats / Unit Abilities /
 
 ```bash
 # On Windows always:  PYTHONIOENCODING=utf-8
-python builders/patch.py       # 1. writes data/site_meta.json (asset version, patch list)
+python builders/build_patches.py       # 1. writes data/site_meta.json (asset version, patch list)
 python builders/creeps.py      # 2. -> neutral_stats.html + neutral_abilities.html (+ neutral_creeps/creeps/materials/unit_abilities redirects)
-python builders/mana_items.py  # 3. -> mana_items.html  (run AFTER builders/patch.py)
+python builders/mana_items.py  # 3. -> mana_items.html  (run AFTER builders/build_patches.py)
 python builders/heroes_stats.py # 3b. -> heroes_stats.html (run AFTER build_patch — needs site_meta dates)
 python builders/hero_lab.py     # 3c. -> hero_lab.html
 python builders/heroes_dyn.py   # 4. -> heroes_dyn.html  (run AFTER build_patch — reads _dynamics.json)
@@ -221,7 +221,7 @@ matrix only draws the item's slots WITHIN its life:
 - Reads **`_dynamics.json`** (written by `patch/rosters.py`): `patches` (newest-first), `entities`
   (`hero|<slug>` → per-patch tag tallies), and **`heroes`** (full roster `[{name, icon, key}]`,
   added so every hero lists even if untouched in a rendered patch). `patch/rosters.py` also stamps an
-  `icon` field on each hero entity. `builders/heroes_dyn.py` does **not** import `builders/patch.py` —
+  `icon` field on each hero entity. `builders/heroes_dyn.py` does **not** import `builders/build_patches.py` —
   it just consumes the JSON.
 - Table = `creeps-table heroes-dyn-table`, ONE sticky-col (hero icon+name), single `col-row`
   header (no cat-row), 115 patch columns oldest→newest. `<body data-dyn-path="_dynamics.json">`
@@ -302,7 +302,7 @@ matrix only draws the item's slots WITHIN its life:
     default filter). Names use the system font (no web-font reflow), so the setup measure needs no
     font-settle re-measure; `load`/`resize` should only re-FIT columns, not re-measure the name width.
 
-`site_common.py` reads `data/site_meta.json`, so `builders/patch.py` must run first.
+`site_common.py` reads `data/site_meta.json`, so `builders/build_patches.py` must run first.
 Generated HTML is **gitignored** and rebuilt by CI; only the `.py` / `styles.css` /
 `scripts.js` sources are committed.
 

@@ -3,45 +3,49 @@
 ## Data flow
 
 ```
-data/<version>_datafeed.json   (Valve datafeed JSON, cached)
+data/<version>_datafeed.json        (Valve datafeed JSON, cached)
+data/stats/<version>/               (full per-patch KV+JSON snapshot)
         ↓
-generate_patch_code_v2.py      (parser → patch/ helper calls)
+generate_patch_code_v2.py           (parser → patch/ helper calls)
         ↓
-_generated_p_<version>_v2.py   (intermediate, reviewed by hand)
+_generated_p_<version>_v2.py        (intermediate, reviewed by hand)
+data/normalized/patches/<ver>.json  (structured artifact, CI-required)
         ↓
-content/p<version>.py          (reviewed def build(); registered in builders/patch.py)
+content/p<version>.py               (reviewed def build(); auto-discovered)
         ↓
-builders/patch.py + patch/     (orchestrator runs every content.build())
+build_site.py                       (single entrypoint, runs all steps)
+   └─ builders/build_patches.py     (auto-discovers content/p*.py)
+   └─ builders/{creeps,mana_items,heroes_stats,heroes_dyn,
+               items_dyn,hero_lab,aoe_increase,terrain,silent}.py
         ↓
-patches/<version>.html         (final site output)
+dist/                               (final site, served by GitHub Pages)
 ```
 
 ## The `patch/` package
 
-The old monolith `build_patch.py` was split into a package; patch content moved
-into one file per version under `content/`. Helpers are imported via
-`from patch.api import *`.
+Helpers are imported in every `content/p*.py` via `from patch.api import *`.
 
 | Module | Purpose |
 |---|---|
-| `patch/images.py` | CDN constants, `HERO_SLUG` / `ITEM_SLUG` display-name → slug maps |
+| `patch/images.py` | CDN constants, `HERO_SLUG` / `ITEM_SLUG`, `_LOCAL_ABIL_ICONS` |
 | `patch/badges.py` | `gradient_class()`, `b()`, `br()`, `bf()`, `t()`, `scale_pill()` |
 | `patch/elements.py` | HTML helpers: `hero_header()`, `item_header()`, `section()`, `ability()`, `li()`, `subnote()`, … |
 | `patch/output.py` / `patch/state.py` | `W()` writer accumulator + `_State` build singleton |
-| `patch/page.py` | `write_head()` / `write_footer()` / `save_html()`; reads `styles.css` + `src/scripts.js` from disk and stamps a cache-busting `?v=` |
-| `patch/meta.py` | `PATCHES`, `RELEASE_HISTORY`, nav / date helpers |
+| `patch/page.py` | `write_head()` / `write_footer()` / `save_html()`; reads `styles.css` + `src/scripts.js` from disk, minifies into `dist/`, stamps a cache-busting `?v=` |
+| `patch/meta.py` | `PATCHES`, `RELEASE_HISTORY`, `latest_stats_version()` |
+| `patch/known_exceptions.py` | shared ability/icon allowlists (imported by audits AND builders so they cannot drift) |
 | `patch/rosters.py` | hero/item rosters, writes `_dynamics.json` |
 | `patch/index_page.py` / `patch/calendar.py` | landing "inventory book" + calendar/cadence infographic |
-| `content/p<version>.py` | per-patch `def build()` — the patch content |
-| `builders/patch.py` | orchestrator: imports every `content` module and runs `build()` oldest → newest |
+| `content/p<version>.py` | per-patch `def build()` — auto-discovered, never imported manually |
+| `builders/build_patches.py` | orchestrator — walks `content/p*.py` in chronological order from `RELEASE_HISTORY` |
 
-Running `python builders/patch.py` writes: one HTML file per patch (under
-`patches/`), `index.html`, `calendar.html`, `_ability_icons.txt`,
-`_dynamics.json`, and `data/site_meta.json`. `styles.css` (repo root) and
-`src/scripts.js` are **source files, not outputs**. The tables —
-`neutral_stats.html`, `neutral_abilities.html`, `mana_items.html` — are built
-separately by `builders/creeps.py` / `builders/mana_items.py` (run AFTER
-`builders/patch.py`; see [tables.md](tables.md)).
+`python build_site.py` writes everything to `dist/`: one HTML per patch
+under `dist/patches/`, plus `index.html`, `calendar.html`, `creeps.html`,
+`heroes_stats.html`, `heroes_dyn.html`, `items_dyn.html`, `hero_lab.html`,
+`mana_items.html`, `aoe_increase.html`, `terrain.html`, the
+`dist/patches/silent/*.html` KV-diff pages, `_dynamics.json`, and minified
+copies of `styles.css` + `src/scripts.js`. `styles.css` and `src/scripts.js`
+in the repo root are **source files, not outputs**.
 
 ### Patch-dynamics widget (dyn-cells)
 
@@ -63,6 +67,18 @@ fallback **directly as the `<img src>`** (innate → `innate_icon.png`, else
 `missing.svg`) instead of a broken path patched by `onerror` — otherwise the
 entity-search dropdown (which reads `img.src`) showed the wrong icon. The set of
 present files is cached in `_LOCAL_ABIL_ICONS` at module load.
+
+Confirmed-real innates without public CDN art live in
+`patch/known_exceptions.py::KNOWN_INNATE_NO_CDN_ICON`. **Builders must not
+silently substitute** `innate_icon.png` for any other missing slug — that
+would hide an accidentally-deleted icon from `check_icons.py`. The
+established three-state pattern (see `builders/aoe_increase.py`):
+
+```
+if local_png_exists:        use it
+elif slug in allowlist:     emit innate_icon.png directly
+else:                       raise RuntimeError — real missing file
+```
 
 ## generate_patch_code_v2.py
 

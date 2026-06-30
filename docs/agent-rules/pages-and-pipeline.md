@@ -5,8 +5,8 @@
 ```
 build_site.py                ← ЕДИНЫЙ entrypoint. python build_site.py [steps] [--latest]
 builders/
-  patch.py                   ← Запускает все content/p*.py + calendar + index
-  silent.py                  ← Дифф KV-файлов → patches/silent/*.html (скрытые изменения)
+  build_patches.py           ← Авто-обнаруживает content/p*.py + calendar + index
+  silent.py                  ← Дифф KV-файлов → dist/patches/silent/*.html
   terrain.py                 ← terrain.html (сравнение карт)
   creeps.py, heroes_stats.py, hero_lab.py, mana_items.py, heroes_dyn.py, items_dyn.py
   site_common.py             ← Общий HTML-обвёртка (head/nav/foot)
@@ -45,9 +45,9 @@ python generate_patch_code_v2.py 7.42
 #    ⚠ генератор НЕ добавляет эти три обёртки — нужно вручную
 
 # 4. Зарегистрировать патч
-#    - builders/patch.py: import content.p742 + content.p742.build() в нужном месте
-#    - patch/meta.py: добавить в PATCHES (для nav dropdown)
+#    - patch/meta.py: добавить в PATCHES + RELEASE_HISTORY (filename ОБЯЗАТЕЛЬНО)
 #    - patch/index_page.py: добавить в _PATCH_SITE_DATES (для What's New popup)
+#    ⚠ ручной регистрации в builders/ НЕТ — builders/build_patches.py авто-обнаруживает content/p*.py
 
 # 5. Собрать + проверить иконки
 python build_site.py --latest      # только новый патч, ~3-4s
@@ -93,8 +93,16 @@ git commit -m "feat: add 7.42 patch page"
 
 ### Иконки способностей не скачиваются автоматически
 `fetch_icons.py` нужно запускать вручную после каждой новой сборки патча.
-Иконки innate/facet (404 на CDN) — нормально, браузер использует fallback `innate_icon.png`.
+Иконки innate/facet (404 на CDN) — нормально: `ability()` отдаёт `innate_icon.png` сразу в `src`, без 404+onerror.
 `_LOCAL_ABIL_ICONS` в `patch/images.py` строится при загрузке модуля — пересборка нужна после скачивания.
+
+**Подтверждённые real-innate без CDN art** лежат в `patch/known_exceptions.py::KNOWN_INNATE_NO_CDN_ICON`.
+Builders **не должны** молча подставлять `innate_icon.png` за любой отсутствующий slug — это спрячет случайно удалённую иконку от `check_icons.py`. Канон (см. `builders/aoe_increase.py`):
+```
+if local_png_exists:     use it
+elif slug in allowlist:  emit innate_icon.png directly
+else:                    raise RuntimeError
+```
 
 ### Ability slug неправильный
 Генератор берёт slug из `data/abilities_by_id.json`. Если способность переименована в новом патче,
@@ -145,11 +153,11 @@ Start-Process python -ArgumentList "-m http.server 8765 --directory dist"
 
 ## Прочие генерируемые страницы (не патчи)
 
-`builders/patch.py` также генерирует:
+`builders/build_patches.py` также генерирует:
 - **`index.html`** (`save_index_html`) — лендинг в виде игрового «инвентаря-книги»: орнаментальная панель `.inv-book` с квадратными слотами (`icons/ui/gothic/`, пак [Gothic Pixel UI](https://abyssowl.itch.io/gothic-pixel-ui)). Верхний ряд `.inv-filled` = ссылки на разделы, нижний `.inv-ph` = плейсхолдеры. Золото подогнано под бренд-слово `sikle` (`#e3c46a`). Подписи — временные плейсхолдеры (шрифт Jersey 10). Старая `.zuma-*` сетка удалена.
 - **`calendar.html`** (`save_calendar_html`) — календарь патчей + кастомный год-пикер (`.cal-year-picker`, не нативный `<select>`) + полоса-инфографика «Patch cadence» внизу (`_spark_svg`: SVG-sparkline, «красивая» 5-ступенчатая ось Y, gridlines/оси, hover-значения). Переключатель Compact живёт в шапке блока года.
 - **`terrain.html`** (`builders/terrain.py`, 5-я вкладка Materials) — сравнение рельефа old→new через **шторку-слайдер** (две карты `icons/maps/map_<ver>.webp`, попиксельно совмещённые, клип через `clip-path` по `--pos`) + список Terrain Changes этого патча. Полный план и TODO — `docs/terrain.md`.
-  - **Список изменений парсится из `builders/patch.py`** (никакого дублирования): `_terrain_changes_by_patch()` читает каждую секцию `plain_header("Terrain Changes")` → `{ver: [(text, TAG)]}`. Сейчас это 7.41 и 7.40 (у 7.40 свой большой ремап-список — не путать). Тег `b(...)`-строк выводится по направлению с учётом `l=True` (дешевле mana cost = BUFF, меньше capture time = BUFF).
+  - **Список изменений парсится из `builders/build_patches.py`** (никакого дублирования): `_terrain_changes_by_patch()` читает каждую секцию `plain_header("Terrain Changes")` → `{ver: [(text, TAG)]}`. Сейчас это 7.41 и 7.40 (у 7.40 свой большой ремап-список — не путать). Тег `b(...)`-строк выводится по направлению с учётом `l=True` (дешевле mana cost = BUFF, меньше capture time = BUFF).
   - **Конвенции тегов для terrain-строк:** **«demoted to a 'medium'/'small' camp» → NERF** (понижение тира лагеря = ослабление); **«Removed … tree(s)» → MISC** (удаление деревьев нейтрально, НЕ DEL); удаление вотчеров/объектов («watchers … removed») остаётся DEL; время захвата объекта (capture time) меньше → BUFF с `b(old,new,l=True)` (даёт %-бейдж).
   - **Пикер патчей** (`_picker_html`, gold-скин календарного year-picker) живёт **в заголовке списка** как версия: `[7.41 ▾] Terrain Changes` (`.terrain-list-head`). Перечисляет все патчи с изменениями рельефа; переключение (scripts.js `initTerrainPicker`) показывает соответствующую `.terrain-map-pane` + `.terrain-list-pane` по `data-patch`. Тулбара над картой больше нет.
   - **Карта-пара есть только для патчей из `_MAP_PAIRS`** (dict `патч → (old_ver, new_ver)`; сейчас `7.41`→(7.40,7.41) и `7.40`→(7.39,7.40)). `_compare_html(old_ver, new_ver, markers_svg)` строит слайдер для любой пары. **Маркеры + полная панель слоёв (Trees/Camps/10 точечных) — ПЕР-ПАТЧЕВЫЕ**: каждый патч со своим `data/terrain_diff_<ver>.json` получает тумблеры; `save_terrain_html` строит `markers_by_patch`/`counts_by_patch` (по `_load_diff(ver)`). Если у пары нет диффа → `_controls_html(layers=False)` рисует только Zoom (без мёртвых тумблеров). Общий crop-meta (`terrain_map_meta.json`) проецирует маркеры ЛЮБОГО патча одинаково (карты обрезаны ОДНИМ общим crop-box: `build_terrain_maps.py 7.39 7.40 7.41`). **scripts.js `initTerrainCompare` инициализирует ВСЕ `.terrain-compare`** (`querySelectorAll().forEach(initOneTerrainCompare)`), иначе скрытая по умолчанию вторая панель не получит рабочий слайдер. Для патчей без карты-пары — `_fallback_html` (последняя карта в блюре + «Map comparison for X isn't available yet»).

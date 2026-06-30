@@ -99,7 +99,7 @@ Field map: Base Armor → `ArmorPhysical`; Base Damage → `AttackDamageMin`; Mi
 
 ## `ability_change(old, new)` — выбор layout-режима
 
-Логика в `builders/patch.py` `ability_change(...)` решает между тремя визуальными режимами по identity и количеству строк:
+Логика в `builders/build_patches.py` `ability_change(...)` решает между тремя визуальными режимами по identity и количеству строк:
 
 1. **`is-in-place`** — `old.name == new.name` И иконки совпадают (`slug`/`innate=True` оба). Правая шапка скрывается — показываем только одну (левую). Пример: Lion's To Hell and Back.
 2. **`is-in-place is-new-taller`** — то же, но `len(new.desc) > len(old.desc)`. Правая панель `align-self: start`, без фейкового `padding-top` («много пустого пространства сверху» — баг, который мы зафиксили). Новый body начинается сразу с верха панели, параллельно старой шапке. Примеры: Primal Beast Colossal 7.41, Marci Special Delivery / Bodyguard 7.41.
