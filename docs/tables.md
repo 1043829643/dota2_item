@@ -13,7 +13,7 @@ This covers the sortable data tables under the **Materials** section.
 | `heroes_stats.html` | **Hero Stats** — one row per hero (all published + Spirit Bear), every base stat. Three View modes (`#hs-view-mode`): **Base** = raw level-1 KV values and ignores the level control; **Starting** (default) = practical values WITH attribute bonuses; **Expanded** = Starting + extra inspection columns (`EHP phys/mag`, `Gains/lvl`, `Armor %`, `Dmg min/max`, `Time to hit`, projectile speed, turn rate, collision size, bound radius). The `Lvl` input clamps to 1–30 and recomputes Starting/Expanded values from compact row JSON (`data-hs-stats`) instead of emitting 30 copies of every cell. Melee/Ranged toolbar buttons filter rows by latest-patch `AttackCapabilities` and fire the shared heatmap refresh. Attack range cells render as number + melee/ranged icon badge, matching Neutral Stats. Header groups mirror Neutral Stats: Basic / Essentials / Attributes / Defense / Attack / Vision / Mobility. Spirit Bear is injected from `units.json` + its `npc_units.txt` block because it is a `ConsideredHero` unit, not a normal `npc_dota_hero_*` record. Cells whose value differs between Base & Starting carry `data-base-sort/-html/-hist`; the View IIFE swaps/recomputes them. **Per-hero special cases:** Huskar MP/regen forced to 0; Ogre Magi mana/regen scale with Str. **Innate attribute-conversion modifiers** (`_innate_bonus`, patch-gated): Morphling Ebb&Flow Agi→Range/MoveSpeed (7.41+, 0.2→0.25 range @7.41d), Void Spirit Intrinsic Edge (+33% secondary bonuses in 7.36, +25% in 7.36b–7.40, then 7.41+ = Universal damage multiplier ×1.15 plus +30% HP regen / mana regen / attack speed from Str/Int/Agi, no armor/MR), Centaur Horsepower Str→MoveSpeed (7.36+). Every numeric cell carries full 7.08→today change history (`data-hist`+`data-net`); attribute cell logs primary-attr swaps. **Patch-note shift layer** shifts KV-detected changes back to the patch that `patchnotes_english.txt` announces. Reuses mr-table front-end (`mr-table hs-table`) with its own Neutral-Stats-style two-row header. | `builders/heroes_stats.py` |
 | `hero_lab.html` | **Hero Lab** — current-patch side-by-side hero calculator under the Heroes materials tab. Each side selects a hero, level, six item slots and custom stat overrides (`HP`, `MP`, regen, armor, magic resist, evasion); the center panel shows metric differences. Hero base values reuse Hero Stats data; item passive bonuses are parsed from current `items.txt` `AbilityValues` / `AbilitySpecial` blocks with `items.json` as cost fallback. Melee/ranged-specific item bonuses are applied only to matching attack types. | `builders/hero_lab.py` |
 | `heroes_dyn.html` | **Hero Dynamics matrix** — rows = every hero (icon+name, alphabetical), columns = every patch (version + release date oldest→newest), each cell = that hero's patch-dynamics **dyn-cell** for that patch. Same diamond-pill widget as patch pages. | `builders/heroes_dyn.py` |
-| `items_dyn.html` | **Item Dynamics matrix** — like heroes_dyn, rows = **every real game item** (parity with heroes_dyn listing every hero), columns = every patch. Untouched items render as empty rows. Rows = full published inventory (actual count reported by the build — ~353 at time of writing); 91 not-current (incl. 80 cycled-out neutrals — only the live pool of 49 shows by default), every one with an accurate removal patch. Adds an **In game** toggle (hide removed items, ON) + Type & Category multi-select dropdowns. | `builders/items_dyn.py` |
+| `items_dyn.html` | **Item Dynamics matrix** — like heroes_dyn, rows = **every real game item** (parity with heroes_dyn listing every hero), columns = every patch. Untouched items render as empty rows. Rows = full published inventory (actual counts reported by the build — regular / neutral / enchant totals plus a "not-current" bucket for removed items + cycled-out neutrals). Only the live neutral pool shows by default; every non-current item still carries an accurate removal patch. Adds an **In game** toggle (hide removed items, ON) + Type & Category multi-select dropdowns. | `builders/items_dyn.py` |
 | nav / asset version / `data/site_meta.json` | Shared header, sub-tabs, cache-busting. | `site_common.py` |
 
 Hero Stats current layout note: `heroes_stats.html` uses a Neutral-Stats-style
@@ -73,8 +73,8 @@ enchant → `enhancement_<slug>`; game slug for both = `item_<icon>`) plus a
 rare neutral that's been fully removed from the game file. `patch/rosters.py` writes the
 enriched **items roster** into `_dynamics.json` — each entry has `class`
 (`regular`/`neutral`/`enchant`) and `current` (in game vs removed). The
-section-based method and the game-file method agree 100% (cross-checked: 49/49
-neutral, 0 false pos/neg).
+section-based method and the game-file method agree 100% on the neutral
+pool (0 false pos / neg at build time).
 
 ### Full item roster (`patch/rosters.py::_load_full_game_items`) — list EVERY item
 The roster is NOT just touched items — it lists every real game item so the matrix
@@ -105,8 +105,10 @@ Inclusion mirrors **Liquipedia's Portal:Items** (the reference the user gave).
   [Liquipedia], Quarterstaff 7.35). Touched removals come from the patch-note DEL row (`removed_in`).
 - **Dedup** is by the icon's game slug (`item_<icon>`): a touched item already has the richer entry,
   so its game-file twin is skipped. (User's choice: "all items, no variants / event-only pickups";
-  removed items kept with correct lifespans.) Current total: around 353 rows;
-  91 not-current. **Class of an item that changed type over time = its LATEST class** — e.g.
+  removed items kept with correct lifespans.) Concrete totals — total row count,
+  not-current bucket, per-class splits — are whatever the build reports at the
+  time; treat authoritative source as `_dynamics.json`, not this doc.
+  **Class of an item that changed type over time = its LATEST class** — e.g.
   Specialist's Array was a neutral, now a purchasable regular → classified `regular`; its n/a dots
   correctly precede 7.32 (its first appearance), no mid-life gap (it stayed in the files throughout).
 
@@ -116,7 +118,8 @@ neutral flagged `ItemIsNeutralActiveDrop "1"` forever and never marks it `IsObso
 pool is auto-derived from Valve's datafeed** (`data/itemlist.json`, field `neutral_item_tier >= 0`)
 by `_load_neutral_pool_current()` — no hand-maintained list. ✅ **Self-updating:** when a new patch
 lands, run `python scripts/fetch/fetch_itemlist.py` to refresh `itemlist.json`, then rebuild; added /
-removed / cycled neutrals are picked up automatically (currently **49** in pool). The datafeed is
+removed / cycled neutrals are picked up automatically (live-pool size = whatever the datafeed
+currently exposes). The datafeed is
 authoritative — a hand-written Liquipedia list was tried first but silently missed Cloak of Flames /
 Dandelion Amulet / Medallion of Courage (all re-added as neutrals in 7.41), which the datafeed has.
 A neutral's `current` = membership in that set (applied in BOTH `_item_class_and_current` for touched
@@ -124,7 +127,7 @@ neutrals AND `_load_full_game_items` for untouched ones; an item in the datafeed
 to `class=neutral`, e.g. Medallion of Courage which left the shop). Pool membership overrides any
 stale `removed_in`. Everything else flagged-neutral = cycled out → `current=False` (hidden under the
 Deleted toggle). Cycle-out **version** for the lifespan tail comes from `_NEUTRAL_CYCLED`: patch-note
-"cycled out" events (~7.33+) merged with `_NEUTRAL_REMOVED_MANUAL` (49 older neutrals dated from their
+"cycled out" events (~7.33+) merged with `_NEUTRAL_REMOVED_MANUAL` (older neutrals dated from their
 Liquipedia /Changelogs pages — mostly the 7.38 neutral overhaul), so every cycled-out neutral has an
 accurate n/a tail. Never-released entries are excluded entirely via `_PHANTOM_ITEMS`: 3 neutrals
 (Bottomless Chalice / Horizon / Mechanical Arm — "Added to game files, unreleased") + 5 enchantments
@@ -208,9 +211,11 @@ matrix only draws the item's slots WITHIN its life:
   NEUTRAL definitions WITHOUT `IsObsolete`. Only the patch note does. ⚠ Must NOT
   match `"Facets removed from the game"` (Crude keeps living) nor
   `"Removed <facet/ability>"` (a sub-feature, e.g. Riftshadow Prism's facet list).
-  Now 91 not-current (3 removed enchants + ~10 removed items + ~80 cycled-out neutrals —
-  see the neutral-pool note below; the live pool of 49 neutrals shows by default). EVERY
-  one has an accurate removal patch now (see `_NEUTRAL_REMOVED_MANUAL`).
+  The not-current bucket breaks down into removed enchants + removed regulars +
+  cycled-out neutrals (see the neutral-pool note below; only the live neutral pool
+  shows by default). Concrete counts drift with every patch — read them off
+  `_dynamics.json` rather than trusting a static number in this doc. EVERY
+  not-current item has an accurate removal patch (see `_NEUTRAL_REMOVED_MANUAL`).
   (NB: Liquipedia's changelog summary disagreed — it's stale on the 7.41 enchant
   removals and the cycle-outs; the Valve patch notes in `content/` are truth.)
 - A touched cell (has a tag tally) ALWAYS renders its pill, even if the lifespan
