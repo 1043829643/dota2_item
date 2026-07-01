@@ -48,7 +48,7 @@ patch/
   known_exceptions.py       ← shared ability/icon allowlists (audits + builders)
 
 content/p<version>.py       ← per-patch def build(); auto-discovered, no registration
-tests/                      ← pytest unit tests (241 tests, run in CI)
+tests/                      ← pytest unit tests (run in CI)
 
 data/
   abilities_slim.json       ← authoritative ability slug → dname + is_innate
@@ -120,7 +120,7 @@ Short version (full guide: [docs/workflow.md](docs/workflow.md)):
 Two GitHub Actions workflows:
 
 - **`.github/workflows/build.yml`** — runs on every push to `main` and on
-  PRs. Required before deploy: pytest (241 tests), full `build_site.py`,
+  PRs. Required before deploy: pytest, full `build_site.py`,
   minification verification, normalized-JSON validation, content-rule
   audits (tag direction, BAT `l=True`, trailing whitespace, ul balance),
   the strict current-patch stats manifest, and `check_icons.py`. On `main`,

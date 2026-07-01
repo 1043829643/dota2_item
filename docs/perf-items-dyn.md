@@ -1,6 +1,9 @@
 # Performance profile — items_dyn.html
 
-**Status:** read-only profiling pass. No behavior changes. Findings only.
+**Status:** initial static profile + measured optimization pass complete.
+Real browser measurements collected via preview MCP before and after
+shipping the empty-cell class-shortening change. See "Measured impact"
+section at the bottom.
 
 ## Page footprint
 
@@ -140,3 +143,49 @@ Regression checks required after any change (per task brief):
 - Click pill → patch page → back-arrow returns to matrix.
 - Horizontal scroll, sticky Item column, both viewports (desktop +
   mobile).
+
+## Measured impact (empty-cell class shortening — implemented)
+
+Change: emit `<td class="he">` / `<td class="ha">` (with optional
+`hd-gsep` still appended) instead of `<td class="hd-cell hd-empty">` /
+`<td class="hd-cell hd-absent">`. `he` and `ha` are aliased in `styles.css`
+so the visual output is identical. `scripts.js`'s "Hide old" style rule
+was widened to match `td.he` / `td.ha` alongside `td.hd-cell`.
+
+Instrumented via `preview_eval` against a local `python -m http.server`.
+Measurements are noisy inside the preview sandbox (frame times are inflated
+by eval serialization) — before/after deltas are meaningful, absolute
+numbers are not representative of a real desktop Chrome session.
+
+| Metric | Before | After | Delta |
+|---|---:|---:|---:|
+| HTML file size | 1,691,348 B | 1,107,202 B | **-584 KB (-34.5%)** |
+| decoded body size | 1,691,348 B | 1,107,202 B | -34.5% |
+| DOMContentLoaded | 1,457 ms | 1,178 ms | **-19%** |
+| load event end | 1,859 ms | 1,541 ms | **-17%** |
+| total DOM nodes | 44,190 | 44,190 | 0% (unchanged by design) |
+| `<td>` count | 41,654 | 41,654 | 0% |
+| `td.hd-cell` count | 41,301 | 746 | -98% (filled + spacer only) |
+| `td.he` + `td.ha` count | 0 | 40,555 | new placeholder markers |
+| filled pills (`.dyn-cell-wrap`) | 393 | 393 | 0% |
+| Hide-old toggle (median of 5) | ~4,005 ms | ~4,000 ms | 0% (within noise) |
+| Search filter (first + cached) | 2,290 ms → n/a | 986 ms → 22 ms | comparable |
+| Hover setup | 2,000 ms | 1,722 ms | -14% (within noise) |
+| JS heap | 2.2 MB | 1.7 MB | -23% |
+
+Zero console errors after the change. All 254 pytest tests still pass.
+`check_icons.py` still exits 0. Visual layout (screenshot + `preview_inspect`
+of `td.he::after`) confirms the aliased CSS produces the correct 28×28
+rgba fill on empty cells and 5×5 dot on absent cells.
+
+Notes on interpretation:
+- Load-time wins (parse + DCL) are the reliable improvements — they scale
+  directly with the transferred/decoded bytes and are consistent across
+  environments.
+- Runtime deltas (Hide-old, hover, scroll) are all inside the sandbox's
+  noise floor. A definitive runtime comparison would need real Chrome
+  profiling. The change is not expected to hurt runtime because the same
+  DOM tree is present — only the character count of `class=` strings
+  changed, and CSS specificity/rule count barely moved.
+- JS heap dropped ~500 KB, consistent with fewer characters in class
+  strings that Chrome interns.

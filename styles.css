@@ -7191,7 +7191,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 /* PERF: empty cells are the bulk of the ~14k-cell grid. A flat fill (NO
    box-shadow, no opacity layer) paints far cheaper than thousands of inset
    shadows — the main scroll-jank source on this page. */
-.heroes-dyn-table td.hd-cell.hd-empty::after {
+.heroes-dyn-table td.hd-cell.hd-empty::after,
+.heroes-dyn-table td.he::after {
   content: ''; display: inline-block; width: 28px; height: 28px; border-radius: 4px;
   background: rgba(12, 14, 19, 0.72);
 }
@@ -7199,14 +7200,28 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    patch — either not added yet, or already removed. NO empty-slot square; just a
    tiny faint dot so the live span reads as a clear band of slots flanked by
    "n/a" gaps. Flat fill (no shadow) keeps the big grid cheap to paint. */
-.heroes-dyn-table td.hd-cell.hd-absent::after {
+.heroes-dyn-table td.hd-cell.hd-absent::after,
+.heroes-dyn-table td.ha::after {
   content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%;
   background: rgba(125, 135, 155, 0.16);
 }
 /* In a marked row the n/a dots STAY visible — they carry meaning (the item
    didn't exist in those patches), unlike the decorative empty diamonds (below)
    which drop out. Bump the alpha a touch so the faint dot reads on the gold band. */
-.heroes-dyn-table tbody tr.row-marked td.hd-cell.hd-absent::after { background: rgba(150, 160, 180, 0.42); }
+.heroes-dyn-table tbody tr.row-marked td.hd-cell.hd-absent::after,
+.heroes-dyn-table tbody tr.row-marked td.ha::after { background: rgba(150, 160, 180, 0.42); }
+/* Short-alias sizing: td.he / td.ha need the same width/box-sizing as td.hd-cell
+   (defined earlier at ~5963) so the column grid stays consistent. */
+.heroes-dyn-table th.hd-patch,
+.heroes-dyn-table td.he,
+.heroes-dyn-table td.ha {
+  width: var(--hd-col-w, 40px);
+  min-width: var(--hd-col-w, 40px);
+  max-width: var(--hd-col-w, 40px);
+  box-sizing: border-box;
+}
+.heroes-dyn-table td.he,
+.heroes-dyn-table td.ha { text-align: center; vertical-align: middle; padding: 2px; line-height: 0; }
 /* Buff/nerf-only: a touched cell with no buff/nerf reads as an EMPTY cell —
    flat fill, no glassy pill, no hover pop. Hover still fires the tooltip. */
 .heroes-dyn-table .dyn-cell-wrap.bn-empty .dyn-cell,
@@ -7221,7 +7236,8 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
    diamonds otherwise sit on the gold tint as separate squares — drop their fill
    inside a marked row so the tint shows through uniformly (coloured pills stay,
    like icons do on the creeps marked row). */
-.heroes-dyn-table tbody tr.row-marked td.hd-cell.hd-empty::after { background: transparent; }
+.heroes-dyn-table tbody tr.row-marked td.hd-cell.hd-empty::after,
+.heroes-dyn-table tbody tr.row-marked td.he::after { background: transparent; }
 /* RULE (all tables): a hovered/zoomed dyn-cell must sit ABOVE the sticky header,
    never behind it. The wrap is position:relative; bumping its z-index over the
    header (z:50) inside the .creeps-scroll stacking context lifts the 2.5× pop and

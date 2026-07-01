@@ -78,7 +78,7 @@ aligned), resize to **1536²** webp. Re-run: `python scripts/gen/build_terrain_m
   per-version maps → required for the 7.40↔7.41 swipe. **Use this.**
 - **Flat minimap PNGs** `minimap/<ver>[_skin].png` (skins: `_realistic`,
   `_simple`, `_mapzones`) — pre-cropped & aligned, but list (`minimap/?list`)
-  stops at `739b` then jumps to `current` (= latest = 7.41). **No `740`/`741`
+  stops at `739b` then jumps to `current` (an alias for whatever the upstream considers latest, not a fixed patch). **No `740`/`741`
   versioned PNGs** → can't build a matched 7.40↔7.41 pair from these. Only good
   for "latest map" single views. `current_realistic.png` is 1000², canonical
   crop — handy as an **alignment reference** (our tile crop matches it within

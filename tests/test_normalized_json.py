@@ -12,11 +12,14 @@ only placeholder), add it to ALLOW_ZERO_CHANGES below WITH a comment
 explaining why; do not just delete the test.
 """
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
-NORMALIZED_DIR = Path(__file__).resolve().parents[1] / "data" / "normalized" / "patches"
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT))
+NORMALIZED_DIR = _ROOT / "data" / "normalized" / "patches"
 
 # Format: {(patch_version, entity_id)}. Empty by design; populate only when
 # a genuinely zero-changes entity needs to ship.
@@ -41,6 +44,19 @@ def test_no_empty_entities(path):
         f"if this is intentional, allowlist via ALLOW_ZERO_CHANGES with a "
         f"comment. First offenders: "
         f"{[(e.get('entity_type'), e.get('name')) for e in offenders[:5]]}"
+    )
+
+
+def test_current_patch_has_normalized_json():
+    """The CI stats-manifest gate also enforces this, but assert it in-suite
+    so a local `pytest tests -q` fails fast when the current patch's
+    normalized JSON was not regenerated after a version bump."""
+    from patch.meta import _current_version
+    ver = _current_version()
+    path = NORMALIZED_DIR / f"{ver}.json"
+    assert path.exists(), (
+        f"Current patch {ver} is missing {path.relative_to(_ROOT)} — "
+        f"regenerate via `python generate_patch_code_v2.py {ver}`."
     )
 
 

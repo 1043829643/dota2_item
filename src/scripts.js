@@ -999,7 +999,12 @@
       // Patch columns are table children 2..(total+1); hero is child 1.
       style.textContent = hide > 0
         ? `.heroes-dyn-table thead .col-row th.hd-patch:nth-child(-n+${hide + 1}):nth-child(n+2),`
-          + `.heroes-dyn-table tbody td.hd-cell:nth-child(-n+${hide + 1}):nth-child(n+2)`
+          // he / ha are short aliases for `.hd-cell.hd-empty` / `.hd-cell.hd-absent`
+          // (see builders/dyn_matrix_common.py + the corresponding CSS block).
+          // Match all three so Hide-old collapses placeholder columns too.
+          + `.heroes-dyn-table tbody td.hd-cell:nth-child(-n+${hide + 1}):nth-child(n+2),`
+          + `.heroes-dyn-table tbody td.he:nth-child(-n+${hide + 1}):nth-child(n+2),`
+          + `.heroes-dyn-table tbody td.ha:nth-child(-n+${hide + 1}):nth-child(n+2)`
           + `{display:none}`
         : '';
       scroller.scrollLeft = 0;
