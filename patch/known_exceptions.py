@@ -84,6 +84,7 @@ KNOWN_SYNTHETIC_SUBBLOCKS = {
 }
 
 KNOWN_INNATE_NO_CDN_ICON = {
-    "queenofpain_succubus",    # Succubus innate
-    "terrorblade_dark_unity",  # Dark Unity innate
+    "queenofpain_succubus",       # Succubus innate
+    "terrorblade_dark_unity",     # Dark Unity innate
+    "wisp_essence_conduction",    # Io innate — no CDN art
 }
