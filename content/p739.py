@@ -1928,7 +1928,6 @@ def build():
     W(ul_close())
     W(new_facet("silencer_spread_the_knowledge",
         desc="Increases the max level of Glaives of Wisdom to 5. Level 5 Glaives of Wisdom bounce 1 time to a random target within 450 range. The bounce prioritizes heroes and costs mana just like the original attack."))
-    W(ability("Synaptic Split", slug="silencer_synaptic_split"))
     W(ul_open())
     W(li("Number of times +2 All Attributes can be skilled decreased from 7 to 6", b(7, 6)))
     W(ul_close())
