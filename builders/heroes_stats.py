@@ -8,7 +8,7 @@ dropdown (mirrors Neutral Stats):
                0.1×Int, Damage = base + primary-attr bonus, Attack Speed =
                base + 1×Agi). DEFAULT mode.
   * Expanded — everything in Starting + extra inspection columns (Gains/lvl,
-               Armor %, Dmg min/max, Time to hit, projectile, turn rate,
+               Armor %, Dmg min/max, Attack Interval, projectile, turn rate,
                collision, bound radius).
 
 Each "computed" column carries both Base and Starting values; the View
@@ -370,6 +370,13 @@ def _raw_num(raw: dict, hero: str, key: str) -> float:
     return v if v is not None else float(_RAW_DEFAULTS.get(key, 0))
 
 
+def _proj_speed(snap: dict, hero: str, raw: dict) -> float:
+    cap = _raw_field(raw, hero, "AttackCapabilities") or ""
+    if "MELEE" in cap:
+        return 0.0
+    return _raw_num(raw, hero, "ProjectileSpeed")
+
+
 # ---------- value formatting ----------
 
 def _g(v: float) -> str:
@@ -409,6 +416,26 @@ def _gregen(v: float) -> str:
 from patch.meta import latest_stats_version as _lsv
 _CTX_VERSION = [_lsv()]
 
+# ── Hero innate rules — loaded once from data/rules/hero_stat_innates.json ──
+_INNATE_RULES: dict = _json.loads(
+    (_HERE / "data" / "rules" / "hero_stat_innates.json").read_text(encoding="utf-8")
+)["heroes"]
+
+# Attribute KV field names used by innate formula dispatch
+_ATTR_FIELD = {
+    "str": "AttributeBaseStrength",
+    "agi": "AttributeBaseAgility",
+    "int": "AttributeBaseIntelligence",
+}
+# Multipliers for secondary_attr_factor — (target_col, source_attr) → constant
+_SECONDARY_FACTOR = {
+    ("hpr",  "str"): HPREG_PER_STR,
+    ("mpr",  "int"): MANAREG_PER_INT,
+    ("aspd", "agi"): AS_PER_AGI,
+    ("armor","agi"): ARMOR_PER_AGI,
+    ("mr",   "int"): MR_PER_INT,
+}
+
 
 def _set_ctx_version(v: str) -> None:
     _CTX_VERSION[0] = v
@@ -418,118 +445,89 @@ def _ge(patch: str, ref: str) -> bool:
     return _patch_sort_key(patch) >= _patch_sort_key(ref)
 
 
+def _active_entry(effect: dict, patch: str) -> dict | None:
+    """Return the history entry active at *patch*, or *effect* itself when
+    there is no history array.  Returns None if the effect is not active."""
+    if "history" not in effect:
+        since = effect.get("since")
+        until = effect.get("until")
+        if since and not _ge(patch, since):
+            return None
+        if until and not _ge(until, patch):
+            return None
+        return effect
+    for entry in reversed(effect["history"]):
+        since = entry.get("since", "7.00")
+        if _ge(patch, since):
+            until = entry.get("until")
+            if until is None or _ge(until, patch):
+                return entry
+    return None
+
+
 def _innate_bonus(col_key: str, s: dict, h: str, r: dict | None = None) -> float:
-    """Extra (additive) bonus to a computed Starting column from a hero's
-    innate attribute-conversion ability, gated by the current patch.
-    Returns 0 for every hero/column without such an innate.
+    """Extra (additive) bonus to a computed Starting (level-1) column from a
+    hero's innate ability, driven by data/rules/hero_stat_innates.json.
 
-    Extend this for more heroes — each is one `if slug == … and _ge(...)`
-    block. Currently covered:
-      • Morphling   — Ebb and Flow (innate 7.41+): Agi→Attack Range,
-                      Agi→Move Speed.
-      • Void Spirit — Intrinsic Edge (innate 7.36+): patch-gated secondary
-                      attribute bonuses; 7.41+ switches to Damage/HP regen/
-                      Mana regen/Attack Speed.
-      • Centaur     — Horsepower (innate 7.36+): Str→Move Speed (capped).
-      • Axe         — One Man Army (innate 7.36+): Armor→Strength.
-    Known but NOT yet modelled (don't map to a single displayed column or
-    need dynamic state): Dark Seer (Int floor = max of Str/Agi), Tiny /
-    Morphling-facet (slow/status/cooldown), Elder Titan Momentum, Silencer
-    Glaives, Drow Trueshot aura."""
+    Excluded from this function (need dedicated callers):
+      • Death Prophet  — ms_multiplier (multiplicative, not additive)
+      • Techies        — mana_pool_pct_per_level (needs MP total from caller)
+      • Ogre Magi      — attr_substitution (rewires MP/MPR derivation in caller)
+      • Void Spirit dmg — dmg_universal_bonus_pct (applied inside _primary_dmg)
+      • Luna / Sven dmg — flat/attr bonuses exist only in Heroes Stats JS
+    """
     slug = h.replace("npc_dota_hero_", "")
-    ver = _CTX_VERSION[0]
+    ver  = _CTX_VERSION[0]
+    hero_rules = _INNATE_RULES.get(slug)
+    if not hero_rules:
+        return 0.0
 
-    if slug == "morphling" and _ge(ver, "7.41"):
-        agi = _field(s, h, "AttributeBaseAgility")
-        if col_key == "range":
-            # Agi→Ranged Attack Range: 20% (7.41) → 25% (7.41d). Morphling
-            # is ranged, so it always applies.
-            return agi * (0.25 if _ge(ver, "7.41d") else 0.20)
-        if col_key == "ms":
-            return agi * 0.15            # Agi→Move Speed: 15% (since 7.41)
+    total = 0.0
+    for eff in hero_rules.get("effects", []):
+        if eff.get("target") != col_key:
+            continue
+        entry = _active_entry(eff, ver)
+        if entry is None:
+            continue
 
-    if slug == "void_spirit" and _ge(ver, "7.36"):
-        # Intrinsic Edge:
-        #   7.36-7.36a: +33% secondary bonuses from attributes
-        #   7.36b-7.40: +25% secondary bonuses from attributes
-        #   7.41+: +30% HP regen / mana regen / attack speed, no armor/MR.
-        if _ge(ver, "7.41"):
-            pct = 0.30
-            if col_key == "hpr":
-                return HPREG_PER_STR * _field(s, h, "AttributeBaseStrength") * pct
-            if col_key == "mpr":
-                return MANAREG_PER_INT * _field(s, h, "AttributeBaseIntelligence") * pct
-            if col_key == "aspd":
-                return AS_PER_AGI * _field(s, h, "AttributeBaseAgility") * pct
-            return 0.0
-        pct = 0.25 if _ge(ver, "7.36b") else 0.33
-        if col_key == "armor":
-            return ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility") * pct
-        if col_key == "hpr":
-            return HPREG_PER_STR * _field(s, h, "AttributeBaseStrength") * pct
-        if col_key == "mpr":
-            return MANAREG_PER_INT * _field(s, h, "AttributeBaseIntelligence") * pct
-        if col_key == "mr":
-            return MR_PER_INT * _field(s, h, "AttributeBaseIntelligence") * pct
+        formula = eff["formula"]
 
-    if slug == "centaur" and _ge(ver, "7.36"):
-        if col_key == "ms":
-            # Str→Move Speed factor over time: 40% (7.36) → 35% (7.36b) →
-            # 30% (7.37b) → 30% (7.41 rework) → 40% (7.41a+).
-            if _ge(ver, "7.41a"):
-                f = 0.40
-            elif _ge(ver, "7.37b"):
-                f = 0.30
-            elif _ge(ver, "7.36b"):
-                f = 0.35
-            else:
-                f = 0.40
-            return _field(s, h, "AttributeBaseStrength") * f
+        if formula == "attr_factor":
+            attr_val = _field(s, h, _ATTR_FIELD[eff["source"]])
+            total += attr_val * entry["factor"]
 
-    if slug == "axe" and _ge(ver, "7.36") and col_key == "str":
-        armor = (_field(s, h, "ArmorPhysical")
-                 + ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility"))
-        return armor * 0.5
+        elif formula == "base_plus_level":
+            total += entry["base"] + entry["per_level"] * 1
 
-    # Dragon Knight — Dragon Blood (innate): bonus HP regen AND armor, both
-    # 2 + 0.5 per hero level. Level-1 (Starting) value here; scripts.js owns the
-    # per-level recompute, this keeps the server-rendered level-1 cell consistent.
-    if slug == "dragon_knight" and col_key in ("hpr", "armor"):
-        return 2 + 0.5 * 1
-    # Lifestealer — innate bonus Attack Speed, 4 per hero level (level-1 here).
-    if slug == "life_stealer" and col_key == "aspd":
-        return 4 * 1
-    # Drow — innate bonus Agility = 10% + 1% per level of her current Agility
-    # (self-referential off base agi at level 1; scripts.js scales per level).
-    if slug == "drow_ranger" and col_key == "agi":
-        return _field(s, h, "AttributeBaseAgility") * (0.10 + 0.01 * 1)
-    # ── Innates added below all delegate per-level / per-patch scaling to
-    # scripts.js (`hsTablePatch`/`patchGe`). Here we only seed the level-1 cell.
-    # Razor — Unstable Current (7.41a+): +1 Move Speed per level (level 1 → +1).
-    if slug == "razor" and col_key == "ms" and _ge(ver, "7.41a"):
-        return 1.0
-    # Ursa — Earthshock Maul: bonus damage = % of CURRENT HP.
-    # 1.5 @ 7.36..7.37a → leveled 1.2/1.3/1.4/1.5 (7.37b..7.39c, take max) → 1.25 @ 7.39d+.
-    if slug == "ursa" and col_key == "dmg" and _ge(ver, "7.36"):
-        pct = 1.25 if _ge(ver, "7.39d") else 1.5
-        # use the base raw HP (StatusHealth) — full HP needs str scaling done in caller
-        return _field(s, h, "StatusHealth") * pct / 100.0
-    # Dark Seer — Quick Wit: +AS per Int. 0.5 @ 7.36..7.37e → 1.0 @ 7.38+.
-    if slug == "dark_seer" and col_key == "aspd" and _ge(ver, "7.36"):
-        f = 1.0 if _ge(ver, "7.38") else 0.5
-        return _field(s, h, "AttributeBaseIntelligence") * f
-    # Keeper of the Light — Bright Speed (7.41a+): +1 MS per N Int. 2.5 (7.41a..7.41b) → 3 (7.41c+).
-    if slug == "keeper_of_the_light" and col_key == "ms" and _ge(ver, "7.41a"):
-        n = 3.0 if _ge(ver, "7.41c") else 2.5
-        return _field(s, h, "AttributeBaseIntelligence") / n
-    # Beastmaster — Inner Beast (7.41a+): +(7 + 3·level) Attack Speed, hero only.
-    if slug == "beastmaster" and col_key == "aspd" and _ge(ver, "7.41a"):
-        return 7 + 3 * 1
-    # Death Prophet — Witchcraft: % bonus to MS. We can't return a multiplier
-    # via the additive _innate_bonus interface, so leave the level-1 ms cell to
-    # scripts.js (it applies the multiplier on every recompute).
+        elif formula == "flat_per_level":
+            total += entry["per_level"] * 1
 
-    return 0.0
+        elif formula == "self_attr_pct_per_level":
+            attr_val = _field(s, h, _ATTR_FIELD[col_key])
+            total += attr_val * (entry["base_pct"] + entry["per_level_pct"] * 1)
+
+        elif formula == "attr_pct_per_level":
+            attr_val = _field(s, h, _ATTR_FIELD[eff["source"]])
+            total += attr_val * (entry["base_pct"] + entry["per_level_pct"] * 1)
+
+        elif formula == "hp_pct":
+            # Uses StatusHealth (base HP before str scaling) — caller adds str HP
+            total += _field(s, h, "StatusHealth") * entry["factor"] / 100.0
+
+        elif formula == "armor_factor":
+            armor = (_field(s, h, "ArmorPhysical")
+                     + ARMOR_PER_AGI * _field(s, h, "AttributeBaseAgility"))
+            total += armor * entry["factor"]
+
+        elif formula == "secondary_attr_factor":
+            const = _SECONDARY_FACTOR.get((col_key, eff["source"]), 0.0)
+            attr_val = _field(s, h, _ATTR_FIELD[eff["source"]])
+            total += attr_val * const * entry["factor"]
+
+        # ms_multiplier, mana_pool_pct_per_level, attr_substitution,
+        # dmg_universal_bonus_pct — handled by dedicated callers, skip here.
+
+    return total
 
 
 def _start_attr(s, h, r, key: str) -> float:
@@ -877,7 +875,7 @@ COLUMNS = [
 
     # Expanded extras ---------------------------------------------------------
     _col("proj",      "Projectile", mode="extra", fmt=_g0,
-         fn_base=lambda s, h, r: _raw_num(r, h, "ProjectileSpeed"), raw=True),
+         fn_base=_proj_speed, raw=True),
     _col("turn",      "Turn Rate",  mode="extra",
          fn_base=lambda s, h, r: _raw_num(r, h, "MovementTurnRate"), raw=True),
     _col("collision", "Collision",  mode="extra", pol="lo",
@@ -896,7 +894,7 @@ _EXTRA_COLS = {
                       fn_base=_armor_pct_base, fn_starting=_armor_pct_l1,
                       disp_base=lambda s, h, r: _gpct(_armor_pct_base(s, h, r)),
                       disp_starting=lambda s, h, r: _gpct(_armor_pct_l1(s, h, r))),
-    "t_per_attack": _col("t_per_attack", "Time to hit", pol="lo",
+    "t_per_attack": _col("t_per_attack", "Attack Interval", pol="lo",
                          fn_base=_t_per_attack_base,
                          fn_starting=_t_per_attack_l1),
 }
@@ -1361,7 +1359,7 @@ def _row_stats(hero: str, snap: dict, raw: dict) -> str:
     slug = hero.replace("npc_dota_hero_", "")
     data = {
         "slug": slug,
-        "hasStatInnate": slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "ogre_magi", "razor", "sven", "techies", "ursa", "void_spirit"},
+        "hasStatInnate": slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "ogre_magi", "razor", "sven", "techies", "tiny", "ursa", "void_spirit"},
         "attr": meta[0],
         "str": _field(snap, hero, "AttributeBaseStrength"),
         "strGain": _field(snap, hero, "AttributeStrengthGain"),
@@ -1383,7 +1381,7 @@ def _row_stats(hero: str, snap: dict, raw: dict) -> str:
         "ms": _ms_base(snap, hero, raw),
         "dvision": _raw_num(raw, hero, "VisionDaytimeRange"),
         "nvision": _raw_num(raw, hero, "VisionNighttimeRange"),
-        "proj": _raw_num(raw, hero, "ProjectileSpeed"),
+        "proj": _proj_speed(snap, hero, raw),
         "turn": _raw_num(raw, hero, "MovementTurnRate"),
         "collision": _collision(snap, hero, raw),
         "bound": _raw_num(raw, hero, "RingRadius"),
@@ -1607,6 +1605,9 @@ def render_html() -> str:
         f'{table}\n'
         '</div>\n'
         '</div>\n'
+        f'<script type="application/json" id="hs-innate-rules">'
+        f'{_json.dumps(_INNATE_RULES, separators=(",", ":"))}'
+        f'</script>\n'
         f'<script defer src="src/scripts.js?v={ASSET_VERSION}"></script>\n'
         '</body>\n</html>\n'
     )

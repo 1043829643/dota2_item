@@ -23,6 +23,7 @@ from heroes_stats import (
     _HERE,
     STATS_DIR,
     _versions,
+    _ge,
     _load_display_names,
     _display_name,
     _load_raw_heroes,
@@ -70,8 +71,11 @@ def _load_item_tooltips() -> dict[str, dict]:
         if "_note" in rest or "_searchalias" in rest or ":f" in rest or "_bound" in rest:
             continue
         attr_keys.append((rest, val))
-    # Build a set of all known item ids from the first pass
+    # Build a set of all known item ids.  Description-only discovery misses
+    # pure stat items and enchantments, whose localization often consists of
+    # only a name plus attribute/Note rows.
     all_item_ids = set(out.keys())
+    all_item_ids.update(_load_item_names().keys())
     # Also discover enchantment items from name keys
     name_prefix = "dota_tooltip_ability_"
     for key in entries:
@@ -79,10 +83,6 @@ def _load_item_tooltips() -> dict[str, dict]:
             rest = key[len(name_prefix):]
             if not rest.endswith("_description") and not rest.endswith("_lore") and "_note" not in rest and ":f" not in rest:
                 all_item_ids.add(rest)
-    # Match item names exactly from the Tooltip_Ability entries (the name-only keys)
-    for key, val in entries.items():
-        if key.startswith(name_prefix + "item_") and val and "_" not in key[len(name_prefix):].replace("item_", "", 1).replace("enhancement_", "").replace("_", "X", 0):
-            pass
     # Simple approach: for each attr key, find the longest known item_id prefix
     for rest, val in attr_keys:
         best = ""
@@ -97,7 +97,49 @@ def _load_item_tooltips() -> dict[str, dict]:
                 best = candidate
                 all_item_ids.add(candidate)
         if best:
-            out.setdefault(best, {}).setdefault("attribs", []).append(val)
+            field = rest[len(best) + 1:] if rest.startswith(best + "_") else ""
+            out.setdefault(best, {}).setdefault("attribs", []).append({
+                "text": val,
+                "field": field,
+            })
+
+    # Notes carry gameplay restrictions that are part of Valve's tooltip
+    # (stacking rules, target limitations, exceptions).  They were previously
+    # discarded, which made several item descriptions materially incomplete.
+    for item_id in all_item_ids:
+        note_prefix = prefix + item_id + "_note"
+        notes = [
+            (key, val) for key, val in entries.items()
+            if key.startswith(note_prefix) and val
+        ]
+        if notes:
+            notes.sort(key=lambda pair: pair[0])
+            out.setdefault(item_id, {})["notes"] = [val for _, val in notes]
+    return out
+
+
+def _load_ability_tooltips() -> dict[str, dict[str, str]]:
+    """Parse abilities_english.txt for ability names/descriptions."""
+    path = _HERE / "data" / "abilities_english.txt"
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    entries: dict[str, str] = {}
+    for m in _LOC_RE.finditer(text):
+        k, v = m.group(1), m.group(2).replace('\\"', '"')
+        entries[k.lower()] = v
+    out: dict[str, dict[str, str]] = {}
+    prefix = "dota_tooltip_ability_"
+    for key, val in entries.items():
+        if not key.startswith(prefix):
+            continue
+        rest = key[len(prefix):]
+        if rest.endswith("_description"):
+            out.setdefault(rest[:-len("_description")], {})["desc"] = val
+        elif rest.endswith("_lore"):
+            continue
+        elif "_note" not in rest and ":f" not in rest and not rest.endswith("_facet"):
+            out.setdefault(rest, {})["name"] = val
     return out
 
 
@@ -264,7 +306,47 @@ def _sum(fields: dict, *keys: str) -> float:
     return sum(_num(fields.get(k, 0)) for k in keys)
 
 
-def _item_bonus(fields: dict) -> dict[str, float]:
+def _num_at(v, idx: int) -> float:
+    parts = str(v or "").split()
+    s = parts[idx] if idx < len(parts) else parts[-1] if parts else "0"
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def _sum_at(fields: dict, idx: int, *keys: str) -> float:
+    return sum(_num_at(fields.get(k, 0), idx) for k in keys)
+
+
+def _item_bonus_at(fields: dict, idx: int) -> dict[str, float]:
+    return {
+        "all": _num_at(fields.get("bonus_all_stats", fields.get("bonus_stats", fields.get("all_stats", 0))), idx),
+        "str": _sum_at(fields, idx, "bonus_strength", "bonus_str"),
+        "agi": _sum_at(fields, idx, "bonus_agility", "bonus_agi"),
+        "int": _sum_at(fields, idx, "bonus_intellect", "bonus_int", "bonus_intelligence"),
+        "hp": _sum_at(fields, idx, "bonus_health", "bonus_hp", "bonus_max_health", "health_bonus"),
+        "mp": _sum_at(fields, idx, "bonus_mana", "max_mana", "bonus_max_mana"),
+        "hpr": _sum_at(fields, idx, "bonus_health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen", "health_regen"),
+        "mpr": _sum_at(fields, idx, "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "mana_regen"),
+        "armor": _sum_at(fields, idx, "bonus_armor", "aura_bonus_armor", "armor", "armor_aura", "bonus_aoe_armor"),
+        "mr": _sum_at(fields, idx, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance", "magic_resist"),
+        "evasion": _sum_at(fields, idx, "bonus_evasion", "evasion"),
+        "damage": _sum_at(fields, idx, "bonus_damage", "damage_aura"),
+        "aspd": _sum_at(fields, idx, "bonus_attack_speed", "attack_speed"),
+        "ms": _sum_at(fields, idx, "bonus_movement_speed", "bonus_move_speed", "movement_speed"),
+        "range": _sum_at(fields, idx, "bonus_attack_range", "attack_range_bonus", "attack_range"),
+        "dvision": _sum_at(fields, idx, "bonus_day_vision", "bonus_vision"),
+        "nvision": _sum_at(fields, idx, "bonus_night_vision", "night_vision_bonus"),
+        "spellAmp": _sum_at(fields, idx, "spell_amp", "bonus_spell_amp"),
+        "statusRes": _sum_at(fields, idx, "status_resistance", "status_resist"),
+        "slowRes": _sum_at(fields, idx, "slow_resistance", "slow_resist", "bonus_slow_resist"),
+        "hprAmp": _sum_at(fields, idx, "hp_regen_amp"),
+        "mprAmp": _sum_at(fields, idx, "mana_regen_multiplier"),
+    }
+
+
+def _item_bonus(fields: dict, *, consumable: bool = False) -> dict[str, float]:
     # "+N All Attributes" is a single line in the in-game tooltip — don't split
     # it into Strength/Agility/Intellect rows. Per-attribute fields stay
     # separate so items can mix (e.g. +6 All + extra Strength).
@@ -272,6 +354,16 @@ def _item_bonus(fields: dict) -> dict[str, float]:
     str_bonus = _sum(fields, "bonus_strength", "bonus_str")
     agi_bonus = _sum(fields, "bonus_agility", "bonus_agi")
     int_bonus = _sum(fields, "bonus_intellect", "bonus_int", "bonus_intelligence")
+    # Bare `health_regen` / `mana_regen` keys are overloaded in Valve KV: on
+    # equipment they are passive stats, while on Tango/Salve/Clarity they are
+    # the temporary effect of using the consumable.  Never turn a consumable's
+    # active restoration into an always-on inventory bonus.
+    health_regen_keys = (
+        "bonus_health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen",
+    ) + (() if consumable else ("health_regen",))
+    mana_regen_keys = (
+        "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "aura_mana_regen",
+    ) + (() if consumable else ("mana_regen",))
     return {
         "all": all_stats,
         "str": str_bonus,
@@ -279,12 +371,12 @@ def _item_bonus(fields: dict) -> dict[str, float]:
         "int": int_bonus,
         "hp": _sum(fields, "bonus_health", "bonus_hp", "bonus_max_health", "health_bonus"),
         "mp": _sum(fields, "bonus_mana", "max_mana", "bonus_max_mana"),
-        "hpr": _sum(fields, "bonus_health_regen", "health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen"),
-        "mpr": _sum(fields, "bonus_mana_regen", "mana_regen", "bonus_mp_regen", "mp_regen", "aura_mana_regen"),
-        "armor": _sum(fields, "bonus_armor", "aura_bonus_armor"),
+        "hpr": _sum(fields, *health_regen_keys),
+        "mpr": _sum(fields, *mana_regen_keys),
+        "armor": _sum(fields, "bonus_armor", "aura_bonus_armor", "armor", "armor_aura", "bonus_aoe_armor"),
         "mr": _sum(fields, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance"),
         "evasion": _sum(fields, "bonus_evasion", "evasion"),
-        "damage": _sum(fields, "bonus_damage"),
+        "damage": _sum(fields, "bonus_damage", "damage_aura"),
         "damageMelee": _sum(fields, "bonus_damage_melee"),
         "damageRanged": _sum(fields, "bonus_damage_range", "bonus_damage_ranged"),
         "aspd": _sum(fields, "bonus_attack_speed", "attack_speed", "bonus_as"),
@@ -292,7 +384,147 @@ def _item_bonus(fields: dict) -> dict[str, float]:
         "msMelee": _sum(fields, "bonus_movement_speed_melee", "bonus_move_speed_melee"),
         "msRanged": _sum(fields, "bonus_movement_speed_ranged", "bonus_move_speed_ranged"),
         "range": _sum(fields, "bonus_attack_range", "attack_range_bonus", "base_attack_range"),
+        "dvision": _sum(fields, "bonus_day_vision", "bonus_vision", "bonus_daytime_vision"),
+        "nvision": _sum(fields, "bonus_night_vision", "night_vision_bonus", "bonus_nighttime_vision"),
+        "spellAmp": _sum(fields, "spell_amp", "bonus_spell_amp"),
+        "statusRes": _sum(fields, "status_resistance", "status_resist"),
+        "slowRes": _sum(fields, "slow_resistance", "slow_resist", "bonus_slow_resist"),
+        "hprAmp": _sum(fields, "hp_regen_amp"),
+        "mprAmp": _sum(fields, "mana_regen_multiplier"),
     }
+
+
+_ENCHANT_TIER_LABELS = {
+    "item_enhancement_vital":       ("Tier 1",    0, [1]),
+    "item_enhancement_alert":       ("Tiers 1-4", 1, [1, 2, 3, 4]),
+    "item_enhancement_brawny":      ("Tiers 1-4", 1, [1, 2, 3, 4]),
+    "item_enhancement_mystical":    ("Tiers 1-4", 1, [1, 2, 3, 4]),
+    "item_enhancement_quickened":   ("Tiers 1-4", 1, [1, 2, 3, 4]),
+    "item_enhancement_tough":       ("Tiers 1-4", 1, [1, 2, 3, 4]),
+    "item_enhancement_greedy":      ("Tiers 2-3", 2, [2, 3]),
+    "item_enhancement_crude":       ("Tiers 2-4", 3, [2, 3, 4]),
+    "item_enhancement_keen_eyed":   ("Tiers 2-4", 3, [2, 3, 4]),
+    "item_enhancement_nimble":      ("Tiers 2-4", 3, [2, 3, 4]),
+    "item_enhancement_titanic":     ("Tiers 2-4", 3, [2, 3, 4]),
+    "item_enhancement_vast":        ("Tiers 2-4", 3, [2, 3, 4]),
+    "item_enhancement_timeless":    ("Tiers 4-5", 4, [4, 5]),
+    "item_enhancement_feverish":    ("Tiers 4-5", 4, [4, 5]),
+    "item_enhancement_audacious":   ("Tier 5",    5, [5]),
+    "item_enhancement_evolved":     ("Tier 5",    5, [5]),
+    "item_enhancement_fleetfooted": ("Tier 5",    5, [5]),
+    "item_enhancement_hulking":     ("Tier 5",    5, [5]),
+    "item_enhancement_manic":       ("Tier 5",    5, [5]),
+    "item_enhancement_vampiric":    ("Tier 5",    5, [5]),
+    "item_enhancement_boundless":   ("Tier 5",    5, [5]),
+    "item_enhancement_wise":        ("Tier 5",    5, [5]),
+}
+
+
+_ITEM_VALUE_ALIASES = {
+    "agi": ("bonus_agility", "bonus_agi"),
+    "all": ("bonus_all_stats", "bonus_attributes", "bonus_stats"),
+    "aoe_bonus": ("bonus_aoe", "aoe_bonus"),
+    "abilitycastrange": ("AbilityCastRange",),
+    "attack": ("bonus_attack_speed", "attack_speed"),
+    "attack_pct": ("bonus_attack_speed_pct",),
+    "attack_range": ("bonus_attack_range", "attack_range_bonus"),
+    "attack_range_all": ("bonus_attack_range", "attack_range", "base_attack_range"),
+    "attack_range_melee": ("melee_attack_range", "bonus_attack_range_melee"),
+    "armor": ("bonus_armor", "armor"),
+    "cast_range": ("cast_range_bonus", "bonus_cast_range", "AbilityCastRange"),
+    "cooldown_reduction": ("cooldown_reduction", "bonus_cooldown"),
+    "damage": ("bonus_damage", "damage"),
+    "debuff_amp": ("debuff_amp",),
+    "evasion": ("bonus_evasion", "evasion"),
+    "health": ("bonus_health", "bonus_max_health", "max_health", "health", "health_bonus"),
+    "hp_regen": ("bonus_health_regen", "bonus_hp_regen", "bonus_regen", "hp_regen", "health_regen", "health_regen_bonus"),
+    "int": ("bonus_intellect", "bonus_intelligence", "bonus_int"),
+    "lifesteal": ("attack_lifesteal", "lifesteal", "lifesteal_percent"),
+    "mana": ("bonus_mana", "max_mana", "mana"),
+    "mana_regen": ("bonus_mana_regen", "bonus_mp_regen", "mp_regen", "mana_regen"),
+    "max_mana_percentage": ("bonus_max_mana_percentage",),
+    "move_speed": ("bonus_movement_speed", "bonus_movement", "bonus_move_speed", "movement_speed", "move_speed"),
+    "restoration_amp": ("hp_regen_amp", "restoration_amp"),
+    "selected_attrib": ("bonus_stat", "selected_attrib"),
+    "str": ("bonus_strength", "bonus_str"),
+    "primary_attribute": ("primary_stat",),
+    "slow_resistance": ("slow_resistance", "slow_resist", "bonus_slow_resist"),
+    "spell_amp": ("spell_amp", "bonus_spell_amp"),
+    "spell_lifesteal": ("spell_lifesteal", "bonus_spell_lifesteal"),
+    "spell_resist": ("bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance", "magic_resist"),
+    "status_resist": ("status_resistance", "status_resist"),
+}
+
+_ITEM_ATTR_LABELS = {
+    "agi": "Agility",
+    "all": "All Attributes",
+    "aoe_bonus": "Area of Effect",
+    "armor": "Armor",
+    "attack": "Attack Speed",
+    "attack_pct": "Attack Speed",
+    "attack_range": "Attack Range",
+    "attack_range_melee": "Melee Attack Range",
+    "attack_range_all": "Attack Range",
+    "cast_range": "Cast Range",
+    "cooldown_reduction": "Cooldown Reduction",
+    "damage": "Damage",
+    "debuff_amp": "Debuff Duration",
+    "evasion": "Evasion",
+    "health": "Health",
+    "hp_regen": "Health Regeneration",
+    "int": "Intelligence",
+    "lifesteal": "Lifesteal",
+    "mana": "Mana",
+    "mana_regen": "Mana Regeneration",
+    "max_mana_percentage": "Max Mana",
+    "move_speed": "Movement Speed",
+    "primary_attribute": "Primary Attribute",
+    "restoration_amp": "Health Restoration",
+    "selected_attrib": "Selected Attribute",
+    "slow_resistance": "Slow Resistance",
+    "spell_amp": "Spell Amplification",
+    "spell_lifesteal": "Spell Lifesteal",
+    "spell_resist": "Magic Resistance",
+    "status_resist": "Status Resistance",
+    "str": "Strength",
+}
+
+
+def _field_value(fields: dict, key: str):
+    """Resolve localization variables against KV fields case-insensitively."""
+    if key in fields:
+        return fields[key]
+    lower = {str(k).lower(): v for k, v in fields.items()}
+    if key.lower() in lower:
+        return lower[key.lower()]
+    for alias in _ITEM_VALUE_ALIASES.get(key.lower(), ()):
+        if alias in fields:
+            return fields[alias]
+        if alias.lower() in lower:
+            return lower[alias.lower()]
+    return None
+
+
+def _display_value(value) -> str:
+    s = str(value).split(" ")[0]
+    try:
+        n = float(s)
+        return str(int(n)) if n == int(n) else s
+    except (ValueError, TypeError):
+        return s
+
+
+def _series_numbers(value) -> list[float]:
+    if value is None:
+        return []
+    out: list[float] = []
+    for part in str(value).split():
+        try:
+            out.append(float(part))
+        except (TypeError, ValueError):
+            continue
+    return out
+    return out
 
 
 def _resolve_pct(desc: str, fields: dict) -> str:
@@ -305,17 +537,183 @@ def _resolve_pct(desc: str, fields: dict) -> str:
         key = m.group(1)
         if key.startswith("d") and key[1:] in fields:
             key = key[1:]
-        val = fields.get(key)
+        val = _field_value(fields, key)
         if val is None:
             return m.group(0)
-        s = str(val).split(" ")[0]
-        try:
-            n = float(s)
-            s = str(int(n)) if n == int(n) else s
-        except (ValueError, TypeError):
-            pass
+        s = _display_value(val)
         return f'<span class="GameplayVariable">{s}</span>'
     return _re.sub(r"%([a-zA-Z_][a-zA-Z0-9_]*)%", _repl, desc)
+
+
+def _resolve_attr_label(label: str, fields: dict) -> str:
+    """Resolve Valve's `$field` placeholders used by item stat rows."""
+    def repl(match):
+        val = _field_value(fields, match.group(1))
+        return _display_value(val) if val is not None else match.group(0)
+    return _re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", repl, label)
+
+
+def _resolve_attribute_entry(entry, fields: dict) -> str:
+    """Resolve a localized item attribute row, including rows whose text has
+    only a label (for example `%+Health Restoration`) and relies on the
+    localization-key suffix to identify its numeric KV field.
+    """
+    if isinstance(entry, dict):
+        raw = str(entry.get("text", ""))
+        field = str(entry.get("field", ""))
+    else:
+        raw, field = str(entry), ""
+    placeholders = _re.findall(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", raw)
+    text = _resolve_attr_label(raw, fields)
+    text_plain = _re.sub(r"<[^>]+>", "", text)
+    if "$" not in raw and field and not _re.search(r"\d", text_plain):
+        val = _field_value(fields, field)
+        if val is not None:
+            number = _display_value(val)
+            is_pct = "%" in text
+            # The KV sign is authoritative when present; otherwise retain the
+            # leading sign encoded by the localization row.
+            try:
+                numeric = float(str(val).split(" ")[0])
+                sign = "-" if numeric < 0 else "+" if "+" in text else "-" if "-" in text else ""
+                number = _display_value(abs(numeric))
+            except (TypeError, ValueError):
+                sign = "+" if "+" in text else "-" if "-" in text else ""
+            label = _re.sub(r"^[%+\-\s]+", "", text).strip()
+            text = f"{sign}{number}{'%' if is_pct else ''} {label}".strip()
+    # Valve writes percentage placement as `%+$value` / `%-$value`.
+    text = _re.sub(r"^%\+([\d.]+)", r"+\1%", text)
+    text = _re.sub(r"^%-([\d.]+)", r"-\1%", text)
+    if placeholders and not _re.search(r"[A-Za-z]", _re.sub(r"<[^>]+>", "", text)):
+        label = _ITEM_ATTR_LABELS.get(placeholders[0].lower())
+        if label:
+            text = f"{text} {label}"
+    text = _re.sub(r"</?font[^>]*>", "", text)
+    return text
+
+
+def _is_zero_attribute(text: str) -> bool:
+    """Return true for localized stat rows such as `+0 Health Regeneration`."""
+    plain = _re.sub(r"<[^>]+>", "", text).strip()
+    match = _re.match(r"^[+\-]?\s*([\d.]+)%?(?:\s|$)", plain)
+    if not match:
+        return False
+    try:
+        return abs(float(match.group(1))) < 1e-9
+    except ValueError:
+        return False
+
+
+def _is_noise_attribute(text: str) -> bool:
+    plain = _re.sub(r"<[^>]+>", "", text).strip()
+    if not plain:
+        return True
+    if plain.startswith("Rune:"):
+        return True
+    if plain == "Tango (Shared)":
+        return True
+    return False
+
+
+def _active_history_entry(effect: dict, version: str) -> dict:
+    history = effect.get("history")
+    if not history:
+        return effect
+    active = {}
+    matched = False
+    for entry in history:
+        since = entry.get("since")
+        until = entry.get("until")
+        if since and not _ge(version, since):
+            continue
+        if until and not _ge(until, version):
+            continue
+        matched = True
+        active.update(entry)
+    if not matched:
+        return {}
+    merged = dict(effect)
+    merged.update(active)
+    return merged
+
+
+def _fmt_pct_value(value: float) -> str:
+    n = value * 100
+    return f"{int(n)}%" if abs(n - round(n)) < 1e-9 else f"{n:.2f}".rstrip("0").rstrip(".") + "%"
+
+
+def _innate_summary(rule: dict, version: str) -> str:
+    target_label = {
+        "str": "Strength",
+        "agi": "Agility",
+        "int": "Intelligence",
+        "hp": "Health",
+        "mp": "Mana",
+        "hpr": "HP Regen",
+        "mpr": "Mana Regen",
+        "armor": "Armor",
+        "mr": "Magic Resistance",
+        "dmg": "Damage",
+        "aspd": "Attack Speed",
+        "ms": "Move Speed",
+        "range": "Attack Range",
+        "nvision": "Night Vision",
+        "slowRes": "Slow Resistance",
+        "statusRes": "Status Resistance",
+    }
+    source_label = {
+        "str": "Strength",
+        "agi": "Agility",
+        "int": "Intelligence",
+        "armor": "Armor",
+        "hp": "current HP",
+        "mp": "mana pool",
+    }
+    parts: list[str] = []
+    for effect in rule.get("effects", []):
+        active = _active_history_entry(effect, version)
+        if not active:
+            continue
+        formula = active.get("formula")
+        target = target_label.get(active.get("target"), active.get("target", "Stat"))
+        source = source_label.get(active.get("source"), active.get("source", ""))
+        if formula == "armor_factor":
+            parts.append(f"{_fmt_pct_value(float(active.get('factor', 0)))} of Armor as Strength")
+        elif formula == "attr_factor":
+            parts.append(f"+{_display_value(active.get('factor', 0))} {target.lower()} per {source}")
+        elif formula == "base_plus_level":
+            base = _display_value(active.get("base", 0))
+            per = _display_value(active.get("per_level", 0))
+            parts.append(f"+{base} {target.lower()} and +{per} per level")
+        elif formula == "flat_per_level":
+            per = _display_value(active.get("per_level", 0))
+            parts.append(f"+{per} {target.lower()} per level")
+        elif formula == "self_attr_pct_per_level":
+            base = _fmt_pct_value(float(active.get("base_pct", 0)))
+            per = _fmt_pct_value(float(active.get("per_level_pct", 0)))
+            parts.append(f"+{base} + {per} per level of current {target} as bonus {target}")
+        elif formula == "attr_pct_per_level":
+            base = _fmt_pct_value(float(active.get("base_pct", 0)))
+            per = _fmt_pct_value(float(active.get("per_level_pct", 0)))
+            parts.append(f"+{base} + {per} per level of {source} as {target.lower()}")
+        elif formula == "hp_pct":
+            parts.append(f"{_display_value(active.get('factor', 0))}% of current HP as damage")
+        elif formula == "mana_pool_pct_per_level":
+            base = _fmt_pct_value(float(active.get("base_pct", 0)))
+            per = _fmt_pct_value(float(active.get("per_level_pct", 0)))
+            parts.append(f"{base} + {per} per level of mana pool as mana regen")
+        elif formula == "ms_multiplier":
+            base = _display_value(active.get("base_pct", 0))
+            per = _display_value(active.get("per_level_pct", 0))
+            parts.append(f"+{base}% move speed and +{per}% per level")
+        elif formula == "secondary_attr_factor":
+            parts.append(f"{_fmt_pct_value(float(active.get('factor', 0)))} more {target.lower()} from {source}")
+        elif formula == "dmg_universal_bonus_pct":
+            parts.append(f"{_fmt_pct_value(float(active.get('factor', 0)))} more attack damage per attribute")
+        elif formula == "attr_substitution":
+            sub = source_label.get(active.get("sub_attr"), active.get("sub_attr", ""))
+            parts.append(f"{target} scales from {sub} instead of Intelligence")
+    return "; ".join(parts)
 
 
 def _load_items(version: str) -> list[dict]:
@@ -331,6 +729,8 @@ def _load_items(version: str) -> list[dict]:
     for item, data in kv_items.items():
         if not item.startswith("item_") or item.startswith("item_recipe_"):
             continue
+        if item in {"item_dagon_2", "item_dagon_3", "item_dagon_4", "item_dagon_5"}:
+            continue
         if not isinstance(data, dict):
             continue
         label = names.get(item)
@@ -344,8 +744,16 @@ def _load_items(version: str) -> list[dict]:
         fields = dict(data)
         fields.update(_flatten_special(data))
         cost = _num(fields.get("ItemCost", (costs.get(item) or {}).get("ItemCost", 0)))
-        bonus = _item_bonus(fields)
+        consumable = str(fields.get("ItemQuality", "")).lower() == "consumable"
         cls = meta.get("class", "regular")
+        # Neutral artifacts provide an active/passive mechanic whose values are
+        # affected by their enchantment.  Their AbilityValues are not direct
+        # hero stats: e.g. Gunpowder Gauntlets' `bonus_damage = 120` is proc
+        # damage, not +120 attack damage.  Only the enchantment contributes
+        # direct stats to Hero Lab.
+        bonus = {} if cls == "neutral" else _item_bonus(fields, consumable=consumable)
+        if cls == "neutral":
+            bonus = {key: 0 for key in _item_bonus({}, consumable=False)}
         if cls == "regular" and not any(abs(v) > 1e-9 for v in bonus.values()) and cost <= 0:
             continue
         slug = meta.get("icon") or _slug_from_item(item)
@@ -363,9 +771,85 @@ def _load_items(version: str) -> list[dict]:
             "tier": meta.get("tier"),
             # Consumables (Tango, Salve, …) get the green "Use" ability header
             # in-game; ItemQuality flags them. Drives the green bar in the tooltip.
-            "consumable": str(fields.get("ItemQuality", "")).lower() == "consumable",
+            "consumable": consumable,
             "bonus": bonus,
         }
+        if cls == "enchant":
+            tier_label, tier_sort, tier_list = _ENCHANT_TIER_LABELS.get(item, ("Other", 99, []))
+            rec["tierLabel"] = tier_label
+            rec["tierSort"] = tier_sort
+            if len(tier_list) > 1:
+                modes: dict = {"default": f"t{tier_list[0]}"}
+                for level_idx, tier_num in enumerate(tier_list):
+                    modes[f"t{tier_num}"] = _item_bonus_at(fields, level_idx)
+                rec["modes"] = modes
+                rec["bonus"] = {k: 0 for k in rec["bonus"]}
+                rec["tiersAvailable"] = tier_list
+        if item == "item_rapier":
+            rec["bonus"]["damage"] = _sum(fields, "bonus_damage_base")
+            rec["bonus"]["spellAmp"] = 0
+            rec["modes"] = {
+                "default": "damage",
+                "base": {"damage": _sum(fields, "bonus_damage_base")},
+                "damage": {"damage": _sum(fields, "bonus_damage")},
+                "spell": {"spellAmp": _sum(fields, "bonus_spell_amp")},
+            }
+        if item == "item_dagon":
+            level_items = ["item_dagon", "item_dagon_2", "item_dagon_3", "item_dagon_4", "item_dagon_5"]
+            all_stats = _series_numbers(fields.get("bonus_all_stats"))
+            health = _series_numbers(fields.get("bonus_health"))
+            mana = _series_numbers(fields.get("bonus_mana"))
+            burst = _series_numbers(fields.get("damage"))
+            mana_costs = _series_numbers(fields.get("mana_cost_tooltip") or fields.get("AbilityManaCost"))
+            cast_range = _series_numbers(fields.get("cast_range_bonus"))
+            cooldowns = _series_numbers(fields.get("AbilityCooldown"))
+            levels = []
+            mode_map = {"default": "lvl1"}
+            rec["bonus"] = {key: 0 for key in rec["bonus"].keys()}
+            rec["cost"] = 3000
+            for idx, level_item in enumerate(level_items, start=1):
+                level_data = kv_items.get(level_item, {}) if idx > 1 else data
+                level_fields = dict(level_data) if isinstance(level_data, dict) else {}
+                if isinstance(level_data, dict):
+                    level_fields.update(_flatten_special(level_data))
+                level_cost = int(_num(level_fields.get("ItemCost", rec["cost"])))
+                icon_path = f"icons/items/dagon{'_' + str(idx) if idx > 1 else ''}.png"
+                icon = icon_path if (_HERE / icon_path).exists() else rec["icon"]
+                level_row = {
+                    "level": idx,
+                    "cost": level_cost,
+                    "icon": icon,
+                    "all": all_stats[idx - 1] if len(all_stats) >= idx else 0,
+                    "hp": health[idx - 1] if len(health) >= idx else 0,
+                    "mp": mana[idx - 1] if len(mana) >= idx else 0,
+                    "dagonDamage": burst[idx - 1] if len(burst) >= idx else 0,
+                    "mc": mana_costs[idx - 1] if len(mana_costs) >= idx else 0,
+                    "cr": cast_range[idx - 1] if len(cast_range) >= idx else 0,
+                    "cd": cooldowns[idx - 1] if len(cooldowns) >= idx else 0,
+                }
+                level_row["attribs"] = [
+                    f"+{int(level_row['all'])} All Attributes",
+                    f"+{int(level_row['hp'])} Health",
+                    f"+{int(level_row['mp'])} Mana",
+                    f"+{int(level_row['cr'])} Cast Range",
+                ]
+                levels.append(level_row)
+                mode_map[f"lvl{idx}"] = {
+                    "level": idx,
+                    "icon": icon,
+                    "costOverride": level_cost,
+                    "all": level_row["all"],
+                    "hp": level_row["hp"],
+                    "mp": level_row["mp"],
+                    "mc": level_row["mc"],
+                    "cr": level_row["cr"],
+                    "cd": level_row["cd"],
+                    "dagonDamage": level_row["dagonDamage"],
+                    "attribs": level_row["attribs"],
+                }
+            rec["modes"] = mode_map
+            rec.setdefault("tip", {})
+            rec["tip"]["levels"] = levels
         tt = tooltips.get(item, {})
         cd = _num(fields.get("AbilityCooldown", 0))
         mc = _num(fields.get("AbilityManaCost", 0))
@@ -381,7 +865,24 @@ def _load_items(version: str) -> list[dict]:
         if raw_desc:
             resolved = _resolve_pct(raw_desc, fields)
             resolved = resolved.replace("%%", "%")
-            tip["desc"] = resolved
+            # Localization can be newer than the checked-in KV snapshot.  Do
+            # not expose raw `%variable%` tokens when the corresponding values
+            # are unavailable; the short description/stat rows are a cleaner
+            # and more truthful fallback.
+            if not _re.search(r"%[a-zA-Z_][a-zA-Z0-9_]*%", resolved):
+                tip["desc"] = resolved
+        notes = tt.get("notes", [])
+        if notes:
+            resolved_notes = [
+                _resolve_pct(_resolve_attr_label(note, fields), fields).replace("%%", "%")
+                for note in notes
+            ]
+            resolved_notes = [
+                note for note in resolved_notes
+                if not _re.search(r"%[a-zA-Z_][a-zA-Z0-9_]*%", note)
+            ]
+            if resolved_notes:
+                tip["notes"] = resolved_notes
         if cd > 0:
             tip["cd"] = cd if cd != int(cd) else int(cd)
         if mc > 0:
@@ -440,64 +941,23 @@ def _load_items(version: str) -> list[dict]:
         short = npedesc.get(item, "")
         if short:
             tip["short"] = short
-        raw_attribs = tt.get("attribs", [])
+        raw_attribs = [
+            _resolve_attribute_entry(a, fields) for a in tt.get("attribs", [])
+        ]
         if raw_attribs:
-            _STAT_NAMES = {
-                "move_speed": "Movement Speed", "movespeed": "Movement Speed",
-                "attack_lifesteal": "Lifesteal", "lifesteal": "Lifesteal",
-                "spell_lifesteal": "Spell Lifesteal",
-                "bonus_night_vision": "Night Vision",
-                "debuff_amp": "Debuff Duration",
-                "spell_amp": "Spell Amplification",
-                "int": "Intelligence", "str": "Strength", "agi": "Agility",
-                "mana_regen": "Mana Regeneration", "move_speed": "Movement Speed",
-            }
-            resolved: list[str] = []
-            for a in raw_attribs:
-                m2 = _re.search(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", a)
-                if m2:
-                    vname = m2.group(1)
-                    # Try exact key, then without underscores, then common alternates
-                    val = fields.get(vname)
-                    if val is None:
-                        val = fields.get(vname.replace("_", ""))
-                    if val is None and vname == "lifesteal":
-                        val = fields.get("attack_lifesteal")
-                    label = _STAT_NAMES.get(vname, vname.replace("_", " ").title())
-                    prefix = a[:m2.start()].replace("%", "").strip()
-                    if val is not None:
-                        s = str(val).split(" ")[0]  # first level value
-                        try:
-                            n = float(s)
-                            ns = str(int(n)) if n == int(n) else s
-                        except (ValueError, TypeError):
-                            ns = s
-                        pct = "%" if "%" in a[:m2.start()] else ""
-                        resolved.append(f"{prefix}{ns}{pct} {label}")
-                    else:
-                        resolved.append(a.replace("$" + vname, label).replace("%", "").strip())
-                elif not a.endswith(":") and "DURATION" not in a.upper():
-                    cleaned = a.replace("%", "").strip()
-                    if cleaned:
-                        # Try to find value for known plain-text attribs
-                        _PLAIN_MAP = {
-                            "+Night Vision": ("bonus_night_vision", "Night Vision", ""),
-                            "+Spell Amplification": ("spell_amp", "Spell Amplification", "%"),
-                        }
-                        pm = _PLAIN_MAP.get(cleaned)
-                        if pm:
-                            fval = fields.get(pm[0])
-                            if fval is not None:
-                                s = str(fval).split(" ")[0]
-                                try:
-                                    n = float(s)
-                                    ns = str(int(n)) if n == int(n) else s
-                                except (ValueError, TypeError):
-                                    ns = s
-                                cleaned = f"+{ns}{pm[2]} {pm[1]}"
-                        resolved.append(cleaned)
+            resolved = [
+                a.strip() for a in raw_attribs
+                if a.strip()
+                and not a.strip().endswith(":")
+                and "DURATION" not in a.upper()
+                and not _is_zero_attribute(a)
+                and not _is_noise_attribute(a)
+                and "$" not in a
+            ]
             if resolved:
                 tip["attribs"] = resolved
+        if item == "item_rapier":
+            tip["attribs"] = [f"+{int(_sum(fields, 'bonus_damage_base'))} Damage"]
         # Fallback: generate attribs from known fields if loc had nothing
         if "attribs" not in tip:
             _FIELD_ATTRIBS = {
@@ -526,7 +986,9 @@ def _load_items(version: str) -> list[dict]:
             if fallback:
                 tip["attribs"] = fallback
         if tip:
-            rec["tip"] = tip
+            merged_tip = dict(rec.get("tip", {}))
+            merged_tip.update(tip)
+            rec["tip"] = merged_tip
         out.append(rec)
     cls_rank = {"regular": 0, "neutral": 1, "enchant": 2}
     cat_rank = {
@@ -544,6 +1006,21 @@ def _load_items(version: str) -> list[dict]:
     )
 
 
+def _hero_innate_slug(version: str, hero_slug: str) -> str:
+    path = STATS_DIR / version / "heroes" / f"npc_dota_hero_{hero_slug}.txt"
+    if not path.exists():
+        return ""
+    try:
+        root = parse_kv(path.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    abilities = root.get("DOTAAbilities", {})
+    for ability_slug, data in abilities.items():
+        if isinstance(data, dict) and str(data.get("Innate", "0")) == "1":
+            return ability_slug
+    return ""
+
+
 def _load_heroes(version: str) -> list[dict]:
     snap = _json.loads((STATS_DIR / version / "heroes.json").read_text(encoding="utf-8"))
     raw = _load_raw_heroes(version)
@@ -552,6 +1029,10 @@ def _load_heroes(version: str) -> list[dict]:
     _inject_spirit_bear(snaps, raws)
     snap, raw = snaps[version], raws[version]
     names = _load_display_names()
+    ability_tooltips = _load_ability_tooltips()
+    innate_rules = _json.loads(
+        (_HERE / "data" / "rules" / "hero_stat_innates.json").read_text(encoding="utf-8")
+    ).get("heroes", {})
     heroes = sorted(
         (h for h in snap if h.startswith("npc_dota_hero_") and h not in _EXCLUDE),
         key=lambda h: _display_name(h, names).lower(),
@@ -562,12 +1043,27 @@ def _load_heroes(version: str) -> list[dict]:
         name = _display_name(hero, names)
         stats = _json.loads(_html.unescape(_row_stats(hero, snap, raw)))
         icon_slug = "spirit_bear" if hero == SPIRIT_BEAR_HERO else slug
+        innate_rule = innate_rules.get(slug, {})
+        innate_slug = innate_rule.get("innate") if innate_rule else ""
+        innate_tip = ability_tooltips.get(innate_slug, {}) if innate_slug else {}
+        innate_icon = f"icons/abilities/{innate_slug}.png" if innate_slug else ""
+        if innate_icon and not (_HERE / innate_icon).exists():
+            innate_icon = "icons/misc/innate_icon.png"
+        innate_desc = innate_tip.get("desc", "") if innate_tip else ""
+        if innate_rule and "%" in innate_desc:
+            innate_desc = _innate_summary(innate_rule, version)
         out.append({
             "id": slug,
             "name": name,
             "icon": f"icons/heroes/{icon_slug}.png",
             "attackType": _attack_type(version, hero, raw),
             "stats": stats,
+            "statInnate": {
+                "slug": innate_slug,
+                "name": innate_tip.get("name", ""),
+                "desc": innate_desc,
+                "icon": innate_icon,
+            } if innate_rule and innate_slug else None,
         })
     return out
 
@@ -576,7 +1072,13 @@ def render_html() -> str:
     version = _versions()[-1]
     heroes = _load_heroes(version)
     items = _load_items(version)
-    data = _json.dumps({"patch": version, "heroes": heroes, "items": items}, separators=(",", ":"))
+    innate_rules = _json.loads(
+        (_HERE / "data" / "rules" / "hero_stat_innates.json").read_text(encoding="utf-8")
+    ).get("heroes", {})
+    data = _json.dumps(
+        {"patch": version, "heroes": heroes, "items": items, "innateRules": innate_rules},
+        separators=(",", ":"),
+    )
     data_script = data.replace("<", "\\u003c")
     nav = _site.render_top_nav("materials", _latest_href(), subtabs_active="hero_lab", subnav_in_header=False)
     subnav = _site.render_materials_subnav("hero_lab")
@@ -602,7 +1104,7 @@ def render_html() -> str:
   <div class="hl-panel" data-side="a"></div>
   <div class="hl-diff-panel">
     <div class="hl-diff-head">
-      <strong id="hl-diff-title">none vs none</strong>
+      <strong id="hl-diff-title">DIFFERENCE</strong>
     </div>
     <div class="hl-diff-list" id="hl-diff-list"></div>
   </div>

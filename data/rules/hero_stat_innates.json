@@ -1,0 +1,364 @@
+{
+  "_version": 1,
+  "_doc": "Declarative source of truth for hero innate stat bonuses. Used by builders/heroes_stats.py (level-1 seeding) and src/scripts.js (per-level recompute on the heroes-stats table). Stage 1 of innate centralization — do not edit without verifying against KV files in data/stats/<patch>/heroes/.",
+  "_constants": {
+    "HPREG_PER_STR": 0.1,
+    "MANAREG_PER_INT": 0.05,
+    "AS_PER_AGI": 1.0,
+    "ARMOR_PER_AGI": 0.16667,
+    "MR_PER_INT": 0.1,
+    "OGRE_MANA_PER_STR": 6.0,
+    "OGRE_MANAREG_PER_STR": 0.02
+  },
+  "_formula_types": {
+    "attr_factor": "bonus = attrs[source] * factor",
+    "base_plus_level": "bonus = base + per_level * level",
+    "flat_per_level": "bonus = per_level * level",
+    "self_attr_pct_per_level": "bonus = attrs[target] * (base_pct + per_level_pct * level)  -- self-referential, target==source",
+    "attr_pct_per_level": "bonus = attrs[source] * (base_pct + per_level_pct * level)",
+    "hp_pct": "bonus = current_hp * factor / 100  (current_hp includes str scaling)",
+    "mana_pool_pct_per_level": "bonus = current_mp * (base_pct + per_level_pct * level)  (current_mp includes int scaling)",
+    "ms_multiplier": "multiplier = 1 + (base_pct + per_level_pct * level) / 100  (applied multiplicatively to move speed)",
+    "armor_factor": "bonus = (armor_base + agi * ARMOR_PER_AGI) * factor  (armor_base = ArmorPhysical KV field)",
+    "secondary_attr_factor": "bonus = derived_stat_from_attr * factor  (hpr: STR*HPREG_PER_STR; mpr: INT*MANAREG_PER_INT; aspd: AGI*AS_PER_AGI; armor: AGI*ARMOR_PER_AGI; mr: INT*MR_PER_INT)",
+    "dmg_universal_bonus_pct": "universal_dmg_mult *= (1 + factor)  (applied inside primary-damage calc, only for Universal heroes)",
+    "attr_substitution": "replaces the attribute used to derive target stat (Ogre: STR derives MP and MPR instead of INT)"
+  },
+  "heroes": {
+    "axe": {
+      "innate": "axe_one_man_army",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "str",
+          "formula": "armor_factor",
+          "factor": 0.5
+        }
+      ]
+    },
+    "beastmaster": {
+      "innate": "beastmaster_inner_beast",
+      "since": "7.41a",
+      "effects": [
+        {
+          "target": "aspd",
+          "formula": "base_plus_level",
+          "since": "7.41a",
+          "base": 7,
+          "per_level": 3
+        }
+      ]
+    },
+    "centaur": {
+      "innate": "centaur_horsepower",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "ms",
+          "formula": "attr_factor",
+          "source": "str",
+          "history": [
+            { "since": "7.36",  "until": "7.36a", "factor": 0.40 },
+            { "since": "7.36b", "until": "7.37a", "factor": 0.35 },
+            { "since": "7.37b", "until": "7.41",  "factor": 0.30 },
+            { "since": "7.41a",                   "factor": 0.40 }
+          ]
+        }
+      ]
+    },
+    "dark_seer": {
+      "innate": "dark_seer_quick_wit",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "aspd",
+          "formula": "attr_factor",
+          "source": "int",
+          "history": [
+            { "since": "7.36", "until": "7.37e", "factor": 0.5 },
+            { "since": "7.38",                   "factor": 1.0 }
+          ]
+        }
+      ]
+    },
+    "death_prophet": {
+      "innate": "death_prophet_witchcraft",
+      "since": "7.40",
+      "effects": [
+        {
+          "target": "ms",
+          "formula": "ms_multiplier",
+          "note": "KV value=base_pct, hero_levelup=per_level_pct. Python cannot return a multiplier via _innate_bonus(); this is handled directly in the MS computation path.",
+          "history": [
+            { "since": "7.40",  "until": "7.40c", "base_pct": 0.75, "per_level_pct": 0.75 },
+            { "since": "7.41a",                   "base_pct": 0.50, "per_level_pct": 0.75 }
+          ]
+        }
+      ]
+    },
+    "dragon_knight": {
+      "innate": "dragon_knight_dragon_blood",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "hpr",
+          "formula": "base_plus_level",
+          "base": 2,
+          "per_level": 0.5
+        },
+        {
+          "target": "armor",
+          "formula": "base_plus_level",
+          "base": 2,
+          "per_level": 0.5
+        }
+      ]
+    },
+    "drow_ranger": {
+      "innate": "drow_ranger_trueshot",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "agi",
+          "formula": "self_attr_pct_per_level",
+          "base_pct": 0.10,
+          "per_level_pct": 0.01,
+          "note": "Self-referential: bonus agi is folded into her agi so all agi-derived stats (dmg, armor, aspd) pick it up. KV value=10, hero_levelup=+1 (both in percent /100)."
+        }
+      ]
+    },
+    "keeper_of_the_light": {
+      "innate": "keeper_of_the_light_bright_speed",
+      "since": "7.41a",
+      "effects": [
+        {
+          "target": "ms",
+          "formula": "attr_factor",
+          "source": "int",
+          "note": "KV intelligence_per_speed=N; factor = 1/N.",
+          "history": [
+            { "since": "7.41a", "until": "7.41b", "factor": 0.4 },
+            { "since": "7.41c",                   "factor": 0.33333 }
+          ]
+        }
+      ]
+    },
+    "life_stealer": {
+      "innate": "life_stealer_ghoul_frenzy",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "aspd",
+          "formula": "flat_per_level",
+          "per_level": 4,
+          "note": "KV attack_speed_bonus.hero_levelup=+4 (no base value). KV also has movement_speed_bonus.hero_levelup=+0.3 but this is not modeled by design."
+        }
+      ]
+    },
+    "luna": {
+      "innate": "luna_lunar_blessing",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "dmg",
+          "formula": "flat_per_level",
+          "per_level": 2,
+          "note": "KV hero_levelup=+2 (damage). Handled in JS innateDmg(); not yet in Python _innate_bonus()."
+        },
+        {
+          "target": "nvision",
+          "formula": "base_plus_level",
+          "base": 225,
+          "per_level": 25,
+          "note": "KV value=225, hero_levelup=+25. Night Vision is not a displayed column in heroes_stats table — included for completeness."
+        }
+      ]
+    },
+    "morphling": {
+      "innate": "morphling_ebb_and_flow",
+      "since": "7.41",
+      "effects": [
+        {
+          "target": "range",
+          "formula": "attr_factor",
+          "source": "agi",
+          "note": "KV attack_range_per_agi (percent /100).",
+          "history": [
+            { "since": "7.41",  "until": "7.41c", "factor": 0.20 },
+            { "since": "7.41d",                   "factor": 0.25 }
+          ]
+        },
+        {
+          "target": "ms",
+          "formula": "attr_factor",
+          "source": "agi",
+          "since": "7.41",
+          "factor": 0.15,
+          "note": "KV move_speed_per_agi=15 (percent /100). Unchanged since 7.41."
+        }
+      ]
+    },
+    "ogre_magi": {
+      "innate": "ogre_magi_dumb_luck",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "mp",
+          "formula": "attr_substitution",
+          "sub_attr": "str",
+          "factor": 6.0,
+          "note": "Ogre uses STR * 6 for MP instead of INT * 12. OGRE_MANA_PER_STR=6.0."
+        },
+        {
+          "target": "mpr",
+          "formula": "attr_substitution",
+          "sub_attr": "str",
+          "factor": 0.02,
+          "note": "Ogre uses STR * 0.02 for Mana Regen instead of INT * 0.05. OGRE_MANAREG_PER_STR=0.02."
+        }
+      ]
+    },
+    "razor": {
+      "innate": "razor_unstable_current",
+      "since": "7.41a",
+      "effects": [
+        {
+          "target": "ms",
+          "formula": "flat_per_level",
+          "since": "7.41a",
+          "per_level": 1,
+          "note": "KV hero_levelup=+1 (no base value)."
+        }
+      ]
+    },
+    "sven": {
+      "innate": "sven_wrath_of_god",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "dmg",
+          "formula": "attr_pct_per_level",
+          "source": "str",
+          "base_pct": 0.08,
+          "per_level_pct": 0.02,
+          "note": "KV value=0.08, hero_levelup=0.02. Handled in JS innateDmg(); not yet in Python _innate_bonus(). Note: sven_vanquisher (value=20) is a separate innate for Great Cleave — not a stat modifier."
+        }
+      ]
+    },
+    "techies": {
+      "innate": "techies_mutually_assured_destruction",
+      "since": "7.41a",
+      "effects": [
+        {
+          "target": "mpr",
+          "formula": "mana_pool_pct_per_level",
+          "note": "KV bonus_mana_as_mana_regen: value in percent /100, hero_levelup in percent /100. Handled in Python via _techies_pool_regen_l1(); not in the standard _innate_bonus() dispatch.",
+          "history": [
+            { "since": "7.41a", "until": "7.41b", "base_pct": 0.0008, "per_level_pct": 0.0002 },
+            { "since": "7.41c",                   "base_pct": 0.001,  "per_level_pct": 0.0001 }
+          ]
+        }
+      ]
+    },
+    "ursa": {
+      "innate": "ursa_maul",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "dmg",
+          "formula": "hp_pct",
+          "note": "KV value=1.25 (percent). Leveled phase 7.37b-7.39c: 1.2/1.3/1.4/1.5 per rank — Python/JS both use max rank (1.5) for that window. Handled in JS innateDmg(); Python uses _innate_bonus() with StatusHealth base.",
+          "history": [
+            { "since": "7.36",  "until": "7.37a", "factor": 1.5  },
+            { "since": "7.37b", "until": "7.39c", "factor": 1.5,  "note": "Leveled: 1.2/1.3/1.4/1.5; Python/JS use max rank." },
+            { "since": "7.39d",                   "factor": 1.25 }
+          ]
+        }
+      ]
+    },
+    "void_spirit": {
+      "innate": "void_spirit_intrinsic_edge",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "hpr",
+          "formula": "secondary_attr_factor",
+          "source": "str",
+          "note": "bonus_hpr = STR * HPREG_PER_STR * factor",
+          "history": [
+            { "since": "7.36",  "until": "7.36a", "factor": 0.33 },
+            { "since": "7.36b", "until": "7.40c", "factor": 0.25 },
+            { "since": "7.41",                    "factor": 0.30 }
+          ]
+        },
+        {
+          "target": "mpr",
+          "formula": "secondary_attr_factor",
+          "source": "int",
+          "note": "bonus_mpr = INT * MANAREG_PER_INT * factor",
+          "history": [
+            { "since": "7.36",  "until": "7.36a", "factor": 0.33 },
+            { "since": "7.36b", "until": "7.40c", "factor": 0.25 },
+            { "since": "7.41",                    "factor": 0.30 }
+          ]
+        },
+        {
+          "target": "aspd",
+          "formula": "secondary_attr_factor",
+          "source": "agi",
+          "note": "bonus_aspd = AGI * AS_PER_AGI * factor",
+          "history": [
+            { "since": "7.36",  "until": "7.36a", "factor": 0.33 },
+            { "since": "7.36b", "until": "7.40c", "factor": 0.25 },
+            { "since": "7.41",                    "factor": 0.30 }
+          ]
+        },
+        {
+          "target": "armor",
+          "formula": "secondary_attr_factor",
+          "source": "agi",
+          "note": "bonus_armor = AGI * ARMOR_PER_AGI * factor. Removed in 7.41.",
+          "history": [
+            { "since": "7.36",  "until": "7.36a", "factor": 0.33 },
+            { "since": "7.36b", "until": "7.40c", "factor": 0.25 }
+          ]
+        },
+        {
+          "target": "mr",
+          "formula": "secondary_attr_factor",
+          "source": "int",
+          "note": "bonus_mr = INT * MR_PER_INT * factor. Removed in 7.41.",
+          "history": [
+            { "since": "7.36",  "until": "7.36a", "factor": 0.33 },
+            { "since": "7.36b", "until": "7.40c", "factor": 0.25 }
+          ]
+        },
+        {
+          "target": "dmg",
+          "formula": "dmg_universal_bonus_pct",
+          "factor": 0.15,
+          "since": "7.41",
+          "note": "KV damage_stat_bonus_pct=15. Multiplies the universal attribute-to-damage multiplier: mult *= 1.15. Only applies because VS is a Universal hero. Embedded in _primary_dmg() in Python and primaryDmg() in JS — not in innate() dispatch."
+        }
+      ]
+    },
+    "tiny": {
+      "innate": "tiny_insurmountable",
+      "since": "7.41",
+      "effects": [
+        {
+          "target": "slowRes",
+          "formula": "attr_factor",
+          "source": "str",
+          "factor": 0.15
+        },
+        {
+          "target": "statusRes",
+          "formula": "attr_factor",
+          "source": "str",
+          "factor": 0.10
+        }
+      ]
+    }
+  }
+}
