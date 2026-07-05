@@ -10,7 +10,13 @@ from builders.hero_lab import _load_items, _versions
 
 @pytest.fixture(scope="module")
 def items():
-    return {item["id"]: item for item in _load_items(_versions()[-1])}
+    versions = _versions()
+    if not versions:
+        pytest.skip("no patch data available")
+    result = {item["id"]: item for item in _load_items(versions[-1])}
+    if not result:
+        pytest.skip("no items loaded (data files missing)")
+    return result
 
 
 @pytest.mark.parametrize(
