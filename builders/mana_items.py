@@ -55,6 +55,7 @@ RELEASE_HISTORY = _load_release_history()
 PASSIVE_REGEN_FIELDS = (
     "bonus_mana_regen", "mana_regen", "bonus_mp_regen", "mp_regen",
     "aura_mana_regen",  # treated as self-effective (auras include self)
+    "mana_regen_aura",  # Vladmir's Offering uses this key
 )
 # Multiplier on the hero's TOTAL mana regen (Kaya = +30%, Kaya+Sange = +40%,
 # Meteor Hammer = +35%, etc). Shown as a small "+X%" chip beside the flat

@@ -330,7 +330,7 @@ def _item_bonus_at(fields: dict, idx: int) -> dict[str, float]:
         "hp": _sum_at(fields, idx, "bonus_health", "bonus_hp", "bonus_max_health", "health_bonus"),
         "mp": _sum_at(fields, idx, "bonus_mana", "max_mana", "bonus_max_mana"),
         "hpr": _sum_at(fields, idx, "bonus_health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen", "health_regen", "aura_health_regen"),
-        "mpr": _sum_at(fields, idx, "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "mana_regen"),
+        "mpr": _sum_at(fields, idx, "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "mana_regen", "aura_mana_regen", "mana_regen_aura"),
         "armor": _sum_at(fields, idx, "bonus_armor", "aura_bonus_armor", "armor", "armor_aura", "bonus_aoe_armor"),
         "mr": _sum_at(fields, idx, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance", "magic_resist", "magic_resistance_aura"),
         "evasion": _sum_at(fields, idx, "bonus_evasion", "evasion"),
@@ -365,7 +365,7 @@ def _item_bonus(fields: dict, *, consumable: bool = False) -> dict[str, float]:
         "bonus_health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen",
     ) + (() if consumable else ("health_regen",))
     mana_regen_keys = (
-        "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "aura_mana_regen",
+        "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "aura_mana_regen", "mana_regen_aura",
     ) + (() if consumable else ("mana_regen",))
     return {
         "all": all_stats,
@@ -398,7 +398,7 @@ def _item_bonus(fields: dict, *, consumable: bool = False) -> dict[str, float]:
         "hprPct": _sum(fields, "hp_regen_pct"),
         "missingHprPct": _sum(fields, "missing_health_regen"),
         "mpPct": _sum(fields, "bonus_max_mana_percentage"),
-        "lifesteal": _sum(fields, "attack_lifesteal", "lifesteal", "lifesteal_percent"),
+        "lifesteal": _sum(fields, "attack_lifesteal", "lifesteal", "lifesteal_percent", "lifesteal_aura"),
         "spellLifesteal": _sum(fields, "spell_lifesteal", "bonus_spell_lifesteal"),
         "castRange": _sum(fields, "bonus_cast_range", "cast_range_bonus", "cast_range"),
     }
