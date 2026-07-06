@@ -22,7 +22,8 @@
     "armor_factor": "bonus = (armor_base + agi * ARMOR_PER_AGI) * factor  (armor_base = ArmorPhysical KV field)",
     "secondary_attr_factor": "bonus = derived_stat_from_attr * factor  (hpr: STR*HPREG_PER_STR; mpr: INT*MANAREG_PER_INT; aspd: AGI*AS_PER_AGI; armor: AGI*ARMOR_PER_AGI; mr: INT*MR_PER_INT)",
     "dmg_universal_bonus_pct": "universal_dmg_mult *= (1 + factor)  (applied inside primary-damage calc, only for Universal heroes)",
-    "attr_substitution": "replaces the attribute used to derive target stat (Ogre: STR derives MP and MPR instead of INT)"
+    "attr_substitution": "replaces the attribute used to derive target stat (Ogre: STR derives MP and MPR instead of INT)",
+    "mana_shield_ehp": "ehp_bonus = current_mp * absorb_pct * damage_per_mana  (damage absorbed by spending mana; dpm scales with level)"
   },
   "heroes": {
     "axe": {
@@ -174,6 +175,25 @@
         }
       ]
     },
+    "medusa": {
+      "innate": "medusa_mana_shield",
+      "since": "7.36",
+      "effects": [
+        {
+          "target": "ehp",
+          "formula": "mana_shield_ehp",
+          "absorb_pct": 0.98,
+          "note": "98% of incoming damage is absorbed by mana at a cost of damage_per_mana. KV absorption_pct=98, damage_per_mana=2 + hero_levelup=+0.1 (since 7.41a). Handled in JS manaShieldEhp() and medusaDpm(); already added to ehpPhys in calc().",
+          "history": [
+            { "since": "7.36",  "until": "7.36c", "dpm": "leveled: 2/2/2.4/2.8/3.2/3.6 per rank" },
+            { "since": "7.37",  "until": "7.37e", "dpm": "leveled: 2.4/2.4/2.8/3.2/3.6" },
+            { "since": "7.38",  "until": "7.39d", "dpm": 2.2 },
+            { "since": "7.39e", "until": "7.40c", "dpm": 2.0 },
+            { "since": "7.41a",                   "dpm": "2 + 0.1 * level" }
+          ]
+        }
+      ]
+    },
     "morphling": {
       "innate": "morphling_ebb_and_flow",
       "since": "7.41",
@@ -195,6 +215,19 @@
           "since": "7.41",
           "factor": 0.15,
           "note": "KV move_speed_per_agi=15 (percent /100). Unchanged since 7.41."
+        }
+      ]
+    },
+    "naga_siren": {
+      "innate": "naga_siren_eelskin",
+      "since": "7.41",
+      "effects": [
+        {
+          "target": "evasion",
+          "formula": "base_plus_level",
+          "base": 4.0,
+          "per_level": 0.1,
+          "note": "Self-inclusive innate: the bonus applies to Naga Siren herself, so the base evasion is always active and scales further with additional nearby Nagas/illusions."
         }
       ]
     },

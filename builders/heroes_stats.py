@@ -1359,7 +1359,7 @@ def _row_stats(hero: str, snap: dict, raw: dict) -> str:
     slug = hero.replace("npc_dota_hero_", "")
     data = {
         "slug": slug,
-        "hasStatInnate": slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "ogre_magi", "razor", "sven", "techies", "tiny", "ursa", "void_spirit"},
+        "hasStatInnate": slug in {"axe", "beastmaster", "centaur", "dark_seer", "death_prophet", "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer", "luna", "medusa", "morphling", "naga_siren", "ogre_magi", "razor", "sven", "techies", "tiny", "ursa", "void_spirit"},
         "attr": meta[0],
         "str": _field(snap, hero, "AttributeBaseStrength"),
         "strGain": _field(snap, hero, "AttributeStrengthGain"),

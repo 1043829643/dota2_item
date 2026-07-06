@@ -6143,6 +6143,9 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hero-lab-page {
   max-width: none;
 }
+.hero-lab-toolbar .toolbar-panel {
+  justify-content: flex-start;
+}
 .hero-lab {
   display: grid;
   grid-template-columns: minmax(420px, 1fr) minmax(240px, 300px) minmax(420px, 1fr);
@@ -6171,18 +6174,23 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
   /* Wide portrait column matches the hero-art asset's native aspect (в‰€ 16:9),
      same approach as heroes_stats `.mr-ico` (36Г—26 = 1.38:1). 124Г—72 keeps the
      portrait readable without forcing it into a square. */
-  grid-template-columns: 124px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
   align-items: start;
   margin-bottom: 10px;
 }
 .hl-identity {
   display: block;
-  width: 124px;
+}
+.hl-portrait-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
 }
 .hl-portrait-wrap {
   position: relative;
   width: 124px;
+  min-width: 124px;
   height: 72px;
 }
 .hl-innate-chip {
@@ -6491,6 +6499,33 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 }
 .hl-cost-badge.is-empty {
   opacity: 0.72;
+}
+.hl-quickstats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  align-self: start;
+}
+.hl-qs-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.hl-qs-label {
+  color: rgba(200, 180, 140, 0.55);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.hl-qs-value {
+  color: #ddd;
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .hl-slot-mode {
   position: absolute;
@@ -7033,6 +7068,30 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
 .hl-hero-grid-wrap {
   padding: 14px 16px 16px;
 }
+.hl-picker-searchbar {
+  padding: 10px 16px 0;
+}
+.hl-picker-search {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(122, 133, 145, 0.32);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(16,20,26,0.98), rgba(9,12,16,0.98));
+  color: #d8dee5;
+  font: inherit;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.hl-picker-search:focus {
+  border-color: rgba(213, 173, 95, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 0 1px rgba(213, 173, 95, 0.28);
+}
+.hl-picker-search::placeholder {
+  color: #7f8a96;
+}
 .hl-shop-body {
   padding: 8px 12px 10px;
 }
@@ -7078,6 +7137,10 @@ body:has(.creeps-scroll) .creeps-page { padding-top: 0; padding-bottom: 12px; }
     filter 0.12s ease,
     border-color 0.16s ease,
     box-shadow 0.16s ease;
+}
+.hl-hero-tile.is-hidden,
+.hl-hero-group.is-hidden {
+  display: none !important;
 }
 .hl-hero-tile img,
 .hl-item-tile img {

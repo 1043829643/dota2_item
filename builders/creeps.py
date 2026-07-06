@@ -1114,7 +1114,7 @@ def save_creeps_html():
             ('dmg_min',      'Dmg\nmin',         'exp'),
             ('dmg_max',      'Dmg\nmax',         'exp'),
             ('as',           'Speed',            'std'),
-            ('t_per_attack', 'Time to hit',      'std'),
+            ('t_per_attack', 'Attack Interval',  'std'),
             ('bat',          'BAT',              'std'),
             ('attack_range', 'Range',            'std'),
             ('attack_type',  'Type',             'std'),

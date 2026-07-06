@@ -3263,8 +3263,10 @@
     ['armor', 'Armor'], ['armorPct', 'Armor %'], ['mr', 'Mag. resist'],
     ['statusRes', 'Status resist'], ['slowRes', 'Slow resist'], ['spellAmp', 'Spell amp'],
     ['evasion', 'Evasion'], ['dmg', 'Damage'], ['aspd', 'Attack speed'], ['tHit', 'Attack Interval'],
+    ['lifesteal', 'Lifesteal'], ['spellLifesteal', 'Spell Lifesteal'],
     ['ms', 'Movespeed'], ['range', 'Attack range'],
-    ['dvision', 'Day Vision'], ['nvision', 'Night Vision'],
+    ['dvision', 'Day Vision'], ['nvision', 'Night Vision'], ['castRange', 'Cast Range'],
+    ['dps', 'Dummy DPS'],
     ['ehpPhys', 'EHP phys'], ['ehpMag', 'EHP mag'],
   ];
   const CUSTOM = [
@@ -3320,8 +3322,9 @@
   };
   const fmtMetric = (key, v) => {
     if (key === 'hpr' || key === 'mpr' || key === 'tHit') return Number(v || 0).toFixed(2);
+    if (key === 'dps') return Number(v || 0).toFixed(1);
     if (key === 'armor') return fmt(v, 1);
-    if (key === 'mr' || key === 'evasion' || key === 'armorPct' || key === 'statusRes' || key === 'slowRes' || key === 'spellAmp') return fmt(v, 1) + '%';
+    if (key === 'mr' || key === 'evasion' || key === 'armorPct' || key === 'statusRes' || key === 'slowRes' || key === 'spellAmp' || key === 'lifesteal' || key === 'spellLifesteal') return fmt(v, 1) + '%';
     return fmt(v);
   };
   const fmtDiffMetric = (key, v) => {
@@ -3330,8 +3333,9 @@
     const sign = n > 0 ? '+' : n < 0 ? '-' : '';
     if (key === 'hpr' || key === 'mpr') return sign + abs.toFixed(2);
     if (key === 'tHit') return sign + abs.toFixed(2) + 's';
+    if (key === 'dps') return sign + abs.toFixed(1);
     if (key === 'armor') return sign + fmt(abs, 1);
-    if (key === 'mr' || key === 'evasion' || key === 'armorPct' || key === 'statusRes' || key === 'slowRes' || key === 'spellAmp') return sign + fmt(abs, 1) + '%';
+    if (key === 'mr' || key === 'evasion' || key === 'armorPct' || key === 'statusRes' || key === 'slowRes' || key === 'spellAmp' || key === 'lifesteal' || key === 'spellLifesteal') return sign + fmt(abs, 1) + '%';
     return sign + fmt(abs);
   };
   const armorFactor = a => (0.06 * a) / (1 + 0.06 * Math.abs(a));
@@ -3357,8 +3361,18 @@
   };
 
   function heroLabInnatesOn() {
-    const innateToggle = root.querySelector('[data-innates-toggle]');
+    const innateToggle = document.querySelector('[data-innates-toggle]');
     return innateToggle ? innateToggle.checked : true;
+  }
+
+  function heroLabMergePositiveOn() {
+    const toggle = document.querySelector('[data-hl-merge-positive-toggle]');
+    return toggle ? toggle.checked : false;
+  }
+
+  function heroLabDiffPercentOn() {
+    const toggle = document.querySelector('[data-hl-diff-percent-toggle]');
+    return toggle ? toggle.checked : false;
   }
 
   function activeEntry(eff, patch) {
@@ -3465,16 +3479,36 @@
     panel.innerHTML = `
       <div class="hl-hud">
         <div class="hl-identity">
-          <div class="hl-portrait-wrap">
-            <button type="button" class="hl-hero-trigger" data-open-hero-picker aria-label="Choose hero">
-              ${iconHtml(hero.icon, hero.name, 'hl-hero-icon')}
-            </button>
-            <button type="button" class="hl-innate-chip is-hidden" data-innate-chip aria-label="Innate tooltip" tabindex="-1">
-              <img class="hl-innate-chip-icon" data-innate-icon alt="" loading="lazy">
-            </button>
-            <span class="hl-level-corner">
-              <input class="hl-level-input" type="text" inputmode="numeric" maxlength="2" value="1" data-field="level" aria-label="Hero level" autocomplete="off">
-            </span>
+          <div class="hl-portrait-row">
+            <div class="hl-portrait-wrap">
+              <button type="button" class="hl-hero-trigger" data-open-hero-picker aria-label="Choose hero">
+                ${iconHtml(hero.icon, hero.name, 'hl-hero-icon')}
+              </button>
+              <button type="button" class="hl-innate-chip is-hidden" data-innate-chip aria-label="Innate tooltip" tabindex="-1">
+                <img class="hl-innate-chip-icon" data-innate-icon alt="" loading="lazy">
+              </button>
+              <span class="hl-level-corner">
+                <input class="hl-level-input" type="text" inputmode="numeric" maxlength="2" value="1" data-field="level" aria-label="Hero level" autocomplete="off">
+              </span>
+            </div>
+            <div class="hl-quickstats">
+              <div class="hl-qs-cell">
+                <span class="hl-qs-label">DUMMY DPS</span>
+                <span class="hl-qs-value" data-dps-value></span>
+              </div>
+              <div class="hl-qs-cell">
+                <span class="hl-qs-label">DMG GOLD</span>
+                <span class="hl-qs-value" data-dmggold-value></span>
+              </div>
+              <div class="hl-qs-cell">
+                <span class="hl-qs-label">pEHP</span>
+                <span class="hl-qs-value" data-pehp-value></span>
+              </div>
+              <div class="hl-qs-cell">
+                <span class="hl-qs-label">mEHP</span>
+                <span class="hl-qs-value" data-mehp-value></span>
+              </div>
+            </div>
           </div>
           <div class="hl-identity-main"></div>
           <span class="hl-cost-badge" data-cost-badge>
@@ -3658,7 +3692,7 @@
 
   function itemTotals(entries, attackType) {
     const isRanged = String(attackType || '').toLowerCase() === 'ranged';
-    const out = { str: 0, agi: 0, int: 0, hp: 0, mp: 0, hpr: 0, mpr: 0, hprAmp: 0, mprAmp: 0, armor: 0, mrVals: [], evVals: [], statusResVals: [], slowResVals: [], spellAmp: 0, damage: 0, aspd: 0, ms: 0, range: 0, dvision: 0, nvision: 0, cost: 0 };
+    const out = { str: 0, agi: 0, int: 0, hp: 0, mp: 0, hpr: 0, mpr: 0, hprAmp: 0, mprAmp: 0, armor: 0, mrVals: [], evVals: [], statusResVals: [], slowResVals: [], spellAmp: 0, damage: 0, damagePct: 0, aspd: 0, ms: 0, range: 0, dvision: 0, nvision: 0, cost: 0, hprPct: 0, missingHprPct: 0, mpPct: 0, lifesteal: 0, spellLifesteal: 0, castRange: 0 };
     entries.forEach(entry => {
       const id = typeof entry === 'string' ? entry : entry.id;
       const mode = typeof entry === 'string' ? null : entry.mode;
@@ -3676,6 +3710,9 @@
       out.mpr += Number(b.mpr) || 0;
       out.hprAmp += Number(b.hprAmp) || 0;
       out.mprAmp += Number(b.mprAmp) || 0;
+      out.hprPct = Math.max(out.hprPct, Number(b.hprPct) || 0);
+      out.missingHprPct += Number(b.missingHprPct) || 0;
+      out.mpPct += Number(b.mpPct) || 0;
       out.armor += Number(b.armor) || 0;
       if (b.mr) out.mrVals.push(Number(b.mr) || 0);
       if (b.evasion) out.evVals.push(Number(b.evasion) || 0);
@@ -3683,6 +3720,10 @@
       if (b.slowRes) out.slowResVals.push(Number(b.slowRes) || 0);
       out.spellAmp += Number(b.spellAmp) || 0;
       out.damage += (Number(b.damage) || 0) + (isRanged ? (Number(b.damageRanged) || 0) : (Number(b.damageMelee) || 0));
+      out.damagePct += Number(b.damagePct) || 0;
+      out.lifesteal += Number(b.lifesteal) || 0;
+      out.spellLifesteal += Number(b.spellLifesteal) || 0;
+      out.castRange += Number(b.castRange) || 0;
       out.aspd += Number(b.aspd) || 0;
       out.ms += (Number(b.ms) || 0) + (isRanged ? (Number(b.msRanged) || 0) : (Number(b.msMelee) || 0));
       if (isRanged) out.range += Number(b.range) || 0;
@@ -3743,15 +3784,16 @@
     const mprFromAttr = isHuskar ? 0 : (isOgre ? str * 0.02 : int * C.mprInt);
     const baseMr = (Number(s.mr) || 25) + int * C.mrInt + heroLabInnate('mr', s, a, lvl, 0, includeInnates);
     let mr = combinePct([baseMr, ...itemsTotal.mrVals]);
-    let evasion = combinePct([...itemsTotal.evVals]);
+    let evasion = combinePct([heroLabInnate('evasion', s, a, lvl, 0, includeInnates), ...itemsTotal.evVals]);
     const spellAmp = itemsTotal.spellAmp;
     let armor = (Number(s.armor) || 0) + agi * C.armorAgi + heroLabInnate('armor', s, a, lvl, 0, includeInnates) + itemsTotal.armor;
     let hp = Math.round((Number(s.hp) || 120) + str * C.hpStr + itemsTotal.hp);
-    let mp = isHuskar ? 0 : Math.round((Number(s.mp) || 75) + mpFromAttr + itemsTotal.mp);
+    let mp = isHuskar ? 0 : Math.round(((Number(s.mp) || 75) + mpFromAttr + itemsTotal.mp) * (1 + itemsTotal.mpPct / 100));
     a._manaPool = mp;
     const statusRes = combinePct([...itemsTotal.statusResVals, heroLabInnate('statusRes', s, a, lvl, hp, includeInnates)]);
     const slowRes = combinePct([...itemsTotal.slowResVals, heroLabInnate('slowRes', s, a, lvl, hp, includeInnates)]);
-    let hpr = ((Number(s.hpr) || 0) + str * C.hprStr + heroLabInnate('hpr', s, a, lvl, hp, includeInnates) + itemsTotal.hpr) * (1 + itemsTotal.hprAmp / 100);
+    let hpr = ((Number(s.hpr) || 0) + str * C.hprStr + heroLabInnate('hpr', s, a, lvl, hp, includeInnates) + itemsTotal.hpr) * (1 + itemsTotal.hprAmp / 100)
+      + hp * itemsTotal.hprPct / 100;
     let mpr = isHuskar ? 0 : ((Number(s.mpr) || 0) + mprFromAttr + heroLabInnate('mpr', s, a, lvl, hp, includeInnates) + itemsTotal.mpr) * (1 + itemsTotal.mprAmp / 100);
     if (st.custom.hp !== null) hp = Math.round(st.custom.hp);
     if (st.custom.mp !== null && !isHuskar) mp = Math.round(st.custom.mp);
@@ -3762,8 +3804,10 @@
     if (st.custom.evasion !== null) evasion = st.custom.evasion;
     const primary = primaryDmg(s, { str, agi, int }, includeInnates);
     const dmgInnate = heroLabInnate('dmg', s, { str, agi, int }, lvl, hp, includeInnates);
-    const dmin = (Number(s.dmin) || 0) + primary + dmgInnate + itemsTotal.damage;
-    const dmax = (Number(s.dmax) || 0) + primary + dmgInnate + itemsTotal.damage;
+    const whiteDmin = (Number(s.dmin) || 0) + primary + dmgInnate;
+    const whiteDmax = (Number(s.dmax) || 0) + primary + dmgInnate;
+    const dmin = whiteDmin + Math.floor(whiteDmin * itemsTotal.damagePct / 100) + itemsTotal.damage;
+    const dmax = whiteDmax + Math.floor(whiteDmax * itemsTotal.damagePct / 100) + itemsTotal.damage;
     const dmg = (dmin + dmax) / 2;
     const aspd = (Number(s.bas) || 100) + agi * C.asAgi + heroLabInnate('aspd', s, a, lvl, hp, includeInnates) + itemsTotal.aspd;
     const bat = Number(s.bat) || 1.7;
@@ -3778,7 +3822,11 @@
     const manaShield = manaShieldEhp(s, mp, lvl, includeInnates);
     const ehpPhys = hp / Math.max(0.01, 1 - armorFactor(armor)) + manaShield;
     const ehpMag = hp / Math.max(0.01, 1 - mr / 100) + manaShield;
-    return { hp, mp, hpr, mpr, str, agi, int, armor, armorPct, mr, evasion, statusRes, slowRes, spellAmp, dmg, dmin, dmax, aspd, tHit, ms, range, proj, dvision, nvision, ehpPhys, ehpMag, cost: itemsTotal.cost };
+    const lifesteal = itemsTotal.lifesteal;
+    const spellLifesteal = itemsTotal.spellLifesteal;
+    const castRange = itemsTotal.castRange;
+    const dps = tHit > 0 ? dmg / tHit : 0;
+    return { hp, mp, hpr, mpr, str, agi, int, armor, armorPct, mr, evasion, statusRes, slowRes, spellAmp, dmg, dmin, dmax, whiteDmin, whiteDmax, aspd, tHit, ms, range, proj, dvision, nvision, ehpPhys, ehpMag, lifesteal, spellLifesteal, castRange, dps, cost: itemsTotal.cost };
   }
 
   function renderHeroHud(panel, st, vals) {
@@ -3790,8 +3838,12 @@
     const hpRegen = panel.querySelector('[data-bar-regen="hpr"]');
     const mpValue = panel.querySelector('[data-bar-value="mp"]');
     const mpRegen = panel.querySelector('[data-bar-regen="mpr"]');
+    const dpsEl = panel.querySelector('[data-dps-value]');
+    const pehpEl = panel.querySelector('[data-pehp-value]');
+    const mehpEl = panel.querySelector('[data-mehp-value]');
+    const dmgGoldEl = panel.querySelector('[data-dmggold-value]');
     if (portrait) { portrait.src = hero.icon; portrait.alt = hero.name; }
-    const innateToggle = root.querySelector('[data-innates-toggle]');
+    const innateToggle = document.querySelector('[data-innates-toggle]');
     const innatesOn = innateToggle ? innateToggle.checked : true;
     const statInnate = hero.statInnate || null;
     const showInnate = !!(innatesOn && statInnate && statInnate.icon && statInnate.name);
@@ -3804,10 +3856,19 @@
       } else {
       }
     }
-    if (hpValue) hpValue.textContent = `${fmt(vals.hp)} / ${fmt(vals.hp)}`;
+    const stBase = { hero: hero || { stats: {}, id: '' }, level: st ? st.level : 1, itemEntries: [], custom: { hp: null, mp: null, hpr: null, mpr: null, armor: null, mr: null, evasion: null } };
+    const base = calc(stBase, { includeInnates: false });
+    const hpBonus = vals.hp - base.hp;
+    const mpBonus = vals.mp - base.mp;
+    if (hpValue) hpValue.textContent = hpBonus > 0 ? `${fmt(vals.hp)} (+${fmt(hpBonus)})` : `${fmt(vals.hp)}`;
     if (hpRegen) hpRegen.textContent = `${vals.hpr >= 0 ? '+' : ''}${quickFmt(vals.hpr)}`;
-    if (mpValue) mpValue.textContent = `${fmt(vals.mp)} / ${fmt(vals.mp)}`;
+    if (mpValue) mpValue.textContent = mpBonus > 0 ? `${fmt(vals.mp)} (+${fmt(mpBonus)})` : `${fmt(vals.mp)}`;
     if (mpRegen) mpRegen.textContent = `${vals.mpr >= 0 ? '+' : ''}${quickFmt(vals.mpr)}`;
+    if (dpsEl) dpsEl.textContent = vals.dps.toFixed(1);
+    if (pehpEl) pehpEl.textContent = fmt(Math.round(vals.ehpPhys));
+    if (mehpEl) mehpEl.textContent = fmt(Math.round(vals.ehpMag));
+    const bonusDps = vals.dps - base.dps;
+    if (dmgGoldEl) dmgGoldEl.textContent = bonusDps > 0.01 ? fmt(Math.round(vals.cost / bonusDps)) : '—';
     var costBadge = panel.querySelector('[data-cost-badge]');
     var costValue = panel.querySelector('[data-cost-value]');
     if (costBadge && costValue) {
@@ -3890,6 +3951,7 @@
       return n.toFixed(2).replace(/\.?0+$/, '');
     };
     const fmtPct = v => (Number(v) || 0).toFixed(1) + '%';
+    const mergePositive = heroLabMergePositiveOn();
 
     // Build bonus HTML: green +N or red в€’N; returns '' for zero bonus
     const bonusHtml = (delta, fmtFn) => {
@@ -3903,6 +3965,10 @@
     const bonusDec1 = delta => bonusHtml(delta, v => v.toFixed(1));
     const bonusDec2 = delta => bonusHtml(delta, v => v.toFixed(2));
     const bonusPct1 = delta => bonusHtml(delta, v => v.toFixed(1) + '%');
+    const mergeDisplay = (baseVal, finalVal, delta, fmtBase, isBenefitPositive = true) => {
+      const beneficial = isBenefitPositive ? delta > 0.0001 : delta < -0.0001;
+      return mergePositive && beneficial ? fmtBase(finalVal) : fmtBase(baseVal);
+    };
 
     const statRow = (label, baseStr, bonStr) => {
       const bon = bonStr || '';
@@ -3917,22 +3983,28 @@
     const tHitBon = Math.abs(tHitDiff) >= 0.005
       ? `<span class="${tHitDiff < 0 ? 'hl-ds-bon-pos' : 'hl-ds-bon-neg'}">${tHitDiff < 0 ? '-' : '+'}${Math.abs(tHitDiff).toFixed(2)}s</span>`
       : '';
-    const dmgBonusAmt = vals.dmin - base.dmin; // dmin and dmax shift by same item damage
+    const dmgBonusAmt = attr === 'uni'
+      ? vals.dmin - vals.whiteDmin
+      : vals.dmin - base.dmin;
     const dmgBonus = bonusInt(dmgBonusAmt);
     const rangeBonus = bonusInt(vals.range - base.range);
     const msBonus = bonusInt(vals.ms - base.ms);
     const mprBonus = bonusDec2(vals.mpr - base.mpr);
     const spellAmpBonus = bonusPct1(vals.spellAmp - base.spellAmp);
 
+    const lifestealBonus = bonusPct1(vals.lifesteal - base.lifesteal);
+    const spellLifestealBonus = bonusPct1(vals.spellLifesteal - base.spellLifesteal);
     const attackRows = [
-      statRow('Damage', `${fmt(base.dmin)} - ${fmt(base.dmax)}`, dmgBonus),
-      statRow('Attack Speed', fmt(base.aspd), aspdBonus),
-      statRow('Attack Interval', `${tHitBase}s`, tHitBon),
-      statRow('Attack Range', fmt(base.range), rangeBonus),
+      statRow('Damage', `${mergeDisplay(attr === 'uni' ? vals.whiteDmin : base.dmin, vals.dmin, dmgBonusAmt, fmt)} - ${mergeDisplay(attr === 'uni' ? vals.whiteDmax : base.dmax, vals.dmax, dmgBonusAmt, fmt)}`, mergePositive && dmgBonusAmt > 0 ? '' : dmgBonus),
+      statRow('Attack Speed', mergeDisplay(base.aspd, vals.aspd, vals.aspd - base.aspd, fmt), mergePositive && (vals.aspd - base.aspd) > 0 ? '' : aspdBonus),
+      statRow('Attack Interval', `${mergeDisplay(base.tHit, vals.tHit, tHitDiff, v => Number(v || 0).toFixed(2) + 's', false)}`, mergePositive && tHitDiff < 0 ? '' : tHitBon),
+      statRow('Attack Range', mergeDisplay(base.range, vals.range, vals.range - base.range, fmt), mergePositive && (vals.range - base.range) > 0 ? '' : rangeBonus),
       statRow('Projectile', fmt(base.proj || 0)),
-      statRow('Move Speed', fmt(base.ms), msBonus),
-      statRow('Spell Amp', fmtPct(base.spellAmp), spellAmpBonus),
-      statRow('Mana Regen', Number(base.mpr || 0).toFixed(2), mprBonus),
+      statRow('Move Speed', mergeDisplay(base.ms, vals.ms, vals.ms - base.ms, fmt), mergePositive && (vals.ms - base.ms) > 0 ? '' : msBonus),
+      statRow('Spell Amp', mergeDisplay(base.spellAmp, vals.spellAmp, vals.spellAmp - base.spellAmp, fmtPct), mergePositive && (vals.spellAmp - base.spellAmp) > 0 ? '' : spellAmpBonus),
+      statRow('Lifesteal', mergeDisplay(base.lifesteal, vals.lifesteal, vals.lifesteal - base.lifesteal, fmtPct), mergePositive && (vals.lifesteal - base.lifesteal) > 0 ? '' : lifestealBonus),
+      statRow('Spell Lifesteal', mergeDisplay(base.spellLifesteal, vals.spellLifesteal, vals.spellLifesteal - base.spellLifesteal, fmtPct), mergePositive && (vals.spellLifesteal - base.spellLifesteal) > 0 ? '' : spellLifestealBonus),
+      statRow('Mana Regen', mergeDisplay(base.mpr, vals.mpr, vals.mpr - base.mpr, v => Number(v || 0).toFixed(2)), mergePositive && (vals.mpr - base.mpr) > 0 ? '' : mprBonus),
     ].join('');
 
     // DEFENSE panel rows (base + bonus)
@@ -3945,15 +4017,16 @@
     const slowResBonus = bonusPct1(vals.slowRes - base.slowRes);
 
     const defenseRows = [
-      statRow('Armor', fmtStat(base.armor), armorBonus),
-      statRow('Physical Resist', fmtPct(base.armorPct), armorPctBonus),
-      statRow('Magic Resist', fmtPct(base.mr), mrBonus),
-      statRow('Status Resist', fmtPct(base.statusRes), statusResBonus),
-      statRow('Slow Resist', fmtPct(base.slowRes), slowResBonus),
-      statRow('Evasion', fmtPct(base.evasion), evasionBonus),
-      statRow('Health Regen', Number(base.hpr || 0).toFixed(2), hprBonus),
-      statRow('Day Vision', fmt(base.dvision || 0), bonusInt(vals.dvision - base.dvision)),
-      statRow('Night Vision', fmt(base.nvision || 0), bonusInt(vals.nvision - base.nvision)),
+      statRow('Armor', mergeDisplay(base.armor, vals.armor, vals.armor - base.armor, fmtStat), mergePositive && (vals.armor - base.armor) > 0 ? '' : armorBonus),
+      statRow('Physical Resist', mergeDisplay(base.armorPct, vals.armorPct, vals.armorPct - base.armorPct, fmtPct), mergePositive && (vals.armorPct - base.armorPct) > 0 ? '' : armorPctBonus),
+      statRow('Magic Resist', mergeDisplay(base.mr, vals.mr, vals.mr - base.mr, fmtPct), mergePositive && (vals.mr - base.mr) > 0 ? '' : mrBonus),
+      statRow('Status Resist', mergeDisplay(base.statusRes, vals.statusRes, vals.statusRes - base.statusRes, fmtPct), mergePositive && (vals.statusRes - base.statusRes) > 0 ? '' : statusResBonus),
+      statRow('Slow Resist', mergeDisplay(base.slowRes, vals.slowRes, vals.slowRes - base.slowRes, fmtPct), mergePositive && (vals.slowRes - base.slowRes) > 0 ? '' : slowResBonus),
+      statRow('Evasion', mergeDisplay(base.evasion, vals.evasion, vals.evasion - base.evasion, fmtPct), mergePositive && (vals.evasion - base.evasion) > 0 ? '' : evasionBonus),
+      statRow('Health Regen', mergeDisplay(base.hpr, vals.hpr, vals.hpr - base.hpr, v => Number(v || 0).toFixed(2)), mergePositive && (vals.hpr - base.hpr) > 0 ? '' : hprBonus),
+      statRow('Day Vision', mergeDisplay(base.dvision || 0, vals.dvision || 0, (vals.dvision || 0) - (base.dvision || 0), fmt), mergePositive && ((vals.dvision || 0) - (base.dvision || 0)) > 0 ? '' : bonusInt(vals.dvision - base.dvision)),
+      statRow('Night Vision', mergeDisplay(base.nvision || 0, vals.nvision || 0, (vals.nvision || 0) - (base.nvision || 0), fmt), mergePositive && ((vals.nvision || 0) - (base.nvision || 0)) > 0 ? '' : bonusInt(vals.nvision - base.nvision)),
+      statRow('Cast Range', mergeDisplay(base.castRange || 0, vals.castRange || 0, (vals.castRange || 0) - (base.castRange || 0), fmt), mergePositive && ((vals.castRange || 0) - (base.castRange || 0)) > 0 ? '' : bonusInt(vals.castRange - base.castRange)),
     ].join('');
 
     // Attribute rows builder вЂ” shows base attr + item bonus on the number
@@ -3962,7 +4035,8 @@
       const color = ATTR_COLORS[key];
       const bg = isPrimary ? `style="background:${ATTR_BG[key]};margin-left:0"` : '';
       const attrDelta = totalAttr - baseAttr;
-      const attrBon = bonusInt(attrDelta);
+      const attrBon = mergePositive && attrDelta > 0 ? '' : bonusInt(attrDelta);
+      const shownBase = mergePositive && attrDelta > 0 ? totalAttr : baseAttr;
       const primaryBonus = isPrimary
         ? `<div class="hl-da-primary" style="color:${color}">${bonusLine}</div>`
         : '';
@@ -3971,7 +4045,7 @@
           <img class="hl-da-icon" src="${icon}" alt="${key}" loading="lazy">
           <div class="hl-da-details">
             <div class="hl-da-top">
-              <span class="hl-da-base">${fmt(baseAttr)}${attrBon ? ' ' + attrBon : ''}</span>
+              <span class="hl-da-base">${fmt(shownBase)}${attrBon ? ' ' + attrBon : ''}</span>
               <span class="hl-da-gain">(Gains ${fmtGain(gainVal)} per lvl)</span>
             </div>
             ${primaryBonus}
@@ -4005,9 +4079,11 @@
     if (attr === 'uni') {
       const uniBase = base.str + base.agi + base.int;
       const uniTotal = vals.str + vals.agi + vals.int;
-      const uniBon = bonusInt(uniTotal - uniBase);
+      const uniDelta = uniTotal - uniBase;
+      const uniBon = mergePositive && uniDelta > 0 ? '' : bonusInt(uniDelta);
+      const uniShown = mergePositive && uniDelta > 0 ? uniTotal : uniBase;
       let uniDmgGain = (strGain + agiGain + intGain) * C.uniDmg;
-      const innateToggle = root.querySelector('[data-innates-toggle]');
+      const innateToggle = document.querySelector('[data-innates-toggle]');
       const hlInnatesOn = innateToggle ? innateToggle.checked : true;
       if (s.slug === 'void_spirit' && hlInnatesOn) uniDmgGain *= 1.15;
       const uniGainStr = uniDmgGain.toFixed(1).replace(/\.0$/, '');
@@ -4016,7 +4092,7 @@
           <img class="hl-da-icon" src="${ATTR_ICONS.uni}" alt="uni" loading="lazy">
           <div class="hl-da-details">
             <div class="hl-da-top">
-              <span class="hl-da-base">${fmt(uniBase)}${uniBon ? ' ' + uniBon : ''}</span>
+              <span class="hl-da-base">${fmt(uniShown)}${uniBon ? ' ' + uniBon : ''}</span>
               <span class="hl-da-gain">(Gains ${uniGainStr} damage per lvl)</span>
             </div>
             <div class="hl-da-primary" style="color:${ATTR_COLORS.uni}">${primaryDmgUni}</div>
@@ -4052,6 +4128,9 @@
         <div class="hl-picker-head">
           <strong>Choose Hero</strong>
           <button type="button" class="hl-picker-close" data-picker-close aria-label="Close">x</button>
+        </div>
+        <div class="hl-picker-searchbar">
+          <input type="text" class="hl-picker-search" data-hero-search placeholder="Search hero..." aria-label="Search hero" autocomplete="off">
         </div>
         <div class="hl-hero-grid-wrap">
           ${['str', 'agi', 'int', 'uni'].map(key => `
@@ -4176,6 +4255,8 @@
     overlay.innerHTML = heroPickerMarkup(panel.dataset.hero || heroes[0].id);
     overlay.hidden = false;
     overlay.classList.add('is-open');
+    const input = overlay.querySelector('[data-hero-search]');
+    if (input) input.focus();
   }
 
   function showEnchantTierPicker(panel, item) {
@@ -4219,6 +4300,8 @@
     overlay.classList.add('is-open');
   }
 
+
+
   function update() {
     const panels = [...root.querySelectorAll('.hl-panel')];
     const aState = state(panels[0]);
@@ -4230,18 +4313,22 @@
     renderTotals(panels[0], a, aState);
     renderTotals(panels[1], b, bState);
     const diff = document.getElementById('hl-diff-list');
+    const diffPctOn = heroLabDiffPercentOn();
     diff.innerHTML = METRICS.map(([key, label]) => {
       const leftVal = Number(a[key] || 0);
       const rightVal = Number(b[key] || 0);
       const rawDelta = leftVal - rightVal;
       const delta = key === 'tHit' ? -rawDelta : rawDelta;
+      const avgMag = (Math.abs(leftVal) + Math.abs(rightVal)) / 2;
+      const pctAbs = avgMag < 0.0001 ? (Math.abs(leftVal - rightVal) < 0.0001 ? 0 : 200) : (Math.abs(leftVal - rightVal) / avgMag) * 100;
+      const diffValue = diffPctOn ? (delta === 0 ? 0 : (delta > 0 ? pctAbs : -pctAbs)) : delta;
       const cls = delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'zero';
       const side = delta > 0 ? 'left' : delta < 0 ? 'right' : 'none';
       return `<div class="hl-diff-row ${cls}" data-adv="${side}">
         <strong class="hl-diff-side hl-diff-left">${fmtMetric(key, leftVal)}</strong>
         <span class="hl-diff-center">
           <span class="hl-diff-label">${label}</span>
-          <strong class="hl-diff-mid ${cls}">${fmtDiffMetric(key, delta)}</strong>
+          <strong class="hl-diff-mid ${cls}">${diffPctOn ? fmt(diffValue, 1) + '%' : fmtDiffMetric(key, diffValue)}</strong>
         </span>
         <strong class="hl-diff-side hl-diff-right">${fmtMetric(key, rightVal)}</strong>
       </div>`;
@@ -4259,6 +4346,11 @@
       return;
     }
     if (e.target.matches('[data-custom]')) update();
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('[data-innates-toggle], [data-hl-merge-positive-toggle], [data-hl-diff-percent-toggle]')) {
+      update();
+    }
   });
   root.addEventListener('focusin', (e) => {
     if (e.target.matches('[data-field="level"]')) {
@@ -4435,6 +4527,19 @@
       closePicker();
       update();
     }
+  });
+  overlay.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-hero-search]');
+    if (!input) return;
+    const q = String(input.value || '').trim().toLowerCase();
+    overlay.querySelectorAll('.hl-hero-tile').forEach(tile => {
+      const name = String(tile.getAttribute('aria-label') || '').toLowerCase();
+      tile.classList.toggle('is-hidden', !!q && !name.includes(q));
+    });
+    overlay.querySelectorAll('.hl-hero-group').forEach(group => {
+      const anyVisible = [...group.querySelectorAll('.hl-hero-tile')].some(tile => !tile.classList.contains('is-hidden'));
+      group.classList.toggle('is-hidden', !anyVisible);
+    });
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !overlay.hidden) closePicker();

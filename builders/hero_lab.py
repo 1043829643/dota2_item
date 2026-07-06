@@ -85,6 +85,8 @@ def _load_item_tooltips() -> dict[str, dict]:
                 all_item_ids.add(rest)
     # Simple approach: for each attr key, find the longest known item_id prefix
     for rest, val in attr_keys:
+        if rest in all_item_ids:
+            continue
         best = ""
         for item_id in all_item_ids:
             if rest.startswith(item_id + "_") and len(item_id) > len(best):
@@ -327,14 +329,14 @@ def _item_bonus_at(fields: dict, idx: int) -> dict[str, float]:
         "int": _sum_at(fields, idx, "bonus_intellect", "bonus_int", "bonus_intelligence"),
         "hp": _sum_at(fields, idx, "bonus_health", "bonus_hp", "bonus_max_health", "health_bonus"),
         "mp": _sum_at(fields, idx, "bonus_mana", "max_mana", "bonus_max_mana"),
-        "hpr": _sum_at(fields, idx, "bonus_health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen", "health_regen"),
+        "hpr": _sum_at(fields, idx, "bonus_health_regen", "bonus_hp_regen", "hp_regen", "bonus_regen", "health_regen", "aura_health_regen"),
         "mpr": _sum_at(fields, idx, "bonus_mana_regen", "bonus_mp_regen", "mp_regen", "mana_regen"),
         "armor": _sum_at(fields, idx, "bonus_armor", "aura_bonus_armor", "armor", "armor_aura", "bonus_aoe_armor"),
-        "mr": _sum_at(fields, idx, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance", "magic_resist"),
+        "mr": _sum_at(fields, idx, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance", "magic_resist", "magic_resistance_aura"),
         "evasion": _sum_at(fields, idx, "bonus_evasion", "evasion"),
         "damage": _sum_at(fields, idx, "bonus_damage", "damage_aura"),
         "aspd": _sum_at(fields, idx, "bonus_attack_speed", "attack_speed"),
-        "ms": _sum_at(fields, idx, "bonus_movement_speed", "bonus_move_speed", "movement_speed"),
+        "ms": _sum_at(fields, idx, "bonus_movement_speed", "bonus_move_speed", "movement_speed", "aura_movement_speed", "bonus_movement"),
         "range": _sum_at(fields, idx, "bonus_attack_range", "attack_range_bonus", "attack_range"),
         "dvision": _sum_at(fields, idx, "bonus_day_vision", "bonus_vision"),
         "nvision": _sum_at(fields, idx, "bonus_night_vision", "night_vision_bonus"),
@@ -343,6 +345,7 @@ def _item_bonus_at(fields: dict, idx: int) -> dict[str, float]:
         "slowRes": _sum_at(fields, idx, "slow_resistance", "slow_resist", "bonus_slow_resist"),
         "hprAmp": _sum_at(fields, idx, "hp_regen_amp"),
         "mprAmp": _sum_at(fields, idx, "mana_regen_multiplier"),
+        "castRange": _sum_at(fields, idx, "bonus_cast_range", "cast_range_bonus", "cast_range"),
     }
 
 
@@ -371,16 +374,17 @@ def _item_bonus(fields: dict, *, consumable: bool = False) -> dict[str, float]:
         "int": int_bonus,
         "hp": _sum(fields, "bonus_health", "bonus_hp", "bonus_max_health", "health_bonus"),
         "mp": _sum(fields, "bonus_mana", "max_mana", "bonus_max_mana"),
-        "hpr": _sum(fields, *health_regen_keys),
+        "hpr": _sum(fields, *health_regen_keys, "aura_health_regen"),
         "mpr": _sum(fields, *mana_regen_keys),
         "armor": _sum(fields, "bonus_armor", "aura_bonus_armor", "armor", "armor_aura", "bonus_aoe_armor"),
-        "mr": _sum(fields, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance"),
+        "mr": _sum(fields, "bonus_magic_resistance", "bonus_magical_armor", "bonus_spell_resist", "magic_resistance", "magic_resistance_aura"),
         "evasion": _sum(fields, "bonus_evasion", "evasion"),
-        "damage": _sum(fields, "bonus_damage", "damage_aura"),
+        "damage": _sum(fields, "bonus_damage"),
+        "damagePct": _sum(fields, "damage_aura"),
         "damageMelee": _sum(fields, "bonus_damage_melee"),
         "damageRanged": _sum(fields, "bonus_damage_range", "bonus_damage_ranged"),
         "aspd": _sum(fields, "bonus_attack_speed", "attack_speed", "bonus_as"),
-        "ms": _sum(fields, "bonus_movement_speed", "bonus_move_speed", "movement_speed"),
+        "ms": _sum(fields, "bonus_movement_speed", "bonus_move_speed", "movement_speed", "aura_movement_speed", "bonus_movement"),
         "msMelee": _sum(fields, "bonus_movement_speed_melee", "bonus_move_speed_melee"),
         "msRanged": _sum(fields, "bonus_movement_speed_ranged", "bonus_move_speed_ranged"),
         "range": _sum(fields, "bonus_attack_range", "attack_range_bonus", "base_attack_range"),
@@ -391,7 +395,14 @@ def _item_bonus(fields: dict, *, consumable: bool = False) -> dict[str, float]:
         "slowRes": _sum(fields, "slow_resistance", "slow_resist", "bonus_slow_resist"),
         "hprAmp": _sum(fields, "hp_regen_amp"),
         "mprAmp": _sum(fields, "mana_regen_multiplier"),
+        "hprPct": _sum(fields, "hp_regen_pct"),
+        "missingHprPct": _sum(fields, "missing_health_regen"),
+        "mpPct": _sum(fields, "bonus_max_mana_percentage"),
+        "lifesteal": _sum(fields, "attack_lifesteal", "lifesteal", "lifesteal_percent"),
+        "spellLifesteal": _sum(fields, "spell_lifesteal", "bonus_spell_lifesteal"),
+        "castRange": _sum(fields, "bonus_cast_range", "cast_range_bonus", "cast_range"),
     }
+
 
 
 _ENCHANT_TIER_LABELS = {
@@ -752,6 +763,13 @@ def _load_items(version: str) -> list[dict]:
         # damage, not +120 attack damage.  Only the enchantment contributes
         # direct stats to Hero Lab.
         bonus = {} if cls == "neutral" else _item_bonus(fields, consumable=consumable)
+        if item == "item_heart" and bonus:
+            bonus["hprPct"] = bonus.get("hpr", 0)
+            bonus["hpr"] = 0
+        if item == "item_veil_of_discord" and bonus:
+            bonus["spellAmp"] = 0
+        if item == "item_swift_blink" and bonus:
+            bonus["ms"] = 0
         if cls == "neutral":
             bonus = {key: 0 for key in _item_bonus({}, consumable=False)}
         if cls == "regular" and not any(abs(v) > 1e-9 for v in bonus.values()) and cost <= 0:
@@ -1099,6 +1117,25 @@ def render_html() -> str:
 {subnav}
 <div class="creeps-scroll">
 <p class="mr-blurb inbox-bar">Compare two heroes side by side with level, six inventory slots, neutral item, enchantment and custom stat overrides. The center column shows the live difference between both builds.</p>
+<div class="cal-toggle-bar inbox-bar hero-lab-toolbar">
+  <div class="toolbar-panel">
+    <label class="ua-upgrades-toggle">
+      <span class="ua-upgrades-label">Innates</span>
+      <input type="checkbox" class="ua-switch-input" data-innates-toggle checked>
+      <span class="ua-switch" aria-hidden="true"></span>
+    </label>
+    <label class="ua-upgrades-toggle">
+      <span class="ua-upgrades-label">Merge positive bonuses</span>
+      <input type="checkbox" class="ua-switch-input" data-hl-merge-positive-toggle>
+      <span class="ua-switch" aria-hidden="true"></span>
+    </label>
+    <label class="ua-upgrades-toggle">
+      <span class="ua-upgrades-label">Percent difference</span>
+      <input type="checkbox" class="ua-switch-input" data-hl-diff-percent-toggle>
+      <span class="ua-switch" aria-hidden="true"></span>
+    </label>
+  </div>
+</div>
 <script id="hero-lab-data" type="application/json">{data_script}</script>
 <div class="hero-lab" data-patch="{_esc(version)}">
   <div class="hl-panel" data-side="a"></div>

@@ -98,7 +98,7 @@ KNOWN_FORMULAS = {
 EXPECTED_HEROES = {
     "axe", "beastmaster", "centaur", "dark_seer", "death_prophet",
     "dragon_knight", "drow_ranger", "keeper_of_the_light", "life_stealer",
-    "luna", "morphling", "ogre_magi", "razor", "sven", "techies", "tiny",
+    "luna", "morphling", "naga_siren", "ogre_magi", "razor", "sven", "techies", "tiny",
     "ursa", "void_spirit",
 }
 
