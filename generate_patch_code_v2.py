@@ -877,6 +877,11 @@ def _render_hero(hero, version=None, patchnotes_loc=None):
                 print(f'[WARN] facet "{facet_slug}" not in FACETS — add to badges.py: '
                       f'"{facet_slug}": ("{facet_title}", "{facet_color}")')
             out.append(f'W(facet_header("{facet_slug}"))')
+            # general_notes on the facet subsection itself (e.g. radius changes)
+            general_notes = s.get('general_notes', [])
+            if general_notes:
+                gbody, _ = _emit_notes(general_notes)
+                out.extend(gbody)
             # Collect all notes from all abilities in this facet into one list
             all_facet_notes = []
             for a in s.get('abilities', []):
