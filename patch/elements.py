@@ -11,10 +11,9 @@ from .output import H, W
 from .state import _State
 
 try:
-    _SLIM_CACHE = _json.loads(
-        open(_os.path.join(_os.path.dirname(__file__), '..', 'data', 'abilities_slim.json'),
-             encoding='utf-8').read()
-    )
+    with open(_os.path.join(_os.path.dirname(__file__), '..', 'data', 'abilities_slim.json'),
+              encoding='utf-8') as _f:
+        _SLIM_CACHE = _json.loads(_f.read())
 except Exception:
     _SLIM_CACHE = {}
 

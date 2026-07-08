@@ -33,10 +33,16 @@ def favicon_links(prefix=""):
 
 def compute_asset_version():
     """Short SHA1 of shared CSS and JavaScript assets."""
-    css = open(_os.path.join(_HERE, "styles.css"), encoding="utf-8").read()
-    js = open(_os.path.join(_HERE, "src", "scripts.js"), encoding="utf-8").read()
+    with open(_os.path.join(_HERE, "styles.css"), encoding="utf-8") as _f:
+        css = _f.read()
+    with open(_os.path.join(_HERE, "src", "scripts.js"), encoding="utf-8") as _f:
+        js = _f.read()
     battle_path = _os.path.join(_HERE, "src", "hero_lab_battle.js")
-    battle = open(battle_path, encoding="utf-8").read() if _os.path.exists(battle_path) else ""
+    if _os.path.exists(battle_path):
+        with open(battle_path, encoding="utf-8") as _f:
+            battle = _f.read()
+    else:
+        battle = ""
     return _hashlib.sha1((css + js + battle).encode("utf-8")).hexdigest()[:10]
 
 
@@ -46,9 +52,8 @@ def get_latest_version():
     import json as _json
     meta_path = _os.path.join(_HERE, "data", "site_meta.json")
     try:
-        return _json.loads(open(meta_path, encoding="utf-8").read()).get(
-            "latest_patch_version", ""
-        )
+        with open(meta_path, encoding="utf-8") as _f:
+            return _json.loads(_f.read()).get("latest_patch_version", "")
     except Exception:
         return ""
 

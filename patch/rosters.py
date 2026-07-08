@@ -46,7 +46,8 @@ def _load_item_classes(version):
     path = _os.path.join(_os.path.dirname(__file__), "..", "data", "stats", version, "items.txt")
     present, neutral, obsolete = set(), set(), set()
     try:
-        lines = open(path, encoding="utf-8").read().splitlines()
+        with open(path, encoding="utf-8") as _f:
+            lines = _f.read().splitlines()
     except OSError:
         return neutral, obsolete, present
     cur = None
@@ -76,7 +77,8 @@ def _load_neutral_pool_current():
     `neutral_item_tier` (>= 0)."""
     path = _os.path.join(_os.path.dirname(__file__), "..", "data", "itemlist.json")
     try:
-        data = _json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as _f:
+            data = _json.load(_f)
         items = data["result"]["data"]["itemabilities"]
     except (OSError, KeyError, ValueError) as exc:
         print(f"  ! itemlist.json unreadable ({exc}) — neutral pool empty")
@@ -90,7 +92,8 @@ def _load_neutral_tier_map():
     """{game slug → tier int} from data/itemlist.json."""
     path = _os.path.join(_os.path.dirname(__file__), "..", "data", "itemlist.json")
     try:
-        data = _json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as _f:
+            data = _json.load(_f)
         items = data["result"]["data"]["itemabilities"]
     except (OSError, KeyError, ValueError):
         return {}
@@ -105,7 +108,9 @@ def _load_neutral_cycled_versions():
     out = {}
     path = _os.path.join(_os.path.dirname(__file__), "..", "data", "patchnotes_english.txt")
     try:
-        for ln in open(path, encoding="utf-8").read().splitlines():
+        with open(path, encoding="utf-8") as _f:
+            _cycled_lines = _f.read().splitlines()
+        for ln in _cycled_lines:
             if "cycled out" in ln.lower():
                 mk = re.search(r'_item_([a-z0-9_]+)"', ln)
                 mv = re.search(r'DOTA_Patch_(\d+_\d+[a-z]?)_', ln)
@@ -176,7 +181,8 @@ _OBSOLETE_REMOVED = {
 def _load_shop_categories():
     path = _os.path.join(_os.path.dirname(__file__), "..", "data", "shops.txt")
     try:
-        lines = open(path, encoding="utf-8").read().splitlines()
+        with open(path, encoding="utf-8") as _f:
+            lines = _f.read().splitlines()
     except OSError:
         return {}
     want = dict(_SHOP_CATEGORY_ORDER)
@@ -274,7 +280,9 @@ def _load_full_game_items(latest_stats_ver, neutral_slugs, obsolete_slugs, prese
     name_re = re.compile(r'^\s*"(item_[a-z0-9_]+)"\s*$')
     cost_re = re.compile(r'^\s*"ItemCost"\s*"(\d+)"')
     try:
-        for ln in open(txt_path, encoding="utf-8").read().splitlines():
+        with open(txt_path, encoding="utf-8") as _f:
+            _txt_lines = _f.read().splitlines()
+        for ln in _txt_lines:
             m = name_re.match(ln)
             if m:
                 cur = m.group(1)
@@ -291,8 +299,9 @@ def _load_full_game_items(latest_stats_ver, neutral_slugs, obsolete_slugs, prese
         return []
     names = {}
     try:
-        _il = _json.load(open(_os.path.join(_os.path.dirname(__file__),
-                              "..", "data", "itemlist.json"), encoding="utf-8"))
+        with open(_os.path.join(_os.path.dirname(__file__),
+                               "..", "data", "itemlist.json"), encoding="utf-8") as _f:
+            _il = _json.load(_f)
         for _it in _il["result"]["data"]["itemabilities"]:
             names[_it["name"]] = _it.get("name_english_loc")
     except (OSError, KeyError, ValueError):
