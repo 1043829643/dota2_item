@@ -635,6 +635,8 @@ def ability(title, slug=None, innate=None, icon_url=None, sub=False):
                       f'onerror="{on_err}">')
         if not icon_url:
             _State.ability_icons.add(src)
+        if icon_url == INNATE_ICON_URL:
+            skip_marker = True
     if is_innate and not skip_marker:
         icon_inner += (f'<img src="{INNATE_ICON_URL}" alt="" '
                        f'class="innate-marker">')
