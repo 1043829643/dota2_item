@@ -911,6 +911,11 @@ def _load_items(version: str) -> list[dict]:
                             mv["aspdPct"] = mv.pop("aspd")
                 rec["modes"] = modes
                 rec["bonus"] = {k: 0 for k in rec["bonus"]}
+        if item in ("item_dust", "item_smoke_of_deceit"):
+            # enemy/active-only effects — not passive hero bonuses
+            if rec.get("bonus"):
+                rec["bonus"]["damage"] = 0
+                rec["bonus"]["ms"] = 0
         if item == "item_desolator":
             step = int(_sum(fields, "bonus_damage_per_kill") or 2)
             max_stacks = int(_sum(fields, "max_damage") or 30)
