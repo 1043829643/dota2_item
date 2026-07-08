@@ -607,6 +607,9 @@ def build():
     # Tidehunter
     W(hero_header("Tidehunter"))
     W(facet_header("tidehunter_sizescale"))
+    W(ul_open())
+    W(li("Starting attack range and Anchor Smash penalties increased from 50 to 60", b(50, 60, l=True)))
+    W(ul_close())
     W(ability("Dead in the Water", slug="tidehunter_dead_in_the_water"))
     W(ul_open())
     W(li("Cooldown increased from 25s to 35s", b(25, 35, l=True)))
@@ -625,8 +628,9 @@ def build():
     
     # Tinker
     W(hero_header("Tinker"))
+    W(ability("Defense Matrix", slug="tinker_defense_matrix"))
     W(ul_open())
-    W(li("Defense Matrix: Mana Cost increased from 80/95/110/125 to 90/105/120/135", b([80, 95, 110, 125], [90, 105, 120, 135], l=True)))
+    W(li("Mana Cost increased from 80/95/110/125 to 90/105/120/135", b([80, 95, 110, 125], [90, 105, 120, 135], l=True)))
     W(ul_close())
     W(ability("Laser", slug="tinker_laser"))
     W(ul_open())
@@ -642,7 +646,7 @@ def build():
     W(facet_header("tiny_crash_landing"))
     W(ul_open())
     W(li("Toss: Movement Slow increased from 15/20/25/30% to 20/25/30/35%", b([15, 20, 25, 30], [20, 25, 30, 35])))
-    W(li("Attack Slow increased from 10/20/30/40 to 15/25/35/45", b([10, 20, 30, 40], [15, 25, 35, 45])))
+    W(li("Toss: Attack Slow increased from 10/20/30/40 to 15/25/35/45", b([10, 20, 30, 40], [15, 25, 35, 45])))
     W(ul_close())
     W(ability("Grow", slug="tiny_grow"))
     W(ul_open())
@@ -654,7 +658,7 @@ def build():
     W(hero_header("Warlock"))
     W(ability("Eldritch Summoning", slug="warlock_eldritch_summoning"))
     W(ul_open())
-    W(li("Imp explosion delay increased from 0.2s to 0.3s", b(0.2, 0.3)))
+    W(li("Imp explosion delay increased from 0.2s to 0.3s", b(0.2, 0.3, l=True)))
     W(ul_close())
     
     # Weaver
@@ -672,7 +676,7 @@ def build():
     W(ul_close())
     W(facet_header("windrunner_killshot"))
     W(ul_open())
-    W(li("Powershot: Execute no longer goes through any death denial effects (Dazzle's Shallow Grave, Oracle's False Promise, etc.)", t("MISC")))
+    W(li("Powershot: Execute no longer goes through any death denial effects (Dazzle's Shallow Grave, Oracle's False Promise, etc.)", t("DEL")))
     W(ul_close())
     
     # Wraith King
@@ -681,9 +685,6 @@ def build():
     W(ul_open())
     W(li("Cooldown decreased from 50s to 42s", b(50, 42, l=True)))
     W(li("Skeleton Duration increased from 40s to 46s", b(40, 46)))
-    W(ul_close())
-    W(subgroup("Talents"))
-    W(ul_open())
     W(li("Level 10 Talent +25%/-25% Bone Guard Duration / Cooldown replaced with +2s Wraithfire Blast Slow Duration", t("REWORK")))
     W(ul_close())
     W(ability("Wraithfire Blast", slug="skeleton_king_hellfire_blast"))
