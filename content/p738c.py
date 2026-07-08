@@ -229,10 +229,14 @@ def build():
     # Brewmaster
     W(hero_header("Brewmaster"))
     W(ability("Primal Split", slug="brewmaster_primal_split"))
+    W(ability("Earth Brewling", slug="brewmaster_earth_unit", icon_url="../icons/units/brewmaster_earth_unit.png"))
     W(ul_open())
-    W(li("Earth Brewling's Debuff Immunity magic resistance increased from 50% to 80%", b(50, 80)))
-    W(li("Void Brewling's Astral Pull Damage increased from 50/100/150 to 75/150/225", b([50, 100, 150], [75, 150, 225])))
-    W(li("Void Brewling's Astral Pull Distance increased from 300/500/700 to 450/575/700", b([300, 500, 700], [450, 575, 700])))
+    W(li("Debuff Immunity magic resistance increased from 50% to 80%", b(50, 80)))
+    W(ul_close())
+    W(ability("Void Brewling", slug="brewmaster_void_unit", icon_url="../icons/units/brewmaster_void_unit.png"))
+    W(ul_open())
+    W(li("Astral Pull Damage increased from 50/100/150 to 75/150/225", b([50, 100, 150], [75, 150, 225])))
+    W(li("Astral Pull Distance increased from 300/500/700 to 450/575/700", b([300, 500, 700], [450, 575, 700])))
     W(ul_close())
     
     # Chen
