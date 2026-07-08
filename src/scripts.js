@@ -606,6 +606,14 @@
         'invoker_sun_strike',
       ],
     },
+    {
+      parent: 'ringmaster_sideshow_secrets',
+      children: [
+        'ringmaster_crystal_ball',
+        'ringmaster_summon_unicycle',
+        'ringmaster_weighted_pie',
+      ],
+    },
   ];
 
   function drawBrewlingConnectors() {
