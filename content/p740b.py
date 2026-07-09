@@ -309,7 +309,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Press The Attack: Mana Cost decreased from 100 to 90", b(100, 90, l=True)))
-    W(li("Bonus Move Speed increased from 10/14/18/22% to 13/16/19/22%", b([10, 14, 18, 22], [13, 16, 19, 22])))
+    W(li("Press The Attack: Bonus Move Speed increased from 10/14/18/22% to 13/16/19/22%", b([10, 14, 18, 22], [13, 16, 19, 22])))
     W(ul_close())
     W(ul_open())
     W(li("Duel: Aghanim's Scepter duration bonus decreased from +2s to +1.5s", b(2, 1.5),

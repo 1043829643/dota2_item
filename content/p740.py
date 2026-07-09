@@ -592,7 +592,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Mist Coil: Cooldown increased from 6.5/6/5.5/5s to 8/7/6/5s", b([6.5, 6, 5.5, 5], [8, 7, 6, 5], l=True)))
-    W(li("Damage/Heal increased from 80/150/220/290 to 95/160/225/290", b([80, 150, 220, 290], [95, 160, 225, 290])))
+    W(li("Mist Coil: Damage/Heal increased from 80/150/220/290 to 95/160/225/290", b([80, 150, 220, 290], [95, 160, 225, 290])))
     W(ul_close())
 
     # Alchemist
@@ -1153,7 +1153,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Stone Remnant: Now passively grants +2.5% bonus attack damage per currently unused charge", t("NEW")))
-    W(li("Whenever Earth Spirit uses another ability on Stone Remnant, he gains +7.5% bonus attack damage for 10s (effect doesn't stack)", t("NEW")))
+    W(li("Stone Remnant: Whenever Earth Spirit uses another ability on Stone Remnant, he gains +7.5% bonus attack damage for 10s (effect doesn't stack)", t("NEW")))
     W(li_formula("Max Ability Charges increased",
                  "7 + 1 additional charge at every 5th level",
                  "7 + 1 per 4 hero level ups",
@@ -1230,11 +1230,11 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Enchant: Creep Attack Damage Bonus decreased from 0/25/50/75 to 0/20/40/60", b([0, 25, 50, 75], [0, 20, 40, 60])))
-    W(li("Enchanted units may now be bound to a persistent hotkey", t("QoL")))
+    W(li("Enchant: Enchanted units may now be bound to a persistent hotkey", t("QoL")))
     W(ul_close())
     W(ul_open())
     W(li("Little Friends: Affected creeps now gain damage buff from Rabble-Rouser for the duration in case they did not have it", t("MISC")))
-    W(li("Bonus Attack Speed decreased from 100 to 70", b(100, 70)))
+    W(li("Little Friends: Bonus Attack Speed decreased from 100 to 70", b(100, 70)))
     W(ul_close())
     W(subgroup("Talents"))
     W(ul_open())
@@ -1321,7 +1321,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Alacrity: Mana Cost decreased from 90 to 75", b(90, 75, l=True)))
-    W(li("Cast Range increased from 650 to 700", b(650, 700)))
+    W(li("Alacrity: Cast Range increased from 650 to 700", b(650, 700)))
     W(ul_close())
     W(ul_open())
     W(li_formula("Ice Wall: Damage increased",
@@ -1515,9 +1515,9 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Summon Spirit Bear: Moved to an innate ability. Cannot be leveled up", t("REWORK")))
-    W(li("Ability is moved to the 4th ability slot", t("MISC"), extra=inline_note("D key by default")))
-    W(li("Spirit Bear now counts as a melee hero for most spells", t("REWORK"), extra=inline_note("Since the bear is now a hero, all unit-related changes moved to a separate Spirit Bear section below. This section is for the summon ability changes only")))
-    W(li("Cooldown decreased from 150/140/130/120s to 120s", b([150, 140, 130, 120], 120, l=True)))
+    W(li("Summon Spirit Bear: Ability is moved to the 4th ability slot", t("MISC"), extra=inline_note("D key by default")))
+    W(li("Summon Spirit Bear: Spirit Bear now counts as a melee hero for most spells", t("REWORK"), extra=inline_note("Since the bear is now a hero, all unit-related changes moved to a separate Spirit Bear section below. This section is for the summon ability changes only")))
+    W(li("Summon Spirit Bear: Cooldown decreased from 150/140/130/120s to 120s", b([150, 140, 130, 120], 120, l=True)))
     W(ul_close())
     W(ability_change(
         old=None,
@@ -1803,7 +1803,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Adaptive Strike: Cast Range decreased from 600/700/800/900 to 600/675/750/825", b([600, 700, 800, 900], [600, 675, 750, 825])))
-    W(li("Now stuns the target for 0.5s and up to 1.2/1.6/2.0/2.4s when Morphling's Strength is 50% higher than his Agility", t("NEW")))
+    W(li("Adaptive Strike: Now stuns the target for 0.5s and up to 1.2/1.6/2.0/2.4s when Morphling's Strength is 50% higher than his Agility", t("NEW")))
     W(ul_close())
 
     # Muerta
@@ -1840,7 +1840,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Song of the Siren: Max HP Regen per second decreased from 2/3/4% to 1/2/3%", b([2, 3, 4], [1, 2, 3])))
-    W(li("Aghanim's Shard Max HP Regen per second bonus decreased from 2% to 1%", b(2, 1), extra=inline_note("Total Max HP Regen per second with Aghanim's Shard decreased from 4/5/6% to 2/3/4%")))
+    W(li("Song of the Siren: Aghanim's Shard Max HP Regen per second bonus decreased from 2% to 1%", b(2, 1), extra=inline_note("Total Max HP Regen per second with Aghanim's Shard decreased from 4/5/6% to 2/3/4%")))
     W(ul_close())
 
     # Nature's Prophet
@@ -1966,21 +1966,21 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Swashbuckle: Cooldown decreased from 21/18/15/12s to 20/17/14/11s", b([21, 18, 15, 12], [20, 17, 14, 11], l=True)))
-    W(li("Now briefly slows enemies movespeed on hit by 100% for 0.4s", t("NEW")))
+    W(li("Swashbuckle: Now briefly slows enemies movespeed on hit by 100% for 0.4s", t("NEW")))
     W(ul_close())
     W(ul_open())
     W(li("Shield Crash: Cooldown decreased from 18/16/14/12s to 16/13/10/7s", b([18, 16, 14, 12], [16, 13, 10, 7], l=True)))
-    W(li("Mana Cost rescaled from 70/80/90/100 to 75", b([70, 80, 90, 100], 75, l=True)))
-    W(li("Barrier changed from 50/100/150/200 per enemy hero hit to 60/120/180/240 if any enemy hero is hit", t("REWORK"), extra=inline_note("If no enemy hero was hit, barrier is not provided")))
-    W(li("Barrier Duration decreased from 10s to 6s", b(10, 6)))
-    W(li("Damage decreased from 70/130/190/250 to 50/100/150/200", b([70, 130, 190, 250], [50, 100, 150, 200])))
-    W(li("No longer slows enemies", t("DEL")))
-    W(li("Aghanim's Scepter Swashbuckle damage decreased from 100% to 75%", b(100, 75)))
+    W(li("Shield Crash: Mana Cost rescaled from 70/80/90/100 to 75", b([70, 80, 90, 100], 75, l=True)))
+    W(li("Shield Crash: Barrier changed from 50/100/150/200 per enemy hero hit to 60/120/180/240 if any enemy hero is hit", t("REWORK"), extra=inline_note("If no enemy hero was hit, barrier is not provided")))
+    W(li("Shield Crash: Barrier Duration decreased from 10s to 6s", b(10, 6)))
+    W(li("Shield Crash: Damage decreased from 70/130/190/250 to 50/100/150/200", b([70, 130, 190, 250], [50, 100, 150, 200])))
+    W(li("Shield Crash: No longer slows enemies", t("DEL")))
+    W(li("Shield Crash: Aghanim's Scepter Swashbuckle damage decreased from 100% to 75%", b(100, 75)))
     W(ul_close())
     W(ul_open())
     W(li("Rolling Thunder: Duration rescaled from 10s to 9/10/11s", b(10, [9, 10, 11])))
-    W(li("No longer decreases the cooldown of Shield Crash", t("DEL")))
-    W(li("Now takes 1 second to reach full Roll Speed", t("NEW")))
+    W(li("Rolling Thunder: No longer decreases the cooldown of Shield Crash", t("DEL")))
+    W(li("Rolling Thunder: Now takes 1 second to reach full Roll Speed", t("NEW")))
     W(ul_close())
     W(subgroup("Talents"))
     W(ul_open())
@@ -2123,7 +2123,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Storm Surge: Chance to Strike increased from 18% to 20%", b(18, 20)))
-    W(li("Strike Cooldown decreased from 3s to 2.5s", b(3, 2.5, l=True)))
+    W(li("Storm Surge: Strike Cooldown decreased from 3s to 2.5s", b(3, 2.5, l=True)))
     W(ul_close())
 
     # Riki
@@ -2142,28 +2142,28 @@ def build():
                  "0.55/0.9/1.25/1.6", "0.6 + 0.05 per Riki's level up",
                  lambda L: 1.6, lambda L: 0.6 + 0.05 * L,
                  value_fmt="{:g}"))
-    W(li("Now works on allied units at 25% effectiveness", t("NEW")))
-    W(li("Damage is now done as a separate instance of damage instead of a part of the attack damage", t("REWORK")))
+    W(li("Backstab: Now works on allied units at 25% effectiveness", t("NEW")))
+    W(li("Backstab: Damage is now done as a separate instance of damage instead of a part of the attack damage", t("REWORK")))
     W(ul_close())
     W(ul_open())
     W(li("Blink Strike: 2 charges with 25/21/17/13s base restore time replaced with 13/10/7/4s cooldown",
          t("REWORK") + b([25, 21, 17, 13], [13, 10, 7, 4], l=True),
          extra=inline_note("% compares time between uses; note the second charge (burst potential) is gone")))
-    W(li("Bonus 40/55/70/85 magic damage replaced with 15/30/45/60 bonus physical damage on attack",
+    W(li("Blink Strike: Bonus 40/55/70/85 magic damage replaced with 15/30/45/60 bonus physical damage on attack",
          t("REWORK") + b([40, 55, 70, 85], [15, 30, 45, 60]),
          extra=inline_note("% compares raw numbers; physical damage scales differently (reduced by armor instead of magic resistance)")))
     W(ul_close())
     W(ul_open())
     W(li("Tricks of the Trade: Mana Cost rescaled from 45/55/65/75 to 65", b([45, 55, 65, 75], 65, l=True)))
-    W(li("Cooldown increased from 18/16/14/12s to 21/18/15/12s", b([18, 16, 14, 12], [21, 18, 15, 12], l=True)))
-    W(li("Radius decreased from 450 to 425", b(450, 425)))
-    W(li("40% Attack Damage replaced with 30/50/70/90 flat damage", t("REWORK"), extra=inline_note("Still applies bonus damage from Backstab, but as a separate instance of damage now")))
-    W(li("No longer provides bonus Agility", t("DEL")))
-    W(li("Now attacks 2 random targets by default", t("NEW")))
-    W(li("Aghanim's Scepter slightly reworked", t("REWORK"), extra=inline_note("No longer increases the number of targets attacked")))
-    W(li("Now also allows to hide within allied creeps", t("NEW")))
-    W(li("Now increases ability duration by 1s and attack count by 2, but only when Riki hides within an ally", t("NEW"), extra=inline_note("No longer increases attack count on non-ally casts")))
-    W(li("Now provides 15% bonus movement speed to the ally Riki's hiding in", t("NEW")))
+    W(li("Tricks of the Trade: Cooldown increased from 18/16/14/12s to 21/18/15/12s", b([18, 16, 14, 12], [21, 18, 15, 12], l=True)))
+    W(li("Tricks of the Trade: Radius decreased from 450 to 425", b(450, 425)))
+    W(li("Tricks of the Trade: 40% Attack Damage replaced with 30/50/70/90 flat damage", t("REWORK"), extra=inline_note("Still applies bonus damage from Backstab, but as a separate instance of damage now")))
+    W(li("Tricks of the Trade: No longer provides bonus Agility", t("DEL")))
+    W(li("Tricks of the Trade: Now attacks 2 random targets by default", t("NEW")))
+    W(li("Tricks of the Trade: Aghanim's Scepter slightly reworked", t("REWORK"), extra=inline_note("No longer increases the number of targets attacked")))
+    W(li("Tricks of the Trade: Now also allows to hide within allied creeps", t("NEW")))
+    W(li("Tricks of the Trade: Now increases ability duration by 1s and attack count by 2, but only when Riki hides within an ally", t("NEW"), extra=inline_note("No longer increases attack count on non-ally casts")))
+    W(li("Tricks of the Trade: Now provides 15% bonus movement speed to the ally Riki's hiding in", t("NEW")))
     W(ul_close())
     W(ul_open())
     W(li("Cloak and Dagger: Now grants 130/260/390 experience when getting a hero kill and 100 experience when getting a hero assist", t("NEW")))
@@ -2254,7 +2254,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Glaives of Wisdom: Int Steal increased from 1/2/3/4 to 2/3/4/5", b([1, 2, 3, 4], [2, 3, 4, 5])))
-    W(li("Int Steal Duration rescaled from 20/25/30/35s to 10/20/30/40s", b([20, 25, 30, 35], [10, 20, 30, 40])))
+    W(li("Glaives of Wisdom: Int Steal Duration rescaled from 20/25/30/35s to 10/20/30/40s", b([20, 25, 30, 35], [10, 20, 30, 40])))
     W(ul_close())
     W(subgroup("Talents"))
     W(ul_open())
@@ -2392,7 +2392,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Spectral Dagger: Mana Cost decreased from 110/120/130/140 to 100/110/120/130", b([110, 120, 130, 140], [100, 110, 120, 130], l=True)))
-    W(li("Spectre's illusions now also benefit from the Shadow Path", t("NEW")))
+    W(li("Spectral Dagger: Spectre's illusions now also benefit from the Shadow Path", t("NEW")))
     W(ul_close())
     W(ability_change(
         old=dict(
@@ -2608,13 +2608,13 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Nature's Guise: No longer upgraded with Aghanim's Shard", t("DEL")))
-    W(li("Now can be activated while tree walking to make Treant Protector invisible until he attacks or loses the Nature's Guise buff", t("NEW"), extra=inline_note("Linger time: 2s. No Mana Cost. Cooldown: 50s. Cooldown is reduced by 3s per 2 Treant Protector's level ups<br>Cooldown starts when the invisibility ends")))
+    W(li("Nature's Guise: Now can be activated while tree walking to make Treant Protector invisible until he attacks or loses the Nature's Guise buff", t("NEW"), extra=inline_note("Linger time: 2s. No Mana Cost. Cooldown: 50s. Cooldown is reduced by 3s per 2 Treant Protector's level ups<br>Cooldown starts when the invisibility ends")))
     W(ul_close())
     W(ul_open())
     W(li("Nature's Grasp: No longer does 50% more damage and slow when touching a tree", t("DEL")))
-    W(li("Damage per second increased from 30/40/50/60 to 35/50/65/80", b([30, 40, 50, 60], [35, 50, 65, 80])))
-    W(li("Movement Slow increased from 20/25/30/35% to 25/30/35/40%", b([20, 25, 30, 35], [25, 30, 35, 40])))
-    W(li("Creep penalty decreased from 50% to 35%", b(50, 35)))
+    W(li("Nature's Grasp: Damage per second increased from 30/40/50/60 to 35/50/65/80", b([30, 40, 50, 60], [35, 50, 65, 80])))
+    W(li("Nature's Grasp: Movement Slow increased from 20/25/30/35% to 25/30/35/40%", b([20, 25, 30, 35], [25, 30, 35, 40])))
+    W(li("Nature's Grasp: Creep penalty decreased from 50% to 35%", b(50, 35)))
     W(ul_close())
     W(ability_change(
         old=dict(
@@ -2865,7 +2865,7 @@ def build():
     W(ul_close())
     W(ul_open())
     W(li("Voodoo Restoration: Activation mana cost decreased from 35/40/45/50 to 25", b([35, 40, 45, 50], 25, l=True)))
-    W(li("Mana per second rescaled from 8/12/16/20 to 9/12/15/18", b([8, 12, 16, 20], [9, 12, 15, 18])))
+    W(li("Voodoo Restoration: Mana per second rescaled from 8/12/16/20 to 9/12/15/18", b([8, 12, 16, 20], [9, 12, 15, 18])))
     W(ul_close())
     W(ul_open())
     W(li("Maledict: Now also affects player-controlled creeps", t("NEW")))
