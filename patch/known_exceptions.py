@@ -64,6 +64,11 @@ KNOWN_NON_DATAFEED_ABILITIES = {
     ("Lone Druid", "lone_druid_spirit_bear_return"),
     ("Lone Druid", "lone_druid_spirit_bear_entangle"),
     ("Oracle", "oracle_diviners_deck"),
+    ("Chen", "chen_summon_convert"),        # renamed to Zealot in a later patch; historical in p738c.py
+    ("Medusa", "medusa_venomed_volley"),    # old facet-specific ability, not in live herodata
+    ("Ringmaster", "ringmaster_crystal_ball"),   # Sideshow Secrets sub-ability, not surfaced in live API
+    ("Ringmaster", "ringmaster_weighted_pie"),   # Sideshow Secrets sub-ability, not surfaced in live API
+    ("Tinker", "tinker_defense_matrix"),    # not surfaced in live herodata API
 }
 
 KNOWN_DISPLAY_NAME_OVERRIDES = {
