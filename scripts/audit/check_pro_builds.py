@@ -323,6 +323,10 @@ def main() -> int:
         'data-pb-mode="hero"', 'data-pb-mode="player"', 'data-pb-mode="scout"',
         'id="pb-analysis-context"', 'id="pb-sample-guidance"',
         'id="pb-match-drawer"', 'id="pb-advanced-filters"',
+        'id="pb-profile"', 'id="pb-profile-portrait"',
+        'id="pb-role-cards"', 'id="pb-profile-insights"',
+        'id="pb-workspace-title"', 'id="pb-jump-matches"',
+        '核心出装时间线',
         'detailManifestUrl', 'dataGzipUrl',
     )
     for marker in required_html:
@@ -335,12 +339,26 @@ def main() -> int:
         "decodeCorePayload", "pro-builds-core-v2",
         "renderFreshness",
         "setResearchMode", "renderContext", "renderSampleGuidance",
+        "renderHeroProfile", "renderProfileInsights", "matchItemTimeline", "TAB_META",
         "openMatchDrawer", "commitSearchControl",
         "averageFirstUseDelay", "pb-first-use-gap", "DecompressionStream",
     )
     for marker in required_js:
         if marker not in js:
             fail(f"missing JS contract: {marker}", errors)
+
+    tab_markers = [
+        'data-pb-tab="routes"', 'data-pb-tab="overview"',
+        'data-pb-tab="people"', 'data-pb-tab="situations"',
+        'data-pb-tab="matches"', 'data-pb-tab="quality"',
+    ]
+    tab_positions = [html.find(marker) for marker in tab_markers]
+    if min(tab_positions) < 0 or tab_positions != sorted(tab_positions):
+        fail("analysis tabs must preserve the hero-flow order", errors)
+    role_markers = [f'data-pb-role-card="{role}"' for role in ("", "1", "2", "3", "4", "5")]
+    role_positions = [html.find(marker) for marker in role_markers]
+    if min(role_positions) < 0 or role_positions != sorted(role_positions):
+        fail("role cards must preserve all-position then position 1-5 order", errors)
 
     fetcher = FETCHER.read_text(encoding="utf-8")
     updater = UPDATER.read_text(encoding="utf-8")

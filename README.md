@@ -89,14 +89,19 @@ python -m pytest tests -q
 ## Professional item-build analytics
 
 `pro_builds.html` combines professional match builds and purchase timings with
-the current Hero Lab item-stat model. The page starts from three task-oriented
-research paths: hero build research, player-plus-hero research, and pre-match
-scouting. Each path promotes only its essential filters, opens the most relevant
-analysis tab, and moves the remaining controls and exports into an expandable
-advanced area. Hero, player, team, and opponent selectors are searchable; a
-sticky context strip keeps the active question and sample size visible; small
-samples offer one-click range expansion; real matches open in a side drawer so
-the selected route and filter context remain intact.
+the current Hero Lab item-stat model. Its hero-first flow presents the selected
+hero, sample and win rate, clickable position 1–5 cards, window trends, build
+cards, and traceable real matches before the deeper analysis tools. Every build
+module reports its own usable denominator; matches without enough purchase
+timings remain in the hero sample but are never fabricated into a route.
+
+Three task-oriented research paths remain available for hero research,
+player-plus-hero research, and pre-match scouting. Each path promotes only its
+essential filters and moves the remaining controls and exports into an
+expandable advanced area. Hero, player, team, and opponent selectors are
+searchable; small samples offer one-click range expansion; real matches include
+their core item timeline and open in a side drawer so the selected route and
+filter context remain intact.
 
 The analysis includes date/patch/player/team/hero/
 responsibility-position filters, route flow graphs, current-vs-previous window

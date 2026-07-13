@@ -238,14 +238,49 @@ def render_html() -> str:
 <div class="container pro-builds-page">
 {subnav}
 <main class="pb-main">
-  <header class="pb-hero">
-    <div>
-      <span class="pb-eyebrow">PRO MATCHES × HERO LAB</span>
-      <h1>职业选手出装分析</h1>
-      <p>围绕英雄出装研究、选手英雄研究和赛前准备组织职业比赛数据，将完整路线、购买时点、比赛情境与 Hero Lab 理论属性放在同一条研究动线中。</p>
+  <header class="pb-profile" id="pb-profile">
+    <div class="pb-profile-main">
+      <div class="pb-profile-portrait">
+        <img id="pb-profile-portrait" alt="" hidden>
+        <span id="pb-profile-placeholder">?</span>
+      </div>
+      <div class="pb-profile-copy">
+        <span class="pb-eyebrow">PRO MATCH HERO PROFILE</span>
+        <div class="pb-profile-title-row"><h1 id="pb-profile-name">职业选手出装分析</h1><span id="pb-profile-patch">全部版本</span></div>
+        <p id="pb-profile-summary">选择英雄后，用职业比赛样本查看职责位置、完整出装路线、购买时点与真实比赛。</p>
+      </div>
     </div>
-    <div class="pb-hero-status"><div class="pb-data-note" id="pb-data-note">正在加载职业比赛缓存…</div><div class="pb-freshness" id="pb-freshness" role="status">正在检查数据新鲜度…</div></div>
+    <section class="pb-kpis" aria-label="关键指标">
+      <article><span>样本场次</span><strong id="pb-kpi-matches">—</strong></article>
+      <article><span>选手英雄局</span><strong id="pb-kpi-games">—</strong></article>
+      <article><span>样本胜率</span><strong id="pb-kpi-winrate">—</strong></article>
+      <article><span>职业选手</span><strong id="pb-kpi-players">—</strong></article>
+      <article><span>英雄数</span><strong id="pb-kpi-heroes">—</strong></article>
+    </section>
+    <div class="pb-profile-meta">
+      <button type="button" id="pb-jump-matches">跳到真实比赛</button>
+      <div class="pb-hero-status"><div class="pb-data-note" id="pb-data-note">正在加载职业比赛缓存…</div><div class="pb-freshness" id="pb-freshness" role="status">正在检查数据新鲜度…</div></div>
+    </div>
   </header>
+
+  <section class="pb-role-overview" aria-label="职责位置概览">
+    <header><div><span>ROLE PERFORMANCE</span><h2>按职责位置切换样本</h2></div><p>位置来自联赛内分路与补刀聚合；点击卡片直接筛选，slot 不参与判位。</p></header>
+    <div class="pb-role-cards" id="pb-role-cards">
+      <button type="button" data-pb-role-card="" class="is-active" aria-pressed="true"><span>ALL</span><strong>全部位置</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
+      <button type="button" data-pb-role-card="1" aria-pressed="false"><span>POS 1</span><strong>一号位</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
+      <button type="button" data-pb-role-card="2" aria-pressed="false"><span>POS 2</span><strong>二号位</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
+      <button type="button" data-pb-role-card="3" aria-pressed="false"><span>POS 3</span><strong>三号位</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
+      <button type="button" data-pb-role-card="4" aria-pressed="false"><span>POS 4</span><strong>四号位</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
+      <button type="button" data-pb-role-card="5" aria-pressed="false"><span>POS 5</span><strong>五号位</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
+    </div>
+  </section>
+
+  <section class="pb-profile-insights" id="pb-profile-insights" aria-label="英雄样本趋势">
+    <article><span>胜率趋势</span><strong>—</strong><small>等待筛选样本</small></article>
+    <article><span>比赛时长胜率</span><strong>—</strong><small>短 / 中 / 长局</small></article>
+    <article><span>15分钟局势</span><strong>—</strong><small>优势 / 均势 / 劣势</small></article>
+    <article><span>首用日志覆盖</span><strong>—</strong><small>可识别的装备使用记录</small></article>
+  </section>
 
   <section class="pb-research-picker" aria-label="选择研究方向">
     <header><span>先选择你要回答的问题</span><small>系统会自动整理筛选项并打开最相关的分析结果</small></header>
@@ -289,23 +324,20 @@ def render_html() -> str:
     <strong id="pb-context-count">正在计算样本…</strong>
   </section>
 
-  <section class="pb-kpis" aria-label="关键指标">
-    <article><span>样本场次</span><strong id="pb-kpi-matches">—</strong></article>
-    <article><span>选手-英雄局</span><strong id="pb-kpi-games">—</strong></article>
-    <article><span>样本胜率</span><strong id="pb-kpi-winrate">—</strong></article>
-    <article><span>职业选手</span><strong id="pb-kpi-players">—</strong></article>
-    <article><span>英雄数</span><strong id="pb-kpi-heroes">—</strong></article>
-  </section>
   <section class="pb-sample-guidance" id="pb-sample-guidance" hidden aria-live="polite"></section>
 
   <div class="pb-loading" id="pb-loading">正在汇总数据…</div>
+  <header class="pb-workspace-heading">
+    <div><span>TOP SECTION</span><h2 id="pb-workspace-title">怎么出</h2></div>
+    <p id="pb-workspace-description">完整路线、分支选择与版本演化</p>
+  </header>
   <nav class="pb-workspace-tabs" id="pb-workspace-tabs" aria-label="职业出装分析模块">
-    <button type="button" data-pb-tab="routes" class="is-active">怎么出</button>
-    <button type="button" data-pb-tab="overview">先看结论</button>
-    <button type="button" data-pb-tab="people">谁这样出</button>
-    <button type="button" data-pb-tab="situations">什么局势出</button>
-    <button type="button" data-pb-tab="matches">真实比赛</button>
-    <button type="button" data-pb-tab="quality">数据说明</button>
+    <button type="button" data-pb-tab="routes" class="is-active" aria-pressed="true"><span><b>怎么出</b><em>主线</em></span><small>完整路线与版本变化</small></button>
+    <button type="button" data-pb-tab="overview" aria-pressed="false"><span><b>先看结论</b></span><small>热门装备、时点与属性</small></button>
+    <button type="button" data-pb-tab="people" aria-pressed="false"><span><b>谁这样出</b></span><small>选手与战队路线</small></button>
+    <button type="button" data-pb-tab="situations" aria-pressed="false"><span><b>什么局势出</b></span><small>顺逆风与阵容应对</small></button>
+    <button type="button" data-pb-tab="matches" aria-pressed="false"><span><b>真实比赛</b></span><small>逐局记录与复盘</small></button>
+    <button type="button" data-pb-tab="quality" aria-pressed="false"><span><b>数据说明</b></span><small>覆盖率与可信度</small></button>
   </nav>
   <div class="pb-dashboard" id="pb-dashboard" hidden>
     <section class="pb-card pb-items-card" data-pb-panel="overview">
@@ -430,7 +462,7 @@ def render_html() -> str:
 
     <section class="pb-card pb-matches-card" data-pb-panel="matches">
       <header><div><span class="pb-card-kicker">MATCH EXPLORER</span><h2>单局明细</h2></div><small>点击一局查看技能、经济、事件和地图活动</small></header>
-      <div class="pb-match-layout"><div class="pb-table-wrap"><table class="pb-table"><thead><tr><th>比赛 / 日期</th><th>选手</th><th>英雄</th><th>位置</th><th>15m经济差</th><th>结果</th></tr></thead><tbody id="pb-matches-body"></tbody></table></div><aside id="pb-match-detail" class="pb-match-detail"><div class="pb-empty">从左侧选择一局</div></aside></div>
+      <div class="pb-match-layout"><div class="pb-table-wrap"><table class="pb-table"><thead><tr><th>比赛 / 日期</th><th>选手</th><th>英雄</th><th>核心出装时间线</th><th>位置</th><th>15m经济差</th><th>结果</th></tr></thead><tbody id="pb-matches-body"></tbody></table></div><aside id="pb-match-detail" class="pb-match-detail"><div class="pb-empty">从左侧选择一局</div></aside></div>
     </section>
 
     <section class="pb-card pb-heatmap-card" data-pb-panel="matches">

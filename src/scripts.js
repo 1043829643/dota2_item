@@ -5237,6 +5237,14 @@
       core: ['team', 'player', 'hero', 'opponent', 'from', 'to'], tab: 'situations', action: '生成赛前准备分析',
     },
   };
+  const TAB_META = {
+    routes: ['怎么出', '完整路线、分支选择与版本演化'],
+    overview: ['先看结论', '热门装备、购买时点与 Hero Lab 理论属性'],
+    people: ['谁这样出', '职业选手与战队采用的完整路线'],
+    situations: ['什么局势出', '顺风、均势、逆风与对手阵容应对'],
+    matches: ['真实比赛', '逐局出装、技能、经济与地图活动复盘'],
+    quality: ['数据说明', '来源覆盖、样本可信度与更新状态'],
+  };
   const SEARCH_CONTROLS = {
     hero: { input: document.getElementById('pb-hero-search'), list: document.getElementById('pb-hero-options') },
     player: { input: document.getElementById('pb-player-search'), list: document.getElementById('pb-player-options') },
@@ -5481,6 +5489,96 @@
     count.textContent = `${matches.toLocaleString()} 场 · ${rows.length.toLocaleString()} 个选手英雄局`;
   }
 
+  function renderHeroProfile(rows) {
+    const heroId = controls.hero.value;
+    const hero = heroId ? heroes[heroId] : null;
+    const portrait = document.getElementById('pb-profile-portrait');
+    const placeholder = document.getElementById('pb-profile-placeholder');
+    const name = document.getElementById('pb-profile-name');
+    const patch = document.getElementById('pb-profile-patch');
+    const summary = document.getElementById('pb-profile-summary');
+    if (portrait && placeholder) {
+      if (hero?.icon) {
+        portrait.src = hero.icon; portrait.alt = hero.name || heroId; portrait.hidden = false; placeholder.hidden = true;
+      } else {
+        portrait.removeAttribute('src'); portrait.alt = ''; portrait.hidden = true; placeholder.hidden = false;
+      }
+    }
+    if (name) name.textContent = hero?.name || (researchMode === 'player' ? '职业选手英雄研究' : researchMode === 'scout' ? '赛前出装准备' : '职业选手出装分析');
+    if (patch) patch.textContent = controls.patch.value ? `版本 ${controls.patch.value}` : '全部版本';
+    if (summary) {
+      const role = controls.role.value ? `${controls.role.value}号位` : '全部职责位置';
+      summary.textContent = hero
+        ? `${role} · ${controls.from.value || '最早'} — ${controls.to.value || '最新'} · ${rows.length.toLocaleString()} 个职业选手英雄局`
+        : '选择英雄后，用职业比赛样本查看职责位置、完整出装路线、购买时点与真实比赛。';
+    }
+
+    const roleRows = filteredRows(false, new Set(['role']));
+    const roleStats = new Map(['', '1', '2', '3', '4', '5'].map(role => [role, role ? roleRows.filter(row => String(row.r || '') === role) : roleRows]));
+    const mostPlayedRole = ['1', '2', '3', '4', '5'].sort((a, b) => roleStats.get(b).length - roleStats.get(a).length)[0];
+    const assignedRoleRows = ['1', '2', '3', '4', '5'].reduce((sum, role) => sum + roleStats.get(role).length, 0);
+    const roleCoverage = page.querySelector('.pb-role-overview>header p');
+    if (roleCoverage) roleCoverage.textContent = assignedRoleRows !== roleRows.length
+      ? `位置来自联赛内分路与补刀聚合；已判位覆盖 ${assignedRoleRows.toLocaleString()}/${roleRows.length.toLocaleString()} 局，${(roleRows.length - assignedRoleRows).toLocaleString()}局未判位不纳入1–5号位卡。`
+      : '位置来自联赛内分路与补刀聚合；点击卡片直接筛选，slot 不参与判位。';
+    page.querySelectorAll('[data-pb-role-card]').forEach(button => {
+      const role = button.dataset.pbRoleCard || '';
+      const sample = roleStats.get(role) || [];
+      const selected = role === controls.role.value;
+      button.classList.toggle('is-active', selected);
+      button.classList.toggle('is-most-played', Boolean(role && role === mostPlayedRole && sample.length));
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      const games = button.querySelector('[data-pb-role-games]');
+      const winrate = button.querySelector('[data-pb-role-winrate]');
+      if (games) games.textContent = `${sample.length.toLocaleString()} 局`;
+      if (winrate) winrate.textContent = pct(sample.reduce((sum, row) => sum + Number(row.w || 0), 0), sample.length);
+      button.disabled = Boolean(role && !sample.length);
+    });
+  }
+
+  function renderProfileInsights(rows) {
+    const host = document.getElementById('pb-profile-insights'); if (!host) return;
+    const wins = sample => sample.reduce((sum, row) => sum + Number(row.w || 0), 0);
+    const currentRate = rows.length ? wins(rows) / rows.length : null;
+    const from = controls.from.value ? new Date(`${controls.from.value}T00:00:00Z`) : null;
+    const to = controls.to.value ? new Date(`${controls.to.value}T00:00:00Z`) : null;
+    let previous = [];
+    if (from && to && !Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime())) {
+      const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
+      const previousTo = new Date(from.getTime() - 86400000);
+      const previousFrom = new Date(from.getTime() - days * 86400000);
+      const previousFromText = previousFrom.toISOString().slice(0, 10), previousToText = previousTo.toISOString().slice(0, 10);
+      previous = filteredRows(true).filter(row => row.d >= previousFromText && row.d <= previousToText);
+    }
+    const previousRate = previous.length ? wins(previous) / previous.length : null;
+    const delta = currentRate != null && previousRate != null ? currentRate - previousRate : null;
+    const trendValue = delta == null ? (currentRate == null ? '—' : pct(currentRate, 1)) : `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}pp`;
+    const trendDetail = previous.length ? `当前 ${pct(currentRate, 1)} · 前窗 ${pct(previousRate, 1)} · ${previous.length}局` : `当前 ${currentRate == null ? '—' : pct(currentRate, 1)} · 前一等长窗口无样本`;
+
+    const durationRows = rows.filter(row => {
+      const seconds = Number(row.du);
+      return Number.isFinite(seconds) && seconds > 0;
+    });
+    const durationBands = [
+      ['≤35m', durationRows.filter(row => Number(row.du) <= 2100)],
+      ['35–50m', durationRows.filter(row => Number(row.du) > 2100 && Number(row.du) <= 3000)],
+      ['50m+', durationRows.filter(row => Number(row.du) > 3000)],
+    ];
+    const situationRows = rows.filter(row => situation(row) !== 'unknown');
+    const situationBands = [
+      ['优势', situationRows.filter(row => situation(row) === 'ahead')],
+      ['均势', situationRows.filter(row => situation(row) === 'even')],
+      ['劣势', situationRows.filter(row => situation(row) === 'behind')],
+    ];
+    const splitHtml = (bands, coverage) => `<div class="pb-insight-splits">${bands.map(([label, sample]) => `<span><b>${label}</b><i>${pct(wins(sample), sample.length)}</i><small>${sample.length}局</small></span>`).join('')}</div>${coverage ? `<small>${coverage}</small>` : ''}`;
+    const sourceRows = rows.filter(row => Array.isArray(row.u));
+    const recognizedRows = sourceRows.filter(row => row.u.length);
+    host.innerHTML = `<article class="${delta == null ? '' : delta >= 0 ? 'is-positive' : 'is-negative'}"><span>胜率趋势</span><strong>${trendValue}</strong><small>${trendDetail}</small></article>
+      <article><span>比赛时长胜率</span>${splitHtml(durationBands, `有效时长 ${durationRows.length.toLocaleString()}/${rows.length.toLocaleString()}局`)}</article>
+      <article><span>15分钟局势</span>${splitHtml(situationBands, `快照覆盖 ${situationRows.length.toLocaleString()}/${rows.length.toLocaleString()}局`)}</article>
+      <article><span>首用日志覆盖</span><strong>${pct(sourceRows.length, rows.length)}</strong><small>${sourceRows.length.toLocaleString()}局有日志 · ${recognizedRows.length.toLocaleString()}局识别到装备首用</small></article>`;
+  }
+
   function renderSampleGuidance(rows) {
     const host = document.getElementById('pb-sample-guidance'); if (!host) return;
     let title = '', detail = '', actions = '';
@@ -5571,7 +5669,8 @@
     if (controls.from.value && controls.from.value !== controls.from.min) params.set('from', controls.from.value);
     if (controls.to.value && controls.to.value !== controls.to.max) params.set('to', controls.to.value);
     if (controls.scope.value && controls.scope.value !== 'core') params.set('scope', controls.scope.value);
-    if (activeTab !== 'overview') params.set('tab', activeTab);
+    const defaultTab = MODE_CONFIG[researchMode]?.tab || 'routes';
+    if (activeTab !== defaultTab) params.set('tab', activeTab);
     if (selectedRouteClusterId) params.set('cluster', selectedRouteClusterId);
     if (routeTrendGrain !== 'week') params.set('grain', routeTrendGrain);
     if ((activeTab === 'matches' || matchDrawerOpen) && selectedMatchKey) params.set('match', selectedMatchKey);
@@ -5582,8 +5681,16 @@
   function setActiveTab(tabName, updateUrl) {
     if (!document.querySelector(`[data-pb-tab="${tabName}"]`)) tabName = 'overview';
     activeTab = tabName;
-    page.querySelectorAll('[data-pb-tab]').forEach(button => button.classList.toggle('is-active', button.dataset.pbTab === activeTab));
+    page.querySelectorAll('[data-pb-tab]').forEach(button => {
+      const selected = button.dataset.pbTab === activeTab;
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
     page.querySelectorAll('[data-pb-panel]').forEach(panel => panel.classList.toggle('is-tab-active', panel.dataset.pbPanel === activeTab));
+    const meta = TAB_META[activeTab] || TAB_META.overview;
+    const title = document.getElementById('pb-workspace-title'), description = document.getElementById('pb-workspace-description');
+    if (title) title.textContent = meta[0];
+    if (description) description.textContent = meta[1];
     if (updateUrl) syncUrl();
   }
 
@@ -5659,7 +5766,7 @@
       if (controls.team.value && r.t !== controls.team.value) return false;
       if (!ignored.has('player') && controls.player.value && r.s !== controls.player.value) return false;
       if (controls.hero.value && r.h !== controls.hero.value) return false;
-      if (controls.role.value && String(r.r || '') !== controls.role.value) return false;
+      if (!ignored.has('role') && controls.role.value && String(r.r || '') !== controls.role.value) return false;
       if (controls.result.value !== '' && String(r.w) !== controls.result.value) return false;
       if (controls.situation.value && situation(r) !== controls.situation.value) return false;
       if (controls.opponent.value && !enemyHeroes(r).includes(controls.opponent.value)) return false;
@@ -5828,8 +5935,9 @@
     const context = document.getElementById('pb-route-context');
     const heroId = controls.hero.value;
     const heroName = heroId ? (heroes[heroId]?.name || heroId) : '';
+    const timedRows = rows.filter(row => coreRoutePairs(row, 5).length >= 2);
     if (context) context.textContent = heroId
-      ? `${heroName} · ${controls.from.value || '最早'} — ${controls.to.value || '最新'} · ${rows.length}局`
+      ? `${heroName} · ${controls.from.value || '最早'} — ${controls.to.value || '最新'} · ${rows.length}局中 ${timedRows.length}局可还原路线`
       : '请先在筛选器中选择一个英雄';
     if (!heroId) {
       document.getElementById('pb-sequences').innerHTML = '<div class="pb-route-prompt">选择 Axe 等英雄后，这里会显示该英雄在指定比赛日期范围内的常见出装路线和每一步中位购买时间。</div>';
@@ -5838,14 +5946,24 @@
     lastRouteClusters = clusteredRoutes(rows);
     const top = lastRouteClusters.slice(0, 10);
     if (selectedRouteClusterId && !lastRouteClusters.some(cluster => cluster.stableId === selectedRouteClusterId)) selectedRouteClusterId = '';
-    document.getElementById('pb-sequences').innerHTML = top.map((entry, clusterIndex) => {
+    const coverage = `<div class="pb-route-coverage-note"><strong>路线还原覆盖 ${timedRows.length.toLocaleString()}/${rows.length.toLocaleString()} 局（${pct(timedRows.length, rows.length)}）</strong><span>路线采用率仅以至少有两个可确认购买时点的比赛为分母；其余比赛不会被补造为路线。</span></div>`;
+    const routeCards = top.map((entry, clusterIndex) => {
       const ids = entry.representative;
-      return `<div class="pb-sequence ${entry.stableId === selectedRouteClusterId ? 'is-selected' : ''}" data-pb-cluster="${entry.stableId}"><div class="pb-seq-items"><b class="pb-cluster-id">#${clusterIndex + 1}</b>${ids.map((id, idx) => {
+      const playerCount = new Set(entry.rows.map(row => row.s)).size;
+      return `<article class="pb-sequence ${entry.stableId === selectedRouteClusterId ? 'is-selected' : ''}" data-pb-cluster="${entry.stableId}"><header><div><span>BUILD</span><b class="pb-cluster-id">#${clusterIndex + 1}</b></div><div><strong>${entry.games} 局</strong><small>${pct(entry.wins, entry.games)} 胜率</small></div></header><div class="pb-seq-items">${ids.map((id, idx) => {
         const item = items[id] || { name: id, icon: '' };
         const med = median(entry.times.get(id) || []);
-        return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}<span class="pb-seq-step" title="${esc(item.name)} · ${timeText(med)}">${icon(item.icon, item.name)}<small>${timeText(med)}</small></span>`;
-      }).join('')}</div><strong>${entry.games} 局</strong><span>${pct(entry.games, rows.length)} · ${entry.variants.size}种变体 · 相似度${pct(entry.avgSimilarity, 1)} · 胜率${pct(entry.wins, entry.games)}</span></div>`;
-    }).join('') || '<div class="pb-no-data">当前英雄和日期范围不足以形成稳定出装路线</div>';
+        const useDelays = [];
+        entry.rows.forEach(row => {
+          const purchase = (row.i || []).find(pair => pair[0] === id)?.[1];
+          const firstUse = new Map(row.u || []).get(id);
+          if (Number.isFinite(purchase) && Number.isFinite(firstUse) && firstUse >= purchase) useDelays.push(firstUse - purchase);
+        });
+        const averageUse = mean(useDelays);
+        return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}<span class="pb-seq-step" title="${esc(item.name)} · 购买 ${timeText(med)} · 首用 ${intervalText(averageUse)}${useDelays.length ? `（${useDelays.length}局）` : ''}">${icon(item.icon, item.name)}<small>买 ${timeText(med)}</small><i class="pb-first-use-gap ${Number.isFinite(averageUse) ? '' : 'is-missing'}">首用 ${intervalText(averageUse)}</i></span>`;
+      }).join('')}</div><footer><span><b>${pct(entry.games, timedRows.length)}</b> 采用率</span><span><b>${playerCount}</b> 位选手</span><span><b>${entry.variants.size}</b> 种真实变体</span><span><b>${pct(entry.avgSimilarity, 1)}</b> 路线相似度</span></footer></article>`;
+    }).join('');
+    document.getElementById('pb-sequences').innerHTML = coverage + (routeCards || '<div class="pb-no-data">当前英雄和日期范围不足以形成稳定出装路线</div>');
     document.getElementById('pb-route-cluster-version').textContent = `${ROUTE_CLUSTER_VERSION} · LCS阈值60% · 确定性种子`;
     renderRouteDrilldown(rows);
   }
@@ -5908,10 +6026,13 @@
     if (!host || !select) return;
     select.value = routeTrendGrain;
     if (!controls.hero.value) { host.innerHTML = '<div class="pb-route-prompt">选择英雄后，这里会展示完整出装路线随时间或版本的采用率变化。</div>'; return; }
+    const timedRows = rows.filter(row => coreRoutePairs(row, 5).length >= 2);
+    const coverageText = `可还原 ${timedRows.length.toLocaleString()}/${rows.length.toLocaleString()}局（${pct(timedRows.length, rows.length)}）`;
+    if (context) context.textContent = coverageText;
     const membership = new Map();
     lastRouteClusters.forEach(cluster => cluster.rows.forEach(row => membership.set(rowKey(row), cluster.stableId)));
     const bucketMap = new Map();
-    rows.forEach(row => {
+    timedRows.forEach(row => {
       const info = routeTrendBucket(row, routeTrendGrain);
       if (!bucketMap.has(info.key)) bucketMap.set(info.key, { ...info, total: 0, routes: new Map() });
       const bucket = bucketMap.get(info.key); bucket.total++;
@@ -5943,8 +6064,8 @@
       return `<tr><td><div class="pb-trend-route"><b>#${index + 1}</b><span class="pb-mini-route">${routeHtml(cluster.representative)}</span><small>${cluster.stableId}</small></div></td><td>${cluster.games}<br><small>${confidence}样本</small></td><td>${spark(values)}<small>${buckets[0].label} → ${buckets.at(-1).label}</small></td><td>${pct(prior, 1)}</td><td>${pct(recent, 1)}</td><td><strong class="${delta >= 0 ? 'pb-up' : 'pb-down'}">${delta >= 0 ? '+' : ''}${pct(delta, 1)}</strong></td><td>${pct(cluster.wins, cluster.games)}<br><small>95% ${pct(ci[0], 1)}–${pct(ci[1], 1)}</small></td><td>${activeDates[0] || '—'}<br><small>最近 ${activeDates.at(-1) || '—'}</small></td></tr>`;
     }).join('');
     const hidden = Math.max(0, allBuckets.length - buckets.length);
-    context.textContent = `${routeTrendGrain === 'week' ? '按周' : routeTrendGrain === 'month' ? '按月' : '按版本'} · 最近${buckets.length}个时间桶${hidden ? `（隐藏更早${hidden}个）` : ''}`;
-    host.innerHTML = `<table class="pb-table pb-route-trend-table"><thead><tr><th>完整路线簇</th><th>样本</th><th>采用率走势</th><th>前段采用</th><th>最近采用</th><th>变化</th><th>样本胜率</th><th>生命周期</th></tr></thead><tbody>${rowsHtml}</tbody></table><p class="pb-route-trend-note">前段与最近均优先使用相邻两个时间桶；版本少于两个时仅作横截面展示。胜率为描述性结果，采用率变化不表示路线造成胜负变化。</p>`;
+    context.textContent = `${routeTrendGrain === 'week' ? '按周' : routeTrendGrain === 'month' ? '按月' : '按版本'} · ${coverageText} · 最近${buckets.length}个时间桶${hidden ? `（隐藏更早${hidden}个）` : ''}`;
+    host.innerHTML = `<table class="pb-table pb-route-trend-table"><thead><tr><th>完整路线簇</th><th>样本</th><th>采用率走势</th><th>前段采用</th><th>最近采用</th><th>变化</th><th>样本胜率</th><th>生命周期</th></tr></thead><tbody>${rowsHtml}</tbody></table><p class="pb-route-trend-note">各时间桶的采用率分母仅包含可还原路线的比赛；当前${coverageText}。前段与最近均优先使用相邻两个时间桶；胜率为描述性结果，采用率变化不表示路线造成胜负变化。</p>`;
   }
 
   function renderBranchTree(rows) {
@@ -6314,9 +6435,28 @@
     document.getElementById('pb-alerts').innerHTML = `<article><span>数据新鲜度</span><strong>${maxDate}</strong><small>${Math.floor((Date.now() - end) / 86400000)} 天前；超过7天应重新抽取数据库</small></article>${movers.map(s => { const it = items[s.id] || { name: s.id, icon: '' }; return `<article><span>采用率上升</span><strong>${icon(it.icon, it.name)} ${esc(it.name)}</strong><small>最近30天 ${pct(s.games, cur.length)} · 环比 ${s.delta >= 0 ? '+' : ''}${pct(s.delta, 1)}</small></article>`; }).join('')}`;
   }
 
+  function matchItemTimeline(row, compact) {
+    const firstUses = new Map(row.u || []);
+    const allPairs = (row.i || []).filter(([id]) => includeItem(id)).sort((a, b) => {
+      const at = Number.isFinite(a[1]) ? a[1] : Number.MAX_SAFE_INTEGER;
+      const bt = Number.isFinite(b[1]) ? b[1] : Number.MAX_SAFE_INTEGER;
+      return at - bt;
+    });
+    let pairs = compact ? coreRoutePairs(row, 5) : allPairs.slice(0, 18);
+    if (compact && !pairs.length) pairs = allPairs.slice(0, 5);
+    if (!pairs.length) return '<span class="pb-match-route-empty">该局没有可展示的装备记录</span>';
+    return `<div class="pb-match-route ${compact ? 'is-compact' : ''}">${pairs.map(([id, seconds], index) => {
+      const item = items[id] || { name: id, icon: '' };
+      const firstUse = firstUses.get(id);
+      const delay = Number.isFinite(seconds) && Number.isFinite(firstUse) && firstUse >= seconds ? firstUse - seconds : null;
+      const timing = Number.isFinite(seconds) ? timeText(seconds) : '终局出现 / 无购买时点';
+      return `${index ? '<span class="pb-match-route-arrow">›</span>' : ''}<span class="pb-match-route-step" title="${esc(item.name)} · ${timing}${Number.isFinite(delay) ? ` · 首用 ${intervalText(delay)}` : ''}">${icon(item.icon, item.name)}<small>${timing}</small>${compact ? '' : `<i class="${Number.isFinite(delay) ? '' : 'is-missing'}">首用 ${intervalText(delay)}</i>`}</span>`;
+    }).join('')}</div>`;
+  }
+
   function renderMatches(rows) {
     const list = rows.slice().sort((a, b) => b.d.localeCompare(a.d) || b.m - a.m).slice(0, 100);
-    document.getElementById('pb-matches-body').innerHTML = list.map(r => `<tr data-pb-match="${esc(rowKey(r))}" class="${selectedMatchKey === rowKey(r) ? 'is-selected' : ''}"><td><strong>${r.m}</strong><br><small>${r.d}</small></td><td>${esc(r.n)}</td><td>${esc(heroes[r.h]?.name || r.h)}</td><td>${r.r || '—'}</td><td class="${Number(r.g?.[6]) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(Number(r.g?.[6])) ? Number(r.g[6]).toLocaleString() : '—'}</td><td>${r.w ? '胜' : '负'}</td></tr>`).join('');
+    document.getElementById('pb-matches-body').innerHTML = list.map(r => `<tr data-pb-match="${esc(rowKey(r))}" class="${selectedMatchKey === rowKey(r) ? 'is-selected' : ''}"><td><strong>${r.m}</strong><br><small>${r.d}</small></td><td>${esc(r.n)}</td><td>${esc(heroes[r.h]?.name || r.h)}</td><td>${matchItemTimeline(r, true)}</td><td>${r.r || '—'}</td><td class="${Number(r.g?.[6]) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(Number(r.g?.[6])) ? Number(r.g[6]).toLocaleString() : '—'}</td><td>${r.w ? '胜' : '负'}</td></tr>`).join('');
   }
 
   function setMatchDetailHtml(html) {
@@ -6349,16 +6489,17 @@
   function renderMatchDetail(key) {
     const r = allRows.find(row => rowKey(row) === key);
     if (!r) return;
+    const itemTimeline = matchItemTimeline(r, false);
     updateMatchDrawerVisibility();
     if (!detailRowsReady([r])) {
-      setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)}</p><div class="pb-no-data">正在加载 ${r.d.slice(0, 7)} 单局明细…</div>`);
+      setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)}</p><h4>出装时间线</h4>${itemTimeline}<div class="pb-no-data">正在加载 ${r.d.slice(0, 7)} 单局明细…</div>`);
       ensureDetailRows([r]).then(() => { if (selectedMatchKey === key) renderMatchDetail(key); }).catch(err => { if (selectedMatchKey === key) setMatchDetailHtml(`<div class="pb-no-data">加载失败：${esc(err.message)}</div>`); });
       return;
     }
     const detail = detailData.players?.[key] || { q: [], a: [] }, draft = detailData.drafts?.[String(r.m)] || { p: [], b: [] }, events = detailData.events?.[String(r.m)] || [];
     const allied = draft.p.filter(p => p[1] === r.tm), enemies = draft.p.filter(p => p[1] !== r.tm);
     const heroChip = p => { const h = Object.values(heroes).find(x => x.name === p[3]) || heroes[p[3]] || { name: p[3], icon: '' }; return `<span>${icon(h.icon, h.name)}${esc(h.name)}</span>`; };
-    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${r.w ? '胜利' : '失败'}</p><h4>双方选人</h4><div class="pb-draft"><div>${allied.map(heroChip).join('')}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('')}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('')}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
+    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${r.w ? '胜利' : '失败'}</p><h4>出装时间线</h4>${itemTimeline}<h4>双方选人</h4><div class="pb-draft"><div>${allied.map(heroChip).join('') || '<span>没有可靠阵容明细</span>'}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('') || '<span>该局没有可靠经济快照</span>'}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('') || '<span>该局没有可靠技能加点明细</span>'}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
   }
 
   function renderHeatmap(rows) {
@@ -6391,6 +6532,8 @@
     document.getElementById('pb-kpi-winrate').textContent = pct(rows.reduce((s, r) => s + Number(r.w || 0), 0), rows.length);
     document.getElementById('pb-kpi-players').textContent = new Set(rows.map(r => r.s)).size.toLocaleString();
     document.getElementById('pb-kpi-heroes').textContent = new Set(rows.map(r => r.h)).size.toLocaleString();
+    renderHeroProfile(rows);
+    renderProfileInsights(rows);
     renderContext(rows);
     renderSampleGuidance(rows);
     lastItemStats = itemStats(rows);
@@ -6419,6 +6562,19 @@
     const modeButton = e.target.closest('[data-pb-mode]');
     if (modeButton) {
       setResearchMode(modeButton.dataset.pbMode || 'hero', true);
+      return;
+    }
+    const roleCard = e.target.closest('[data-pb-role-card]');
+    if (roleCard) {
+      controls.role.value = roleCard.getAttribute('data-pb-role-card') || '';
+      heatmapRequested = false;
+      render();
+      return;
+    }
+    if (e.target.closest('#pb-jump-matches')) {
+      setActiveTab('matches', true);
+      render();
+      document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     if (e.target.closest('[data-pb-close-match]')) { closeMatchDrawer(); return; }
