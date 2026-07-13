@@ -195,6 +195,28 @@ python build_site.py pro
 python scripts/audit/check_pro_builds.py
 ```
 
+First recognizable item-use timestamps are stored in the core cache as
+`u: [[item_id, absolute_replay_seconds]]`. The UI subtracts the matching first
+purchase timestamp to show the arithmetic mean purchase-to-first-use interval
+in both the popular-item table and each player's representative route. The
+field is nullable: `null` means that a compatible combat-log timeline was not
+available, `[]` means that the timeline was scanned but no recognized use was
+found, and a non-empty list contains validated events. Passive items therefore
+remain unknown instead of being treated as zero seconds. Echo Sabre's explicit
+debuff trigger is mapped; OpenDota aggregate `item_uses` counts are never
+invented into timestamps.
+
+To populate this field for an existing cache, run the bounded historical
+backfill. With no filters it covers every cached match; optional hero/date
+arguments narrow a repair. Each query still uses one exact `dt` partition and
+cached match IDs only:
+
+```powershell
+python scripts/fetch/backfill_pro_build_item_uses.py
+python build_site.py pro
+python scripts/audit/check_pro_builds.py
+```
+
 ## Adding a new patch
 
 Short version (full guide: [docs/workflow.md](docs/workflow.md)):

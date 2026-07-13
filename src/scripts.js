@@ -5276,11 +5276,16 @@
     const m = Math.floor(a.length / 2);
     return a.length % 2 ? a[m] : Math.round((a[m - 1] + a[m]) / 2);
   };
+  const mean = values => {
+    const a = values.filter(v => Number.isFinite(v));
+    return a.length ? Math.round(a.reduce((sum, value) => sum + value, 0) / a.length) : null;
+  };
   const timeText = seconds => {
     if (!Number.isFinite(seconds)) return '未知';
     const m = Math.floor(seconds / 60), s = Math.max(0, seconds % 60);
     return `${m}:${String(s).padStart(2, '0')}`;
   };
+  const intervalText = seconds => Number.isFinite(seconds) ? `+${timeText(Math.max(0, Math.round(seconds)))}` : '—';
   const situation = r => !r.g || !Number.isFinite(Number(r.g[6])) ? 'unknown'
     : Number(r.g[6]) >= 1500 ? 'ahead' : Number(r.g[6]) <= -1500 ? 'behind' : 'even';
   const situationName = value => ({ ahead: '优势', even: '均势', behind: '劣势', unknown: '未知' }[value] || value);
@@ -5290,14 +5295,16 @@
     if (payload?.schema !== 'pro-builds-core-v2') return payload?.records || [];
     const d = payload.dictionaries || {}, value = (field, index) => d[field]?.[index] ?? '';
     return (payload.records || []).map(row => {
-      const itemValues = row[19] || [], decodedItems = [];
+      const itemValues = row[19] || [], decodedItems = [], hasUseData = Array.isArray(row[21]);
+      const useValues = hasUseData ? row[21] : [], decodedUses = [];
       for (let index = 0; index < itemValues.length; index += 2) decodedItems.push([value('item', itemValues[index]), itemValues[index + 1]]);
+      for (let index = 0; index < useValues.length; index += 2) decodedUses.push([value('item', useValues[index]), useValues[index + 1]]);
       return {
         m: row[0], d: value('d', row[1]), p: value('p', row[2]), li: row[3],
         l: value('l', row[4]), t: value('t', row[5]), s: value('s', row[6]),
         n: value('n', row[7]), h: value('h', row[8]), hi: row[9], sl: row[10],
         tm: row[11], r: row[12], rm: value('rm', row[13]), rc: row[14],
-        w: row[15], lv: row[16], nw: row[17], du: row[18], i: decodedItems, g: row[20],
+        w: row[15], lv: row[16], nw: row[17], du: row[18], i: decodedItems, g: row[20], u: hasUseData ? decodedUses : null,
       };
     });
   }
@@ -5670,17 +5677,21 @@
     });
     const map = new Map();
     rows.forEach(r => {
+      const firstUses = new Map(r.u || []);
       (r.i || []).forEach(pair => {
         const id = pair[0], seconds = pair[1];
         if (!includeItem(id)) return;
         let stat = map.get(id);
-        if (!stat) stat = { id, games: 0, wins: 0, times: [], expected: 0 };
+        if (!stat) stat = { id, games: 0, wins: 0, times: [], useDelays: [], useSourceGames: 0, expected: 0 };
         stat.games++;
         stat.wins += Number(r.w || 0);
         const key = `${r.r || 0}:${situation(r)}:${Math.floor(Number(r.du || 0) / 600)}`;
         const base = strata.get(key);
         stat.expected += base?.games ? base.wins / base.games : 0;
         if (Number.isFinite(seconds)) stat.times.push(seconds);
+        if (Array.isArray(r.u)) stat.useSourceGames++;
+        const firstUse = firstUses.get(id);
+        if (Number.isFinite(seconds) && Number.isFinite(firstUse) && firstUse >= seconds) stat.useDelays.push(firstUse - seconds);
         map.set(id, stat);
       });
     });
@@ -5688,6 +5699,7 @@
     return [...map.values()].map(s => ({
       ...s,
       median: median(s.times),
+      averageFirstUseDelay: mean(s.useDelays),
       adjusted: Math.max(0, Math.min(1, overall + s.wins / s.games - s.expected / s.games)),
       ci: wilson(s.wins, s.games),
     }))
@@ -5703,8 +5715,8 @@
         <td><strong>${pct(s.games, rows.length)}</strong></td><td>${s.games}</td>
         <td class="${s.wins / s.games >= .5 ? 'pb-up' : 'pb-down'}">${pct(s.wins, s.games)}</td>
         <td>${pct(s.adjusted, 1)}</td><td>${pct(s.ci[0], 1)}–${pct(s.ci[1], 1)}</td>
-        <td>${timeText(s.median)}</td></tr>`;
-    }).join('') || '<tr><td colspan="7" class="pb-no-data">当前筛选没有成装数据</td></tr>';
+        <td>${timeText(s.median)}</td><td title="${s.useDelays.length ? `${s.useDelays.length}局可计算购买后第一次可识别使用；${s.useSourceGames}局有可用日志` : s.useSourceGames ? `${s.useSourceGames}局有可用日志，但未找到该装备的可识别使用` : '对应比赛没有可用的使用日志'}"><strong class="pb-first-use-value">${intervalText(s.averageFirstUseDelay)}</strong>${s.useDelays.length ? `<small>${s.useDelays.length}局</small>` : ''}</td></tr>`;
+    }).join('') || '<tr><td colspan="8" class="pb-no-data">当前筛选没有成装数据</td></tr>';
   }
 
   const bonusLabels = {
@@ -5964,6 +5976,7 @@
       let g = groups.get(key);
       if (!g) g = { name: r.n || key, games: 0, wins: 0, teams: new Map(), routes: new Map() };
       g.games++; g.wins += Number(r.w || 0); g.teams.set(r.t, (g.teams.get(r.t) || 0) + 1);
+      const firstUses = new Map(r.u || []);
       const routeCostFloor = Number(r.r) >= 4 ? 700 : 1200;
       const sequence = (r.i || []).filter(([id, seconds]) => {
         if (!includeItem(id) || !Number.isFinite(seconds)) return false;
@@ -5972,9 +5985,13 @@
       }).sort((a, b) => a[1] - b[1]).slice(0, 4);
       if (sequence.length >= 2) {
         const routeKey = `${r.h}|${sequence.map(pair => pair[0]).join('>')}`;
-        const route = g.routes.get(routeKey) || { hero: r.h, games: 0, wins: 0, times: sequence.map(() => []) };
+        const route = g.routes.get(routeKey) || { hero: r.h, games: 0, wins: 0, times: sequence.map(() => []), useDelays: sequence.map(() => []) };
         route.games++; route.wins += Number(r.w || 0);
-        sequence.forEach((pair, idx) => route.times[idx].push(pair[1]));
+        sequence.forEach(([id, purchaseTime], idx) => {
+          route.times[idx].push(purchaseTime);
+          const firstUse = firstUses.get(id);
+          if (Number.isFinite(firstUse) && firstUse >= purchaseTime) route.useDelays[idx].push(firstUse - purchaseTime);
+        });
         g.routes.set(routeKey, route);
       }
       groups.set(key, g);
@@ -5990,7 +6007,8 @@
         const ids = routeKey.split('|')[1].split('>');
         routeHtml = `<div class="pb-player-route"><span class="pb-route-hero">${icon(hero.icon, hero.name)}<b>${esc(hero.name)}</b></span><span class="pb-seq-items">${ids.map((id, idx) => {
           const item = items[id] || { name: id, icon: '' }, med = median(route.times[idx] || []);
-          return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}<span class="pb-seq-step" title="${esc(item.name)} · ${timeText(med)}">${icon(item.icon, item.name)}<small>${timeText(med)}</small></span>`;
+          const useDelays = route.useDelays[idx] || [], averageUseDelay = mean(useDelays);
+          return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}<span class="pb-seq-step" title="${esc(item.name)} · 购买中位 ${timeText(med)} · 平均首用 ${intervalText(averageUseDelay)}${useDelays.length ? `（${useDelays.length}局）` : ''}">${icon(item.icon, item.name)}<small>买 ${timeText(med)}</small><em class="pb-first-use-gap ${useDelays.length ? '' : 'is-missing'}">首用 ${intervalText(averageUseDelay)}</em></span>`;
         }).join('')}</span></div>`;
         routeRate = `${pct(route.games, g.games)} (${route.games}局)`;
         routeWinRate = pct(route.wins, route.games);
@@ -6211,6 +6229,8 @@
     summary.innerHTML = card('职责位置', Number(positions.assigned_player_games || 0), games, 'lane_role + 补刀聚合')
       + card('15分钟快照', Number(advanced.snapshot_player_games || 0), games, '经济、等级、KDA与坐标')
       + card('购买时点', Number(advanced.timed_item_player_games || 0), games, 'DWD优先，ODS购买日志有界兜底')
+      + card('首用日志覆盖', Number(advanced.item_use_source_player_games || 0), games, 'ODS主动使用或明确触发')
+      + card('已识别首用', Number(advanced.item_use_player_games || 0), games, '至少一件装备可计算；纯被动不强制命中')
       + card('单局选手明细', Number(advanced.detail_player_games || 0), games, '按月份延迟加载')
       + card('BP覆盖', Number(advanced.draft_matches || 0), matches, 'match_picks_bans')
       + card('事件时间线', Number(advanced.event_matches || 0), matches, '英雄死亡、买活与建筑')
@@ -6225,9 +6245,10 @@
       return `<tr><td><strong>${month}</strong></td><td>${m.matches.size}</td><td>${m.games}</td><td>${pct(m.roles, m.games)}</td><td>${pct(m.snapshots, m.games)}</td><td>${shard ? `${(Number(shard.bytes || 0) / 1048576).toFixed(1)}MB` : '索引加载中'}</td><td>${shard ? `${shard.draft_matches}/${shard.matches}` : '—'}</td><td>${shard ? `${shard.event_matches}/${shard.matches}` : '—'}</td></tr>`;
     }).join('')}</tbody></table>`;
     const scope = dataMeta.query_scope || {}, sourceStats = positions.source_stats || {}, update = dataMeta.update_status || dataMeta.update || {};
-    const dwdPurchases = Number(advanced.dwd_purchase_matches_latest_increment ?? advanced.dwd_purchase_matches ?? 0), odsPurchases = Number(advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0), backfill = advanced.bounded_route_backfill || {};
+    const dwdPurchases = Number(advanced.dwd_purchase_matches_latest_increment ?? advanced.dwd_purchase_matches ?? 0), odsPurchases = Number(advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0), backfill = advanced.bounded_route_backfill || {}, useBackfill = advanced.item_use_backfill || {};
     const backfillHtml = backfill.completed_at ? `<div><span>限定路线回填</span><strong>${esc(backfill.hero || '—')} ${Number(backfill.complete_matches || 0)}/${Number(backfill.player_games || 0)} · ODS ${Number(backfill.ods_matches || 0)}场 · OpenDota ${Number(backfill.opendota_matches || 0)}场</strong></div>` : '';
-    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>本次购买时点</span><strong>DWD ${dwdPurchases}场 · ODS兜底 ${odsPurchases}场</strong></div>${backfillHtml}<p><b>来源披露：</b>主比赛、选手、快照、技能、BP和事件来自 <code>dota2_analysis</code>；职责位置与购买映射仍含 <code>dwd_dota2</code> 执行依赖（本次增量判位主路径 ${Number(sourceStats.primary_leagues || 0)} 个联赛，补刀兜底 ${Number(sourceStats.fallback_leagues || 0)} 个联赛）。购买时点优先使用 DWD 明细；未产出的比赛只查询相同精确 <code>dt</code> 与比赛 ID 的 ODS 购买日志。限定回填仅在两类 StarRocks 购买源均缺失时使用公开 OpenDota 比赛解析，并记录比赛 ID。增量任务始终使用有界日期、精确分区和比赛 ID 批次。</p>`;
+    const useBackfillHtml = useBackfill.completed_at ? `<div><span>首次使用回填</span><strong>ODS ${Number(useBackfill.source_matches || 0)}/${Number(useBackfill.selected_matches || 0)}场 · ${Number(useBackfill.item_use_records || 0).toLocaleString()}条</strong></div>` : '';
+    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>本次购买时点</span><strong>DWD ${dwdPurchases}场 · ODS兜底 ${odsPurchases}场</strong></div>${backfillHtml}${useBackfillHtml}<p><b>来源披露：</b>主比赛、选手、快照、技能、BP和事件来自 <code>dota2_analysis</code>；职责位置与购买映射仍含 <code>dwd_dota2</code> 执行依赖（本次增量判位主路径 ${Number(sourceStats.primary_leagues || 0)} 个联赛，补刀兜底 ${Number(sourceStats.fallback_leagues || 0)} 个联赛）。购买时点优先使用 DWD 明细；未产出的比赛只查询相同精确 <code>dt</code> 与比赛 ID 的 ODS 购买日志。首次使用来自 ODS <code>DOTA_COMBATLOG_ITEM</code>，Echo Sabre 使用明确 debuff 触发映射；OpenDota 只有使用次数而没有时点，因此不会伪造首用间隔。纯被动装备、未发生可识别使用或源日志缺失时显示“—”。增量任务始终使用有界日期、精确分区和比赛 ID 批次。</p>`;
   }
 
   function renderTeams(rows) {
@@ -6458,9 +6479,9 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   document.getElementById('pb-export-csv')?.addEventListener('click', () => {
-    const head = ['match_id','date','patch','league','team','steamid','player','hero','position','position_method','position_confidence','result','level','networth','duration','networth_diff_15m','items'];
+    const head = ['match_id','date','patch','league','team','steamid','player','hero','position','position_method','position_confidence','result','level','networth','duration','networth_diff_15m','items','first_item_uses'];
     const quote = v => `"${String(v == null ? '' : v).replaceAll('"', '""')}"`;
-    const lines = currentRows.map(r => [r.m,r.d,r.p,r.l,r.t,r.s,r.n,r.h,r.r,r.rm,r.rc,r.w,r.lv,r.nw,r.du,r.g?.[6],(r.i || []).map(x => `${x[0]}@${x[1] ?? ''}`).join('|')].map(quote).join(','));
+    const lines = currentRows.map(r => [r.m,r.d,r.p,r.l,r.t,r.s,r.n,r.h,r.r,r.rm,r.rc,r.w,r.lv,r.nw,r.du,r.g?.[6],(r.i || []).map(x => `${x[0]}@${x[1] ?? ''}`).join('|'),(r.u || []).map(x => `${x[0]}@${x[1] ?? ''}`).join('|')].map(quote).join(','));
     download(`pro-builds-${controls.from.value}-${controls.to.value}.csv`, '\ufeff' + head.join(',') + '\n' + lines.join('\n'), 'text/csv;charset=utf-8');
   });
   document.getElementById('pb-export-route')?.addEventListener('click', () => {
@@ -6469,8 +6490,8 @@
   });
   document.getElementById('pb-export-report')?.addEventListener('click', () => {
     const title = `${heroes[controls.hero.value]?.name || controls.hero.value || '全部英雄'}职业出装分析`;
-    const top = lastItemStats.slice(0, 12).map(s => `<tr><td>${esc(items[s.id]?.name || s.id)}</td><td>${pct(s.games, currentRows.length)}</td><td>${pct(s.wins, s.games)}</td><td>${pct(s.adjusted, 1)}</td><td>${timeText(s.median)}</td></tr>`).join('');
-    const html = `<!doctype html><meta charset="utf-8"><title>${esc(title)}</title><style>body{font:14px system-ui;max-width:1000px;margin:40px auto;color:#222}h1{margin-bottom:4px}small{color:#666}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:8px;border:1px solid #ccc;text-align:right}th:first-child,td:first-child{text-align:left}</style><h1>${esc(title)}</h1><small>${esc(controls.from.value)}—${esc(controls.to.value)} · ${currentRows.length}个选手-英雄局 · 生成于 ${new Date().toLocaleString()}</small><p>职责位置来自联赛内 lane_role 与补刀聚合，slot 不参与。校正胜率按职责、15分钟局势与比赛时长分层，仅用于描述性比较。</p><table><thead><tr><th>物品</th><th>采用率</th><th>样本胜率</th><th>情境校正</th><th>中位时点</th></tr></thead><tbody>${top}</tbody></table>`;
+    const top = lastItemStats.slice(0, 12).map(s => `<tr><td>${esc(items[s.id]?.name || s.id)}</td><td>${pct(s.games, currentRows.length)}</td><td>${pct(s.wins, s.games)}</td><td>${pct(s.adjusted, 1)}</td><td>${timeText(s.median)}</td><td>${intervalText(s.averageFirstUseDelay)}</td></tr>`).join('');
+    const html = `<!doctype html><meta charset="utf-8"><title>${esc(title)}</title><style>body{font:14px system-ui;max-width:1000px;margin:40px auto;color:#222}h1{margin-bottom:4px}small{color:#666}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:8px;border:1px solid #ccc;text-align:right}th:first-child,td:first-child{text-align:left}</style><h1>${esc(title)}</h1><small>${esc(controls.from.value)}—${esc(controls.to.value)} · ${currentRows.length}个选手-英雄局 · 生成于 ${new Date().toLocaleString()}</small><p>职责位置来自联赛内 lane_role 与补刀聚合，slot 不参与。校正胜率按职责、15分钟局势与比赛时长分层，仅用于描述性比较。首用间隔为首次购买到第一次可识别主动使用或明确触发的平均时长。</p><table><thead><tr><th>物品</th><th>采用率</th><th>样本胜率</th><th>情境校正</th><th>中位时点</th><th>平均第一次使用间隔</th></tr></thead><tbody>${top}</tbody></table>`;
     download(`pro-build-report-${controls.hero.value || 'all'}.html`, html, 'text/html;charset=utf-8');
   });
   document.getElementById('pb-save-view')?.addEventListener('click', saveCurrentView);

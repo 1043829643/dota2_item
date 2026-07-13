@@ -161,6 +161,12 @@ def _write_compact_core() -> dict:
             encoded_items.extend(
                 [encode("item", pair[0]), pair[1] if len(pair) > 1 else None]
             )
+        encoded_uses = None if row.get("u") is None else []
+        if encoded_uses is not None:
+            for pair in row.get("u"):
+                encoded_uses.extend(
+                    [encode("item", pair[0]), pair[1] if len(pair) > 1 else None]
+                )
         records.append(
             [
                 row.get("m"), encode("d", row.get("d")), encode("p", row.get("p")),
@@ -169,7 +175,7 @@ def _write_compact_core() -> dict:
                 encode("h", row.get("h")), row.get("hi"), row.get("sl"),
                 row.get("tm"), row.get("r"), encode("rm", row.get("rm")),
                 row.get("rc"), row.get("w"), row.get("lv"), row.get("nw"),
-                row.get("du"), encoded_items, row.get("g"),
+                row.get("du"), encoded_items, row.get("g"), encoded_uses,
             ]
         )
     meta = dict(payload.get("meta") or {})
@@ -297,7 +303,7 @@ def render_html() -> str:
     <section class="pb-card pb-items-card" data-pb-panel="overview">
       <header><div><span class="pb-card-kicker">POPULARITY + TIMING</span><h2>热门成装</h2></div><small>点击物品查看理论属性</small></header>
       <div class="pb-table-wrap">
-        <table class="pb-table"><thead><tr><th>物品</th><th>采用率</th><th>样本</th><th>胜率</th><th>情境校正</th><th>95%区间</th><th>中位时点</th></tr></thead><tbody id="pb-items-body"></tbody></table>
+        <table class="pb-table"><thead><tr><th>物品</th><th>采用率</th><th>样本</th><th>胜率</th><th>情境校正</th><th>95%区间</th><th>中位时点</th><th title="从首次购买到第一次可识别主动使用或明确触发；纯被动装备显示为无数据">平均第一次使用间隔</th></tr></thead><tbody id="pb-items-body"></tbody></table>
       </div>
     </section>
 
@@ -382,7 +388,7 @@ def render_html() -> str:
     <section class="pb-card pb-players-card" data-pb-panel="people">
       <header><div><span class="pb-card-kicker">PLAYER SIGNATURE</span><h2>选手风格</h2></div><small>按英雄聚合的常见核心节点路线</small></header>
       <div class="pb-table-wrap">
-        <table class="pb-table"><thead><tr><th>选手</th><th>战队</th><th>场次</th><th>总胜率</th><th>常见英雄 / 核心出装路线</th><th>路线采用率</th><th>路线胜率</th></tr></thead><tbody id="pb-players-body"></tbody></table>
+        <table class="pb-table"><thead><tr><th>选手</th><th>战队</th><th>场次</th><th>总胜率</th><th>常见英雄 / 核心出装路线（购买中位 · 平均第一次使用间隔）</th><th>路线采用率</th><th>路线胜率</th></tr></thead><tbody id="pb-players-body"></tbody></table>
       </div>
     </section>
 

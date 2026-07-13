@@ -101,6 +101,11 @@ def _varchar_id_sql(values) -> str:
     return ",".join(f"'{int(value)}'" for value in values)
 
 
+def _varchar_sql(values) -> str:
+    """Render trusted dimension values as escaped varchar literals."""
+    return ",".join(f"'{str(value).replace(chr(39), chr(39) * 2)}'" for value in values)
+
+
 def _partition_batches(match_ids, partition_date_by_match: dict[int, str]):
     """Yield one physical dt partition and one bounded match-ID batch at a time."""
     grouped: dict[str, list[int]] = defaultdict(list)
@@ -504,6 +509,8 @@ def main() -> int:
             "du": None,
             "f": [],
             "i": [],
+            # null = source timeline not scanned/missing; [] = scanned, no use.
+            "u": None,
         }
         hero_key_for_match[(match_id, str(hero_name or ""))] = key
         match_ids.add(match_id)
@@ -686,6 +693,98 @@ def main() -> int:
         ]
         rec["i"].sort(key=lambda row: (row[1] is None, row[1] or 10**9, row[0]))
         rec.pop("f", None)
+
+    print("      Loading first recognizable item-use times from scoped combat logs...")
+    item_use_source_matches: set[int] = set()
+    item_uses_by_record: dict[tuple[int, int], dict[str, int]] = defaultdict(dict)
+    record_keys_by_match: dict[int, list[tuple[int, int]]] = defaultdict(list)
+    for record_key, rec in records.items():
+        record_keys_by_match[int(rec["m"])].append(record_key)
+    for partition_date, batch in _partition_batches(
+        match_ids, partition_date_by_match
+    ):
+        ids = _varchar_id_sql(batch)
+        target_item_ids = sorted({
+            item_id
+            for match_id in batch
+            for record_key in record_keys_by_match[int(match_id)]
+            for item_id, purchase_time in records[record_key]["i"]
+            if isinstance(purchase_time, int) and item_id != "item_tpscroll"
+        })
+        if not target_item_ids:
+            continue
+        item_ids = _varchar_sql(target_item_ids)
+        cur.execute(
+            f"""
+            SELECT match_id, attackername, item_id,
+                   GREATEST(time, 0) AS use_time
+            FROM (
+              SELECT match_id, time, log_index, attackername,
+                     CASE
+                       WHEN type = 'DOTA_COMBATLOG_ITEM' THEN inflictor
+                       WHEN type = 'DOTA_COMBATLOG_MODIFIER_ADD'
+                        AND inflictor = 'modifier_echo_sabre_debuff'
+                         THEN 'item_echo_sabre'
+                     END AS item_id
+              FROM (
+                SELECT match_id, time, log_index, type, attackername, inflictor,
+                       ROW_NUMBER() OVER (
+                         PARTITION BY match_id, time, log_index ORDER BY time ASC
+                       ) AS rn
+                FROM dota2_analysis.combat_logs
+                WHERE dt = '{partition_date}'
+                  AND match_id IN ({ids})
+                  AND attackername LIKE 'npc_dota_hero_%'
+                  AND (
+                    (type = 'DOTA_COMBATLOG_ITEM' AND inflictor IN ({item_ids}))
+                    OR (type = 'DOTA_COMBATLOG_MODIFIER_ADD'
+                        AND inflictor = 'modifier_echo_sabre_debuff')
+                  )
+              ) x WHERE rn = 1
+            ) clean WHERE item_id IS NOT NULL
+            """
+        )
+        for match_id, hero_name, item_id, raw_use_time in cur:
+            match_id = int(match_id)
+            item_use_source_matches.add(match_id)
+            item_id = str(item_id or "")
+            if item_id not in valid_item_ids:
+                continue
+            record_key = hero_key_for_match.get(
+                (match_id, str(hero_name or ""))
+            )
+            rec = records.get(record_key) if record_key else None
+            if rec is None:
+                continue
+            purchase_time = next(
+                (
+                    seconds for purchase_id, seconds in rec["i"]
+                    if purchase_id == item_id and isinstance(seconds, int)
+                ),
+                None,
+            )
+            if raw_use_time is None:
+                continue
+            use_time = int(raw_use_time)
+            if purchase_time is None or use_time < purchase_time:
+                continue
+            current = item_uses_by_record[record_key].get(item_id)
+            if current is None or use_time < current:
+                item_uses_by_record[record_key][item_id] = use_time
+
+    for rec in records.values():
+        if int(rec["m"]) in item_use_source_matches:
+            rec["u"] = []
+    for record_key, uses in item_uses_by_record.items():
+        records[record_key]["u"] = sorted(
+            ([item_id, use_time] for item_id, use_time in uses.items()),
+            key=lambda pair: (pair[1], pair[0]),
+        )
+
+    item_use_matches = {
+        int(records[record_key]["m"]) for record_key in item_uses_by_record
+    }
+    item_use_events = sum(len(uses) for uses in item_uses_by_record.values())
 
     print("[9/13] Loading partition-pruned economy, KDA and map snapshots...")
     snapshot_times = (300, 600, 900, 1200, 1500, 1800, 2400, 3000)
@@ -903,6 +1002,13 @@ def main() -> int:
                 ),
                 "dwd_purchase_matches": len(dwd_purchase_matches),
                 "combatlog_purchase_fallback_matches": len(combatlog_purchase_fallback_matches),
+                "item_use_source_matches": len(item_use_source_matches),
+                "item_use_source_player_games": sum(
+                    isinstance(r.get("u"), list) for r in rows
+                ),
+                "item_use_matches": len(item_use_matches),
+                "item_use_player_games": sum(bool(r.get("u")) for r in rows),
+                "item_use_records": item_use_events,
                 "snapshot_times": list(snapshot_times),
             },
         },

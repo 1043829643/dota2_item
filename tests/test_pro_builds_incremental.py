@@ -25,6 +25,7 @@ UPDATER = ROOT / "scripts" / "fetch" / "update_pro_builds.py"
 
 
 def record(match_id: int, slot: int, day: str, hero: str, networth: int) -> dict:
+    item_uses = None if slot == 8 else [] if slot == 9 else [["item_blink", 930]]
     return {
         "m": match_id, "d": day, "p": "7.41", "li": 99, "l": "Fixture League",
         "t": "Fixture Team", "s": str(1000 + slot), "n": f"Player {slot}",
@@ -32,6 +33,7 @@ def record(match_id: int, slot: int, day: str, hero: str, networth: int) -> dict
         "r": slot % 5 + 1, "rm": "lanes", "rc": 0.9, "w": 1,
         "lv": 20, "nw": networth, "du": 1800,
         "i": [["item_blink", 900]], "g": [15, networth // 2, 100, 2, 1, 5, 1000],
+        "u": item_uses,
     }
 
 
@@ -73,6 +75,10 @@ class IncrementalUpdateTests(unittest.TestCase):
         self.assertEqual(result["refreshed_matches"], 1)
         self.assertEqual(result["matches"], 3)
         self.assertEqual(next(row for row in core["records"] if row["m"] == 1 and row["sl"] == 0)["nw"], 13000)
+        self.assertEqual(next(row for row in core["records"] if row["m"] == 1 and row["sl"] == 0)["u"], [["item_blink", 930]])
+        self.assertEqual(next(row for row in core["records"] if row["m"] == 3 and row["sl"] == 0)["u"], [["item_blink", 930]])
+        self.assertIsNone(next(row for row in core["records"] if row["m"] == 1 and row["sl"] == 8)["u"])
+        self.assertEqual(next(row for row in core["records"] if row["m"] == 1 and row["sl"] == 9)["u"], [])
         self.assertEqual(detail["players"]["1:0"]["q"][0][2], 13000)
         self.assertEqual({row["m"] for row in core["records"]}, {1, 2, 3})
         validate_payloads(core, detail)
@@ -153,6 +159,7 @@ class IncrementalUpdateTests(unittest.TestCase):
             new_player = next(row for row in core["records"] if row["m"] == 2 and row["sl"] == 0)
             self.assertEqual((new_player["h"], new_player["n"], new_player["p"]), ("mars", "Player 0", "7.41"))
             self.assertEqual(new_player["i"], [["item_blink", 900]])
+            self.assertEqual(new_player["u"], [["item_blink", 930]])
             self.assertIn("2:0", detail["players"])
             self.assertTrue(detail["players"]["2:0"]["q"])
             self.assertIn("2", detail["drafts"])

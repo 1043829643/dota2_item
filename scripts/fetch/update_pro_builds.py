@@ -164,6 +164,24 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
             any(isinstance(pair[1], int) for pair in (row.get("i") or []))
             for row in records
         ),
+        "item_use_player_games": sum(bool(row.get("u")) for row in records),
+        "item_use_records": sum(len(row.get("u") or []) for row in records),
+        "item_use_source_player_games": sum(
+            isinstance(row.get("u"), list) for row in records
+        ),
+        "item_use_source_matches": len({
+            int(row.get("m") or 0)
+            for row in records if isinstance(row.get("u"), list)
+        }),
+        "item_use_matches": len({
+            int(row.get("m") or 0) for row in records if bool(row.get("u"))
+        }),
+        "item_use_matches_latest_increment": int(
+            (incoming_meta.get("advanced") or {}).get("item_use_matches") or 0
+        ),
+        "item_use_source_matches_latest_increment": int(
+            (incoming_meta.get("advanced") or {}).get("item_use_source_matches") or 0
+        ),
         "dwd_purchase_matches_latest_increment": int(
             (incoming_meta.get("advanced") or {}).get("dwd_purchase_matches") or 0
         ),
@@ -173,6 +191,10 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "snapshot_times": (incoming_meta.get("advanced") or {}).get("snapshot_times")
         or (meta.get("advanced") or {}).get("snapshot_times") or [],
     }
+    for key in ("bounded_route_backfill", "item_use_backfill"):
+        value = (incoming_meta.get("advanced") or {}).get(key) or (meta.get("advanced") or {}).get(key)
+        if value:
+            advanced[key] = value
     meta.update(
         {
             "generated_at": utc_now(),
