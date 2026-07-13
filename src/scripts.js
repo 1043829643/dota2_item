@@ -5228,15 +5228,15 @@
   const FILTER_ORDER = ['hero', 'player', 'team', 'opponent', 'patch', 'from', 'to', 'role', 'league', 'situation', 'result', 'method', 'scope'];
   const MODE_CONFIG = {
     hero: {
-      title: '英雄出装研究', description: '先选英雄和时间，直接查看职业比赛中的完整出装路线。',
+      title: '设定英雄与比赛范围', description: '先选英雄和时间，直接查看职业比赛中的完整出装路线。',
       core: ['hero', 'role', 'from', 'to', 'patch'], tab: 'routes', action: '查看英雄出装路线',
     },
     player: {
-      title: '选手英雄研究', description: '先选职业选手，可继续限定英雄，观察他的完整路线与个人偏好。',
+      title: '设定选手与观察范围', description: '先选职业选手，可继续限定英雄，观察他的完整路线与个人偏好。',
       core: ['player', 'hero', 'role', 'from', 'to'], tab: 'people', action: '查看选手英雄研究',
     },
     scout: {
-      title: '赛前准备', description: '选择目标战队或选手，再用英雄和对手英雄定位需要准备的比赛情境。',
+      title: '设定目标与比赛情境', description: '选择目标战队或选手，再用英雄和对手英雄定位需要准备的比赛情境。',
       core: ['team', 'player', 'hero', 'opponent', 'from', 'to'], tab: 'situations', action: '生成赛前准备分析',
     },
   };
@@ -5672,7 +5672,7 @@
     if (!host) return;
     const counts = new Map();
     rows.forEach(row => { if (row.h) counts.set(row.h, (counts.get(row.h) || 0) + 1); });
-    const top = [...counts].sort((a, b) => b[1] - a[1] || (heroes[a[0]]?.name || a[0]).localeCompare(heroes[b[0]]?.name || b[0])).slice(0, 10);
+    const top = [...counts].sort((a, b) => b[1] - a[1] || (heroes[a[0]]?.name || a[0]).localeCompare(heroes[b[0]]?.name || b[0])).slice(0, 6);
     host.innerHTML = `<span>最近30天热门英雄</span><div>${top.map(([id, games]) => {
       const hero = heroes[id] || {}, name = hero.name || id;
       return `<button type="button" data-pb-select-hero="${esc(id)}" title="研究 ${esc(name)}">${hero.icon ? `<img src="${esc(hero.icon)}" alt="">` : ''}<b>${esc(name)}</b><small>${games.toLocaleString()}局</small></button>`;

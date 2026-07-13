@@ -372,7 +372,7 @@ def render_html() -> str:
 
   <section class="pb-filter-panel" aria-label="分析筛选器">
     <header class="pb-filter-heading">
-      <div><span>RESEARCH SETUP</span><h2 id="pb-mode-title">英雄出装研究</h2><p id="pb-mode-description">先选英雄和时间，直接查看职业比赛中的完整出装路线。</p></div>
+      <div><span>RESEARCH SETUP</span><h2 id="pb-mode-title">设定英雄与比赛范围</h2><p id="pb-mode-description">先选英雄和时间，直接查看职业比赛中的完整出装路线。</p></div>
       <button type="button" id="pb-advanced-toggle" aria-controls="pb-advanced-filters" aria-expanded="false">高级筛选与工具</button>
     </header>
     <div class="pb-core-filters" id="pb-core-filters">

@@ -103,3 +103,4 @@ def test_research_flow_hides_analysis_until_primary_selection() -> None:
     assert "profileInsightsSection.before(proBriefSection)" in source
     assert "29 * 86400000" in filters
     assert "data-pb-select-hero" in source
+    assert ".slice(0, 6)" in source

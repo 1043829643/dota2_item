@@ -66,6 +66,7 @@ def test_research_flow_starts_with_a_primary_object(page_html: str) -> None:
     assert 'class="container pro-builds-page is-pb-unselected"' in page_html
     assert "第一步：选择研究对象" in page_html
     assert "英雄是默认入口，也可以切换到选手或战队" in page_html
+    assert "设定英雄与比赛范围" in page_html
     assert "默认最近30天" not in page_html  # populated from the loaded dataset at runtime
 
 
