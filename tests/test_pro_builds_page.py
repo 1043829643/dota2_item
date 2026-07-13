@@ -72,3 +72,6 @@ def test_new_decision_modules_explain_their_data_boundaries(page_html: str) -> N
     assert "只看15分钟落后后取胜" in page_html
     assert "只看可还原路线" in page_html
     assert "显示字段" in page_html
+    assert page_html.count("data-pb-complete-jump=") == 4
+    assert "技能与天赋" in page_html
+    assert "中立物品与附魔" in page_html

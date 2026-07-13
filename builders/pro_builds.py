@@ -420,6 +420,12 @@ def render_html() -> str:
   <div class="pb-dashboard" id="pb-dashboard" hidden>
     <section class="pb-card pb-complete-build-card" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">COMPLETE PRO BUILD</span><h2>完整职业出装卡</h2></div><small id="pb-complete-build-status">开局、阶段选择、技能天赋与中立物品</small></header>
+      <nav class="pb-complete-nav" aria-label="完整职业出装卡目录">
+        <button type="button" data-pb-complete-jump="pb-complete-opening"><span>01</span><b>开局与首轮补给</b></button>
+        <button type="button" data-pb-complete-jump="pb-complete-stages"><span>02</span><b>阶段装备</b></button>
+        <button type="button" data-pb-complete-jump="pb-complete-skills"><span>03</span><b>技能与天赋</b></button>
+        <button type="button" data-pb-complete-jump="pb-complete-special"><span>04</span><b>中立物品与附魔</b></button>
+      </nav>
       <div id="pb-complete-build" class="pb-complete-build"><div class="pb-empty">选择英雄后生成完整职业出装卡</div></div>
     </section>
 

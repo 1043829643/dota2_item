@@ -67,6 +67,7 @@ def test_complete_build_keeps_opening_and_stage_evidence_honest() -> None:
     assert "special_bonus_" in complete
     assert "item.class === className" in complete
     assert "ensureDetailRows(rows)" in complete
+    assert "这不表示该英雄没有技能路线" in complete
 
 
 def test_lineup_decisions_use_same_role_networth_proxy() -> None:

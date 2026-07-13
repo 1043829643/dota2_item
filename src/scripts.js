@@ -5973,11 +5973,12 @@
 
     const equipmentPanel = (title, className) => {
       const choices = observedItemBreakdown(rows, (id, _seconds, item) => item.class === className).slice(0, 5);
-      return `<article class="pb-complete-subcard"><span>${title}</span><div class="pb-complete-choices">${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || '<small>当前样本没有记录</small>'}</div></article>`;
+      const empty = className === 'enchant' ? '当前比赛范围没有可识别的中立附魔记录' : '当前比赛范围没有可识别的中立物品选择';
+      return `<article class="pb-complete-subcard"><span>${title}</span><div class="pb-complete-choices">${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || `<small>${empty}</small>`}</div></article>`;
     };
 
-    let skillHtml = '<div class="pb-no-data">正在加载逐局技能明细…</div>';
-    let talentHtml = '<div class="pb-no-data">正在加载逐局天赋明细…</div>';
+    let skillHtml = '<div class="pb-no-data">正在按比赛月份加载逐局技能加点日志…</div>';
+    let talentHtml = '<div class="pb-no-data">正在按比赛月份加载逐局天赋选择日志…</div>';
     let skillCoverage = 0;
     if (detailRowsReady(rows)) {
       const skillRoutes = new Map(), talents = new Map();
@@ -6001,12 +6002,12 @@
       const common = routes[0];
       const winning = routes.filter(route => route.games >= Math.max(2, Math.ceil(skillCoverage * .03))).sort((a, b) => b.wins / b.games - a.wins / a.games || b.games - a.games)[0];
       const skillRoute = (route, label) => route ? `<article><span>${label}</span><div class="pb-ability-route">${route.abilities.map((slug, index) => `<b title="${esc(slug)}"><i>${index + 1}</i>${esc(abilityLabel(slug))}</b>`).join('')}</div><small>${route.games}局 · ${pct(route.wins, route.games)} 样本胜率</small></article>` : '';
-      skillHtml = skillRoute(common, '最常见加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率加点') : '') || '<div class="pb-no-data">当前样本没有技能事件</div>';
+      skillHtml = skillRoute(common, '最常见加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率加点') : '') || '<div class="pb-no-data">StarRocks 当前比赛范围没有可识别的技能加点日志；这不表示该英雄没有技能路线。</div>';
       const byLevel = new Map();
       [...talents.values()].forEach(stat => { if (!byLevel.has(stat.level)) byLevel.set(stat.level, []); byLevel.get(stat.level).push(stat); });
       talentHtml = [10, 15, 20, 25].map(level => {
         const choices = (byLevel.get(level) || []).sort((a, b) => b.games - a.games).slice(0, 2);
-        return `<article><span>Lv ${level}</span><div>${choices.map(stat => `<b title="${esc(stat.slug)}">${esc(abilityLabel(stat.slug))}<small>${stat.games}局 · ${pct(stat.wins, stat.games)}</small></b>`).join('') || '<b class="is-missing">没有记录</b>'}</div></article>`;
+        return `<article><span>Lv ${level}</span><div>${choices.map(stat => `<b title="${esc(stat.slug)}">${esc(abilityLabel(stat.slug))}<small>${stat.games}局 · ${pct(stat.wins, stat.games)}</small></b>`).join('') || '<b class="is-missing">当前范围没有天赋日志</b>'}</div></article>`;
       }).join('');
     } else {
       ensureDetailRows(rows).then(() => { if (activeTab === 'routes' && controls.hero.value) renderCompleteBuild(currentRows); }).catch(err => {
@@ -6016,10 +6017,10 @@
 
     const reconstructable = rows.filter(row => coreRoutePairs(row, 5).length >= 2).length;
     status.textContent = `${rows.length}局 · 路线可还原 ${pct(reconstructable, rows.length)} · 技能覆盖 ${pct(skillCoverage, rows.length)}`;
-    host.innerHTML = `<section class="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>0–3分钟开局与首轮补给</h3></div><small>来自购买日志，不等同于出生时库存</small></header><div>${openingHtml}</div></section>
-      <section class="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>按比赛阶段做选择</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线</small></header><div>${stageHtml}</div></section>
-      <section class="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局有技能事件` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
-      <section class="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>来自该局可观察到的最终选择</small></header><div>${equipmentPanel('常见中立物品', 'neutral')}${equipmentPanel('常见中立附魔', 'enchant')}</div></section>
+    host.innerHTML = `<section class="pb-complete-opening" id="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>0–3分钟开局与首轮补给</h3></div><small>来自购买日志，不等同于出生时库存</small></header><div>${openingHtml}</div></section>
+      <section class="pb-complete-stages" id="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>按比赛阶段做选择</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线</small></header><div>${stageHtml}</div></section>
+      <section class="pb-complete-skills" id="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局有技能事件` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
+      <section class="pb-complete-special" id="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>来自该局可观察到的最终选择；无记录时明确标注</small></header><div>${equipmentPanel('常见中立物品', 'neutral')}${equipmentPanel('常见中立附魔', 'enchant')}</div></section>
       <footer><strong>阅读边界</strong><span>这张卡描述职业样本中的常见选择；低样本胜率、阶段先后与装备效果都不能单独解释胜负。</span></footer>`;
   }
 
@@ -6919,6 +6920,11 @@
       setActiveTab(briefJump.dataset.pbTabJump || 'routes', true);
       render();
       document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const completeJump = e.target.closest('[data-pb-complete-jump]');
+    if (completeJump) {
+      document.getElementById(completeJump.dataset.pbCompleteJump || '')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     const briefMatch = e.target.closest('[data-pb-brief-match]');
