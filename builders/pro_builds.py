@@ -280,7 +280,7 @@ def render_html() -> str:
 </head>
 <body class="pro-builds-body">
 {nav}
-<div class="container pro-builds-page">
+<div class="container pro-builds-page is-pb-unselected">
 {subnav}
 <main class="pb-main">
   <header class="pb-profile" id="pb-profile">
@@ -309,7 +309,7 @@ def render_html() -> str:
   </header>
 
   <section class="pb-role-overview" aria-label="职责位置概览">
-    <header><div><span>ROLE PERFORMANCE</span><h2>按职责位置切换样本</h2></div><p>位置来自联赛内分路与补刀聚合；点击卡片直接筛选，slot 不参与判位。</p></header>
+    <header><div><span>STEP 02 / ROLE</span><h2>确认职责位置</h2></div><p>先看各位置样本，再决定是否限定1–5号位；slot 不参与判位。</p></header>
     <div class="pb-role-cards" id="pb-role-cards">
       <button type="button" data-pb-role-card="" class="is-active" aria-pressed="true"><span>ALL</span><strong>全部位置</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
       <button type="button" data-pb-role-card="1" aria-pressed="false"><span>POS 1</span><strong>一号位</strong><b data-pb-role-games>—</b><small><i data-pb-role-winrate>—</i> 胜率</small></button>
@@ -329,7 +329,7 @@ def render_html() -> str:
 
   <section class="pb-pro-brief" id="pb-pro-brief" aria-label="职业选手赛前简报">
     <header>
-      <div><span>PLAYER MATCH PREP</span><h2>赛前简报</h2><p>先给可执行结论，再进入路线细节和真实比赛证据。</p></div>
+      <div><span>STEP 03 / PLAYER MATCH PREP</span><h2>先看赛前结论</h2><p>主线、关键时点与局势变化先回答“这局怎么出”，再进入完整证据。</p></div>
       <div class="pb-brief-confidence" id="pb-brief-confidence"><span>路线可信度</span><strong>正在计算…</strong><small>等待当前筛选样本</small></div>
     </header>
     <div class="pb-pro-brief-grid">
@@ -357,16 +357,18 @@ def render_html() -> str:
   </section>
 
   <details class="pb-research-drawer" id="pb-research-drawer">
-    <summary><div><span>RESEARCH SCOPE</span><strong>调整英雄、职责、版本或比赛时间</strong></div><small>筛选工具默认收起，不打断赛前阅读</small></summary>
+    <summary><div><span id="pb-research-step">STEP 01 / START</span><strong id="pb-research-summary">选择英雄开始职业出装研究</strong></div><small id="pb-research-summary-note">英雄是默认入口，也可以切换到选手或战队</small></summary>
     <div class="pb-research-drawer-body">
   <section class="pb-research-picker" aria-label="选择研究方向">
-    <header><span>先选择你要回答的问题</span><small>系统会自动整理筛选项并打开最相关的分析结果</small></header>
+    <header><span>第一步：选择研究对象</span><small>默认从英雄开始；选中后自动进入职责位置与赛前结论</small></header>
     <div class="pb-research-modes">
       <button type="button" data-pb-mode="hero" aria-pressed="true"><b>英雄出装研究</b><span>这个英雄当前怎么出、何时出、路线如何变化</span></button>
       <button type="button" data-pb-mode="player" aria-pressed="false"><b>选手英雄研究</b><span>某位选手使用特定英雄时的完整路线与个人偏好</span></button>
       <button type="button" data-pb-mode="scout" aria-pressed="false"><b>赛前准备</b><span>研究目标战队或选手在阵容、局势和版本中的选择</span></button>
     </div>
   </section>
+
+  <div class="pb-start-data-note"><span>PRO DATA</span><strong id="pb-start-data-note">正在加载职业比赛范围…</strong></div>
 
   <section class="pb-filter-panel" aria-label="分析筛选器">
     <header class="pb-filter-heading">
@@ -388,6 +390,7 @@ def render_html() -> str:
       <label data-pb-field="method"><span>判位方法</span><select id="pb-role-method"><option value="">全部方法</option><option value="lanes">分路 + 补刀</option><option value="hits">纯补刀兜底</option></select></label>
       <label data-pb-field="scope"><span>物品范围</span><select id="pb-scope"><option value="core">核心成装</option><option value="regular">全部常规物品</option><option value="all">含消耗品/中立物品</option></select></label>
     </div>
+    <div class="pb-hero-shortcuts" id="pb-hero-shortcuts" aria-label="热门英雄"></div>
     <div class="pb-primary-actions"><button type="button" class="pb-run-analysis" id="pb-run-analysis">查看英雄出装路线</button><button type="button" data-pb-range="30">最近30天</button><button type="button" data-pb-range="90">最近90天</button></div>
     <div id="pb-advanced-filters" class="pb-advanced" hidden>
       <div class="pb-advanced-grid" id="pb-advanced-grid"></div>
@@ -407,13 +410,13 @@ def render_html() -> str:
 
   <div class="pb-loading" id="pb-loading">正在汇总数据…</div>
   <header class="pb-workspace-heading">
-    <div><span>PRO WORKSPACE</span><h2 id="pb-workspace-title">职业路线</h2></div>
+    <div><span>STEP 04 / DEEP DIVE</span><h2 id="pb-workspace-title">职业路线</h2></div>
     <p id="pb-workspace-description">主线、关键时间点、装备速查与真实样本</p>
   </header>
   <nav class="pb-workspace-tabs" id="pb-workspace-tabs" aria-label="职业出装分析模块">
     <button type="button" data-pb-tab="routes" class="is-active" aria-pressed="true"><span><b>职业路线</b><em>主线</em></span><small>出装顺序、时点与装备速查</small></button>
-    <button type="button" data-pb-tab="people" aria-pressed="false"><span><b>选手样本</b></span><small>谁在使用、战队与个人风格</small></button>
     <button type="button" data-pb-tab="situations" aria-pressed="false"><span><b>局势应对</b></span><small>顺逆风、对手与版本变化</small></button>
+    <button type="button" data-pb-tab="people" aria-pressed="false"><span><b>选手样本</b></span><small>谁在使用、战队与个人风格</small></button>
     <button type="button" data-pb-tab="matches" aria-pressed="false"><span><b>比赛复盘</b></span><small>逐局路线、阵容与比赛证据</small></button>
     <button type="button" data-pb-tab="quality" aria-pressed="false"><span><b>数据可信度</b></span><small>覆盖范围、缺失与样本边界</small></button>
   </nav>

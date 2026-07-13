@@ -5229,11 +5229,11 @@
   const MODE_CONFIG = {
     hero: {
       title: '英雄出装研究', description: '先选英雄和时间，直接查看职业比赛中的完整出装路线。',
-      core: ['hero', 'patch', 'from', 'to', 'role'], tab: 'routes', action: '查看英雄出装路线',
+      core: ['hero', 'role', 'from', 'to', 'patch'], tab: 'routes', action: '查看英雄出装路线',
     },
     player: {
       title: '选手英雄研究', description: '先选职业选手，可继续限定英雄，观察他的完整路线与个人偏好。',
-      core: ['player', 'hero', 'team', 'from', 'to'], tab: 'people', action: '查看选手英雄研究',
+      core: ['player', 'hero', 'role', 'from', 'to'], tab: 'people', action: '查看选手英雄研究',
     },
     scout: {
       title: '赛前准备', description: '选择目标战队或选手，再用英雄和对手英雄定位需要准备的比赛情境。',
@@ -5291,6 +5291,12 @@
     route: '核心出装时间线', role: '位置', state: '15m局势', nw15: '15m经济差',
     kda15: '15m KDA', lh15: '15m补刀', duration: '时长', networth: '终局经济', result: '结果',
   };
+
+  const mainFlow = page.querySelector('.pb-main');
+  if (mainFlow && researchDrawer) mainFlow.prepend(researchDrawer);
+  const profileInsightsSection = document.getElementById('pb-profile-insights');
+  const proBriefSection = document.getElementById('pb-pro-brief');
+  if (profileInsightsSection && proBriefSection) profileInsightsSection.before(proBriefSection);
 
   const esc = value => String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -5476,6 +5482,9 @@
       const selected = button.dataset.pbMode === researchMode;
       button.classList.toggle('is-active', selected); button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
+    const shortcuts = document.getElementById('pb-hero-shortcuts');
+    if (shortcuts) shortcuts.hidden = researchMode !== 'hero';
+    updateResearchFlowState();
   }
 
   function setResearchMode(modeName, switchTab) {
@@ -5490,6 +5499,39 @@
     if (!select?.value) return '';
     if (SEARCH_CONTROLS[key]?.input?.value) return SEARCH_CONTROLS[key].input.value;
     return cleanOptionLabel(select.selectedOptions?.[0]?.textContent || select.value);
+  }
+
+  function primarySelectionReady() {
+    if (researchMode === 'player') return Boolean(controls.player.value);
+    if (researchMode === 'scout') return Boolean(controls.team.value || controls.player.value);
+    return Boolean(controls.hero.value);
+  }
+
+  function primarySelectionLabel() {
+    if (researchMode === 'player') return controlLabel('player') || '职业选手';
+    if (researchMode === 'scout') return controlLabel('team') || controlLabel('player') || '战队或选手';
+    return controlLabel('hero') || '英雄';
+  }
+
+  function updateResearchFlowState() {
+    const ready = primarySelectionReady();
+    page.classList.toggle('is-pb-unselected', !ready);
+    ['hero', 'player', 'scout'].forEach(mode => page.classList.toggle(`is-pb-mode-${mode}`, researchMode === mode));
+    const step = document.getElementById('pb-research-step');
+    const summary = document.getElementById('pb-research-summary');
+    const summaryNote = document.getElementById('pb-research-summary-note');
+    if (step) step.textContent = ready ? 'STEP 01 / SELECTED' : 'STEP 01 / START';
+    if (summary) summary.textContent = ready
+      ? `${primarySelectionLabel()} · 调整研究条件`
+      : researchMode === 'player' ? '选择职业选手开始研究'
+        : researchMode === 'scout' ? '选择战队或选手开始赛前准备'
+          : '选择英雄开始职业出装研究';
+    if (summaryNote) summaryNote.textContent = ready
+      ? '职责、时间和版本可以随时调整'
+      : researchMode === 'hero' ? '英雄是默认入口，也可以切换到选手或战队'
+        : '先选择研究对象，其余条件之后再细化';
+    if (!ready && researchDrawer) researchDrawer.open = true;
+    return ready;
   }
 
   function renderContext(rows) {
@@ -5625,6 +5667,18 @@
     host.innerHTML = `<div><strong>${esc(title)}</strong><span>${esc(detail)}</span></div><div>${actions}</div>`;
   }
 
+  function renderHeroShortcuts(rows) {
+    const host = document.getElementById('pb-hero-shortcuts');
+    if (!host) return;
+    const counts = new Map();
+    rows.forEach(row => { if (row.h) counts.set(row.h, (counts.get(row.h) || 0) + 1); });
+    const top = [...counts].sort((a, b) => b[1] - a[1] || (heroes[a[0]]?.name || a[0]).localeCompare(heroes[b[0]]?.name || b[0])).slice(0, 10);
+    host.innerHTML = `<span>最近30天热门英雄</span><div>${top.map(([id, games]) => {
+      const hero = heroes[id] || {}, name = hero.name || id;
+      return `<button type="button" data-pb-select-hero="${esc(id)}" title="研究 ${esc(name)}">${hero.icon ? `<img src="${esc(hero.icon)}" alt="">` : ''}<b>${esc(name)}</b><small>${games.toLocaleString()}局</small></button>`;
+    }).join('')}</div>`;
+  }
+
   function populateFilters(rows, meta) {
     fillSelect(controls.patch, uniq(rows, r => r.p).sort().map(v => option(v, v)));
     fillSelect(controls.league, uniq(rows, r => r.l).sort((a, b) => a.localeCompare(b)).map(v => option(v, v)));
@@ -5650,9 +5704,16 @@
       .map(id => option(id, heroes[id]?.name || id)));
     fillSelect(controls.opponent, [...usedHeroes].sort((a, b) => (heroes[a]?.name || a).localeCompare(heroes[b]?.name || b))
       .map(id => option(id, heroes[id]?.name || id)));
-    controls.from.min = controls.from.value = meta.date_min || '';
-    controls.to.max = controls.to.value = meta.date_max || '';
+    controls.from.min = meta.date_min || '';
+    controls.to.max = meta.date_max || '';
+    controls.to.value = meta.date_max || '';
+    if (meta.date_max) {
+      const end = new Date(`${meta.date_max}T00:00:00Z`);
+      const latestThirtyDays = new Date(end - 29 * 86400000).toISOString().slice(0, 10);
+      controls.from.value = meta.date_min && latestThirtyDays < meta.date_min ? meta.date_min : latestThirtyDays;
+    } else controls.from.value = meta.date_min || '';
     rebuildSearchControls();
+    renderHeroShortcuts(rows.filter(row => (!controls.from.value || row.d >= controls.from.value) && (!controls.to.value || row.d <= controls.to.value)));
   }
 
   function applyUrlFilters() {
@@ -6868,7 +6929,16 @@
   function render() {
     const rows = filteredRows();
     currentRows = rows;
+    const ready = updateResearchFlowState();
     syncUrl();
+    renderContext(rows);
+    renderSampleGuidance(rows);
+    if (!ready) {
+      dashboard.hidden = true;
+      updateMatchDrawerVisibility();
+      return;
+    }
+    dashboard.hidden = false;
     const matches = new Set(rows.map(r => r.m));
     document.getElementById('pb-kpi-matches').textContent = matches.size.toLocaleString();
     document.getElementById('pb-kpi-games').textContent = rows.length.toLocaleString();
@@ -6877,8 +6947,6 @@
     document.getElementById('pb-kpi-heroes').textContent = new Set(rows.map(r => r.h)).size.toLocaleString();
     renderHeroProfile(rows);
     renderProfileInsights(rows);
-    renderContext(rows);
-    renderSampleGuidance(rows);
     lastItemStats = itemStats(rows);
     if (!selectedItem || !lastItemStats.some(s => s.id === selectedItem)) selectedItem = lastItemStats[0]?.id || '';
     const selectedStat = lastItemStats.find(s => s.id === selectedItem);
@@ -6906,6 +6974,19 @@
     const modeButton = e.target.closest('[data-pb-mode]');
     if (modeButton) {
       setResearchMode(modeButton.dataset.pbMode || 'hero', true);
+      return;
+    }
+    const quickHero = e.target.closest('[data-pb-select-hero]');
+    if (quickHero) {
+      researchMode = 'hero';
+      controls.hero.value = quickHero.dataset.pbSelectHero || '';
+      syncSearchInputs();
+      layoutModeFilters();
+      setActiveTab('routes', true);
+      heatmapRequested = false;
+      if (researchDrawer) researchDrawer.open = false;
+      render();
+      document.getElementById('pb-profile')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     const roleCard = e.target.closest('[data-pb-role-card]');
@@ -7067,19 +7148,33 @@
     closeMatchDrawer();
   }));
   document.getElementById('pb-run-analysis')?.addEventListener('click', () => {
-    const requiredSearch = researchMode === 'hero' ? 'hero' : researchMode === 'player' ? 'player' : controls.player.value ? 'player' : 'team';
+    const requiredSearch = researchMode === 'hero' ? 'hero' : researchMode === 'player' ? 'player'
+      : SEARCH_CONTROLS.team.input?.value ? 'team' : 'player';
     if (SEARCH_CONTROLS[requiredSearch]?.input?.value && !commitSearchControl(requiredSearch)) return;
+    if (!primarySelectionReady()) { updateResearchFlowState(); return; }
     setActiveTab(MODE_CONFIG[researchMode].tab, true);
     render();
     if (researchDrawer) researchDrawer.open = false;
-    document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('pb-profile')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+  function runCommittedSearch(key) {
+    if (!commitSearchControl(key)) return;
+    heatmapRequested = false;
+    render();
+    const isPrimary = (researchMode === 'hero' && key === 'hero')
+      || (researchMode === 'player' && key === 'player')
+      || (researchMode === 'scout' && (key === 'team' || key === 'player'));
+    if (isPrimary && primarySelectionReady()) {
+      if (researchDrawer) researchDrawer.open = false;
+      document.getElementById('pb-profile')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
   Object.entries(SEARCH_CONTROLS).forEach(([key, binding]) => {
-    binding.input?.addEventListener('change', () => { if (commitSearchControl(key)) { heatmapRequested = false; render(); } });
+    binding.input?.addEventListener('change', () => runCommittedSearch(key));
     binding.input?.addEventListener('keydown', event => {
       if (event.key !== 'Enter') return;
       event.preventDefault();
-      if (commitSearchControl(key)) { heatmapRequested = false; render(); }
+      runCommittedSearch(key);
     });
   });
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && matchDrawerOpen) closeMatchDrawer(); });
@@ -7090,7 +7185,10 @@
     Object.entries(controls).forEach(([key, el]) => {
       if (!el) return;
       if (key === 'scope') el.value = 'core';
-      else if (key === 'from') el.value = el.min || '';
+      else if (key === 'from') {
+        const max = controls.to.max || '';
+        el.value = max ? new Date(new Date(`${max}T00:00:00Z`) - 29 * 86400000).toISOString().slice(0, 10) : (el.min || '');
+      }
       else if (key === 'to') el.value = el.max || '';
       else el.value = '';
     });
@@ -7138,14 +7236,15 @@
       populateFilters(allRows, meta);
       populateDuelSelectors(true);
       applyUrlFilters();
-      if (researchDrawer && !controls.hero.value && researchMode === 'hero') researchDrawer.open = true;
+      if (researchDrawer) researchDrawer.open = !primarySelectionReady();
       layoutModeFilters();
       setActiveTab(activeTab, false);
       const assigned = Number(meta.positions?.assigned_player_games || 0);
       const coverage = Number(meta.player_games || 0) ? (assigned * 100 / Number(meta.player_games)).toFixed(1) : '0.0';
       note.textContent = `${Number(meta.matches || 0).toLocaleString()} 场职业比赛 · ${Number(meta.player_games || 0).toLocaleString()} 个选手-英雄局 · 职责位置覆盖 ${coverage}% · ${meta.date_min || '?'} — ${meta.date_max || '?'} · 紧凑缓存 ${coreTransport} ${(Date.now() - coreLoadStarted) / 1000 < 10 ? ((Date.now() - coreLoadStarted) / 1000).toFixed(1) + '秒' : '已加载'}`;
+      const startDataNote = document.getElementById('pb-start-data-note');
+      if (startDataNote) startDataNote.textContent = `${Number(meta.matches || 0).toLocaleString()} 场职业比赛 · ${meta.date_min || '?'} — ${meta.date_max || '?'} · 默认最近30天`;
       loading.hidden = true;
-      dashboard.hidden = false;
       render();
       loadDetailManifest().catch(() => {});
     })
@@ -7153,6 +7252,8 @@
       loading.textContent = `职业比赛数据加载失败：${err.message}`;
       loading.classList.add('is-error');
       note.textContent = '请先运行职业数据抽取脚本并重新构建';
+      const startDataNote = document.getElementById('pb-start-data-note');
+      if (startDataNote) startDataNote.textContent = '职业比赛数据加载失败，请检查数据缓存';
     });
 })();
 

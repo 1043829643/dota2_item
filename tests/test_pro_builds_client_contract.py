@@ -86,3 +86,20 @@ def test_match_explorer_supports_local_filters_sort_columns_and_paging() -> None
     assert "data-pb-match-sort" in matches
     assert "matchVisibleLimit" in matches
     assert "平均15m团队经济差" in matches
+
+
+def test_research_flow_hides_analysis_until_primary_selection() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    flow = _function_source("updateResearchFlowState", "renderContext")
+    pro_start = source.index("// ---- PRO BUILDS")
+    render_start = source.index("  function render() {", pro_start)
+    render_end = source.index("\n  page.addEventListener('click'", render_start)
+    render = source[render_start:render_end]
+    filters = _function_source("populateFilters", "applyUrlFilters")
+    assert "page.classList.toggle('is-pb-unselected', !ready)" in flow
+    assert "if (!ready)" in render
+    assert "dashboard.hidden = true" in render
+    assert "mainFlow.prepend(researchDrawer)" in source
+    assert "profileInsightsSection.before(proBriefSection)" in source
+    assert "29 * 86400000" in filters
+    assert "data-pb-select-hero" in source
