@@ -178,6 +178,23 @@ interval, status, purchase, or ability scan.
 
 Open `http://localhost:8765/pro_builds.html` while the local server is running.
 
+To repair purchase timings for one already-cached hero/date slice without
+replacing unrelated matches, use the bounded route backfill. It queries only
+the exact `dt` partitions and cached match IDs in the selection. The optional
+OpenDota fallback is used only for selected matches that have no purchase
+events in either StarRocks source; its match IDs and counts are recorded in
+`meta.advanced.bounded_route_backfill`:
+
+```powershell
+python scripts/fetch/backfill_pro_build_routes.py `
+  --hero sven `
+  --date-from 2026-06-12 `
+  --date-to 2026-07-11 `
+  --opendota-fallback
+python build_site.py pro
+python scripts/audit/check_pro_builds.py
+```
+
 ## Adding a new patch
 
 Short version (full guide: [docs/workflow.md](docs/workflow.md)):
