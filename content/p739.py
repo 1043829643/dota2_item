@@ -650,8 +650,13 @@ def build():
     W(ul_open())
     W(li("Facet removed", t("DEL")))
     W(ul_close())
+    old_blood_note = inline_note(
+        "Level 20 Talent that reduces Bloodrage's Max Health damage doesn't affect "
+        "enemy casts. Aghanim's Scepter upgrade also affects only Bloodseeker and "
+        "doesn't provide bonus damage to enemies"
+    )
     W(new_facet("bloodseeker_old_blood",
-        desc=f"Replaces 15/20/25/30% Spell Amplification with 10/15/20/25% base damage amplification. The ability now also silences the target and can be cast on enemies. Decreases Cast Range from 800 to 400. Increases Mana Cost from 0 to 60. {inline_note("Level 20 Talent that reduces Bloodrage's Max Health damage doesn't affect enemy casts. Aghanim's Scepter upgrade also affects only Bloodseeker and doesn't provide bonus damage to enemies")}"))
+        desc=f"Replaces 15/20/25/30% Spell Amplification with 10/15/20/25% base damage amplification. The ability now also silences the target and can be cast on enemies. Decreases Cast Range from 800 to 400. Increases Mana Cost from 0 to 60. {old_blood_note}"))
     W(subgroup("Talents"))
     W(ul_open())
     W(li("Level 10 Talent +25 Bloodrage Attack Speed replaced with +175 Health", t("REWORK")))
@@ -939,8 +944,11 @@ def build():
 
     # Earthshaker
     W(hero_header("Earthshaker"))
+    reverberating_ridge_note = inline_note(
+        "It's equal to 54/60/66 damage, plus 30 with level 20 talent"
+    )
     W(new_facet("earthshaker_reverberating_ridge",
-        desc=f"Enemy heroes stunned by Fissure emit an echo to each nearby unit within a 400 radius, dealing 60% of Echo Slam's current echo damage. {inline_note("It's equal to 54/60/66 damage, plus 30 with level 20 talent")}"))
+        desc=f"Enemy heroes stunned by Fissure emit an echo to each nearby unit within a 400 radius, dealing 60% of Echo Slam's current echo damage. {reverberating_ridge_note}"))
     W(facet_header("earthshaker_tectonic_buildup"))
     W(ul_open())
     W(li("Aftershock: Radius increase rescaled from (+50 with every 10 hero levels) to (+40 with every level of Echo Slam)", t("REWORK")))
@@ -1354,8 +1362,12 @@ def build():
     W(ul_open())
     W(li("Facet removed", t("DEL")))
     W(ul_close())
+    cryophobia_note = inline_note(
+        "Abilities and items that do not proc certain other abilities (Blood Grenade, "
+        "Radiance, etc.) will not trigger Evil Eye's debuff"
+    )
     W(new_facet("lich_cryophobia",
-        desc=f"Sinister Gaze: Sinister Gaze applies a Evil Eye debuff that will deal additional 10/15/20/25 damage every time Lich deals magic damage to the target, and amplifies received movement slows by 50%. The Evil Eye debuff duration lingers up to 2x the elapsed Sinister Gaze channel duration. {inline_note("Abilities and items that do not proc certain other abilities (Blood Grenade, Radiance, etc.) will not trigger Evil Eye's debuff")}"))
+        desc=f"Sinister Gaze: Sinister Gaze applies a Evil Eye debuff that will deal additional 10/15/20/25 damage every time Lich deals magic damage to the target, and amplifies received movement slows by 50%. The Evil Eye debuff duration lingers up to 2x the elapsed Sinister Gaze channel duration. {cryophobia_note}"))
     W(ability("Sinister Gaze", slug="lich_sinister_gaze"))
     W(ul_open())
     W(li("Mana Drain per second increased from 15% to 20%", b(15, 20)))
@@ -1511,8 +1523,16 @@ def build():
     W(ul_open())
     W(li("Facet removed", t("DEL")))
     W(ul_close())
+    transfiguration_note = inline_note(
+        "Changing of the Guard appears in place of Wukong's Command and starts on a "
+        "0.5s cooldown after casting. Can't be cast while rooted and can't target "
+        "soldiers created by Aghanim's Scepter effect. Monkey King disjoints "
+        "projectiles upon transformation.<br>The possessed soldier has a small ring "
+        "visible only to Monkey King and allies. When the effect ends, Monkey King "
+        "returns and the overtaken soldier's position becomes empty."
+    )
     W(new_facet("monkey_king_transfiguration",
-        desc=f"While Wukong's Command is active, Monkey King gains a Changing of the Guard ability which allows him to transform into any one of his soldiers. Upon cast, Monkey King takes the place of the soldier closest to the target location for 1.5s, and leaves another one in his stead. While Transfigured, Monkey King is indistinguishable from other soldiers and invulnerable, but can't issue commands. Cast Point: 0.3s. Mana Cost: 25. Cooldown: 3s {inline_note("Changing of the Guard appears in place of Wukong's Command and starts on a 0.5s cooldown after casting. Can't be cast while rooted and can't target soldiers created by Aghanim's Scepter effect. Monkey King disjoints projectiles upon transformation.<br>The possessed soldier has a small ring visible only to Monkey King and allies. When the effect ends, Monkey King returns and the overtaken soldier's position becomes empty.")}"))
+        desc=f"While Wukong's Command is active, Monkey King gains a Changing of the Guard ability which allows him to transform into any one of his soldiers. Upon cast, Monkey King takes the place of the soldier closest to the target location for 1.5s, and leaves another one in his stead. While Transfigured, Monkey King is indistinguishable from other soldiers and invulnerable, but can't issue commands. Cast Point: 0.3s. Mana Cost: 25. Cooldown: 3s {transfiguration_note}"))
     W(ability("Primal Spring", slug="monkey_king_primal_spring"))
     W(ul_open())
     W(li("Cast Range decreased from 1000 to 800", b(1000, 800)))
@@ -1855,10 +1875,18 @@ def build():
     W(ul_open())
     W(li("Facet removed", t("DEL")))
     W(ul_close())
+    obscurity_note = inline_note(
+        "Scorpion Strike: Each enemy hero hit by Stinger in innermost radius emits "
+        "Caustic Finale debuff to 3 nearby units within 500 range. Doesn't apply to "
+        "Aghanim's Scepter Stinger strikes"
+    )
+    pinpoint_note = inline_note(
+        "Doesn't apply to Stinger strikes created by Aghanim's Scepter"
+    )
     W(new_facet("sand_king_obscurity",
-        desc=f"When Sand King attacks enemies in Sand Storm, he applies a debuff that blinds the target by 20/30/40/50%. Blind duration: 5s. {inline_note("Scorpion Strike: Each enemy hero hit by Stinger in innermost radius emits Caustic Finale debuff to 3 nearby units within 500 range. Doesn't apply to Aghanim's Scepter Stinger strikes")}"))
+        desc=f"When Sand King attacks enemies in Sand Storm, he applies a debuff that blinds the target by 20/30/40/50%. Blind duration: 5s. {obscurity_note}"))
     W(new_facet("sand_king_pinpoint",
-        desc=f"Each enemy hero hit by Stinger in innermost radius instantly emits a Caustic Finale explosion that deals 50% less damage. {inline_note("Doesn't apply to Stinger strikes created by Aghanim's Scepter")}"))
+        desc=f"Each enemy hero hit by Stinger in innermost radius instantly emits a Caustic Finale explosion that deals 50% less damage. {pinpoint_note}"))
     W(ability("Caustic Finale", slug="sandking_caustic_finale"))
     W(ul_open())
     W(li("Base Damage increased from 15/35/55/75 to 20/40/60/80", b([15, 35, 55, 75], [20, 40, 60, 80])))
@@ -2320,8 +2348,12 @@ def build():
     W(ul_open())
     W(li("Facet removed", t("DEL")))
     W(ul_close())
+    malpractice_note = inline_note(
+        "Doesn't work on illusion death. Sends projectiles towards enemies within "
+        "800 radius. Projectile speed: 1200. Disjointable"
+    )
     W(new_facet("witch_doctor_malpractice",
-        desc=f"When an enemy dies while under effect of Maledict, 75% of what the next burst damage amount would be is dealt to all enemies in 800 units. This effect works even if the enemy dies to the last burst of damage. {inline_note("Doesn't work on illusion death. Sends projectiles towards enemies within 800 radius. Projectile speed: 1200. Disjointable")}"))
+        desc=f"When an enemy dies while under effect of Maledict, 75% of what the next burst damage amount would be is dealt to all enemies in 800 units. This effect works even if the enemy dies to the last burst of damage. {malpractice_note}"))
     W(ability("Paralyzing Cask", slug="witch_doctor_paralyzing_cask"))
     W(ul_open())
     W(li("Now deals 20 more damage per bounce by default", t("NEW")))
