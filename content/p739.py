@@ -504,8 +504,12 @@ def build():
     W(ul_open())
     W(li("Facet removed", t("DEL")))
     W(ul_close())
+    mists_note = inline_note(
+        "Self damage is not affected by attack damage. This is exactly how it "
+        "was with the previous Aghanim's Shard effect"
+    )
     W(new_facet("abaddon_mists_of_fate",
-        desc=f"Mist Coil also deals 40/60/80/100% attack damage and applies effects from items and abilities. Self damage when cast on an enemy is increased from 40% to 70%. {inline_note("Self damage is not affected by attack damage. This is exactly how it was with the previous Aghanim's Shard effect")}"))
+        desc=f"Mist Coil also deals 40/60/80/100% attack damage and applies effects from items and abilities. Self damage when cast on an enemy is increased from 40% to 70%. {mists_note}"))
     W(ability("Withering Mist", slug="abaddon_withering_mist"))
     W(ul_open())
     W(li("Instead of reducing Healing, Health Regen, Lifesteal, and Spell Lifesteal by 35%, now reduces Health Restoration by 35%", t("REWORK")))

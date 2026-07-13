@@ -884,6 +884,7 @@ def render_html(rows: list[dict], cost_hist: dict[str, list] | None = None,
         # bulk by the "Hide Active" toggle via the .mr-active-row class.
         row_cls = ' class="mr-active-row"' if r["is_active_sub"] else ''
         row_attrs = f' data-slug="{r["slug"]}"'
+        regen_per_gold_sort = f'{r["regen_per_gold"]:.6f}'
 
         body_rows.append(
             f'<tr id="mr-{r["slug"]}"{row_cls}{row_attrs}>'
@@ -895,7 +896,7 @@ def render_html(rows: list[dict], cost_hist: dict[str, list] | None = None,
             f'{_metric_cell(r, "regen", r["regen"], regen_display, regen_hist)}'
             # Section divider before the first COMPUTED column (.mr-sep).
             f'{_metric_cell(r, "cost_per_regen", r["cost_per_regen"], _short(r["cost_per_regen"]), cpr_hist, pol="lo", css="mr-sep", computed=True)}'
-            f'{_metric_cell(r, "regen_per_gold", r["regen_per_gold"] * 1000, _short(r["regen_per_gold"] * 1000), rpg_hist, sort_val=f"{r["regen_per_gold"]:.6f}", computed=True)}'
+            f'{_metric_cell(r, "regen_per_gold", r["regen_per_gold"] * 1000, _short(r["regen_per_gold"] * 1000), rpg_hist, sort_val=regen_per_gold_sort, computed=True)}'
             f'{_metric_cell(r, "mana_per_60s", r["mana_per_60s"], _short(r["mana_per_60s"]), m60_hist, computed=True)}'
             f'</tr>'
         )
