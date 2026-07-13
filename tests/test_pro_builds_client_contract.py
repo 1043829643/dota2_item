@@ -104,3 +104,19 @@ def test_research_flow_hides_analysis_until_primary_selection() -> None:
     assert "29 * 86400000" in filters
     assert "data-pb-select-hero" in source
     assert ".slice(0, 6)" in source
+
+
+def test_scout_flow_requires_target_hero_and_explicit_submit() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    flow = _function_source("updateResearchFlowState", "renderContext")
+    shortcuts = _function_source("refreshHeroShortcuts", "renderHeroShortcuts")
+    assert "(controls.team.value || controls.player.value) && controls.hero.value" in source
+    assert "researchMode !== 'scout' || scoutAnalysisSubmitted" in flow
+    assert "STEP 02 / HERO" in flow
+    assert "点击“生成赛前准备分析”进入结果" in flow
+    assert "选择目标和热门英雄时保持在当前页，点击生成后才进入分析" in source
+    assert "row.t === controls.team.value" in shortcuts
+    assert "String(row.s) === String(controls.player.value)" in shortcuts
+    assert "scoutAnalysisSubmitted = true" in source
+    assert "params.set('run', '1')" in source
+    assert "|| (researchMode === 'scout' && (key === 'team' || key === 'player'))" not in source

@@ -5236,7 +5236,7 @@
       core: ['player', 'hero', 'role', 'from', 'to'], tab: 'people', action: '查看选手英雄研究',
     },
     scout: {
-      title: '设定目标与比赛情境', description: '选择目标战队或选手，再用英雄和对手英雄定位需要准备的比赛情境。',
+      title: '设定目标与比赛情境', description: '先选战队或选手，再从下方常用英雄中确认研究对象，最后手动生成赛前分析。',
       core: ['team', 'player', 'hero', 'opponent', 'from', 'to'], tab: 'situations', action: '生成赛前准备分析',
     },
   };
@@ -5266,6 +5266,7 @@
   let selectedMatchKey = '';
   const initialResearchParams = new URLSearchParams(window.location.search);
   let researchMode = MODE_CONFIG[initialResearchParams.get('mode')] ? initialResearchParams.get('mode') : initialResearchParams.has('player') ? 'player' : (initialResearchParams.has('team') || initialResearchParams.has('opponent')) ? 'scout' : 'hero';
+  let scoutAnalysisSubmitted = researchMode === 'scout' && initialResearchParams.get('run') === '1';
   let activeTab = 'routes';
   let matchDrawerOpen = false;
   let lastRouteClusters = [];
@@ -5478,17 +5479,28 @@
     document.getElementById('pb-mode-title').textContent = mode.title;
     document.getElementById('pb-mode-description').textContent = mode.description;
     document.getElementById('pb-run-analysis').textContent = mode.action;
+    const pickerTitle = page.querySelector('.pb-research-picker>header>span');
+    const pickerNote = page.querySelector('.pb-research-picker>header>small');
+    if (pickerTitle) pickerTitle.textContent = researchMode === 'scout' ? '按步骤完成赛前准备' : '第一步：选择研究对象';
+    if (pickerNote) pickerNote.textContent = researchMode === 'scout'
+      ? '选择目标和热门英雄时保持在当前页，点击生成后才进入分析'
+      : '默认从英雄开始；选中后自动进入职责位置与赛前结论';
     page.querySelectorAll('[data-pb-mode]').forEach(button => {
       const selected = button.dataset.pbMode === researchMode;
       button.classList.toggle('is-active', selected); button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
-    const shortcuts = document.getElementById('pb-hero-shortcuts');
-    if (shortcuts) shortcuts.hidden = researchMode !== 'hero';
+    refreshHeroShortcuts();
     updateResearchFlowState();
   }
 
   function setResearchMode(modeName, switchTab) {
+    const previousMode = researchMode;
     researchMode = MODE_CONFIG[modeName] ? modeName : 'hero';
+    if (researchMode === 'scout' && previousMode !== 'scout') {
+      scoutAnalysisSubmitted = false;
+      controls.hero.value = '';
+      syncSearchInputs();
+    }
     layoutModeFilters();
     if (switchTab) setActiveTab(MODE_CONFIG[researchMode].tab, false);
     if (allRows.length) render(); else syncUrl();
@@ -5503,7 +5515,7 @@
 
   function primarySelectionReady() {
     if (researchMode === 'player') return Boolean(controls.player.value);
-    if (researchMode === 'scout') return Boolean(controls.team.value || controls.player.value);
+    if (researchMode === 'scout') return Boolean((controls.team.value || controls.player.value) && controls.hero.value);
     return Boolean(controls.hero.value);
   }
 
@@ -5514,22 +5526,37 @@
   }
 
   function updateResearchFlowState() {
-    const ready = primarySelectionReady();
+    const selectionReady = primarySelectionReady();
+    const ready = selectionReady && (researchMode !== 'scout' || scoutAnalysisSubmitted);
     page.classList.toggle('is-pb-unselected', !ready);
     ['hero', 'player', 'scout'].forEach(mode => page.classList.toggle(`is-pb-mode-${mode}`, researchMode === mode));
     const step = document.getElementById('pb-research-step');
     const summary = document.getElementById('pb-research-summary');
     const summaryNote = document.getElementById('pb-research-summary-note');
-    if (step) step.textContent = ready ? 'STEP 01 / SELECTED' : 'STEP 01 / START';
-    if (summary) summary.textContent = ready
-      ? `${primarySelectionLabel()} · 调整研究条件`
-      : researchMode === 'player' ? '选择职业选手开始研究'
-        : researchMode === 'scout' ? '选择战队或选手开始赛前准备'
-          : '选择英雄开始职业出装研究';
-    if (summaryNote) summaryNote.textContent = ready
-      ? '职责、时间和版本可以随时调整'
-      : researchMode === 'hero' ? '英雄是默认入口，也可以切换到选手或战队'
-        : '先选择研究对象，其余条件之后再细化';
+    if (researchMode === 'scout') {
+      const targetReady = Boolean(controls.team.value || controls.player.value);
+      const target = primarySelectionLabel();
+      const hero = controlLabel('hero') || '热门英雄';
+      if (step) step.textContent = ready ? 'STEP 03 / ANALYSIS' : !targetReady ? 'STEP 01 / TARGET' : !controls.hero.value ? 'STEP 02 / HERO' : 'STEP 03 / READY';
+      if (summary) summary.textContent = ready
+        ? `${target} / ${hero} · 调整赛前准备条件`
+        : !targetReady ? '选择战队或选手开始赛前准备'
+          : !controls.hero.value ? `${target} · 选择热门英雄`
+            : `${target} / ${hero} · 准备生成分析`;
+      if (summaryNote) summaryNote.textContent = ready
+        ? '目标、英雄和时间可以随时重新设定'
+        : !targetReady ? '选择目标后会在下方出现该目标的热门英雄'
+          : !controls.hero.value ? '选择一个热门英雄，或使用英雄搜索框'
+            : '确认英雄后，点击“生成赛前准备分析”进入结果';
+    } else {
+      if (step) step.textContent = ready ? 'STEP 01 / SELECTED' : 'STEP 01 / START';
+      if (summary) summary.textContent = ready
+        ? `${primarySelectionLabel()} · 调整研究条件`
+        : researchMode === 'player' ? '选择职业选手开始研究' : '选择英雄开始职业出装研究';
+      if (summaryNote) summaryNote.textContent = ready
+        ? '职责、时间和版本可以随时调整'
+        : researchMode === 'hero' ? '英雄是默认入口，也可以切换到选手或战队' : '先选择研究对象，其余条件之后再细化';
+    }
     if (!ready && researchDrawer) researchDrawer.open = true;
     return ready;
   }
@@ -5667,16 +5694,35 @@
     host.innerHTML = `<div><strong>${esc(title)}</strong><span>${esc(detail)}</span></div><div>${actions}</div>`;
   }
 
-  function renderHeroShortcuts(rows) {
+  function refreshHeroShortcuts() {
+    const host = document.getElementById('pb-hero-shortcuts');
+    if (!host) return;
+    const scoutTargetReady = Boolean(controls.team.value || controls.player.value);
+    const visible = researchMode === 'hero' || (researchMode === 'scout' && scoutTargetReady);
+    host.hidden = !visible;
+    host.classList.toggle('is-scout-shortcuts', researchMode === 'scout');
+    if (!visible) return;
+    let rows = allRows.filter(row => (!controls.from.value || row.d >= controls.from.value) && (!controls.to.value || row.d <= controls.to.value));
+    let label = '最近30天热门英雄';
+    if (researchMode === 'scout') {
+      if (controls.team.value) rows = rows.filter(row => row.t === controls.team.value);
+      if (controls.player.value) rows = rows.filter(row => String(row.s) === String(controls.player.value));
+      label = `${primarySelectionLabel()} · 常用英雄（选择后再生成分析）`;
+    }
+    renderHeroShortcuts(rows, label);
+  }
+
+  function renderHeroShortcuts(rows, label) {
     const host = document.getElementById('pb-hero-shortcuts');
     if (!host) return;
     const counts = new Map();
     rows.forEach(row => { if (row.h) counts.set(row.h, (counts.get(row.h) || 0) + 1); });
     const top = [...counts].sort((a, b) => b[1] - a[1] || (heroes[a[0]]?.name || a[0]).localeCompare(heroes[b[0]]?.name || b[0])).slice(0, 6);
-    host.innerHTML = `<span>最近30天热门英雄</span><div>${top.map(([id, games]) => {
+    host.innerHTML = `<span>${esc(label || '热门英雄')}</span>${top.length ? `<div>${top.map(([id, games]) => {
       const hero = heroes[id] || {}, name = hero.name || id;
-      return `<button type="button" data-pb-select-hero="${esc(id)}" title="研究 ${esc(name)}">${hero.icon ? `<img src="${esc(hero.icon)}" alt="">` : ''}<b>${esc(name)}</b><small>${games.toLocaleString()}局</small></button>`;
-    }).join('')}</div>`;
+      const selected = id === controls.hero.value;
+      return `<button type="button" data-pb-select-hero="${esc(id)}" class="${selected ? 'is-selected' : ''}" aria-pressed="${selected ? 'true' : 'false'}" title="研究 ${esc(name)}">${hero.icon ? `<img src="${esc(hero.icon)}" alt="">` : ''}<b>${esc(name)}</b><small>${games.toLocaleString()}局</small></button>`;
+    }).join('')}</div>` : '<p class="pb-shortcut-empty">当前时间范围内没有可展示的英雄样本，请扩大日期范围。</p>'}`;
   }
 
   function populateFilters(rows, meta) {
@@ -5713,7 +5759,7 @@
       controls.from.value = meta.date_min && latestThirtyDays < meta.date_min ? meta.date_min : latestThirtyDays;
     } else controls.from.value = meta.date_min || '';
     rebuildSearchControls();
-    renderHeroShortcuts(rows.filter(row => (!controls.from.value || row.d >= controls.from.value) && (!controls.to.value || row.d <= controls.to.value)));
+    refreshHeroShortcuts();
   }
 
   function applyUrlFilters() {
@@ -5752,6 +5798,7 @@
     if (controls.scope.value && controls.scope.value !== 'core') params.set('scope', controls.scope.value);
     const defaultTab = MODE_CONFIG[researchMode]?.tab || 'routes';
     if (activeTab !== defaultTab) params.set('tab', activeTab);
+    if (researchMode === 'scout' && scoutAnalysisSubmitted) params.set('run', '1');
     if (selectedRouteClusterId) params.set('cluster', selectedRouteClusterId);
     if (routeTrendGrain !== 'week') params.set('grain', routeTrendGrain);
     if ((activeTab === 'matches' || matchDrawerOpen) && selectedMatchKey) params.set('match', selectedMatchKey);
@@ -6929,6 +6976,7 @@
   function render() {
     const rows = filteredRows();
     currentRows = rows;
+    refreshHeroShortcuts();
     const ready = updateResearchFlowState();
     syncUrl();
     renderContext(rows);
@@ -6978,9 +7026,15 @@
     }
     const quickHero = e.target.closest('[data-pb-select-hero]');
     if (quickHero) {
-      researchMode = 'hero';
       controls.hero.value = quickHero.dataset.pbSelectHero || '';
       syncSearchInputs();
+      if (researchMode === 'scout') {
+        scoutAnalysisSubmitted = false;
+        heatmapRequested = false;
+        render();
+        return;
+      }
+      researchMode = 'hero';
       layoutModeFilters();
       setActiveTab('routes', true);
       heatmapRequested = false;
@@ -7085,7 +7139,9 @@
   page.querySelectorAll('[data-pb-range]').forEach(button => button.addEventListener('click', () => {
     const days = Number(button.dataset.pbRange || 30), max = controls.to.max || controls.to.value;
     if (!max) return; const end = new Date(`${max}T00:00:00Z`), start = new Date(end - (days - 1) * 86400000);
-    controls.from.value = start.toISOString().slice(0, 10); controls.to.value = max; render();
+    controls.from.value = start.toISOString().slice(0, 10); controls.to.value = max;
+    if (researchMode === 'scout') scoutAnalysisSubmitted = false;
+    render();
   }));
 
   const refreshMatchExplorer = () => { matchVisibleLimit = 50; if (activeTab === 'matches') renderMatches(currentRows); };
@@ -7147,11 +7203,26 @@
     event.stopPropagation();
     closeMatchDrawer();
   }));
+  function validatePrimarySelection() {
+    if (researchMode === 'scout' && !controls.team.value && !controls.player.value) {
+      SEARCH_CONTROLS.team.input?.setCustomValidity('请先选择一个战队或职业选手');
+      SEARCH_CONTROLS.team.input?.reportValidity();
+      return false;
+    }
+    if (researchMode === 'scout' && !controls.hero.value) {
+      SEARCH_CONTROLS.hero.input?.setCustomValidity('请从该目标的热门英雄中选择一个英雄');
+      SEARCH_CONTROLS.hero.input?.reportValidity();
+      return false;
+    }
+    return primarySelectionReady();
+  }
   document.getElementById('pb-run-analysis')?.addEventListener('click', () => {
     const requiredSearch = researchMode === 'hero' ? 'hero' : researchMode === 'player' ? 'player'
       : SEARCH_CONTROLS.team.input?.value ? 'team' : 'player';
     if (SEARCH_CONTROLS[requiredSearch]?.input?.value && !commitSearchControl(requiredSearch)) return;
-    if (!primarySelectionReady()) { updateResearchFlowState(); return; }
+    if (researchMode === 'scout' && SEARCH_CONTROLS.hero.input?.value && !controls.hero.value && !commitSearchControl('hero')) return;
+    if (!validatePrimarySelection()) { updateResearchFlowState(); return; }
+    if (researchMode === 'scout') scoutAnalysisSubmitted = true;
     setActiveTab(MODE_CONFIG[researchMode].tab, true);
     render();
     if (researchDrawer) researchDrawer.open = false;
@@ -7159,11 +7230,20 @@
   });
   function runCommittedSearch(key) {
     if (!commitSearchControl(key)) return;
+    if (researchMode === 'scout') {
+      scoutAnalysisSubmitted = false;
+      if (key === 'team' || key === 'player') {
+        controls.hero.value = '';
+        if (SEARCH_CONTROLS.hero.input) {
+          SEARCH_CONTROLS.hero.input.value = '';
+          SEARCH_CONTROLS.hero.input.setCustomValidity('');
+        }
+      }
+    }
     heatmapRequested = false;
     render();
     const isPrimary = (researchMode === 'hero' && key === 'hero')
-      || (researchMode === 'player' && key === 'player')
-      || (researchMode === 'scout' && (key === 'team' || key === 'player'));
+      || (researchMode === 'player' && key === 'player');
     if (isPrimary && primarySelectionReady()) {
       if (researchDrawer) researchDrawer.open = false;
       document.getElementById('pb-profile')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7180,7 +7260,11 @@
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && matchDrawerOpen) closeMatchDrawer(); });
   layoutModeFilters();
   refreshSavedViews();
-  Object.values(controls).forEach(el => el && el.addEventListener('change', () => { heatmapRequested = false; render(); }));
+  Object.values(controls).forEach(el => el && el.addEventListener('change', () => {
+    if (researchMode === 'scout') scoutAnalysisSubmitted = false;
+    heatmapRequested = false;
+    render();
+  }));
   document.getElementById('pb-reset')?.addEventListener('click', () => {
     Object.entries(controls).forEach(([key, el]) => {
       if (!el) return;
@@ -7194,6 +7278,7 @@
     });
     selectedItem = '';
     routeTrendGrain = 'week';
+    scoutAnalysisSubmitted = false;
     syncSearchInputs();
     render();
   });
