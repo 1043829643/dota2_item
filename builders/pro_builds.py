@@ -300,8 +300,8 @@ def render_html() -> str:
 
   <div class="pb-loading" id="pb-loading">正在汇总数据…</div>
   <nav class="pb-workspace-tabs" id="pb-workspace-tabs" aria-label="职业出装分析模块">
-    <button type="button" data-pb-tab="overview">先看结论</button>
     <button type="button" data-pb-tab="routes" class="is-active">怎么出</button>
+    <button type="button" data-pb-tab="overview">先看结论</button>
     <button type="button" data-pb-tab="people">谁这样出</button>
     <button type="button" data-pb-tab="situations">什么局势出</button>
     <button type="button" data-pb-tab="matches">真实比赛</button>
