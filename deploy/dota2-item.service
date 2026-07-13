@@ -1,0 +1,18 @@
+[Unit]
+Description=Dota2 Item and Professional Build Analytics
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/dota2_item
+ExecStart=/usr/bin/python3 -m http.server 8765 --bind 0.0.0.0 --directory /opt/dota2_item/dist
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
