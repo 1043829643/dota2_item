@@ -7,6 +7,7 @@ runtime, which keeps credentials out of the browser and GitHub Pages.
 
 from __future__ import annotations
 
+import gzip
 import json
 import shutil
 from pathlib import Path
@@ -41,6 +42,7 @@ def _config() -> dict:
     items = _load_items(version)
     return {
         "dataUrl": "data/pro_builds.json",
+        "dataGzipUrl": "data/pro_builds.json.gz",
         "detailManifestUrl": "data/pro_builds_detail_manifest.json",
         "theoryPatch": version,
         "heroes": {
@@ -197,10 +199,16 @@ def _write_compact_core() -> dict:
         json.dumps(compact, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
+    gzip_target = target.with_name(f"{target.name}.gz")
+    gzip_target.write_bytes(
+        gzip.compress(target.read_bytes(), compresslevel=9, mtime=0)
+    )
     return {
         "path": target,
+        "gzip_path": gzip_target,
         "source_bytes": DATA_PATH.stat().st_size,
         "bytes": target.stat().st_size,
+        "gzip_bytes": gzip_target.stat().st_size,
         "records": len(records),
         "dictionary_counts": {key: len(value) for key, value in dictionaries.items()},
     }
@@ -462,6 +470,10 @@ def main() -> int:
     print(
         f"  -> dist/data/pro_builds.json: {compact_core['bytes']:,} bytes "
         f"({saving:.1%} smaller than {compact_core['source_bytes']:,}-byte source)"
+    )
+    print(
+        f"  -> dist/data/pro_builds.json.gz: {compact_core['gzip_bytes']:,} bytes "
+        f"({compact_core['gzip_bytes'] / max(1, compact_core['bytes']):.1%} of compact JSON)"
     )
     if detail_manifest:
         total = sum(row["bytes"] for row in detail_manifest["buckets"].values())

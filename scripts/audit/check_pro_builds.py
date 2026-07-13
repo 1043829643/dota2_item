@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ CORE = ROOT / "data" / "pro_builds.json"
 DETAIL = ROOT / "data" / "pro_builds_detail.json"
 DIST_DATA = ROOT / "dist" / "data"
 DIST_CORE = DIST_DATA / "pro_builds.json"
+DIST_CORE_GZIP = DIST_DATA / "pro_builds.json.gz"
 MANIFEST = DIST_DATA / "pro_builds_detail_manifest.json"
 FETCHER = ROOT / "scripts" / "fetch" / "fetch_pro_builds.py"
 UPDATER = ROOT / "scripts" / "fetch" / "update_pro_builds.py"
@@ -156,7 +158,7 @@ def _audit_item_uses(records, advanced, errors: list[str]) -> tuple[int, int, in
 
 def main() -> int:
     errors: list[str] = []
-    for path in (CORE, DETAIL, DIST_CORE, MANIFEST, FETCHER, UPDATER, UPDATE_STATUS, ROOT / "dist" / "pro_builds.html"):
+    for path in (CORE, DETAIL, DIST_CORE, DIST_CORE_GZIP, MANIFEST, FETCHER, UPDATER, UPDATE_STATUS, ROOT / "dist" / "pro_builds.html"):
         if not path.exists():
             fail(f"missing {path.relative_to(ROOT)}", errors)
     if errors:
@@ -166,6 +168,15 @@ def main() -> int:
     compact = json.loads(DIST_CORE.read_text(encoding="utf-8"))
     detail = json.loads(DETAIL.read_text(encoding="utf-8"))
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    try:
+        decompressed_core = gzip.decompress(DIST_CORE_GZIP.read_bytes())
+    except (OSError, EOFError) as exc:
+        fail(f"compact core gzip is unreadable: {exc}", errors)
+        decompressed_core = b""
+    if decompressed_core != DIST_CORE.read_bytes():
+        fail("compact core gzip does not reproduce the compact JSON", errors)
+    if DIST_CORE_GZIP.stat().st_size >= DIST_CORE.stat().st_size * 0.5:
+        fail("compact core gzip did not achieve at least 50% size reduction", errors)
     records = core.get("records") or []
     meta = core.get("meta") or {}
     if len(records) != int(meta.get("player_games") or -1):
@@ -312,7 +323,7 @@ def main() -> int:
         'data-pb-mode="hero"', 'data-pb-mode="player"', 'data-pb-mode="scout"',
         'id="pb-analysis-context"', 'id="pb-sample-guidance"',
         'id="pb-match-drawer"', 'id="pb-advanced-filters"',
-        'detailManifestUrl',
+        'detailManifestUrl', 'dataGzipUrl',
     )
     for marker in required_html:
         if marker not in html:
@@ -325,7 +336,7 @@ def main() -> int:
         "renderFreshness",
         "setResearchMode", "renderContext", "renderSampleGuidance",
         "openMatchDrawer", "commitSearchControl",
-        "averageFirstUseDelay", "pb-first-use-gap",
+        "averageFirstUseDelay", "pb-first-use-gap", "DecompressionStream",
     )
     for marker in required_js:
         if marker not in js:

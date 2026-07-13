@@ -115,6 +115,9 @@ the active filter; the map heatmap requires an explicit load action. The
 always-needed core cache is dictionary-encoded during the build so repeated
 dates, patches, leagues, teams, players, heroes, role methods, and item IDs are
 transferred once and restored in the browser without changing the source cache.
+The compact core also ships as deterministic `pro_builds.json.gz`; modern
+browsers decompress that smaller static artifact in a stream, with an automatic
+plain-JSON fallback for older browsers and unusual hosts.
 Route clusters use the versioned deterministic `route-cluster-v2` algorithm, expose a
 stable URL ID, and drill down to variants, players, teams, situations,
 opponents, and source matches. Each selected cluster also compares win rate,

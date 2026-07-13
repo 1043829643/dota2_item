@@ -6545,9 +6545,27 @@
     render();
   });
 
+  let coreTransport = 'JSON';
+  async function loadCorePayload() {
+    if (config.dataGzipUrl && typeof DecompressionStream === 'function') {
+      try {
+        const compressed = await fetch(config.dataGzipUrl, { cache: 'no-cache' });
+        if (!compressed.ok || !compressed.body) throw new Error(`HTTP ${compressed.status}`);
+        const stream = compressed.body.pipeThrough(new DecompressionStream('gzip'));
+        const payload = await new Response(stream).json();
+        coreTransport = 'GZIP';
+        return payload;
+      } catch (_) {
+        // Older browsers and unusual static hosts fall back to plain JSON.
+      }
+    }
+    const response = await fetch(config.dataUrl, { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  }
+
   const coreLoadStarted = Date.now();
-  fetch(config.dataUrl, { cache: 'no-cache' })
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  loadCorePayload()
     .then(payload => {
       allRows = decodeCorePayload(payload);
       matchTeams = new Map();
@@ -6566,7 +6584,7 @@
       setActiveTab(activeTab, false);
       const assigned = Number(meta.positions?.assigned_player_games || 0);
       const coverage = Number(meta.player_games || 0) ? (assigned * 100 / Number(meta.player_games)).toFixed(1) : '0.0';
-      note.textContent = `${Number(meta.matches || 0).toLocaleString()} 场职业比赛 · ${Number(meta.player_games || 0).toLocaleString()} 个选手-英雄局 · 职责位置覆盖 ${coverage}% · ${meta.date_min || '?'} — ${meta.date_max || '?'} · 紧凑缓存 ${(Date.now() - coreLoadStarted) / 1000 < 10 ? ((Date.now() - coreLoadStarted) / 1000).toFixed(1) + '秒' : '已加载'}`;
+      note.textContent = `${Number(meta.matches || 0).toLocaleString()} 场职业比赛 · ${Number(meta.player_games || 0).toLocaleString()} 个选手-英雄局 · 职责位置覆盖 ${coverage}% · ${meta.date_min || '?'} — ${meta.date_max || '?'} · 紧凑缓存 ${coreTransport} ${(Date.now() - coreLoadStarted) / 1000 < 10 ? ((Date.now() - coreLoadStarted) / 1000).toFixed(1) + '秒' : '已加载'}`;
       loading.hidden = true;
       dashboard.hidden = false;
       render();
