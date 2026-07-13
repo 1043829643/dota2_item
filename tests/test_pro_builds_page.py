@@ -29,6 +29,12 @@ def test_hero_profile_shell_has_unique_dynamic_targets(page_html: str) -> None:
         "pb-workspace-title",
         "pb-workspace-description",
         "pb-jump-matches",
+        "pb-complete-build",
+        "pb-lineup-decisions",
+        "pb-match-search",
+        "pb-match-summary",
+        "pb-matches-head",
+        "pb-matches-more",
     )
     for target in targets:
         assert page_html.count(f'id="{target}"') == 1
@@ -57,3 +63,12 @@ def test_only_routes_tab_is_initially_selected(page_html: str) -> None:
         page_html,
     )
     assert selected == ["routes"]
+
+
+def test_new_decision_modules_explain_their_data_boundaries(page_html: str) -> None:
+    assert "完整职业出装卡" in page_html
+    assert "开局、阶段选择、技能天赋与中立物品" in page_html
+    assert "15分钟同位置经济差是对线代理指标，不代表因果" in page_html
+    assert "只看15分钟落后后取胜" in page_html
+    assert "只看可还原路线" in page_html
+    assert "显示字段" in page_html

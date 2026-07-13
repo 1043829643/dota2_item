@@ -57,3 +57,31 @@ def test_compact_match_timeline_falls_back_to_final_items() -> None:
     assert "if (compact && !pairs.length) pairs = allPairs.slice(0, 5);" in timeline
     assert "终局出现 / 无购买时点" in timeline
     assert "该局没有可展示的装备记录" in timeline
+
+
+def test_complete_build_keeps_opening_and_stage_evidence_honest() -> None:
+    complete = _function_source("renderCompleteBuild", "routeSimilarity")
+    assert "0–3分钟开局与首轮补给" in complete
+    assert "不等同于出生时库存" in complete
+    assert "每个阶段独立统计，不能连读为唯一固定路线" in complete
+    assert "special_bonus_" in complete
+    assert "item.class === className" in complete
+    assert "ensureDetailRows(rows)" in complete
+
+
+def test_lineup_decisions_use_same_role_networth_proxy() -> None:
+    lineup = _function_source("renderLineupDecisions", "renderSkills")
+    assert "sameRoleOpponent(row)" in lineup
+    assert "Number(row.g[1]) - Number(laneOpponent.g[1])" in lineup
+    assert "15m同位置经济差" in lineup
+    assert "描述性比较" in lineup
+
+
+def test_match_explorer_supports_local_filters_sort_columns_and_paging() -> None:
+    matches = _function_source("renderMatches", "setMatchDetailHtml")
+    assert "matchComebackOnly" in matches
+    assert "matchRouteOnly" in matches
+    assert "data-pb-match-column" in matches
+    assert "data-pb-match-sort" in matches
+    assert "matchVisibleLimit" in matches
+    assert "平均15m团队经济差" in matches

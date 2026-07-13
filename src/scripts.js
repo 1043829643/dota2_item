@@ -5199,6 +5199,8 @@
   try { config = JSON.parse(configEl.textContent || '{}'); } catch { return; }
   const items = config.items || {};
   const heroes = config.heroes || {};
+  const abilityNames = config.abilityNames || {};
+  const heroAbilities = config.heroAbilities || {};
   const loading = document.getElementById('pb-loading');
   const dashboard = document.getElementById('pb-dashboard');
   const note = document.getElementById('pb-data-note');
@@ -5259,6 +5261,7 @@
   const loadedDetailBuckets = new Set();
   const pendingDetailBuckets = new Map();
   let matchTeams = new Map();
+  let matchRowsById = new Map();
   let currentRows = [];
   let selectedMatchKey = '';
   const initialResearchParams = new URLSearchParams(window.location.search);
@@ -5273,6 +5276,21 @@
   const SAVED_VIEW_KEY = 'sloppy-pro-build-views-v1';
   let selectedItem = '';
   let lastItemStats = [];
+  let matchSearch = '';
+  let matchResult = '';
+  let matchState = '';
+  let matchItem = '';
+  let matchComebackOnly = false;
+  let matchRouteOnly = false;
+  let matchSortKey = 'date';
+  let matchSortDir = 'desc';
+  let matchVisibleLimit = 50;
+  const matchColumns = new Set(['match', 'player', 'hero', 'route', 'role', 'nw15', 'result']);
+  const MATCH_COLUMN_LABELS = {
+    match: '比赛 / 日期', player: '选手', team: '战队', league: '赛事', hero: '英雄',
+    route: '核心出装时间线', role: '位置', state: '15m局势', nw15: '15m经济差',
+    kda15: '15m KDA', lh15: '15m补刀', duration: '时长', networth: '终局经济', result: '结果',
+  };
 
   const esc = value => String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -5294,6 +5312,8 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   };
   const intervalText = seconds => Number.isFinite(seconds) ? `+${timeText(Math.max(0, Math.round(seconds)))}` : '—';
+  const abilityLabel = slug => (abilityNames[slug] || String(slug || '').replace(/^.*?_/, '').replaceAll('_', ' '))
+    .replace(/\{s:[^}]+\}\s*/g, '').replace(/\s{2,}/g, ' ').trim();
   const situation = r => !r.g || !Number.isFinite(Number(r.g[6])) ? 'unknown'
     : Number(r.g[6]) >= 1500 ? 'ahead' : Number(r.g[6]) <= -1500 ? 'behind' : 'even';
   const situationName = value => ({ ahead: '优势', even: '均势', behind: '劣势', unknown: '未知' }[value] || value);
@@ -5756,6 +5776,15 @@
     return [...enemies];
   }
 
+  function opposingRows(r) {
+    return (matchRowsById.get(String(r.m)) || []).filter(other => Number(other.tm) !== Number(r.tm));
+  }
+
+  function sameRoleOpponent(r) {
+    if (!r.r) return null;
+    return opposingRows(r).find(other => Number(other.r) === Number(r.r)) || null;
+  }
+
   function filteredRows(ignoreDates, ignoredControls) {
     const ignored = ignoredControls || new Set();
     return allRows.filter(r => {
@@ -5880,6 +5909,118 @@
       const cost = Number(items[id]?.cost || 0);
       return cost >= floor || /boots|blink|spirit_vessel|urn_of_shadows/.test(id);
     }).sort((a, b) => a[1] - b[1]).slice(0, limit || 5);
+  }
+
+  function observedItemBreakdown(rows, predicate) {
+    const map = new Map();
+    rows.forEach(row => {
+      const seen = new Set();
+      (row.i || []).forEach(([id, seconds]) => {
+        if (seen.has(id) || !items[id] || !predicate(id, seconds, items[id], row)) return;
+        seen.add(id);
+        const stat = map.get(id) || { id, games: 0, wins: 0, times: [] };
+        stat.games++; stat.wins += Number(row.w || 0);
+        if (Number.isFinite(seconds)) stat.times.push(seconds);
+        map.set(id, stat);
+      });
+    });
+    return [...map.values()].sort((a, b) => b.games - a.games || b.wins - a.wins);
+  }
+
+  function compactItemChoice(stat, total) {
+    const item = items[stat.id] || { name: stat.id, icon: '' };
+    return `<span class="pb-complete-item" title="${esc(item.name)} · ${stat.games}局 · 样本胜率 ${pct(stat.wins, stat.games)}">${icon(item.icon, item.name)}<b>${esc(item.name)}</b><small>${pct(stat.games, total)} · ${Number.isFinite(median(stat.times)) ? timeText(median(stat.times)) : '终局记录'}</small></span>`;
+  }
+
+  function renderCompleteBuild(rows) {
+    const host = document.getElementById('pb-complete-build');
+    const status = document.getElementById('pb-complete-build-status');
+    if (!host || !status) return;
+    if (!controls.hero.value) {
+      status.textContent = '选择英雄后生成完整卡片';
+      host.innerHTML = '<div class="pb-empty">先选择一个英雄；这里不会把不同英雄的技能和装备混在一起。</div>';
+      return;
+    }
+    if (!rows.length) {
+      status.textContent = '当前条件没有比赛样本';
+      host.innerHTML = '<div class="pb-empty">请扩大比赛日期或清除部分筛选条件。</div>';
+      return;
+    }
+
+    const openings = new Map();
+    rows.forEach(row => {
+      const pairs = (row.i || []).filter(([id, seconds]) => {
+        const item = items[id];
+        return item?.class === 'regular' && Number.isFinite(seconds) && seconds >= 0 && seconds <= 180
+          && (item.consumable || Number(item.cost || 0) <= 700);
+      }).sort((a, b) => a[1] - b[1]);
+      const unique = [], seen = new Set();
+      pairs.forEach(([id]) => { if (!seen.has(id) && unique.length < 6) { seen.add(id); unique.push(id); } });
+      if (!unique.length) return;
+      const key = unique.join('>'), stat = openings.get(key) || { ids: unique, games: 0, wins: 0 };
+      stat.games++; stat.wins += Number(row.w || 0); openings.set(key, stat);
+    });
+    const openingList = [...openings.values()].sort((a, b) => b.games - a.games || b.wins - a.wins).slice(0, 3);
+    const openingHtml = openingList.map((entry, index) => `<article class="pb-opening-route"><span>#${index + 1} · ${entry.games}局</span><div>${entry.ids.map(id => { const item = items[id] || { name: id, icon: '' }; return `<span title="${esc(item.name)}">${icon(item.icon, item.name)}<b>${esc(item.name)}</b></span>`; }).join('<i>›</i>')}</div><small>采用 ${pct(entry.games, rows.length)} · 样本胜率 ${pct(entry.wins, entry.games)}</small></article>`).join('') || '<div class="pb-no-data">当前样本没有可确认的0–3分钟购买记录</div>';
+
+    const stages = [
+      ['0–6分钟', 0, 360], ['6–15分钟', 361, 900], ['15–30分钟', 901, 1800], ['30分钟后', 1801, Number.MAX_SAFE_INTEGER],
+    ];
+    const stageHtml = stages.map(([label, from, to]) => {
+      const choices = observedItemBreakdown(rows, (id, seconds, item) => item.class === 'regular' && !item.consumable && Number.isFinite(seconds) && seconds >= from && seconds <= to).slice(0, 4);
+      return `<article class="pb-build-stage"><header><span>${label}</span><small>${choices.length ? '该阶段常见购买节点' : '没有可靠购买时点'}</small></header><div>${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || '<span class="pb-no-data">—</span>'}</div></article>`;
+    }).join('');
+
+    const equipmentPanel = (title, className) => {
+      const choices = observedItemBreakdown(rows, (id, _seconds, item) => item.class === className).slice(0, 5);
+      return `<article class="pb-complete-subcard"><span>${title}</span><div class="pb-complete-choices">${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || '<small>当前样本没有记录</small>'}</div></article>`;
+    };
+
+    let skillHtml = '<div class="pb-no-data">正在加载逐局技能明细…</div>';
+    let talentHtml = '<div class="pb-no-data">正在加载逐局天赋明细…</div>';
+    let skillCoverage = 0;
+    if (detailRowsReady(rows)) {
+      const skillRoutes = new Map(), talents = new Map();
+      rows.forEach(row => {
+        const abilityRows = detailData.players?.[rowKey(row)]?.a || [];
+        const kit = new Set(heroAbilities[row.h] || []);
+        const skills = abilityRows.filter(entry => !String(entry[1]).startsWith('special_bonus_') && (!kit.size || kit.has(entry[1]))).slice(0, 12).map(entry => entry[1]);
+        if (skills.length) {
+          skillCoverage++;
+          const key = skills.join('>'), stat = skillRoutes.get(key) || { abilities: skills, games: 0, wins: 0 };
+          stat.games++; stat.wins += Number(row.w || 0); skillRoutes.set(key, stat);
+        }
+        const rowTalents = abilityRows.filter(entry => String(entry[1]).startsWith('special_bonus_') && entry[1] !== 'special_bonus_attributes');
+        rowTalents.forEach((entry, index) => {
+          const level = [10, 15, 20, 25][index] || 25, key = `${level}:${entry[1]}`;
+          const stat = talents.get(key) || { level, slug: entry[1], games: 0, wins: 0 };
+          stat.games++; stat.wins += Number(row.w || 0); talents.set(key, stat);
+        });
+      });
+      const routes = [...skillRoutes.values()].sort((a, b) => b.games - a.games || b.wins - a.wins);
+      const common = routes[0];
+      const winning = routes.filter(route => route.games >= Math.max(2, Math.ceil(skillCoverage * .03))).sort((a, b) => b.wins / b.games - a.wins / a.games || b.games - a.games)[0];
+      const skillRoute = (route, label) => route ? `<article><span>${label}</span><div class="pb-ability-route">${route.abilities.map((slug, index) => `<b title="${esc(slug)}"><i>${index + 1}</i>${esc(abilityLabel(slug))}</b>`).join('')}</div><small>${route.games}局 · ${pct(route.wins, route.games)} 样本胜率</small></article>` : '';
+      skillHtml = skillRoute(common, '最常见加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率加点') : '') || '<div class="pb-no-data">当前样本没有技能事件</div>';
+      const byLevel = new Map();
+      [...talents.values()].forEach(stat => { if (!byLevel.has(stat.level)) byLevel.set(stat.level, []); byLevel.get(stat.level).push(stat); });
+      talentHtml = [10, 15, 20, 25].map(level => {
+        const choices = (byLevel.get(level) || []).sort((a, b) => b.games - a.games).slice(0, 2);
+        return `<article><span>Lv ${level}</span><div>${choices.map(stat => `<b title="${esc(stat.slug)}">${esc(abilityLabel(stat.slug))}<small>${stat.games}局 · ${pct(stat.wins, stat.games)}</small></b>`).join('') || '<b class="is-missing">没有记录</b>'}</div></article>`;
+      }).join('');
+    } else {
+      ensureDetailRows(rows).then(() => { if (activeTab === 'routes' && controls.hero.value) renderCompleteBuild(currentRows); }).catch(err => {
+        if (activeTab === 'routes') { const target = document.getElementById('pb-complete-build-status'); if (target) target.textContent = `技能明细加载失败：${err.message}`; }
+      });
+    }
+
+    const reconstructable = rows.filter(row => coreRoutePairs(row, 5).length >= 2).length;
+    status.textContent = `${rows.length}局 · 路线可还原 ${pct(reconstructable, rows.length)} · 技能覆盖 ${pct(skillCoverage, rows.length)}`;
+    host.innerHTML = `<section class="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>0–3分钟开局与首轮补给</h3></div><small>来自购买日志，不等同于出生时库存</small></header><div>${openingHtml}</div></section>
+      <section class="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>按比赛阶段做选择</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线</small></header><div>${stageHtml}</div></section>
+      <section class="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局有技能事件` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
+      <section class="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>来自该局可观察到的最终选择</small></header><div>${equipmentPanel('常见中立物品', 'neutral')}${equipmentPanel('常见中立附魔', 'enchant')}</div></section>
+      <footer><strong>阅读边界</strong><span>这张卡描述职业样本中的常见选择；低样本胜率、阶段先后与装备效果都不能单独解释胜负。</span></footer>`;
   }
 
   function routeSimilarity(a, b) {
@@ -6361,14 +6502,69 @@
   function renderMatchups(rows) {
     const groups = new Map();
     rows.forEach(r => enemyHeroes(r).forEach(hero => {
-      const g = groups.get(hero) || { games: 0, wins: 0, items: new Map() };
-      g.games++; g.wins += Number(r.w || 0); (r.i || []).forEach(([id]) => { if (includeItem(id)) g.items.set(id, (g.items.get(id) || 0) + 1); }); groups.set(hero, g);
+      const g = groups.get(hero) || { games: 0, wins: 0, items: new Map(), laneDeltas: [], routes: new Map() };
+      g.games++; g.wins += Number(r.w || 0);
+      (r.i || []).forEach(([id]) => { if (includeItem(id)) g.items.set(id, (g.items.get(id) || 0) + 1); });
+      const laneOpponent = sameRoleOpponent(r);
+      if (laneOpponent?.h === hero && Number.isFinite(Number(r.g?.[1])) && Number.isFinite(Number(laneOpponent.g?.[1]))) g.laneDeltas.push(Number(r.g[1]) - Number(laneOpponent.g[1]));
+      const route = coreRoutePairs(r, 4).map(pair => pair[0]);
+      if (route.length >= 2) { const key = route.join('>'); g.routes.set(key, (g.routes.get(key) || 0) + 1); }
+      groups.set(hero, g);
     }));
     const list = [...groups].sort((a, b) => b[1].games - a[1].games).slice(0, 20);
-    document.getElementById('pb-matchups').innerHTML = `<table class="pb-table"><thead><tr><th>对手英雄</th><th>交手局</th><th>样本胜率</th><th>最常应对物品</th></tr></thead><tbody>${list.map(([hero, g]) => {
+    document.getElementById('pb-matchups').innerHTML = `<table class="pb-table"><thead><tr><th>对手英雄</th><th>交手局</th><th>样本胜率</th><th>同位置15m经济差</th><th>最常应对物品</th><th>常见应对路线</th></tr></thead><tbody>${list.map(([hero, g]) => {
       const itemId = [...g.items].sort((a, b) => b[1] - a[1])[0]?.[0], it = items[itemId], h = heroes[hero] || { name: hero, icon: '' };
-      return `<tr><td><span class="pb-item-name">${icon(h.icon, h.name)}${esc(h.name)}</span></td><td>${g.games}</td><td>${pct(g.wins, g.games)}</td><td>${it ? `<span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span>` : '—'}</td></tr>`;
+      const routeKey = [...g.routes].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+      const routeHtml = routeKey ? routeKey.split('>').map(id => { const item = items[id] || { name: id, icon: '' }; return icon(item.icon, item.name); }).join('<span class="pb-seq-arrow">›</span>') : '—';
+      const laneDelta = mean(g.laneDeltas);
+      return `<tr><td><span class="pb-item-name">${icon(h.icon, h.name)}${esc(h.name)}</span></td><td>${g.games}</td><td>${pct(g.wins, g.games)}</td><td class="${Number(laneDelta) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(laneDelta) ? `${laneDelta >= 0 ? '+' : ''}${laneDelta.toLocaleString()} (${g.laneDeltas.length}局)` : '—'}</td><td>${it ? `<span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span>` : '—'}</td><td><span class="pb-mini-route">${routeHtml}</span></td></tr>`;
     }).join('')}</tbody></table>`;
+  }
+
+  function renderLineupDecisions(rows) {
+    const host = document.getElementById('pb-lineup-decisions');
+    if (!host) return;
+    if (!controls.hero.value) {
+      host.innerHTML = '<div class="pb-empty">先选择一个英雄；分路决策必须围绕同一英雄的职业样本。</div>';
+      return;
+    }
+    const laneGroups = new Map(), allyGroups = new Map(), opponentGroups = new Map();
+    rows.forEach(row => {
+      const laneOpponent = sameRoleOpponent(row);
+      if (laneOpponent) {
+        const stat = laneGroups.get(laneOpponent.h) || { hero: laneOpponent.h, games: 0, wins: 0, deltas: [] };
+        stat.games++; stat.wins += Number(row.w || 0);
+        if (Number.isFinite(Number(row.g?.[1])) && Number.isFinite(Number(laneOpponent.g?.[1]))) stat.deltas.push(Number(row.g[1]) - Number(laneOpponent.g[1]));
+        laneGroups.set(laneOpponent.h, stat);
+      }
+      (matchRowsById.get(String(row.m)) || []).forEach(other => {
+        if (rowKey(other) === rowKey(row)) return;
+        const target = Number(other.tm) === Number(row.tm) ? allyGroups : opponentGroups;
+        const stat = target.get(other.h) || { hero: other.h, games: 0, wins: 0 };
+        stat.games++; stat.wins += Number(row.w || 0); target.set(other.h, stat);
+      });
+    });
+    const overall = rows.length ? rows.reduce((sum, row) => sum + Number(row.w || 0), 0) / rows.length : 0;
+    const lanes = [...laneGroups.values()].map(stat => ({ ...stat, delta: mean(stat.deltas) }))
+      .filter(stat => stat.games >= 1 && Number.isFinite(stat.delta));
+    const laneList = (list, empty) => list.slice(0, 4).map(stat => {
+      const hero = heroes[stat.hero] || { name: stat.hero, icon: '' };
+      return `<article>${icon(hero.icon, hero.name)}<span><b>${esc(hero.name)}</b><small>${stat.games}局 · ${pct(stat.wins, stat.games)} 样本胜率</small></span><strong class="${stat.delta >= 0 ? 'pb-up' : 'pb-down'}">${stat.delta >= 0 ? '+' : ''}${stat.delta.toLocaleString()}<small>15m同位置经济差</small></strong></article>`;
+    }).join('') || `<div class="pb-no-data">${empty}</div>`;
+    const allyList = [...allyGroups.values()].filter(stat => stat.games >= 2).map(stat => ({ ...stat, lift: stat.wins / stat.games - overall })).sort((a, b) => b.lift - a.lift || b.games - a.games).slice(0, 5);
+    const opponentList = [...opponentGroups.values()].filter(stat => stat.games >= 2).sort((a, b) => a.wins / a.games - b.wins / b.games || b.games - a.games).slice(0, 5);
+    const heroRows = (list, metric) => list.map(stat => {
+      const hero = heroes[stat.hero] || { name: stat.hero, icon: '' };
+      const value = metric === 'lift' ? `${stat.lift >= 0 ? '+' : ''}${pct(stat.lift, 1)} 胜率差` : `${pct(stat.wins, stat.games)} 样本胜率`;
+      return `<article>${icon(hero.icon, hero.name)}<span><b>${esc(hero.name)}</b><small>${stat.games}局</small></span><strong class="${metric === 'lift' ? (stat.lift >= 0 ? 'pb-up' : 'pb-down') : (stat.wins / stat.games >= overall ? 'pb-up' : 'pb-down')}">${value}</strong></article>`;
+    }).join('') || '<div class="pb-no-data">样本不足</div>';
+    const roleText = controls.role.value ? `${controls.role.value}号位` : '各自判定职责位置';
+    host.innerHTML = `<div class="pb-lineup-note"><strong>${esc(heroes[controls.hero.value]?.name || controls.hero.value)} · ${roleText}</strong><span>同位置经济差比较双方该局判定为相同1–5号位的选手；缺少快照或未判位的比赛不进入该指标。</span></div>
+      <section><header><span>较难同位置对手</span><small>平均经济差最低</small></header>${laneList(lanes.slice().sort((a, b) => a.delta - b.delta), '没有同位置经济快照')}</section>
+      <section><header><span>较优同位置对手</span><small>平均经济差最高</small></header>${laneList(lanes.slice().sort((a, b) => b.delta - a.delta), '没有同位置经济快照')}</section>
+      <section><header><span>常见有利队友</span><small>相对当前样本总体胜率</small></header>${heroRows(allyList, 'lift')}</section>
+      <section><header><span>重点准备的敌方英雄</span><small>交手样本胜率较低</small></header>${heroRows(opponentList, 'winrate')}</section>
+      <footer>所有结果都是当前筛选样本的描述性比较；阵容、选手水平、版本和比赛阶段仍会共同影响结果。</footer>`;
   }
 
   function renderSkills(rows) {
@@ -6381,11 +6577,11 @@
     const seqs = new Map();
     rows.forEach(r => {
       const abilityRows = detailData.players?.[rowKey(r)]?.a || [];
-      const seq = abilityRows.filter(a => !String(a[1]).startsWith('special_bonus_')).slice(0, 8).map(a => a[1]);
+      const kit = new Set(heroAbilities[r.h] || []);
+      const seq = abilityRows.filter(a => !String(a[1]).startsWith('special_bonus_') && (!kit.size || kit.has(a[1]))).slice(0, 8).map(a => a[1]);
       if (!seq.length) return; const key = seq.join('>'); const st = seqs.get(key) || { games: 0, wins: 0 }; st.games++; st.wins += Number(r.w || 0); seqs.set(key, st);
     });
-    const pretty = value => String(value).replace(/^.*?_/, '').replaceAll('_', ' ');
-    host.innerHTML = [...seqs].sort((a, b) => b[1].games - a[1].games).slice(0, 6).map(([key, st], idx) => `<article><span>技能路线 #${idx + 1}</span><div class="pb-skill-seq">${key.split('>').map((a, i) => `<b title="${esc(a)}">${i + 1}. ${esc(pretty(a))}</b>`).join('')}</div><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 与当前装备筛选联动</small></article>`).join('') || '<div class="pb-no-data">当前样本没有技能加点事件</div>';
+    host.innerHTML = [...seqs].sort((a, b) => b[1].games - a[1].games).slice(0, 6).map(([key, st], idx) => `<article><span>技能路线 #${idx + 1}</span><div class="pb-skill-seq">${key.split('>').map((a, i) => `<b title="${esc(a)}">${i + 1}. ${esc(abilityLabel(a))}</b>`).join('')}</div><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 与当前装备筛选联动</small></article>`).join('') || '<div class="pb-no-data">当前样本没有技能加点事件</div>';
   }
 
   function renderSubstitutions(rows, selectedStat) {
@@ -6530,8 +6726,79 @@
   }
 
   function renderMatches(rows) {
-    const list = rows.slice().sort((a, b) => b.d.localeCompare(a.d) || b.m - a.m).slice(0, 100);
-    document.getElementById('pb-matches-body').innerHTML = list.map(r => `<tr data-pb-match="${esc(rowKey(r))}" class="${selectedMatchKey === rowKey(r) ? 'is-selected' : ''}"><td><strong>${r.m}</strong><br><small>${r.d}</small></td><td>${esc(r.n)}</td><td>${esc(heroes[r.h]?.name || r.h)}</td><td>${matchItemTimeline(r, true)}</td><td>${r.r || '—'}</td><td class="${Number(r.g?.[6]) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(Number(r.g?.[6])) ? Number(r.g[6]).toLocaleString() : '—'}</td><td>${r.w ? '胜' : '负'}</td></tr>`).join('');
+    const body = document.getElementById('pb-matches-body'), head = document.getElementById('pb-matches-head');
+    const summary = document.getElementById('pb-match-summary'), itemSelect = document.getElementById('pb-match-item');
+    const more = document.getElementById('pb-matches-more'), columnOptions = document.getElementById('pb-match-column-options');
+    if (!body || !head || !summary) return;
+
+    if (itemSelect) {
+      const counts = new Map();
+      rows.forEach(row => new Set((row.i || []).map(pair => pair[0])).forEach(id => { if (items[id]) counts.set(id, (counts.get(id) || 0) + 1); }));
+      const choices = [...counts].sort((a, b) => b[1] - a[1] || (items[a[0]]?.name || a[0]).localeCompare(items[b[0]]?.name || b[0]));
+      itemSelect.innerHTML = '<option value="">全部装备</option>' + choices.map(([id, count]) => option(id, `${items[id]?.name || id} (${count})`)).join('');
+      itemSelect.value = choices.some(([id]) => id === matchItem) ? matchItem : '';
+      if (!itemSelect.value) matchItem = '';
+    }
+    if (columnOptions) columnOptions.innerHTML = Object.entries(MATCH_COLUMN_LABELS).map(([key, label]) => `<label><input type="checkbox" data-pb-match-column="${key}" ${matchColumns.has(key) ? 'checked' : ''} ${key === 'match' ? 'disabled' : ''}> ${esc(label)}</label>`).join('');
+
+    const query = matchSearch.trim().toLowerCase();
+    const filtered = rows.filter(row => {
+      if (matchResult !== '' && String(row.w) !== matchResult) return false;
+      if (matchState && situation(row) !== matchState) return false;
+      if (matchItem && !(row.i || []).some(pair => pair[0] === matchItem)) return false;
+      if (matchComebackOnly && !(situation(row) === 'behind' && Number(row.w) === 1)) return false;
+      if (matchRouteOnly && coreRoutePairs(row, 5).length < 2) return false;
+      if (query) {
+        const haystack = [row.m, row.d, row.n, row.s, row.t, row.l, heroes[row.h]?.name || row.h]
+          .concat((row.i || []).map(pair => items[pair[0]]?.name || pair[0])).join(' ').toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+    const valueForSort = (row, key) => ({
+      date: `${row.d || ''}:${String(row.m || '').padStart(12, '0')}`,
+      match: Number(row.m || 0), player: row.n || '', team: row.t || '', league: row.l || '', hero: heroes[row.h]?.name || row.h || '',
+      role: Number(row.r || 0), state: Number(row.g?.[6]), nw15: Number(row.g?.[6]), kda15: Number(row.g?.[3] || 0) + Number(row.g?.[5] || 0) - Number(row.g?.[4] || 0),
+      lh15: Number(row.g?.[2]), duration: Number(row.du), networth: Number(row.nw), result: Number(row.w),
+    }[key]);
+    filtered.sort((a, b) => {
+      const av = valueForSort(a, matchSortKey), bv = valueForSort(b, matchSortKey);
+      const missingA = Number.isNaN(av) || av == null, missingB = Number.isNaN(bv) || bv == null;
+      if (missingA !== missingB) return missingA ? 1 : -1;
+      const delta = typeof av === 'string' ? av.localeCompare(String(bv)) : av - bv;
+      return (matchSortDir === 'asc' ? delta : -delta) || String(b.d || '').localeCompare(String(a.d || ''));
+    });
+    const wins = filtered.reduce((sum, row) => sum + Number(row.w || 0), 0);
+    const nw15Values = filtered.map(row => Number(row.g?.[6])).filter(Number.isFinite);
+    const kdaValues = filtered.filter(row => row.g && [3, 4, 5].every(index => Number.isFinite(Number(row.g[index])))).map(row => (Number(row.g[3]) + Number(row.g[5])) / Math.max(1, Number(row.g[4])));
+    const durations = filtered.map(row => Number(row.du)).filter(value => Number.isFinite(value) && value > 0);
+    const reconstructable = filtered.filter(row => coreRoutePairs(row, 5).length >= 2).length;
+    summary.innerHTML = `<article><span>筛选比赛</span><strong>${filtered.length.toLocaleString()}</strong></article><article><span>样本胜率</span><strong>${pct(wins, filtered.length)}</strong></article><article><span>平均15m团队经济差</span><strong>${nw15Values.length ? `${mean(nw15Values) >= 0 ? '+' : ''}${mean(nw15Values).toLocaleString()}` : '—'}</strong></article><article><span>平均15m KDA</span><strong>${kdaValues.length ? (kdaValues.reduce((sum, value) => sum + value, 0) / kdaValues.length).toFixed(2) : '—'}</strong></article><article><span>中位时长</span><strong>${timeText(median(durations))}</strong></article><article><span>路线覆盖</span><strong>${pct(reconstructable, filtered.length)}</strong></article>`;
+
+    const columns = Object.keys(MATCH_COLUMN_LABELS).filter(key => matchColumns.has(key));
+    const sortable = new Set(['match', 'player', 'team', 'league', 'hero', 'role', 'state', 'nw15', 'kda15', 'lh15', 'duration', 'networth', 'result']);
+    head.innerHTML = `<tr>${columns.map(key => `<th class="pb-match-col-${key}" ${sortable.has(key) ? `data-pb-match-sort="${key === 'match' ? 'date' : key}" tabindex="0" role="button"` : ''}>${esc(MATCH_COLUMN_LABELS[key])}${matchSortKey === (key === 'match' ? 'date' : key) ? `<i class="pb-sort-arrow">${matchSortDir === 'asc' ? '↑' : '↓'}</i>` : ''}</th>`).join('')}</tr>`;
+    const cell = (row, key) => {
+      const state = situation(row), teamDiff = Number(row.g?.[6]);
+      if (key === 'match') return `<td><strong>${row.m}</strong><br><small>${esc(row.d)}</small></td>`;
+      if (key === 'player') return `<td><strong>${esc(row.n || row.s)}</strong></td>`;
+      if (key === 'team') return `<td>${esc(row.t || '—')}</td>`;
+      if (key === 'league') return `<td>${esc(row.l || '—')}</td>`;
+      if (key === 'hero') { const hero = heroes[row.h] || { name: row.h, icon: '' }; return `<td><span class="pb-item-name">${icon(hero.icon, hero.name)}${esc(hero.name)}</span></td>`; }
+      if (key === 'route') return `<td class="pb-match-route-cell">${matchItemTimeline(row, true)}</td>`;
+      if (key === 'role') return `<td>${row.r ? `${row.r}号位` : '—'}</td>`;
+      if (key === 'state') return `<td>${situationName(state)}</td>`;
+      if (key === 'nw15') return `<td class="${teamDiff >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(teamDiff) ? `${teamDiff >= 0 ? '+' : ''}${teamDiff.toLocaleString()}` : '—'}</td>`;
+      if (key === 'kda15') return `<td>${row.g ? `${Number(row.g[3] || 0)}/${Number(row.g[4] || 0)}/${Number(row.g[5] || 0)}` : '—'}</td>`;
+      if (key === 'lh15') return `<td>${Number.isFinite(Number(row.g?.[2])) ? Number(row.g[2]).toLocaleString() : '—'}</td>`;
+      if (key === 'duration') return `<td>${timeText(Number(row.du))}</td>`;
+      if (key === 'networth') return `<td>${Number.isFinite(Number(row.nw)) ? Number(row.nw).toLocaleString() : '—'}</td>`;
+      if (key === 'result') return `<td><b class="${row.w ? 'pb-up' : 'pb-down'}">${row.w ? '胜' : '负'}</b></td>`;
+      return '<td>—</td>';
+    };
+    const list = filtered.slice(0, matchVisibleLimit);
+    body.innerHTML = list.map(row => `<tr data-pb-match="${esc(rowKey(row))}" class="${selectedMatchKey === rowKey(row) ? 'is-selected' : ''}">${columns.map(key => cell(row, key)).join('')}</tr>`).join('') || `<tr><td colspan="${columns.length}" class="pb-no-data">没有符合局内筛选条件的比赛</td></tr>`;
+    if (more) { more.hidden = filtered.length <= matchVisibleLimit; more.textContent = `加载更多比赛（已显示 ${Math.min(filtered.length, matchVisibleLimit)} / ${filtered.length}）`; }
   }
 
   function setMatchDetailHtml(html) {
@@ -6616,6 +6883,7 @@
     const selectedStat = lastItemStats.find(s => s.id === selectedItem);
     renderProBrief(rows, lastItemStats);
     if (activeTab === 'routes') {
+      renderCompleteBuild(rows);
       renderItems(rows, lastItemStats); renderTheory(rows, selectedStat);
       renderTiming(lastItemStats); renderRecommendation(rows, lastItemStats);
       renderSequences(rows); renderRouteTrends(rows); renderBranchTree(rows); renderRouteFlow(rows);
@@ -6623,7 +6891,7 @@
     } else if (activeTab === 'people') {
       renderPlayers(rows); renderTeams(rows); renderPlayerStyle(rows); populateDuelSelectors(false); renderDuel();
     } else if (activeTab === 'situations') {
-      renderComparison(rows); renderSituations(rows); renderMatchups(rows); renderSkills(rows);
+      renderComparison(rows); renderSituations(rows); renderMatchups(rows); renderLineupDecisions(rows); renderSkills(rows);
     } else if (activeTab === 'quality') {
       renderDataQuality(); renderConfidence(rows, selectedStat); renderAlerts();
     } else if (activeTab === 'matches') {
@@ -6709,6 +6977,13 @@
       openMatchDrawer(clusterMatch.dataset.pbClusterMatch || ''); return;
     }
     if (e.target.closest('[data-pb-load-heatmap]')) { heatmapRequested = true; renderHeatmap(currentRows); return; }
+    const matchSort = e.target.closest('[data-pb-match-sort]');
+    if (matchSort) {
+      const key = matchSort.dataset.pbMatchSort || 'date';
+      if (matchSortKey === key) matchSortDir = matchSortDir === 'asc' ? 'desc' : 'asc';
+      else { matchSortKey = key; matchSortDir = key === 'player' || key === 'team' || key === 'league' || key === 'hero' ? 'asc' : 'desc'; }
+      matchVisibleLimit = 50; renderMatches(currentRows); return;
+    }
     const matchRow = e.target.closest('[data-pb-match]');
     if (matchRow) {
       openMatchDrawer(matchRow.dataset.pbMatch || '');
@@ -6725,6 +7000,28 @@
     if (!max) return; const end = new Date(`${max}T00:00:00Z`), start = new Date(end - (days - 1) * 86400000);
     controls.from.value = start.toISOString().slice(0, 10); controls.to.value = max; render();
   }));
+
+  const refreshMatchExplorer = () => { matchVisibleLimit = 50; if (activeTab === 'matches') renderMatches(currentRows); };
+  document.getElementById('pb-match-search')?.addEventListener('input', event => { matchSearch = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-result')?.addEventListener('change', event => { matchResult = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-state')?.addEventListener('change', event => { matchState = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-item')?.addEventListener('change', event => { matchItem = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-comeback')?.addEventListener('change', event => { matchComebackOnly = Boolean(event.target.checked); refreshMatchExplorer(); });
+  document.getElementById('pb-match-route-only')?.addEventListener('change', event => { matchRouteOnly = Boolean(event.target.checked); refreshMatchExplorer(); });
+  document.getElementById('pb-match-sort')?.addEventListener('change', event => {
+    const [key, direction] = String(event.target.value || 'date:desc').split(':');
+    matchSortKey = key || 'date'; matchSortDir = direction === 'asc' ? 'asc' : 'desc'; refreshMatchExplorer();
+  });
+  document.getElementById('pb-match-column-options')?.addEventListener('change', event => {
+    const input = event.target.closest('[data-pb-match-column]'); if (!input) return;
+    if (input.checked) matchColumns.add(input.dataset.pbMatchColumn); else matchColumns.delete(input.dataset.pbMatchColumn);
+    matchColumns.add('match'); renderMatches(currentRows);
+  });
+  document.getElementById('pb-matches-more')?.addEventListener('click', () => { matchVisibleLimit += 50; renderMatches(currentRows); });
+  page.addEventListener('keydown', event => {
+    const header = event.target.closest('[data-pb-match-sort]');
+    if (header && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); header.click(); }
+  });
 
   function download(name, body, type) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -6821,10 +7118,13 @@
     .then(payload => {
       allRows = decodeCorePayload(payload);
       matchTeams = new Map();
+      matchRowsById = new Map();
       allRows.forEach(r => {
         const match = String(r.m); if (!matchTeams.has(match)) matchTeams.set(match, new Map());
         if (!matchTeams.get(match).has(r.t)) matchTeams.get(match).set(r.t, new Set());
         matchTeams.get(match).get(r.t).add(r.h);
+        if (!matchRowsById.has(match)) matchRowsById.set(match, []);
+        matchRowsById.get(match).push(r);
       });
       const meta = payload.meta || {};
       dataMeta = meta;

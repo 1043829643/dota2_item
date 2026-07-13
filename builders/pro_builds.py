@@ -15,9 +15,11 @@ from pathlib import Path
 try:
     from . import site_common as _site
     from .hero_lab import _load_heroes, _load_items, _versions
+    from .mana_items import parse_kv
 except ImportError:
     import site_common as _site
     from hero_lab import _load_heroes, _load_items, _versions
+    from mana_items import parse_kv
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,11 +42,54 @@ def _config() -> dict:
     version = _versions()[-1]
     heroes = _load_heroes(version)
     items = _load_items(version)
+    ability_names = {}
+    ability_path = ROOT / "data" / "abilities_slim.json"
+    if ability_path.exists():
+        try:
+            ability_payload = json.loads(ability_path.read_text(encoding="utf-8"))
+            ability_names = {
+                slug: row.get("dname")
+                for slug, row in ability_payload.items()
+                if isinstance(row, dict) and row.get("dname")
+            }
+        except (OSError, ValueError, json.JSONDecodeError):
+            ability_names = {}
+    hero_abilities = {}
+    hero_kv_path = ROOT / "data" / "stats" / version / "npc_heroes.txt"
+    if hero_kv_path.exists():
+        try:
+            hero_rows = parse_kv(hero_kv_path.read_text(encoding="utf-8")).get(
+                "DOTAHeroes", {}
+            )
+            for hero in heroes:
+                row = hero_rows.get(f"npc_dota_hero_{hero['id']}") or {}
+                draft = row.get("AbilityDraftAbilities") or {}
+                values = [
+                    value
+                    for key, value in sorted(
+                        draft.items(),
+                        key=lambda entry: int(entry[0].replace("Ability", "") or 0),
+                    )
+                    if key.startswith("Ability") and value
+                ]
+                if not values:
+                    values = [
+                        row.get(f"Ability{index}")
+                        for index in range(1, 10)
+                        if row.get(f"Ability{index}")
+                        and not str(row.get(f"Ability{index}")).startswith("special_bonus_")
+                    ]
+                if values:
+                    hero_abilities[hero["id"]] = values
+        except (OSError, ValueError, TypeError):
+            hero_abilities = {}
     return {
         "dataUrl": "data/pro_builds.json",
         "dataGzipUrl": "data/pro_builds.json.gz",
         "detailManifestUrl": "data/pro_builds_detail_manifest.json",
         "theoryPatch": version,
+        "abilityNames": ability_names,
+        "heroAbilities": hero_abilities,
         "heroes": {
             h["id"]: {"name": h["name"], "icon": h["icon"]}
             for h in heroes
@@ -373,6 +418,11 @@ def render_html() -> str:
     <button type="button" data-pb-tab="quality" aria-pressed="false"><span><b>数据可信度</b></span><small>覆盖范围、缺失与样本边界</small></button>
   </nav>
   <div class="pb-dashboard" id="pb-dashboard" hidden>
+    <section class="pb-card pb-complete-build-card" data-pb-panel="routes">
+      <header><div><span class="pb-card-kicker">COMPLETE PRO BUILD</span><h2>完整职业出装卡</h2></div><small id="pb-complete-build-status">开局、阶段选择、技能天赋与中立物品</small></header>
+      <div id="pb-complete-build" class="pb-complete-build"><div class="pb-empty">选择英雄后生成完整职业出装卡</div></div>
+    </section>
+
     <section class="pb-card pb-items-card" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">POPULARITY + TIMING</span><h2>热门成装</h2></div><small>点击物品查看理论属性</small></header>
       <div class="pb-table-wrap">
@@ -441,6 +491,11 @@ def render_html() -> str:
       <div id="pb-matchups" class="pb-table-wrap"></div>
     </section>
 
+    <section class="pb-card pb-lineup-card" data-pb-panel="situations">
+      <header><div><span class="pb-card-kicker">LANE + LINEUP DECISIONS</span><h2>分路与阵容决策</h2></div><small>15分钟同位置经济差是对线代理指标，不代表因果</small></header>
+      <div id="pb-lineup-decisions" class="pb-lineup-decisions"><div class="pb-empty">选择英雄与职责位置后生成分路准备</div></div>
+    </section>
+
     <section class="pb-card pb-skill-card" data-pb-panel="situations">
       <header><div><span class="pb-card-kicker">SKILL × ITEM</span><h2>技能加点与出装联动</h2></div><small id="pb-detail-status">正在加载单局明细…</small></header>
       <div id="pb-skills" class="pb-analysis-grid"></div>
@@ -499,8 +554,23 @@ def render_html() -> str:
     </section>
 
     <section class="pb-card pb-matches-card" data-pb-panel="matches">
-      <header><div><span class="pb-card-kicker">MATCH EXPLORER</span><h2>单局明细</h2></div><small>点击一局查看技能、经济、事件和地图活动</small></header>
-      <div class="pb-match-layout"><div class="pb-table-wrap"><table class="pb-table"><thead><tr><th>比赛 / 日期</th><th>选手</th><th>英雄</th><th>核心出装时间线</th><th>位置</th><th>15m经济差</th><th>结果</th></tr></thead><tbody id="pb-matches-body"></tbody></table></div><aside id="pb-match-detail" class="pb-match-detail"><div class="pb-empty">从左侧选择一局</div></aside></div>
+      <header><div><span class="pb-card-kicker">MATCH EXPLORER</span><h2>单局明细</h2></div><small>从核心出装时间线进入技能、经济、事件和地图活动</small></header>
+      <div class="pb-match-explorer-tools">
+        <div class="pb-match-filters">
+          <label><span>搜索</span><input id="pb-match-search" type="search" placeholder="比赛 / 选手 / 战队 / 赛事 / 装备"></label>
+          <label><span>结果</span><select id="pb-match-result"><option value="">全部</option><option value="1">胜利</option><option value="0">失败</option></select></label>
+          <label><span>15分钟局势</span><select id="pb-match-state"><option value="">全部</option><option value="ahead">优势</option><option value="even">均势</option><option value="behind">劣势</option><option value="unknown">未知</option></select></label>
+          <label><span>包含装备</span><select id="pb-match-item"><option value="">全部装备</option></select></label>
+          <label><span>排序</span><select id="pb-match-sort"><option value="date:desc">日期（新→旧）</option><option value="date:asc">日期（旧→新）</option><option value="nw15:desc">15分钟经济差（高→低）</option><option value="duration:desc">时长（长→短）</option><option value="networth:desc">终局经济（高→低）</option></select></label>
+        </div>
+        <div class="pb-match-switches">
+          <label><input id="pb-match-comeback" type="checkbox"> 只看15分钟落后后取胜</label>
+          <label><input id="pb-match-route-only" type="checkbox"> 只看可还原路线</label>
+          <details class="pb-match-columns"><summary>显示字段</summary><div id="pb-match-column-options"></div></details>
+        </div>
+        <div id="pb-match-summary" class="pb-match-summary"></div>
+      </div>
+      <div class="pb-match-layout"><div class="pb-table-wrap"><table class="pb-table pb-match-table"><thead id="pb-matches-head"></thead><tbody id="pb-matches-body"></tbody></table><button type="button" id="pb-matches-more" class="pb-matches-more" hidden>加载更多比赛</button></div><aside id="pb-match-detail" class="pb-match-detail"><div class="pb-empty">从左侧选择一局</div></aside></div>
     </section>
 
     <section class="pb-card pb-heatmap-card" data-pb-panel="matches">
