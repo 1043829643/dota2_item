@@ -5220,6 +5220,7 @@
   const coreFilters = document.getElementById('pb-core-filters');
   const advancedFilters = document.getElementById('pb-advanced-grid');
   const advancedPanel = document.getElementById('pb-advanced-filters');
+  const researchDrawer = document.getElementById('pb-research-drawer');
   const matchDrawer = document.getElementById('pb-match-drawer');
   const filterFields = new Map([...page.querySelectorAll('[data-pb-field]')].map(field => [field.dataset.pbField, field]));
   const FILTER_ORDER = ['hero', 'player', 'team', 'opponent', 'patch', 'from', 'to', 'role', 'league', 'situation', 'result', 'method', 'scope'];
@@ -5238,12 +5239,11 @@
     },
   };
   const TAB_META = {
-    routes: ['怎么出', '完整路线、分支选择与版本演化'],
-    overview: ['先看结论', '热门装备、购买时点与 Hero Lab 理论属性'],
-    people: ['谁这样出', '职业选手与战队采用的完整路线'],
-    situations: ['什么局势出', '顺风、均势、逆风与对手阵容应对'],
-    matches: ['真实比赛', '逐局出装、技能、经济与地图活动复盘'],
-    quality: ['数据说明', '来源覆盖、样本可信度与更新状态'],
+    routes: ['职业路线', '主线、关键时间点、装备速查与真实样本'],
+    people: ['选手样本', '谁在使用、战队分布与个人路线风格'],
+    situations: ['局势应对', '顺逆风、对手阵容与版本变化下的出装差异'],
+    matches: ['比赛复盘', '逐局路线、技能、经济与地图活动证据'],
+    quality: ['数据可信度', '来源覆盖、缺失边界与更新状态'],
   };
   const SEARCH_CONTROLS = {
     hero: { input: document.getElementById('pb-hero-search'), list: document.getElementById('pb-hero-options') },
@@ -5639,7 +5639,7 @@
     const params = new URLSearchParams(window.location.search);
     const requestedMode = params.get('mode');
     researchMode = MODE_CONFIG[requestedMode] ? requestedMode : params.has('player') ? 'player' : (params.has('team') || params.has('opponent')) ? 'scout' : 'hero';
-    const requestedTab = params.get('tab');
+    const requestedTab = params.get('tab') === 'overview' ? 'routes' : params.get('tab');
     if (requestedTab && document.querySelector(`[data-pb-tab="${requestedTab}"]`)) activeTab = requestedTab;
     else activeTab = MODE_CONFIG[researchMode].tab;
     selectedRouteClusterId = params.get('cluster') || '';
@@ -5679,7 +5679,7 @@
   }
 
   function setActiveTab(tabName, updateUrl) {
-    if (!document.querySelector(`[data-pb-tab="${tabName}"]`)) tabName = 'overview';
+    if (!document.querySelector(`[data-pb-tab="${tabName}"]`)) tabName = 'routes';
     activeTab = tabName;
     page.querySelectorAll('[data-pb-tab]').forEach(button => {
       const selected = button.dataset.pbTab === activeTab;
@@ -5687,7 +5687,7 @@
       button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
     page.querySelectorAll('[data-pb-panel]').forEach(panel => panel.classList.toggle('is-tab-active', panel.dataset.pbPanel === activeTab));
-    const meta = TAB_META[activeTab] || TAB_META.overview;
+    const meta = TAB_META[activeTab] || TAB_META.routes;
     const title = document.getElementById('pb-workspace-title'), description = document.getElementById('pb-workspace-description');
     if (title) title.textContent = meta[0];
     if (description) description.textContent = meta[1];
@@ -5929,6 +5929,81 @@
     });
     clusters.forEach(cluster => { cluster.avgSimilarity = cluster.games ? cluster.similarityTotal / cluster.games : 0; });
     return clusters.sort((a, b) => b.games - a.games || b.wins - a.wins);
+  }
+
+  function renderProBrief(rows, stats) {
+    const confidence = document.getElementById('pb-brief-confidence');
+    const routeHost = document.getElementById('pb-brief-route');
+    const timingHost = document.getElementById('pb-brief-timings');
+    const pivotHost = document.getElementById('pb-brief-pivots');
+    const matchHost = document.getElementById('pb-brief-matches');
+    if (!confidence || !routeHost || !timingHost || !pivotHost || !matchHost) return;
+
+    const heroId = controls.hero.value;
+    const timedRows = rows.filter(row => coreRoutePairs(row, 5).length >= 2);
+    const routeCoverage = rows.length ? timedRows.length / rows.length : 0;
+    const confidenceLevel = timedRows.length >= 20 && routeCoverage >= .35 ? '较强'
+      : timedRows.length >= 8 && routeCoverage >= .15 ? '中等'
+        : timedRows.length ? '有限' : '不可判定';
+    confidence.innerHTML = `<span>路线可信度</span><strong>${confidenceLevel}</strong><small>${timedRows.length}/${rows.length} 局可还原 · ${pct(timedRows.length, rows.length)} 覆盖</small>`;
+
+    if (!heroId) {
+      routeHost.innerHTML = '<div class="pb-empty">先选择一个英雄，简报才会比较同一英雄的职业路线。</div>';
+      timingHost.innerHTML = '<div class="pb-empty">等待英雄样本</div>';
+      pivotHost.innerHTML = '<div class="pb-empty">等待英雄与15分钟局势样本</div>';
+      matchHost.innerHTML = '<div class="pb-empty">等待可复盘比赛</div>';
+      return;
+    }
+
+    const clusters = clusteredRoutes(rows);
+    const topRoute = clusters[0];
+    if (topRoute) {
+      const playerCount = new Set(topRoute.rows.map(row => row.s)).size;
+      const steps = topRoute.representative.map((id, index) => {
+        const item = items[id] || { name: id, icon: '' };
+        const med = median(topRoute.times.get(id) || []);
+        const useDelays = [];
+        topRoute.rows.forEach(row => {
+          const purchase = (row.i || []).find(pair => pair[0] === id)?.[1];
+          const firstUse = new Map(row.u || []).get(id);
+          if (Number.isFinite(purchase) && Number.isFinite(firstUse) && firstUse >= purchase) useDelays.push(firstUse - purchase);
+        });
+        const averageUse = mean(useDelays);
+        return `${index ? '<span class="pb-brief-route-arrow">›</span>' : ''}<span class="pb-brief-route-step" title="${esc(item.name)} · 购买 ${timeText(med)} · 首用 ${intervalText(averageUse)}">${icon(item.icon, item.name)}<b>${esc(item.name)}</b><small>${timeText(med)}</small>${Number.isFinite(averageUse) ? `<i>首用 ${intervalText(averageUse)}</i>` : ''}</span>`;
+      }).join('');
+      routeHost.innerHTML = `<div class="pb-brief-route-steps">${steps}</div><div class="pb-brief-route-meta"><span><b>${topRoute.games}</b> 局路线样本</span><span><b>${pct(topRoute.games, timedRows.length)}</b> 可还原样本采用</span><span><b>${pct(topRoute.wins, topRoute.games)}</b> 样本胜率</span><span><b>${playerCount}</b> 位选手</span></div><p>这是当前筛选下最常见的可还原路线，不代表所有 ${rows.length} 局都按此路线出装。</p>`;
+    } else {
+      routeHost.innerHTML = `<div class="pb-empty">${rows.length ? `当前 ${rows.length} 局里没有至少两个可靠购买时点，不能拼出职业路线。` : '当前条件没有比赛样本。'}</div>`;
+    }
+
+    const keyTimings = stats.filter(stat => Number.isFinite(stat.median) && stat.games >= Math.max(1, Math.ceil(rows.length * .05)))
+      .slice(0, 12).sort((a, b) => a.median - b.median || b.games - a.games).slice(0, 4);
+    timingHost.innerHTML = keyTimings.map(stat => {
+      const item = items[stat.id] || { name: stat.id, icon: '' };
+      return `<div class="pb-brief-list-row">${icon(item.icon, item.name)}<span><b>${esc(item.name)}</b><small>${pct(stat.games, rows.length)} 采用 · ${stat.games} 局</small></span><strong>${timeText(stat.median)}${Number.isFinite(stat.averageFirstUseDelay) ? `<i>首用 ${intervalText(stat.averageFirstUseDelay)}</i>` : ''}</strong></div>`;
+    }).join('') || '<div class="pb-empty">没有足够的可靠购买时点</div>';
+
+    const overallRates = new Map(stats.map(stat => [stat.id, stat.games / Math.max(1, rows.length)]));
+    const pivotFor = (sampleRows, label) => {
+      if (sampleRows.length < 3) return `<div class="pb-brief-pivot is-missing"><span>${label}</span><strong>样本不足</strong><small>${sampleRows.length} 局，暂不概括</small></div>`;
+      const candidates = itemStats(sampleRows).filter(stat => stat.games >= 2).map(stat => ({
+        ...stat,
+        lift: stat.games / sampleRows.length - (overallRates.get(stat.id) || 0),
+      })).filter(stat => stat.lift > 0).sort((a, b) => b.lift - a.lift || b.games - a.games);
+      const best = candidates[0];
+      if (!best) return `<div class="pb-brief-pivot is-missing"><span>${label}</span><strong>没有明显变化</strong><small>${sampleRows.length} 局样本</small></div>`;
+      const item = items[best.id] || { name: best.id, icon: '' };
+      return `<div class="pb-brief-pivot"><span>${label}更常见</span>${icon(item.icon, item.name)}<strong>${esc(item.name)}</strong><small>采用率比总体高 ${pct(best.lift, 1)} · ${best.games}/${sampleRows.length} 局</small></div>`;
+    };
+    pivotHost.innerHTML = pivotFor(rows.filter(row => situation(row) === 'ahead'), '优势局')
+      + pivotFor(rows.filter(row => situation(row) === 'behind'), '劣势局')
+      + '<p>仅描述样本差异，不把胜负或经济领先解释为装备造成。</p>';
+
+    const reviewRows = rows.slice().sort((a, b) => {
+      const routeDelta = Number(coreRoutePairs(b, 5).length >= 2) - Number(coreRoutePairs(a, 5).length >= 2);
+      return routeDelta || String(b.d || '').localeCompare(String(a.d || '')) || Number(b.w || 0) - Number(a.w || 0);
+    }).slice(0, 3);
+    matchHost.innerHTML = reviewRows.map(row => `<button type="button" data-pb-brief-match="${esc(rowKey(row))}"><span><b>${esc(row.n || row.s)}</b><small>${esc(row.t || '未知战队')} · ${esc(row.d || '')} · ${row.w ? '胜' : '负'}</small></span>${matchItemTimeline(row, true)}<i>复盘 ›</i></button>`).join('') || '<div class="pb-empty">当前条件没有可复盘比赛</div>';
   }
 
   function renderSequences(rows) {
@@ -6539,10 +6614,10 @@
     lastItemStats = itemStats(rows);
     if (!selectedItem || !lastItemStats.some(s => s.id === selectedItem)) selectedItem = lastItemStats[0]?.id || '';
     const selectedStat = lastItemStats.find(s => s.id === selectedItem);
-    if (activeTab === 'overview') {
+    renderProBrief(rows, lastItemStats);
+    if (activeTab === 'routes') {
       renderItems(rows, lastItemStats); renderTheory(rows, selectedStat);
       renderTiming(lastItemStats); renderRecommendation(rows, lastItemStats);
-    } else if (activeTab === 'routes') {
       renderSequences(rows); renderRouteTrends(rows); renderBranchTree(rows); renderRouteFlow(rows);
       renderSubstitutions(rows, selectedStat);
     } else if (activeTab === 'people') {
@@ -6569,6 +6644,26 @@
       controls.role.value = roleCard.getAttribute('data-pb-role-card') || '';
       heatmapRequested = false;
       render();
+      return;
+    }
+    const briefJump = e.target.closest('[data-pb-tab-jump]');
+    if (briefJump) {
+      setActiveTab(briefJump.dataset.pbTabJump || 'routes', true);
+      render();
+      document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const briefMatch = e.target.closest('[data-pb-brief-match]');
+    if (briefMatch) {
+      setActiveTab('matches', true);
+      render();
+      openMatchDrawer(briefMatch.dataset.pbBriefMatch || '');
+      renderMatches(currentRows);
+      return;
+    }
+    if (e.target.closest('#pb-open-research')) {
+      if (researchDrawer) researchDrawer.open = true;
+      researchDrawer?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     if (e.target.closest('#pb-jump-matches')) {
@@ -6600,7 +6695,7 @@
     }
     const tabButton = e.target.closest('[data-pb-tab]');
     if (tabButton) {
-      setActiveTab(tabButton.dataset.pbTab || 'overview', true);
+      setActiveTab(tabButton.dataset.pbTab || 'routes', true);
       render();
       return;
     }
@@ -6673,6 +6768,7 @@
     if (SEARCH_CONTROLS[requiredSearch]?.input?.value && !commitSearchControl(requiredSearch)) return;
     setActiveTab(MODE_CONFIG[researchMode].tab, true);
     render();
+    if (researchDrawer) researchDrawer.open = false;
     document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   Object.entries(SEARCH_CONTROLS).forEach(([key, binding]) => {
@@ -6736,6 +6832,7 @@
       populateFilters(allRows, meta);
       populateDuelSelectors(true);
       applyUrlFilters();
+      if (researchDrawer && !controls.hero.value && researchMode === 'hero') researchDrawer.open = true;
       layoutModeFilters();
       setActiveTab(activeTab, false);
       const assigned = Number(meta.positions?.assigned_player_games || 0);

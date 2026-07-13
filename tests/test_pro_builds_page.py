@@ -20,6 +20,12 @@ def test_hero_profile_shell_has_unique_dynamic_targets(page_html: str) -> None:
         "pb-profile-summary",
         "pb-role-cards",
         "pb-profile-insights",
+        "pb-pro-brief",
+        "pb-brief-route",
+        "pb-brief-timings",
+        "pb-brief-pivots",
+        "pb-brief-matches",
+        "pb-research-drawer",
         "pb-workspace-title",
         "pb-workspace-description",
         "pb-jump-matches",
@@ -37,10 +43,11 @@ def test_role_cards_follow_dota_position_order(page_html: str) -> None:
 
 def test_analysis_tabs_keep_expected_flow_and_descriptions(page_html: str) -> None:
     tabs = re.findall(r'data-pb-tab="([^"]+)"', page_html)
-    assert tabs == ["routes", "overview", "people", "situations", "matches", "quality"]
-    assert "完整路线与版本变化" in page_html
-    assert "热门装备、时点与属性" in page_html
-    assert "逐局记录与复盘" in page_html
+    assert tabs == ["routes", "people", "situations", "matches", "quality"]
+    assert "职业路线" in page_html
+    assert "出装顺序、时点与装备速查" in page_html
+    assert "逐局路线、阵容与比赛证据" in page_html
+    assert "筛选工具默认收起，不打断赛前阅读" in page_html
     assert "核心出装时间线" in page_html
 
 

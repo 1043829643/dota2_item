@@ -41,6 +41,16 @@ def test_route_adoption_uses_only_reconstructable_matches() -> None:
     assert "各时间桶的采用率分母仅包含可还原路线的比赛" in trends
 
 
+def test_player_brief_is_route_first_and_keeps_evidence_honest() -> None:
+    brief = _function_source("renderProBrief", "renderSequences")
+    assert "coreRoutePairs(row, 5).length >= 2" in brief
+    assert "pct(topRoute.games, timedRows.length)" in brief
+    assert "不代表所有 ${rows.length} 局都按此路线出装" in brief
+    assert "仅描述样本差异" in brief
+    assert "data-pb-brief-match" in brief
+    assert "matchItemTimeline(row, true)" in brief
+
+
 def test_compact_match_timeline_falls_back_to_final_items() -> None:
     timeline = _function_source("matchItemTimeline", "renderMatches")
     assert "const allPairs = (row.i || [])" in timeline

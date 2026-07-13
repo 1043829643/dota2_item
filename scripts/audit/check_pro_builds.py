@@ -325,6 +325,9 @@ def main() -> int:
         'id="pb-match-drawer"', 'id="pb-advanced-filters"',
         'id="pb-profile"', 'id="pb-profile-portrait"',
         'id="pb-role-cards"', 'id="pb-profile-insights"',
+        'id="pb-pro-brief"', 'id="pb-brief-route"',
+        'id="pb-brief-timings"', 'id="pb-brief-pivots"',
+        'id="pb-brief-matches"', 'id="pb-research-drawer"',
         'id="pb-workspace-title"', 'id="pb-jump-matches"',
         '核心出装时间线',
         'detailManifestUrl', 'dataGzipUrl',
@@ -339,7 +342,7 @@ def main() -> int:
         "decodeCorePayload", "pro-builds-core-v2",
         "renderFreshness",
         "setResearchMode", "renderContext", "renderSampleGuidance",
-        "renderHeroProfile", "renderProfileInsights", "matchItemTimeline", "TAB_META",
+        "renderHeroProfile", "renderProfileInsights", "renderProBrief", "matchItemTimeline", "TAB_META",
         "openMatchDrawer", "commitSearchControl",
         "averageFirstUseDelay", "pb-first-use-gap", "DecompressionStream",
     )
@@ -348,8 +351,7 @@ def main() -> int:
             fail(f"missing JS contract: {marker}", errors)
 
     tab_markers = [
-        'data-pb-tab="routes"', 'data-pb-tab="overview"',
-        'data-pb-tab="people"', 'data-pb-tab="situations"',
+        'data-pb-tab="routes"', 'data-pb-tab="people"', 'data-pb-tab="situations"',
         'data-pb-tab="matches"', 'data-pb-tab="quality"',
     ]
     tab_positions = [html.find(marker) for marker in tab_markers]

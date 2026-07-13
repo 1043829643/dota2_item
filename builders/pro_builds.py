@@ -282,6 +282,38 @@ def render_html() -> str:
     <article><span>首用日志覆盖</span><strong>—</strong><small>可识别的装备使用记录</small></article>
   </section>
 
+  <section class="pb-pro-brief" id="pb-pro-brief" aria-label="职业选手赛前简报">
+    <header>
+      <div><span>PLAYER MATCH PREP</span><h2>赛前简报</h2><p>先给可执行结论，再进入路线细节和真实比赛证据。</p></div>
+      <div class="pb-brief-confidence" id="pb-brief-confidence"><span>路线可信度</span><strong>正在计算…</strong><small>等待当前筛选样本</small></div>
+    </header>
+    <div class="pb-pro-brief-grid">
+      <article class="pb-brief-card pb-brief-route-card">
+        <div class="pb-brief-card-head"><span>01 / 常见主线</span><button type="button" data-pb-tab-jump="routes">查看完整路线</button></div>
+        <h3>当前职业样本最常见路线</h3>
+        <div id="pb-brief-route" class="pb-brief-route"><div class="pb-empty">选择英雄后生成路线简报</div></div>
+      </article>
+      <article class="pb-brief-card">
+        <div class="pb-brief-card-head"><span>02 / 关键时间点</span></div>
+        <h3>需要记住的装备节奏</h3>
+        <div id="pb-brief-timings" class="pb-brief-list"><div class="pb-empty">等待购买时点</div></div>
+      </article>
+      <article class="pb-brief-card">
+        <div class="pb-brief-card-head"><span>03 / 局势调整</span><button type="button" data-pb-tab-jump="situations">查看局势</button></div>
+        <h3>顺逆风中最明显的变化</h3>
+        <div id="pb-brief-pivots" class="pb-brief-list"><div class="pb-empty">等待局势样本</div></div>
+      </article>
+      <article class="pb-brief-card pb-brief-match-card">
+        <div class="pb-brief-card-head"><span>04 / 值得复盘</span><button type="button" data-pb-tab-jump="matches">全部比赛</button></div>
+        <h3>直接检查真实职业比赛</h3>
+        <div id="pb-brief-matches" class="pb-brief-matches"><div class="pb-empty">等待比赛样本</div></div>
+      </article>
+    </div>
+  </section>
+
+  <details class="pb-research-drawer" id="pb-research-drawer">
+    <summary><div><span>RESEARCH SCOPE</span><strong>调整英雄、职责、版本或比赛时间</strong></div><small>筛选工具默认收起，不打断赛前阅读</small></summary>
+    <div class="pb-research-drawer-body">
   <section class="pb-research-picker" aria-label="选择研究方向">
     <header><span>先选择你要回答的问题</span><small>系统会自动整理筛选项并打开最相关的分析结果</small></header>
     <div class="pb-research-modes">
@@ -318,41 +350,42 @@ def render_html() -> str:
       <div class="pb-saved-views"><input id="pb-view-name" type="text" maxlength="48" placeholder="视图名称（可选）"><select id="pb-saved-view"><option value="">已保存的分析视图</option></select><button type="button" id="pb-save-view">保存当前</button><button type="button" id="pb-load-view">加载</button><button type="button" id="pb-delete-view">删除</button><span id="pb-view-status" aria-live="polite"></span></div>
     </div>
   </section>
+    </div>
+  </details>
 
   <section class="pb-analysis-context" id="pb-analysis-context" aria-label="当前分析条件">
     <div><span>当前研究</span><div class="pb-context-chips" id="pb-context-chips"></div></div>
-    <strong id="pb-context-count">正在计算样本…</strong>
+    <div class="pb-context-actions"><strong id="pb-context-count">正在计算样本…</strong><button type="button" id="pb-open-research">调整条件</button></div>
   </section>
 
   <section class="pb-sample-guidance" id="pb-sample-guidance" hidden aria-live="polite"></section>
 
   <div class="pb-loading" id="pb-loading">正在汇总数据…</div>
   <header class="pb-workspace-heading">
-    <div><span>TOP SECTION</span><h2 id="pb-workspace-title">怎么出</h2></div>
-    <p id="pb-workspace-description">完整路线、分支选择与版本演化</p>
+    <div><span>PRO WORKSPACE</span><h2 id="pb-workspace-title">职业路线</h2></div>
+    <p id="pb-workspace-description">主线、关键时间点、装备速查与真实样本</p>
   </header>
   <nav class="pb-workspace-tabs" id="pb-workspace-tabs" aria-label="职业出装分析模块">
-    <button type="button" data-pb-tab="routes" class="is-active" aria-pressed="true"><span><b>怎么出</b><em>主线</em></span><small>完整路线与版本变化</small></button>
-    <button type="button" data-pb-tab="overview" aria-pressed="false"><span><b>先看结论</b></span><small>热门装备、时点与属性</small></button>
-    <button type="button" data-pb-tab="people" aria-pressed="false"><span><b>谁这样出</b></span><small>选手与战队路线</small></button>
-    <button type="button" data-pb-tab="situations" aria-pressed="false"><span><b>什么局势出</b></span><small>顺逆风与阵容应对</small></button>
-    <button type="button" data-pb-tab="matches" aria-pressed="false"><span><b>真实比赛</b></span><small>逐局记录与复盘</small></button>
-    <button type="button" data-pb-tab="quality" aria-pressed="false"><span><b>数据说明</b></span><small>覆盖率与可信度</small></button>
+    <button type="button" data-pb-tab="routes" class="is-active" aria-pressed="true"><span><b>职业路线</b><em>主线</em></span><small>出装顺序、时点与装备速查</small></button>
+    <button type="button" data-pb-tab="people" aria-pressed="false"><span><b>选手样本</b></span><small>谁在使用、战队与个人风格</small></button>
+    <button type="button" data-pb-tab="situations" aria-pressed="false"><span><b>局势应对</b></span><small>顺逆风、对手与版本变化</small></button>
+    <button type="button" data-pb-tab="matches" aria-pressed="false"><span><b>比赛复盘</b></span><small>逐局路线、阵容与比赛证据</small></button>
+    <button type="button" data-pb-tab="quality" aria-pressed="false"><span><b>数据可信度</b></span><small>覆盖范围、缺失与样本边界</small></button>
   </nav>
   <div class="pb-dashboard" id="pb-dashboard" hidden>
-    <section class="pb-card pb-items-card" data-pb-panel="overview">
+    <section class="pb-card pb-items-card" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">POPULARITY + TIMING</span><h2>热门成装</h2></div><small>点击物品查看理论属性</small></header>
       <div class="pb-table-wrap">
         <table class="pb-table"><thead><tr><th>物品</th><th>采用率</th><th>样本</th><th>胜率</th><th>情境校正</th><th>95%区间</th><th>中位时点</th><th title="从首次购买到第一次可识别主动使用或明确触发；纯被动装备显示为无数据">平均第一次使用间隔</th></tr></thead><tbody id="pb-items-body"></tbody></table>
       </div>
     </section>
 
-    <aside class="pb-card pb-theory-card" id="pb-theory" data-pb-panel="overview">
+    <aside class="pb-card pb-theory-card" id="pb-theory" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">HERO LAB</span><h2>理论属性</h2></div><small id="pb-theory-patch"></small></header>
       <div class="pb-empty">从左侧选择一个物品</div>
     </aside>
 
-    <section class="pb-card pb-timing-card" data-pb-panel="overview">
+    <section class="pb-card pb-timing-card" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">ADOPTION CURVE</span><h2>购买时间分布</h2></div><small>累计完成比例</small></header>
       <div id="pb-timing-chart" class="pb-timing-chart"></div>
     </section>
@@ -362,28 +395,33 @@ def render_html() -> str:
       <div id="pb-sequences" class="pb-sequences"></div>
     </section>
 
-    <section class="pb-card pb-route-trend-card" data-pb-panel="routes">
+    <details class="pb-advanced-route-suite" data-pb-panel="routes">
+      <summary><div><span>ADVANCED ROUTE ANALYSIS</span><strong>展开路线趋势、流向图与分支树</strong></div><small>用于教练组和深度复盘，不占用默认阅读动线</small></summary>
+      <div class="pb-advanced-route-grid">
+    <section class="pb-card pb-route-trend-card">
       <header><div><span class="pb-card-kicker">ROUTE LIFECYCLE</span><h2>路线时效与版本演化</h2></div><small id="pb-route-trend-context">完整路线采用率，不拆成单件</small></header>
       <div class="pb-route-trend-controls"><label><span>观察粒度</span><select id="pb-route-trend-grain"><option value="week">按周</option><option value="month">按月</option><option value="patch">按版本</option></select></label><p>路线簇先在当前筛选范围内统一聚类，再比较各时间桶的采用率，避免每个时间桶重新聚类导致路线身份漂移。</p></div>
       <div id="pb-route-trends" class="pb-table-wrap"></div>
     </section>
 
-    <section class="pb-card pb-flow-card" data-pb-panel="routes">
+    <section class="pb-card pb-flow-card">
       <header><div><span class="pb-card-kicker">ROUTE FLOW</span><h2>路线流向图</h2></div><small>按购买顺序聚合，线宽代表样本量</small></header>
       <div id="pb-route-flow" class="pb-route-flow"></div>
     </section>
 
-    <section class="pb-card pb-branch-card" data-pb-panel="routes">
+    <section class="pb-card pb-branch-card">
       <header><div><span class="pb-card-kicker">DECISION BRANCHES</span><h2>分支出装树</h2></div><small>同类小件差异已合并；展开节点查看后续选择</small></header>
       <div id="pb-branch-tree" class="pb-branch-tree"></div>
     </section>
+      </div>
+    </details>
 
     <section class="pb-card pb-route-detail-card" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">CLUSTER DRILLDOWN</span><h2>路线簇详情</h2></div><small id="pb-route-cluster-version">点击上方路线簇查看组成</small></header>
       <div id="pb-route-detail" class="pb-route-detail"><div class="pb-empty">从“英雄出装路线”选择一个路线簇</div></div>
     </section>
 
-    <section class="pb-card pb-recommend-card" data-pb-panel="overview">
+    <section class="pb-card pb-recommend-card" data-pb-panel="routes">
       <header><div><span class="pb-card-kicker">DECISION ENGINE</span><h2>情境出装推荐</h2></div><small>基于当前筛选样本，不代表因果结论</small></header>
       <div id="pb-recommendation" class="pb-analysis-grid"></div>
     </section>

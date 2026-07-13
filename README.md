@@ -91,14 +91,18 @@ python -m pytest tests -q
 `pro_builds.html` combines professional match builds and purchase timings with
 the current Hero Lab item-stat model. Its hero-first flow presents the selected
 hero, sample and win rate, clickable position 1–5 cards, window trends, build
-cards, and traceable real matches before the deeper analysis tools. Every build
+cards, and traceable real matches before the deeper analysis tools. A permanent
+pre-match brief turns the current filter into four player-facing answers: the
+most common reconstructable route, key item timings, descriptive ahead/behind
+pivots, and three real matches worth reviewing. Every build
 module reports its own usable denominator; matches without enough purchase
 timings remain in the hero sample but are never fabricated into a route.
 
 Three task-oriented research paths remain available for hero research,
 player-plus-hero research, and pre-match scouting. Each path promotes only its
-essential filters and moves the remaining controls and exports into an
-expandable advanced area. Hero, player, team, and opponent selectors are
+essential filters. The full research setup is collapsed after a selection so
+it does not interrupt the player’s route-to-evidence reading flow; remaining
+controls and exports stay in an expandable advanced area. Hero, player, team, and opponent selectors are
 searchable; small samples offer one-click range expansion; real matches include
 their core item timeline and open in a side drawer so the selected route and
 filter context remain intact.
@@ -108,8 +112,11 @@ responsibility-position filters, route flow graphs, current-vs-previous window
 comparisons, game-state and matchup splits, skill/item linkage, team and player
 style, substitutions, timing scores, sample confidence, recommendations,
 single-match timelines, a map heatmap, freshness alerts, and CSV/SVG/HTML
-exports. The workspace is split into six URL-persisted tabs, clusters near-match
-core routes, renders a branching build tree, and supports head-to-head player or
+exports. The workspace is split into five URL-persisted tabs: professional
+routes, player samples, situation responses, match review, and data confidence.
+The former overview is part of the route workspace instead of competing with it
+as a separate destination. The page clusters near-match core routes, renders a
+branching build tree inside a collapsed advanced suite, and supports head-to-head player or
 patch comparison. The browser reads static caches and never connects to
 StarRocks.
 
