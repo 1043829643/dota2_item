@@ -86,6 +86,98 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q
 ```
 
+## Professional item-build analytics
+
+`pro_builds.html` combines professional match builds and purchase timings with
+the current Hero Lab item-stat model. The page starts from three task-oriented
+research paths: hero build research, player-plus-hero research, and pre-match
+scouting. Each path promotes only its essential filters, opens the most relevant
+analysis tab, and moves the remaining controls and exports into an expandable
+advanced area. Hero, player, team, and opponent selectors are searchable; a
+sticky context strip keeps the active question and sample size visible; small
+samples offer one-click range expansion; real matches open in a side drawer so
+the selected route and filter context remain intact.
+
+The analysis includes date/patch/player/team/hero/
+responsibility-position filters, route flow graphs, current-vs-previous window
+comparisons, game-state and matchup splits, skill/item linkage, team and player
+style, substitutions, timing scores, sample confidence, recommendations,
+single-match timelines, a map heatmap, freshness alerts, and CSV/SVG/HTML
+exports. The workspace is split into six URL-persisted tabs, clusters near-match
+core routes, renders a branching build tree, and supports head-to-head player or
+patch comparison. The browser reads static caches and never connects to
+StarRocks.
+
+The large detail cache is not shipped as one eager browser request. During the
+`pro` build it is split into deterministic `YYYY-MM` shards plus a small
+manifest. Match detail loads one month on click; skills load only the months in
+the active filter; the map heatmap requires an explicit load action. The
+always-needed core cache is dictionary-encoded during the build so repeated
+dates, patches, leagues, teams, players, heroes, role methods, and item IDs are
+transferred once and restored in the browser without changing the source cache.
+Route clusters use the versioned deterministic `route-cluster-v2` algorithm, expose a
+stable URL ID, and drill down to variants, players, teams, situations,
+opponents, and source matches. Each selected cluster also compares win rate,
+game state, first-core timing, duration, economy, and item adoption against all
+other routes in the same filtered sample. A route-lifecycle table tracks the
+same stable clusters by week, month, or patch, including adoption sparklines,
+recent change, Wilson intervals, and first/last appearance. The player view includes a six-axis
+route-style profile and nearest-player recommendations; named filter views can
+be saved and restored locally in the browser. The Data Quality tab reports
+global and monthly coverage together with source and deduplication provenance.
+
+The extractor writes a compact filter index (`data/pro_builds.json`) and an
+on-demand detail cache (`data/pro_builds_detail.json`). Responsibility position
+is assigned from league-level `lane_role` plus lane CS; `slot` is only used to
+join records inside one match and is never interpreted as a Dota position.
+
+Configure a read-only StarRocks account once. For routine updates, run the
+incremental orchestrator; it overlaps the latest two days, catches up through
+today in windows of at most seven days, commits both caches together, rebuilds
+the page, and rejects the update if the audit fails:
+
+```powershell
+$env:STARROCKS_HOST="<host>"
+$env:STARROCKS_PORT="9030"
+$env:STARROCKS_USER="<read-only-user>"
+$env:STARROCKS_PASSWORD="<password>"
+python scripts/fetch/update_pro_builds.py
+```
+
+This command is suitable for a daily Windows Task Scheduler job. Do not put the
+password in the command line; store it in the task account's environment. A
+lock prevents concurrent jobs. `data/pro_builds_update_status.json` records
+running/success/failure state, range, counts, recovery, and gate result. A
+transaction journal plus rollback copies restores the last accepted pair after
+an interruption or failed quality gate.
+
+For Task Scheduler, use `scripts/fetch/run_pro_builds_update.ps1` as the daily
+entry point. It validates that all four connection variables exist, runs from
+the repository root, preserves the exit code, and writes timestamped logs under
+the ignored `.cache/pro-builds-logs/` directory. The recommended trigger is
+once daily after the replay ingestion window; reruns are safe because the
+latest two days are refreshed by complete match replacement.
+
+For a first bootstrap or an intentional historical rebuild, call the bounded
+extractor directly with explicit dates, then build and audit:
+
+```powershell
+$env:PRO_BUILDS_DATE_FROM="2026-06-01"
+$env:PRO_BUILDS_DATE_TO="2026-06-30"
+python scripts/fetch/fetch_pro_builds.py
+python build_site.py pro
+python scripts/audit/check_pro_builds.py
+```
+
+The extractor first resolves bounded match IDs, then queries
+non-partitioned tables in match-ID batches. Every partitioned fact table is
+split into one exact `dt = YYYY-MM-DD` partition per query, further bounded by
+that day's match-ID batch, and deduplicated with `ROW_NUMBER()` on the table's
+business key. It never performs an unbounded or cross-month combat-log,
+interval, status, purchase, or ability scan.
+
+Open `http://localhost:8765/pro_builds.html` while the local server is running.
+
 ## Adding a new patch
 
 Short version (full guide: [docs/workflow.md](docs/workflow.md)):

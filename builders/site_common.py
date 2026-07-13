@@ -93,6 +93,7 @@ MATERIALS_GROUPS = [
     ("heroes_grp", "Heroes", "heroes_stats.html", [
         ("heroes_stats", "Hero Stats",    "heroes_stats.html"),
         ("hero_lab",     "Hero Lab",      "hero_lab.html"),
+        ("pro_builds",   "Pro Builds",    "pro_builds.html"),
         ("aoe_increase", "AoE Increase",  "aoe_increase.html"),
         ("heroes_dyn",   "Hero Dynamics", "heroes_dyn.html"),
     ]),

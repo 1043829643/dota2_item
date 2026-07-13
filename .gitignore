@@ -59,6 +59,14 @@ data/*_datafeed.json
 audit_aoe.txt
 data/hero_aoe_audit_*.json
 
+# Professional-build updater transaction artifacts; status JSON is publishable.
+data/.pro_builds_update_journal.json
+data/.pro_builds_update.lock
+data/pro_builds.json.next
+data/pro_builds_detail.json.next
+data/pro_builds.json.rollback
+data/pro_builds_detail.json.rollback
+
 # Abandoned logo experiment — kept locally, not committed
 icons/Pixel Logo.gif
 

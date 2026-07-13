@@ -4496,8 +4496,19 @@
   }
 
   const panels = [...root.querySelectorAll('.hl-panel')];
-  renderPanel(panels[0], 'a', heroes[0].id);
+  const presetParams = new URLSearchParams(window.location.search);
+  const presetHero = presetParams.get('hero') || '';
+  renderPanel(panels[0], 'a', byHero.has(presetHero) ? presetHero : heroes[0].id);
   renderPanel(panels[1], 'b', heroes[Math.min(1, heroes.length - 1)].id);
+  const presetItems = String(presetParams.get('items') || '').split(',').filter(id => byItem.has(id)).slice(0, 6);
+  if (presetItems.length) {
+    const slots = ['', '', '', '', '', ''];
+    presetItems.forEach((id, idx) => { slots[idx] = id; });
+    panels[0].dataset.items = JSON.stringify(slots);
+  }
+  const presetLevel = Math.max(1, Math.min(30, parseInt(presetParams.get('level') || '1', 10) || 1));
+  const presetLevelInput = panels[0].querySelector('[data-field="level"]');
+  if (presetLevelInput) presetLevelInput.value = String(presetLevel);
   panels.forEach(p => updateLevelRing(p));
   (function() {
     const dd = document.querySelector('.hero-lab-toolbar .hd-dd[data-dd="diffstat"]');
@@ -5177,6 +5188,1373 @@
   });
 
   update();
+})();
+
+// ---- PRO BUILDS: professional item timing + Hero Lab theory ----
+(function() {
+  const page = document.querySelector('.pro-builds-page');
+  const configEl = document.getElementById('pro-builds-config');
+  if (!page || !configEl) return;
+  let config;
+  try { config = JSON.parse(configEl.textContent || '{}'); } catch { return; }
+  const items = config.items || {};
+  const heroes = config.heroes || {};
+  const loading = document.getElementById('pb-loading');
+  const dashboard = document.getElementById('pb-dashboard');
+  const note = document.getElementById('pb-data-note');
+  const controls = {
+    patch: document.getElementById('pb-patch'),
+    from: document.getElementById('pb-date-from'),
+    to: document.getElementById('pb-date-to'),
+    league: document.getElementById('pb-league'),
+    team: document.getElementById('pb-team'),
+    player: document.getElementById('pb-player'),
+    hero: document.getElementById('pb-hero-select'),
+    role: document.getElementById('pb-role'),
+    result: document.getElementById('pb-result'),
+    situation: document.getElementById('pb-situation'),
+    opponent: document.getElementById('pb-opponent'),
+    method: document.getElementById('pb-role-method'),
+    scope: document.getElementById('pb-scope'),
+  };
+  const coreFilters = document.getElementById('pb-core-filters');
+  const advancedFilters = document.getElementById('pb-advanced-grid');
+  const advancedPanel = document.getElementById('pb-advanced-filters');
+  const matchDrawer = document.getElementById('pb-match-drawer');
+  const filterFields = new Map([...page.querySelectorAll('[data-pb-field]')].map(field => [field.dataset.pbField, field]));
+  const FILTER_ORDER = ['hero', 'player', 'team', 'opponent', 'patch', 'from', 'to', 'role', 'league', 'situation', 'result', 'method', 'scope'];
+  const MODE_CONFIG = {
+    hero: {
+      title: '英雄出装研究', description: '先选英雄和时间，直接查看职业比赛中的完整出装路线。',
+      core: ['hero', 'patch', 'from', 'to', 'role'], tab: 'routes', action: '查看英雄出装路线',
+    },
+    player: {
+      title: '选手英雄研究', description: '先选职业选手，可继续限定英雄，观察他的完整路线与个人偏好。',
+      core: ['player', 'hero', 'team', 'from', 'to'], tab: 'people', action: '查看选手英雄研究',
+    },
+    scout: {
+      title: '赛前准备', description: '选择目标战队或选手，再用英雄和对手英雄定位需要准备的比赛情境。',
+      core: ['team', 'player', 'hero', 'opponent', 'from', 'to'], tab: 'situations', action: '生成赛前准备分析',
+    },
+  };
+  const SEARCH_CONTROLS = {
+    hero: { input: document.getElementById('pb-hero-search'), list: document.getElementById('pb-hero-options') },
+    player: { input: document.getElementById('pb-player-search'), list: document.getElementById('pb-player-options') },
+    team: { input: document.getElementById('pb-team-search'), list: document.getElementById('pb-team-options') },
+    opponent: { input: document.getElementById('pb-opponent-search'), list: document.getElementById('pb-opponent-options') },
+  };
+  let allRows = [];
+  let dataMeta = {};
+  let detailData = { players: {}, drafts: {}, events: {} };
+  let detailManifest = null;
+  let detailManifestPromise = null;
+  const loadedDetailBuckets = new Set();
+  const pendingDetailBuckets = new Map();
+  let matchTeams = new Map();
+  let currentRows = [];
+  let selectedMatchKey = '';
+  const initialResearchParams = new URLSearchParams(window.location.search);
+  let researchMode = MODE_CONFIG[initialResearchParams.get('mode')] ? initialResearchParams.get('mode') : initialResearchParams.has('player') ? 'player' : (initialResearchParams.has('team') || initialResearchParams.has('opponent')) ? 'scout' : 'hero';
+  let activeTab = 'routes';
+  let matchDrawerOpen = false;
+  let lastRouteClusters = [];
+  let selectedRouteClusterId = '';
+  let routeTrendGrain = 'week';
+  let heatmapRequested = false;
+  const ROUTE_CLUSTER_VERSION = 'route-cluster-v2';
+  const SAVED_VIEW_KEY = 'sloppy-pro-build-views-v1';
+  let selectedItem = '';
+  let lastItemStats = [];
+
+  const esc = value => String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const pct = (n, d) => d ? (n * 100 / d).toFixed(1) + '%' : '—';
+  const median = values => {
+    const a = values.filter(v => Number.isFinite(v)).sort((x, y) => x - y);
+    if (!a.length) return null;
+    const m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : Math.round((a[m - 1] + a[m]) / 2);
+  };
+  const timeText = seconds => {
+    if (!Number.isFinite(seconds)) return '未知';
+    const m = Math.floor(seconds / 60), s = Math.max(0, seconds % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+  const situation = r => !r.g || !Number.isFinite(Number(r.g[6])) ? 'unknown'
+    : Number(r.g[6]) >= 1500 ? 'ahead' : Number(r.g[6]) <= -1500 ? 'behind' : 'even';
+  const situationName = value => ({ ahead: '优势', even: '均势', behind: '劣势', unknown: '未知' }[value] || value);
+  const rowKey = r => `${r.m}:${r.sl == null ? r.s : r.sl}`;
+
+  function decodeCorePayload(payload) {
+    if (payload?.schema !== 'pro-builds-core-v2') return payload?.records || [];
+    const d = payload.dictionaries || {}, value = (field, index) => d[field]?.[index] ?? '';
+    return (payload.records || []).map(row => {
+      const itemValues = row[19] || [], decodedItems = [];
+      for (let index = 0; index < itemValues.length; index += 2) decodedItems.push([value('item', itemValues[index]), itemValues[index + 1]]);
+      return {
+        m: row[0], d: value('d', row[1]), p: value('p', row[2]), li: row[3],
+        l: value('l', row[4]), t: value('t', row[5]), s: value('s', row[6]),
+        n: value('n', row[7]), h: value('h', row[8]), hi: row[9], sl: row[10],
+        tm: row[11], r: row[12], rm: value('rm', row[13]), rc: row[14],
+        w: row[15], lv: row[16], nw: row[17], du: row[18], i: decodedItems, g: row[20],
+      };
+    });
+  }
+
+  function detailMonths(rows) {
+    return [...new Set(rows.map(r => String(r.d || '').slice(0, 7)).filter(Boolean))].filter(month => detailManifest?.buckets?.[month]);
+  }
+
+  function updateDetailStatus(text) {
+    const status = document.getElementById('pb-detail-status');
+    if (status) status.textContent = text;
+  }
+
+  function renderFreshness(meta) {
+    const host = document.getElementById('pb-freshness'); if (!host) return;
+    const latest = String(meta.date_max || ''), update = meta.update_status || meta.update || {};
+    const latestDate = /^\d{4}-\d{2}-\d{2}$/.test(latest) ? new Date(`${latest}T00:00:00Z`) : null;
+    const today = new Date(), todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+    const age = latestDate && !Number.isNaN(latestDate.getTime()) ? Math.max(0, Math.floor((todayUtc - latestDate.getTime()) / 86400000)) : null;
+    const failed = update.status === 'failed' || update.status === 'invalid', running = update.status === 'running';
+    const level = failed ? 'bad' : running ? 'running' : age == null ? 'bad' : age <= 2 ? 'good' : age <= 7 ? 'warn' : 'bad';
+    const label = failed ? '最近更新失败' : running ? '正在更新' : age == null ? '日期未知' : age === 0 ? '数据截至今天' : `数据落后 ${age} 天`;
+    const completed = update.completed_at || update.failed_at || meta.generated_at || '未知';
+    const changed = Number(update.new_matches || 0), refreshed = Number(update.refreshed_matches || 0);
+    host.className = `pb-freshness is-${level}`;
+    host.innerHTML = `<span class="pb-freshness-dot"></span><div><strong>${esc(label)}</strong><small>最新比赛 ${esc(latest || '未知')} · 更新 ${esc(completed)}${changed || refreshed ? ` · 新增${changed} / 刷新${refreshed}` : ''}</small></div>`;
+  }
+
+  function loadDetailManifest() {
+    if (detailManifestPromise) return detailManifestPromise;
+    detailManifestPromise = fetch(config.detailManifestUrl, { cache: 'no-cache' })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(payload => { detailManifest = payload; updateDetailStatus(`${Object.keys(payload.buckets || {}).length}个月明细 · 按需加载`); if (activeTab === 'quality') renderDataQuality(); return payload; })
+      .catch(err => { updateDetailStatus(`明细索引不可用：${err.message}`); throw err; });
+    return detailManifestPromise;
+  }
+
+  async function ensureDetailRows(rows) {
+    await loadDetailManifest();
+    const months = detailMonths(rows);
+    const missing = months.filter(month => !loadedDetailBuckets.has(month));
+    if (!missing.length) return;
+    const bytes = missing.reduce((sum, month) => sum + Number(detailManifest.buckets[month]?.bytes || 0), 0);
+    updateDetailStatus(`正在加载 ${missing.length}个月明细 · ${(bytes / 1048576).toFixed(1)}MB`);
+    await Promise.all(missing.map(month => {
+      if (pendingDetailBuckets.has(month)) return pendingDetailBuckets.get(month);
+      const url = detailManifest.buckets[month].url;
+      const promise = fetch(url, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(payload => {
+        Object.assign(detailData.players, payload.players || {});
+        Object.assign(detailData.drafts, payload.drafts || {});
+        Object.assign(detailData.events, payload.events || {});
+        loadedDetailBuckets.add(month);
+      }).finally(() => pendingDetailBuckets.delete(month));
+      pendingDetailBuckets.set(month, promise);
+      return promise;
+    }));
+    updateDetailStatus(`${loadedDetailBuckets.size}个月已加载 · ${Object.keys(detailData.players).length.toLocaleString()}个选手局`);
+  }
+
+  function detailRowsReady(rows) {
+    return Boolean(detailManifest) && detailMonths(rows).every(month => loadedDetailBuckets.has(month));
+  }
+  const wilson = (wins, games) => {
+    if (!games) return [0, 0];
+    const z = 1.96, p = wins / games, d = 1 + z * z / games;
+    const center = (p + z * z / (2 * games)) / d;
+    const margin = z * Math.sqrt((p * (1 - p) + z * z / (4 * games)) / games) / d;
+    return [Math.max(0, center - margin), Math.min(1, center + margin)];
+  };
+  const icon = (src, name, cls) => `<img class="${cls || 'pb-item-icon'}" src="${esc(src)}" alt="${esc(name)}" loading="lazy">`;
+  const option = (value, label) => `<option value="${esc(value)}">${esc(label)}</option>`;
+  const uniq = (rows, getter) => [...new Set(rows.map(getter).filter(Boolean))];
+  const coreAllow = new Set([
+    'item_magic_wand', 'item_bracer', 'item_wraith_band', 'item_null_talisman',
+    'item_bottle', 'item_soul_ring', 'item_urn_of_shadows', 'item_orb_of_corrosion',
+    'item_falcon_blade', 'item_blink',
+  ]);
+  const teamStyleItems = new Set(['item_pipe','item_crimson_guard','item_guardian_greaves','item_lotus_orb','item_vladmir','item_spirit_vessel','item_force_staff','item_glimmer_cape','item_pavise','item_solar_crest','item_mekansm','item_boots_of_bearing']);
+  const aggressionStyleItems = new Set(['item_blink','item_black_king_bar','item_desolator','item_bloodthorn','item_daedalus','item_monkey_king_bar','item_nullifier','item_sheepstick','item_orchid','item_diffusal_blade','item_basher','item_abyssal_blade']);
+  const completedCategories = new Set(['Accessories', 'Support', 'Magical', 'Armor', 'Weapons', 'Armaments']);
+
+  function includeItem(id) {
+    const item = items[id];
+    if (!item) return false;
+    const scope = controls.scope.value || 'core';
+    if (scope === 'all') return true;
+    if (item.class !== 'regular' || item.consumable) return false;
+    if (scope === 'regular') return true;
+    return completedCategories.has(item.category) || coreAllow.has(id);
+  }
+
+  function fillSelect(select, entries) {
+    const first = select.options[0] ? select.options[0].outerHTML : '<option value="">全部</option>';
+    select.innerHTML = first + entries.join('');
+  }
+
+  function cleanOptionLabel(text) {
+    return String(text || '').replace(/\s+\(\d+(?:场|局)?\)$/, '').trim();
+  }
+
+  function rebuildSearchControls() {
+    Object.entries(SEARCH_CONTROLS).forEach(([key, binding]) => {
+      const select = controls[key]; if (!select || !binding.input || !binding.list) return;
+      binding.entries = [...select.options].filter(opt => opt.value).map(opt => ({ value: opt.value, label: cleanOptionLabel(opt.textContent) }));
+      binding.list.innerHTML = binding.entries.map(entry => `<option value="${esc(entry.label)}"></option>`).join('');
+    });
+    syncSearchInputs();
+  }
+
+  function syncSearchInputs() {
+    Object.entries(SEARCH_CONTROLS).forEach(([key, binding]) => {
+      const select = controls[key]; if (!select || !binding.input) return;
+      const entry = (binding.entries || []).find(row => row.value === select.value);
+      binding.input.value = entry?.label || '';
+      binding.input.setCustomValidity('');
+    });
+  }
+
+  function commitSearchControl(key) {
+    const binding = SEARCH_CONTROLS[key], select = controls[key]; if (!binding?.input || !select) return false;
+    const typed = binding.input.value.trim();
+    if (!typed) { select.value = ''; binding.input.setCustomValidity(''); return true; }
+    const exact = (binding.entries || []).filter(row => row.label.toLocaleLowerCase() === typed.toLocaleLowerCase());
+    const prefix = exact.length ? exact : (binding.entries || []).filter(row => row.label.toLocaleLowerCase().startsWith(typed.toLocaleLowerCase()));
+    if (prefix.length === 1) {
+      select.value = prefix[0].value; binding.input.value = prefix[0].label; binding.input.setCustomValidity(''); return true;
+    }
+    binding.input.setCustomValidity('请从搜索建议中选择一个明确结果');
+    binding.input.reportValidity();
+    return false;
+  }
+
+  function layoutModeFilters() {
+    const mode = MODE_CONFIG[researchMode] || MODE_CONFIG.hero;
+    mode.core.forEach(key => { const field = filterFields.get(key); if (field) coreFilters.appendChild(field); });
+    FILTER_ORDER.filter(key => !mode.core.includes(key)).forEach(key => { const field = filterFields.get(key); if (field) advancedFilters.appendChild(field); });
+    document.getElementById('pb-mode-title').textContent = mode.title;
+    document.getElementById('pb-mode-description').textContent = mode.description;
+    document.getElementById('pb-run-analysis').textContent = mode.action;
+    page.querySelectorAll('[data-pb-mode]').forEach(button => {
+      const selected = button.dataset.pbMode === researchMode;
+      button.classList.toggle('is-active', selected); button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
+
+  function setResearchMode(modeName, switchTab) {
+    researchMode = MODE_CONFIG[modeName] ? modeName : 'hero';
+    layoutModeFilters();
+    if (switchTab) setActiveTab(MODE_CONFIG[researchMode].tab, false);
+    if (allRows.length) render(); else syncUrl();
+  }
+
+  function controlLabel(key) {
+    const select = controls[key];
+    if (!select?.value) return '';
+    if (SEARCH_CONTROLS[key]?.input?.value) return SEARCH_CONTROLS[key].input.value;
+    return cleanOptionLabel(select.selectedOptions?.[0]?.textContent || select.value);
+  }
+
+  function renderContext(rows) {
+    const chips = document.getElementById('pb-context-chips'), count = document.getElementById('pb-context-count');
+    if (!chips || !count) return;
+    const mode = MODE_CONFIG[researchMode] || MODE_CONFIG.hero;
+    const parts = [`<span class="pb-context-mode">${esc(mode.title)}</span>`];
+    ['hero', 'player', 'team', 'opponent', 'patch', 'role', 'league', 'situation', 'result'].forEach(key => {
+      const label = controlLabel(key); if (!label) return;
+      parts.push(`<button type="button" data-pb-clear="${key}" title="移除${esc(label)}">${esc(label)} <i>×</i></button>`);
+    });
+    const dateText = controls.from.value && controls.to.value ? `${controls.from.value} — ${controls.to.value}` : '';
+    const customDate = controls.from.value !== controls.from.min || controls.to.value !== controls.to.max;
+    if (dateText) parts.push(customDate ? `<button type="button" data-pb-clear="dates" title="恢复完整时间范围">${esc(dateText)} <i>×</i></button>` : `<span>${esc(dateText)}</span>`);
+    chips.innerHTML = parts.join('');
+    const matches = new Set(rows.map(row => row.m)).size;
+    count.textContent = `${matches.toLocaleString()} 场 · ${rows.length.toLocaleString()} 个选手英雄局`;
+  }
+
+  function renderSampleGuidance(rows) {
+    const host = document.getElementById('pb-sample-guidance'); if (!host) return;
+    let title = '', detail = '', actions = '';
+    if (researchMode === 'hero' && !controls.hero.value) {
+      title = '先搜索一个英雄'; detail = '选择英雄后会直接出现完整出装路线、购买时点与版本演化。';
+    } else if (researchMode === 'player' && !controls.player.value) {
+      title = '先搜索一位职业选手'; detail = '选中后可以继续限定英雄，查看这名选手真正采用的完整路线。';
+    } else if (researchMode === 'scout' && !controls.team.value && !controls.player.value) {
+      title = '先选择需要研究的战队或选手'; detail = '赛前准备会把他们的英雄选择、局势应对与真实比赛串起来。';
+    } else if (!rows.length) {
+      title = '当前条件没有比赛'; detail = '可以扩大时间范围，或移除一个限制条件。';
+      const buttons = [];
+      if (controls.from.value !== controls.from.min || controls.to.value !== controls.to.max) buttons.push('<button type="button" data-pb-guidance="90">扩大到90天</button><button type="button" data-pb-guidance="all">查看全部时间</button>');
+      if (researchMode !== 'hero' && controls.hero.value) buttons.push('<button type="button" data-pb-guidance="clear-hero">移除英雄限制</button>');
+      if (researchMode !== 'player' && controls.player.value) buttons.push('<button type="button" data-pb-guidance="clear-player">移除选手限制</button>');
+      if (controls.opponent.value) buttons.push('<button type="button" data-pb-guidance="clear-opponent">移除对手英雄</button>');
+      actions = buttons.join('');
+    } else if (rows.length < 10) {
+      title = `当前只有 ${rows.length} 个选手英雄局`; detail = '小样本路线容易被单场比赛放大，建议扩大范围后再判断。';
+      actions = '<button type="button" data-pb-guidance="30">最近30天</button><button type="button" data-pb-guidance="90">最近90天</button><button type="button" data-pb-guidance="all">全部时间</button>';
+    }
+    if (!title) { host.hidden = true; host.innerHTML = ''; return; }
+    host.hidden = false;
+    host.innerHTML = `<div><strong>${esc(title)}</strong><span>${esc(detail)}</span></div><div>${actions}</div>`;
+  }
+
+  function populateFilters(rows, meta) {
+    fillSelect(controls.patch, uniq(rows, r => r.p).sort().map(v => option(v, v)));
+    fillSelect(controls.league, uniq(rows, r => r.l).sort((a, b) => a.localeCompare(b)).map(v => option(v, v)));
+    const teamCounts = new Map();
+    rows.forEach(r => { if (r.t) teamCounts.set(r.t, (teamCounts.get(r.t) || 0) + 1); });
+    fillSelect(controls.team, [...teamCounts]
+      .filter(([name, count]) => count >= 20 && !/^\d+$/.test(name) && name !== 'UNKNOWN')
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, count]) => option(name, `${name} (${Math.round(count / 10)}场)`)));
+    const playerMap = new Map();
+    rows.forEach(r => {
+      if (!r.s || !String(r.n || '').trim()) return;
+      const old = playerMap.get(r.s) || { name: r.n || r.s, games: 0 };
+      old.games++;
+      playerMap.set(r.s, old);
+    });
+    fillSelect(controls.player, [...playerMap]
+      .filter(([, p]) => p.games >= 5)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name))
+      .map(([id, p]) => option(id, `${p.name} · ${String(id).slice(-6)} (${p.games}局)`)));
+    const usedHeroes = new Set(rows.map(r => r.h));
+    fillSelect(controls.hero, [...usedHeroes].sort((a, b) => (heroes[a]?.name || a).localeCompare(heroes[b]?.name || b))
+      .map(id => option(id, heroes[id]?.name || id)));
+    fillSelect(controls.opponent, [...usedHeroes].sort((a, b) => (heroes[a]?.name || a).localeCompare(heroes[b]?.name || b))
+      .map(id => option(id, heroes[id]?.name || id)));
+    controls.from.min = controls.from.value = meta.date_min || '';
+    controls.to.max = controls.to.value = meta.date_max || '';
+    rebuildSearchControls();
+  }
+
+  function applyUrlFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const requestedMode = params.get('mode');
+    researchMode = MODE_CONFIG[requestedMode] ? requestedMode : params.has('player') ? 'player' : (params.has('team') || params.has('opponent')) ? 'scout' : 'hero';
+    const requestedTab = params.get('tab');
+    if (requestedTab && document.querySelector(`[data-pb-tab="${requestedTab}"]`)) activeTab = requestedTab;
+    else activeTab = MODE_CONFIG[researchMode].tab;
+    selectedRouteClusterId = params.get('cluster') || '';
+    selectedMatchKey = params.get('match') || '';
+    matchDrawerOpen = Boolean(selectedMatchKey);
+    if (['week', 'month', 'patch'].includes(params.get('grain'))) routeTrendGrain = params.get('grain');
+    const keys = ['patch', 'league', 'team', 'player', 'hero', 'role', 'result', 'situation', 'opponent', 'method', 'scope'];
+    keys.forEach(key => {
+      const value = params.get(key);
+      const control = controls[key];
+      if (!value || !control) return;
+      const exists = [...control.options].some(opt => opt.value === value);
+      if (exists) control.value = value;
+    });
+    const from = params.get('from'), to = params.get('to');
+    if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) controls.from.value = from;
+    if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) controls.to.value = to;
+    syncSearchInputs();
+  }
+
+  function syncUrl() {
+    const params = new URLSearchParams();
+    params.set('mode', researchMode);
+    ['patch', 'league', 'team', 'player', 'hero', 'role', 'result', 'situation', 'opponent', 'method'].forEach(key => {
+      if (controls[key]?.value) params.set(key, controls[key].value);
+    });
+    if (controls.from.value && controls.from.value !== controls.from.min) params.set('from', controls.from.value);
+    if (controls.to.value && controls.to.value !== controls.to.max) params.set('to', controls.to.value);
+    if (controls.scope.value && controls.scope.value !== 'core') params.set('scope', controls.scope.value);
+    if (activeTab !== 'overview') params.set('tab', activeTab);
+    if (selectedRouteClusterId) params.set('cluster', selectedRouteClusterId);
+    if (routeTrendGrain !== 'week') params.set('grain', routeTrendGrain);
+    if ((activeTab === 'matches' || matchDrawerOpen) && selectedMatchKey) params.set('match', selectedMatchKey);
+    const query = params.toString();
+    history.replaceState(null, '', `${location.pathname}${query ? '?' + query : ''}`);
+  }
+
+  function setActiveTab(tabName, updateUrl) {
+    if (!document.querySelector(`[data-pb-tab="${tabName}"]`)) tabName = 'overview';
+    activeTab = tabName;
+    page.querySelectorAll('[data-pb-tab]').forEach(button => button.classList.toggle('is-active', button.dataset.pbTab === activeTab));
+    page.querySelectorAll('[data-pb-panel]').forEach(panel => panel.classList.toggle('is-tab-active', panel.dataset.pbPanel === activeTab));
+    if (updateUrl) syncUrl();
+  }
+
+  function readSavedViews() {
+    try { const value = JSON.parse(localStorage.getItem(SAVED_VIEW_KEY) || '[]'); return Array.isArray(value) ? value : []; } catch { return []; }
+  }
+
+  function writeSavedViews(views) {
+    try { localStorage.setItem(SAVED_VIEW_KEY, JSON.stringify(views.slice(-30))); return true; } catch { return false; }
+  }
+
+  function refreshSavedViews(selectedId) {
+    const select = document.getElementById('pb-saved-view'); if (!select) return;
+    const views = readSavedViews(); select.innerHTML = '<option value="">已保存的分析视图</option>' + views.map(view => option(view.id, view.name)).join('');
+    if (selectedId && views.some(view => view.id === selectedId)) select.value = selectedId;
+  }
+
+  function setViewStatus(text) {
+    const status = document.getElementById('pb-view-status'); if (status) status.textContent = text;
+  }
+
+  function currentViewState() {
+    const filterState = {}; Object.entries(controls).forEach(([key, control]) => { if (control) filterState[key] = control.value; });
+    return { filters: filterState, researchMode, activeTab, selectedItem, selectedRouteClusterId, routeTrendGrain, duel: { kind: document.getElementById('pb-duel-kind')?.value || 'player', a: document.getElementById('pb-duel-a')?.value || '', b: document.getElementById('pb-duel-b')?.value || '' }, stylePlayer: document.getElementById('pb-style-player')?.value || '' };
+  }
+
+  function saveCurrentView() {
+    const input = document.getElementById('pb-view-name'), custom = String(input?.value || '').trim();
+    const heroName = heroes[controls.hero.value]?.name || '全部英雄', autoName = `${heroName} · ${controls.patch.value || '全版本'} · ${activeTab}`;
+    const view = { id: `view-${Date.now().toString(36)}`, name: custom || autoName, savedAt: new Date().toISOString(), state: currentViewState() };
+    const views = readSavedViews(); views.push(view);
+    if (!writeSavedViews(views)) { setViewStatus('浏览器禁止本地保存'); return; }
+    refreshSavedViews(view.id); if (input) input.value = ''; setViewStatus(`已保存：${view.name}`);
+  }
+
+  function loadSavedView() {
+    const id = document.getElementById('pb-saved-view')?.value, view = readSavedViews().find(row => row.id === id); if (!view) { setViewStatus('请选择一个已保存视图'); return; }
+    Object.entries(view.state?.filters || {}).forEach(([key, value]) => {
+      const control = controls[key]; if (!control) return;
+      if (control.tagName === 'SELECT' && ![...control.options].some(opt => opt.value === value)) control.value = ''; else control.value = value;
+    });
+    researchMode = MODE_CONFIG[view.state?.researchMode] ? view.state.researchMode : 'hero';
+    layoutModeFilters(); syncSearchInputs();
+    activeTab = view.state?.activeTab || MODE_CONFIG[researchMode].tab; selectedItem = view.state?.selectedItem || ''; selectedRouteClusterId = view.state?.selectedRouteClusterId || ''; routeTrendGrain = ['week', 'month', 'patch'].includes(view.state?.routeTrendGrain) ? view.state.routeTrendGrain : 'week';
+    setActiveTab(activeTab, false);
+    const kind = document.getElementById('pb-duel-kind'); if (kind) kind.value = view.state?.duel?.kind || 'player'; populateDuelSelectors(true);
+    const duelA = document.getElementById('pb-duel-a'), duelB = document.getElementById('pb-duel-b'); if (duelA && [...duelA.options].some(opt => opt.value === view.state?.duel?.a)) duelA.value = view.state.duel.a; if (duelB && [...duelB.options].some(opt => opt.value === view.state?.duel?.b)) duelB.value = view.state.duel.b;
+    heatmapRequested = false; render();
+    const style = document.getElementById('pb-style-player'); if (style && [...style.options].some(opt => opt.value === view.state?.stylePlayer)) { style.value = view.state.stylePlayer; renderPlayerStyle(currentRows); }
+    setViewStatus(`已加载：${view.name}`);
+  }
+
+  function deleteSavedView() {
+    const select = document.getElementById('pb-saved-view'), id = select?.value; if (!id) { setViewStatus('请选择要删除的视图'); return; }
+    const views = readSavedViews(), target = views.find(row => row.id === id); writeSavedViews(views.filter(row => row.id !== id)); refreshSavedViews(); setViewStatus(target ? `已删除：${target.name}` : '已删除');
+  }
+
+  function enemyHeroes(r) {
+    const sides = matchTeams.get(String(r.m));
+    if (!sides) return [];
+    const enemies = new Set();
+    sides.forEach((heroSet, teamName) => { if (teamName !== r.t) heroSet.forEach(hero => enemies.add(hero)); });
+    return [...enemies];
+  }
+
+  function filteredRows(ignoreDates, ignoredControls) {
+    const ignored = ignoredControls || new Set();
+    return allRows.filter(r => {
+      if (!ignored.has('patch') && controls.patch.value && r.p !== controls.patch.value) return false;
+      if (!ignoreDates && controls.from.value && r.d < controls.from.value) return false;
+      if (!ignoreDates && controls.to.value && r.d > controls.to.value) return false;
+      if (controls.league.value && r.l !== controls.league.value) return false;
+      if (controls.team.value && r.t !== controls.team.value) return false;
+      if (!ignored.has('player') && controls.player.value && r.s !== controls.player.value) return false;
+      if (controls.hero.value && r.h !== controls.hero.value) return false;
+      if (controls.role.value && String(r.r || '') !== controls.role.value) return false;
+      if (controls.result.value !== '' && String(r.w) !== controls.result.value) return false;
+      if (controls.situation.value && situation(r) !== controls.situation.value) return false;
+      if (controls.opponent.value && !enemyHeroes(r).includes(controls.opponent.value)) return false;
+      if (controls.method.value && r.rm !== controls.method.value) return false;
+      return true;
+    });
+  }
+
+  function itemStats(rows) {
+    const strata = new Map();
+    rows.forEach(r => {
+      const key = `${r.r || 0}:${situation(r)}:${Math.floor(Number(r.du || 0) / 600)}`;
+      const st = strata.get(key) || { games: 0, wins: 0 };
+      st.games++; st.wins += Number(r.w || 0); strata.set(key, st);
+    });
+    const map = new Map();
+    rows.forEach(r => {
+      (r.i || []).forEach(pair => {
+        const id = pair[0], seconds = pair[1];
+        if (!includeItem(id)) return;
+        let stat = map.get(id);
+        if (!stat) stat = { id, games: 0, wins: 0, times: [], expected: 0 };
+        stat.games++;
+        stat.wins += Number(r.w || 0);
+        const key = `${r.r || 0}:${situation(r)}:${Math.floor(Number(r.du || 0) / 600)}`;
+        const base = strata.get(key);
+        stat.expected += base?.games ? base.wins / base.games : 0;
+        if (Number.isFinite(seconds)) stat.times.push(seconds);
+        map.set(id, stat);
+      });
+    });
+    const overall = rows.length ? rows.reduce((sum, r) => sum + Number(r.w || 0), 0) / rows.length : 0;
+    return [...map.values()].map(s => ({
+      ...s,
+      median: median(s.times),
+      adjusted: Math.max(0, Math.min(1, overall + s.wins / s.games - s.expected / s.games)),
+      ci: wilson(s.wins, s.games),
+    }))
+      .sort((a, b) => b.games - a.games || b.wins - a.wins);
+  }
+
+  function renderItems(rows, stats) {
+    const body = document.getElementById('pb-items-body');
+    body.innerHTML = stats.slice(0, 30).map(s => {
+      const item = items[s.id] || { name: s.id, icon: '' };
+      return `<tr data-pb-item="${esc(s.id)}" class="${s.id === selectedItem ? 'is-selected' : ''}">
+        <td><span class="pb-item-name">${icon(item.icon, item.name)}<span>${esc(item.name)}</span></span></td>
+        <td><strong>${pct(s.games, rows.length)}</strong></td><td>${s.games}</td>
+        <td class="${s.wins / s.games >= .5 ? 'pb-up' : 'pb-down'}">${pct(s.wins, s.games)}</td>
+        <td>${pct(s.adjusted, 1)}</td><td>${pct(s.ci[0], 1)}–${pct(s.ci[1], 1)}</td>
+        <td>${timeText(s.median)}</td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="pb-no-data">当前筛选没有成装数据</td></tr>';
+  }
+
+  const bonusLabels = {
+    all: '全属性', str: '力量', agi: '敏捷', int: '智力', hp: '生命值', mp: '魔法值',
+    hpr: '生命恢复', mpr: '魔法恢复', armor: '护甲', mr: '魔抗', evasion: '闪避',
+    damage: '攻击力', damageMelee: '近战攻击力', damageRanged: '远程攻击力',
+    aspd: '攻击速度', ms: '移动速度', msPct: '移动速度', range: '攻击距离',
+    spellAmp: '技能增强', statusRes: '状态抗性', slowRes: '减速抗性',
+    lifesteal: '吸血', spellLifesteal: '技能吸血', castRange: '施法距离',
+    cooldownReduction: '冷却缩减', healthRestoration: '治疗增强', hpPct: '最大生命',
+  };
+  const pctKeys = new Set(['mr','evasion','msPct','spellAmp','statusRes','slowRes','lifesteal','spellLifesteal','cooldownReduction','healthRestoration','hpPct']);
+
+  function renderTheory(rows, stat) {
+    const box = document.getElementById('pb-theory');
+    if (!stat || !items[stat.id]) {
+      box.innerHTML = `<header><div><span class="pb-card-kicker">HERO LAB</span><h2>理论属性</h2></div><small id="pb-theory-patch">理论数据 ${esc(config.theoryPatch)}</small></header><div class="pb-empty">当前筛选没有可展示物品</div>`;
+      return;
+    }
+    const item = items[stat.id];
+    const bonuses = Object.entries(item.bonus || {}).filter(([, v]) => Math.abs(Number(v) || 0) > .0001);
+    const heroId = controls.hero.value || '';
+    const levels = rows.map(r => Number(r.lv)).filter(Number.isFinite);
+    const level = median(levels) || 15;
+    const common = lastItemStats.slice(0, 5).map(s => s.id);
+    if (!common.includes(stat.id)) common.unshift(stat.id);
+    const packageBonus = {};
+    common.slice(0, 6).forEach(id => Object.entries(items[id]?.bonus || {}).forEach(([key, value]) => { packageBonus[key] = (packageBonus[key] || 0) + Number(value || 0); }));
+    const packageHighlights = Object.entries(packageBonus).filter(([, value]) => Math.abs(value) > .001).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 6);
+    const labUrl = `hero_lab.html?hero=${encodeURIComponent(heroId)}&level=${level}&items=${encodeURIComponent(common.slice(0, 6).join(','))}`;
+    box.innerHTML = `<header><div><span class="pb-card-kicker">HERO LAB</span><h2>理论属性</h2></div><small id="pb-theory-patch">理论数据 ${esc(config.theoryPatch)}</small></header>
+      <div class="pb-theory-head">${icon(item.icon, item.name, 'pb-theory-icon')}<div><h3>${esc(item.name)}</h3><span>${Number(item.cost || 0).toLocaleString()} 金币 · ${esc(item.category || item.class || '')}</span></div></div>
+      <div class="pb-theory-real"><div><span>实战采用率</span><strong>${pct(stat.games, rows.length)}</strong></div><div><span>样本胜率</span><strong>${pct(stat.wins, stat.games)}</strong></div><div><span>中位时点</span><strong>${timeText(stat.median)}</strong></div></div>
+      <div class="pb-bonus-list">${bonuses.map(([key, value]) => `<div><span>${esc(bonusLabels[key] || key)}</span><strong>${Number(value) > 0 ? '+' : ''}${Number(value)}${pctKeys.has(key) ? '%' : ''}</strong></div>`).join('') || '<div class="pb-no-data">该物品主要收益来自主动/被动技能，不能仅用静态属性表达。</div>'}</div>
+      <div class="pb-package-delta"><span>当前常见套装静态增量</span>${packageHighlights.map(([key, value]) => `<b>${esc(bonusLabels[key] || key)} ${value > 0 ? '+' : ''}${Number(value.toFixed(2))}${pctKeys.has(key) ? '%' : ''}</b>`).join('')}</div>
+      <p class="pb-theory-note">实战数据使用所选版本；理论属性来自当前 Hero Lab 快照。DPS、EHP 与 DMG GOLD 会随英雄和等级变化。</p>
+      <a class="pb-lab-link" href="${labUrl}">在 Hero Lab 中查看精确穿装前后 DPS / EHP / 性价比 →</a>`;
+  }
+
+  function renderTiming(stats) {
+    const chart = document.getElementById('pb-timing-chart');
+    const thresholds = [600, 1200, 1800, 2400];
+    chart.innerHTML = stats.slice(0, 7).map(s => {
+      const item = items[s.id] || { name: s.id, icon: '' };
+      const vals = thresholds.map(t => s.times.length ? s.times.filter(v => v <= t).length * 100 / s.times.length : 0);
+      return `<div class="pb-time-row"><div class="pb-time-item">${icon(item.icon, item.name)}<span>${esc(item.name)}</span></div><div class="pb-time-bars">${vals.map((v, idx) => `<div title="${thresholds[idx] / 60}分钟前完成 ${v.toFixed(1)}%"><span style="width:${Math.max(2, v)}%"></span><b>${thresholds[idx] / 60}m ${v.toFixed(0)}%</b></div>`).join('')}</div></div>`;
+    }).join('') || '<div class="pb-no-data">没有购买时点数据</div>';
+  }
+
+  function coreRoutePairs(r, limit) {
+    const floor = Number(r.r) >= 4 ? 700 : 1200;
+    return (r.i || []).filter(([id, seconds]) => {
+      if (!includeItem(id) || !Number.isFinite(seconds)) return false;
+      const cost = Number(items[id]?.cost || 0);
+      return cost >= floor || /boots|blink|spirit_vessel|urn_of_shadows/.test(id);
+    }).sort((a, b) => a[1] - b[1]).slice(0, limit || 5);
+  }
+
+  function routeSimilarity(a, b) {
+    if (!a.length || !b.length) return 0;
+    const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+    return dp[a.length][b.length] / Math.min(a.length, b.length);
+  }
+
+  function stableRouteId(value) {
+    let hash = 2166136261;
+    for (let i = 0; i < value.length; i++) { hash ^= value.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+    return `rc-${(hash >>> 0).toString(36)}`;
+  }
+
+  function clusteredRoutes(rows) {
+    const exact = new Map();
+    rows.forEach(r => {
+      const pairs = coreRoutePairs(r, 5), ids = pairs.map(x => x[0]);
+      if (ids.length < 2) return;
+      const key = ids.join('>'), variant = exact.get(key) || { key, ids, games: 0, wins: 0, rows: [], times: new Map() };
+      variant.games++; variant.wins += Number(r.w || 0); variant.rows.push(r);
+      pairs.forEach(([id, seconds]) => { if (!variant.times.has(id)) variant.times.set(id, []); variant.times.get(id).push(seconds); });
+      exact.set(key, variant);
+    });
+    const variants = [...exact.values()].sort((a, b) => b.games - a.games || a.key.localeCompare(b.key));
+    const clusters = [];
+    variants.forEach(variant => {
+      const candidates = clusters.map(cluster => ({ cluster, score: routeSimilarity(variant.ids, cluster.representative) }))
+        .filter(row => row.score >= .6).sort((a, b) => b.score - a.score || a.cluster.stableId.localeCompare(b.cluster.stableId));
+      let cluster = candidates[0]?.cluster;
+      const score = candidates[0]?.score || 1;
+      if (!cluster) {
+        cluster = {
+          stableId: stableRouteId(`${ROUTE_CLUSTER_VERSION}:${variant.key}`),
+          representative: variant.ids.slice(), games: 0, wins: 0,
+          variants: new Map(), times: new Map(), rows: [], similarityTotal: 0,
+        };
+        clusters.push(cluster);
+      }
+      cluster.games += variant.games; cluster.wins += variant.wins;
+      cluster.variants.set(variant.key, variant); cluster.rows.push(...variant.rows);
+      cluster.similarityTotal += score * variant.games;
+      variant.times.forEach((values, id) => { if (!cluster.times.has(id)) cluster.times.set(id, []); cluster.times.get(id).push(...values); });
+    });
+    clusters.forEach(cluster => { cluster.avgSimilarity = cluster.games ? cluster.similarityTotal / cluster.games : 0; });
+    return clusters.sort((a, b) => b.games - a.games || b.wins - a.wins);
+  }
+
+  function renderSequences(rows) {
+    const context = document.getElementById('pb-route-context');
+    const heroId = controls.hero.value;
+    const heroName = heroId ? (heroes[heroId]?.name || heroId) : '';
+    if (context) context.textContent = heroId
+      ? `${heroName} · ${controls.from.value || '最早'} — ${controls.to.value || '最新'} · ${rows.length}局`
+      : '请先在筛选器中选择一个英雄';
+    if (!heroId) {
+      document.getElementById('pb-sequences').innerHTML = '<div class="pb-route-prompt">选择 Axe 等英雄后，这里会显示该英雄在指定比赛日期范围内的常见出装路线和每一步中位购买时间。</div>';
+      return;
+    }
+    lastRouteClusters = clusteredRoutes(rows);
+    const top = lastRouteClusters.slice(0, 10);
+    if (selectedRouteClusterId && !lastRouteClusters.some(cluster => cluster.stableId === selectedRouteClusterId)) selectedRouteClusterId = '';
+    document.getElementById('pb-sequences').innerHTML = top.map((entry, clusterIndex) => {
+      const ids = entry.representative;
+      return `<div class="pb-sequence ${entry.stableId === selectedRouteClusterId ? 'is-selected' : ''}" data-pb-cluster="${entry.stableId}"><div class="pb-seq-items"><b class="pb-cluster-id">#${clusterIndex + 1}</b>${ids.map((id, idx) => {
+        const item = items[id] || { name: id, icon: '' };
+        const med = median(entry.times.get(id) || []);
+        return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}<span class="pb-seq-step" title="${esc(item.name)} · ${timeText(med)}">${icon(item.icon, item.name)}<small>${timeText(med)}</small></span>`;
+      }).join('')}</div><strong>${entry.games} 局</strong><span>${pct(entry.games, rows.length)} · ${entry.variants.size}种变体 · 相似度${pct(entry.avgSimilarity, 1)} · 胜率${pct(entry.wins, entry.games)}</span></div>`;
+    }).join('') || '<div class="pb-no-data">当前英雄和日期范围不足以形成稳定出装路线</div>';
+    document.getElementById('pb-route-cluster-version').textContent = `${ROUTE_CLUSTER_VERSION} · LCS阈值60% · 确定性种子`;
+    renderRouteDrilldown(rows);
+  }
+
+  function renderRouteDrilldown(rows) {
+    const host = document.getElementById('pb-route-detail');
+    if (!host) return;
+    const cluster = lastRouteClusters.find(row => row.stableId === selectedRouteClusterId);
+    if (!cluster) { host.innerHTML = '<div class="pb-empty">点击上方任一聚类路线，查看它由哪些真实对局构成</div>'; return; }
+    const counts = getter => {
+      const map = new Map(); cluster.rows.forEach(r => { const key = getter(r); if (key) map.set(key, (map.get(key) || 0) + 1); }); return [...map].sort((a, b) => b[1] - a[1]);
+    };
+    const players = counts(r => r.n).slice(0, 8), teams = counts(r => r.t).slice(0, 6), states = counts(r => situationName(situation(r)));
+    const opponents = new Map(); cluster.rows.forEach(r => enemyHeroes(r).forEach(hero => opponents.set(hero, (opponents.get(hero) || 0) + 1)));
+    const topOpponents = [...opponents].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const variants = [...cluster.variants.values()].sort((a, b) => b.games - a.games || a.key.localeCompare(b.key)).slice(0, 8);
+    const routeHtml = ids => ids.map((id, idx) => { const item = items[id] || { name: id, icon: '' }; return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}${icon(item.icon, item.name)}`; }).join('');
+    const matches = cluster.rows.slice().sort((a, b) => b.d.localeCompare(a.d) || b.m - a.m).slice(0, 30);
+    const clusterKeys = new Set(cluster.rows.map(rowKey)), restRows = rows.filter(r => !clusterKeys.has(rowKey(r)));
+    const metrics = sample => {
+      const first = sample.map(r => coreRoutePairs(r, 1)[0]?.[1]).filter(Number.isFinite);
+      const gpm = sample.map(r => Number(r.nw || 0) / Math.max(1, Number(r.du || 0) / 60)).filter(Number.isFinite);
+      return { games: sample.length, wins: sample.reduce((sum, r) => sum + Number(r.w || 0), 0), first: median(first), duration: median(sample.map(r => Number(r.du)).filter(Number.isFinite)), gpm: median(gpm), ahead: sample.filter(r => situation(r) === 'ahead').length };
+    };
+    const cm = metrics(cluster.rows), rm = metrics(restRows);
+    const deltaPct = (a, ad, b, bd) => (ad && bd) ? (a / ad - b / bd) : 0;
+    const benchmarkCards = [
+      ['胜率差', deltaPct(cm.wins, cm.games, rm.wins, rm.games), 'pct'],
+      ['优势局占比差', deltaPct(cm.ahead, cm.games, rm.ahead, rm.games), 'pct'],
+      ['核心首件时间差', Number(cm.first) - Number(rm.first), 'time'],
+      ['比赛时长差', Number(cm.duration) - Number(rm.duration), 'time'],
+      ['终局经济效率差', Number(cm.gpm) - Number(rm.gpm), 'number'],
+    ];
+    const clusterItems = new Map(itemStats(cluster.rows).map(s => [s.id, s])), restItems = new Map(itemStats(restRows).map(s => [s.id, s]));
+    const itemDeltas = [...clusterItems.values()].map(stat => ({ id: stat.id, rate: stat.games / Math.max(1, cluster.rows.length), rest: (restItems.get(stat.id)?.games || 0) / Math.max(1, restRows.length) }))
+      .map(row => ({ ...row, delta: row.rate - row.rest })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 8);
+    const benchmarkHtml = `<div class="pb-route-benchmark"><div class="pb-benchmark-cards">${benchmarkCards.map(([label, value, type]) => {
+      const positive = Number(value) >= 0, display = type === 'pct' ? `${positive ? '+' : ''}${pct(Number(value), 1)}` : type === 'time' ? `${positive ? '+' : '−'}${timeText(Math.abs(Number(value)))}` : `${positive ? '+' : ''}${Math.round(Number(value) || 0)}`;
+      return `<article><span>${label}</span><strong class="${positive ? 'pb-up' : 'pb-down'}">${display}</strong><small>路线簇 vs 其他路线</small></article>`;
+    }).join('')}</div><div class="pb-benchmark-items"><h4>路线最显著的装备偏好</h4>${itemDeltas.map(row => { const item = items[row.id] || { name: row.id, icon: '' }; return `<div><span class="pb-item-name">${icon(item.icon, item.name)}${esc(item.name)}</span><b>${pct(row.rate, 1)} vs ${pct(row.rest, 1)}</b><strong class="${row.delta >= 0 ? 'pb-up' : 'pb-down'}">${row.delta >= 0 ? '+' : ''}${pct(row.delta, 1)}</strong></div>`; }).join('')}</div><p>以上为当前筛选内的描述性基线差异，不代表该路线导致胜率变化。</p></div>`;
+    host.innerHTML = `<div class="pb-route-detail-head"><div><span>稳定簇ID</span><strong>${cluster.stableId}</strong><small>${ROUTE_CLUSTER_VERSION} · 平均相似度 ${pct(cluster.avgSimilarity, 1)}</small></div><div class="pb-mini-route">${routeHtml(cluster.representative)}</div><div><span>样本</span><strong>${cluster.games}局</strong><small>胜率 ${pct(cluster.wins, cluster.games)} · ${cluster.variants.size}种真实变体</small></div></div>
+      <div class="pb-route-breakdown"><article><h4>主要选手</h4>${players.map(([name, count]) => `<span>${esc(name)}<b>${count}</b></span>`).join('')}</article><article><h4>主要战队</h4>${teams.map(([name, count]) => `<span>${esc(name)}<b>${count}</b></span>`).join('')}</article><article><h4>15分钟局势</h4>${states.map(([name, count]) => `<span>${esc(name)}<b>${count} · ${pct(count, cluster.games)}</b></span>`).join('')}</article><article><h4>常见对手</h4>${topOpponents.map(([id, count]) => `<span>${esc(heroes[id]?.name || id)}<b>${count}</b></span>`).join('')}</article></div>
+      <h4 class="pb-route-detail-title">相对其他路线的基线差异</h4>${benchmarkHtml}
+      <h4 class="pb-route-detail-title">真实路线变体</h4><div class="pb-route-variants">${variants.map(variant => `<div><span class="pb-mini-route">${routeHtml(variant.ids)}</span><strong>${variant.games}局</strong><small>${pct(variant.wins, variant.games)}</small></div>`).join('')}</div>
+      <h4 class="pb-route-detail-title">对应比赛（点击进入单局复盘）</h4><div class="pb-table-wrap"><table class="pb-table"><thead><tr><th>日期 / 比赛</th><th>选手</th><th>战队</th><th>位置</th><th>局势</th><th>结果</th></tr></thead><tbody>${matches.map(r => `<tr data-pb-cluster-match="${esc(rowKey(r))}"><td>${r.d}<br><small>${r.m}</small></td><td>${esc(r.n)}</td><td>${esc(r.t)}</td><td>${r.r || '—'}</td><td>${situationName(situation(r))}</td><td>${r.w ? '胜' : '负'}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function routeTrendBucket(row, grain) {
+    if (grain === 'patch') return { key: `patch:${row.p || 'unknown'}`, label: row.p || '未知版本', date: row.d || '' };
+    if (grain === 'month') return { key: `month:${String(row.d || '').slice(0, 7)}`, label: String(row.d || '').slice(0, 7), date: row.d || '' };
+    const date = new Date(`${row.d}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) return { key: 'week:unknown', label: '未知日期', date: '' };
+    date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+    const start = date.toISOString().slice(0, 10);
+    return { key: `week:${start}`, label: `${start.slice(5)}周`, date: start };
+  }
+
+  function renderRouteTrends(rows) {
+    const host = document.getElementById('pb-route-trends'), select = document.getElementById('pb-route-trend-grain'), context = document.getElementById('pb-route-trend-context');
+    if (!host || !select) return;
+    select.value = routeTrendGrain;
+    if (!controls.hero.value) { host.innerHTML = '<div class="pb-route-prompt">选择英雄后，这里会展示完整出装路线随时间或版本的采用率变化。</div>'; return; }
+    const membership = new Map();
+    lastRouteClusters.forEach(cluster => cluster.rows.forEach(row => membership.set(rowKey(row), cluster.stableId)));
+    const bucketMap = new Map();
+    rows.forEach(row => {
+      const info = routeTrendBucket(row, routeTrendGrain);
+      if (!bucketMap.has(info.key)) bucketMap.set(info.key, { ...info, total: 0, routes: new Map() });
+      const bucket = bucketMap.get(info.key); bucket.total++;
+      const clusterId = membership.get(rowKey(row));
+      if (clusterId) bucket.routes.set(clusterId, (bucket.routes.get(clusterId) || 0) + 1);
+      if (!bucket.date || row.d < bucket.date) bucket.date = row.d;
+    });
+    const allBuckets = [...bucketMap.values()].sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
+    const buckets = allBuckets.slice(-16);
+    const candidates = lastRouteClusters.filter(cluster => cluster.games >= 3).slice(0, 6);
+    if (!buckets.length || !candidates.length) { host.innerHTML = '<div class="pb-no-data">当前筛选不足以形成可追踪的路线趋势（每条路线至少3局）。</div>'; return; }
+    const aggregateRate = (clusterId, sample) => {
+      const total = sample.reduce((sum, bucket) => sum + bucket.total, 0);
+      const count = sample.reduce((sum, bucket) => sum + (bucket.routes.get(clusterId) || 0), 0);
+      return total ? count / total : 0;
+    };
+    const spark = values => {
+      const width = 190, height = 46, max = Math.max(.01, ...values), denom = Math.max(1, values.length - 1);
+      const points = values.map((value, index) => `${(index * width / denom).toFixed(1)},${(height - 4 - value / max * (height - 8)).toFixed(1)}`).join(' ');
+      return `<svg class="pb-route-spark" viewBox="0 0 ${width} ${height}" role="img" aria-label="路线采用率趋势"><line x1="0" y1="42" x2="190" y2="42"></line><polyline points="${points}"></polyline>${values.map((value, index) => `<circle cx="${(index * width / denom).toFixed(1)}" cy="${(height - 4 - value / max * (height - 8)).toFixed(1)}" r="2"><title>${buckets[index].label}：${pct(value, 1)}</title></circle>`).join('')}</svg>`;
+    };
+    const recentCount = Math.min(2, buckets.length), recentBuckets = buckets.slice(-recentCount), priorBuckets = buckets.length > recentCount ? buckets.slice(Math.max(0, buckets.length - recentCount * 2), -recentCount) : buckets.slice(0, 1);
+    const routeHtml = ids => ids.map((id, index) => { const item = items[id] || { name: id, icon: '' }; return `${index ? '<span class="pb-seq-arrow">›</span>' : ''}${icon(item.icon, item.name)}`; }).join('');
+    const rowsHtml = candidates.map((cluster, index) => {
+      const values = buckets.map(bucket => (bucket.routes.get(cluster.stableId) || 0) / Math.max(1, bucket.total));
+      const prior = aggregateRate(cluster.stableId, priorBuckets), recent = aggregateRate(cluster.stableId, recentBuckets), delta = recent - prior;
+      const activeDates = cluster.rows.map(row => row.d).sort(), ci = wilson(cluster.wins, cluster.games);
+      const confidence = cluster.games >= 30 ? '较高' : cluster.games >= 10 ? '中等' : '探索';
+      return `<tr><td><div class="pb-trend-route"><b>#${index + 1}</b><span class="pb-mini-route">${routeHtml(cluster.representative)}</span><small>${cluster.stableId}</small></div></td><td>${cluster.games}<br><small>${confidence}样本</small></td><td>${spark(values)}<small>${buckets[0].label} → ${buckets.at(-1).label}</small></td><td>${pct(prior, 1)}</td><td>${pct(recent, 1)}</td><td><strong class="${delta >= 0 ? 'pb-up' : 'pb-down'}">${delta >= 0 ? '+' : ''}${pct(delta, 1)}</strong></td><td>${pct(cluster.wins, cluster.games)}<br><small>95% ${pct(ci[0], 1)}–${pct(ci[1], 1)}</small></td><td>${activeDates[0] || '—'}<br><small>最近 ${activeDates.at(-1) || '—'}</small></td></tr>`;
+    }).join('');
+    const hidden = Math.max(0, allBuckets.length - buckets.length);
+    context.textContent = `${routeTrendGrain === 'week' ? '按周' : routeTrendGrain === 'month' ? '按月' : '按版本'} · 最近${buckets.length}个时间桶${hidden ? `（隐藏更早${hidden}个）` : ''}`;
+    host.innerHTML = `<table class="pb-table pb-route-trend-table"><thead><tr><th>完整路线簇</th><th>样本</th><th>采用率走势</th><th>前段采用</th><th>最近采用</th><th>变化</th><th>样本胜率</th><th>生命周期</th></tr></thead><tbody>${rowsHtml}</tbody></table><p class="pb-route-trend-note">前段与最近均优先使用相邻两个时间桶；版本少于两个时仅作横截面展示。胜率为描述性结果，采用率变化不表示路线造成胜负变化。</p>`;
+  }
+
+  function renderBranchTree(rows) {
+    const host = document.getElementById('pb-branch-tree');
+    if (!controls.hero.value) { host.innerHTML = '<div class="pb-route-prompt">选择英雄后，这里会按核心装备节点展示路线分叉。</div>'; return; }
+    const root = { children: new Map() };
+    rows.forEach(r => {
+      let cursor = root;
+      coreRoutePairs(r, 4).forEach(([id, seconds]) => {
+        if (!cursor.children.has(id)) cursor.children.set(id, { id, games: 0, wins: 0, times: [], children: new Map() });
+        const node = cursor.children.get(id); node.games++; node.wins += Number(r.w || 0); node.times.push(seconds); cursor = node;
+      });
+    });
+    const renderLevel = (children, depth) => {
+      const nodes = [...children.values()].filter(n => n.games >= (depth ? 2 : 3)).sort((a, b) => b.games - a.games).slice(0, depth ? 5 : 8);
+      if (!nodes.length) return '';
+      return `<ul class="${depth ? 'pb-tree-children' : ''}">${nodes.map(node => {
+        const item = items[node.id] || { name: node.id, icon: '' }, nested = depth < 3 ? renderLevel(node.children, depth + 1) : '';
+        return `<li><div class="pb-tree-node"><span class="pb-tree-item">${icon(item.icon, item.name)}<b>${esc(item.name)}</b></span><strong>${node.games}局</strong><small>${pct(node.wins, node.games)}</small><small>中位 ${timeText(median(node.times))}</small></div>${nested}</li>`;
+      }).join('')}</ul>`;
+    };
+    host.innerHTML = renderLevel(root.children, 0) || '<div class="pb-no-data">当前条件不足以形成稳定分支</div>';
+  }
+
+  function renderPlayers(rows) {
+    const groups = new Map();
+    rows.forEach(r => {
+      const key = r.s || r.n;
+      let g = groups.get(key);
+      if (!g) g = { name: r.n || key, games: 0, wins: 0, teams: new Map(), routes: new Map() };
+      g.games++; g.wins += Number(r.w || 0); g.teams.set(r.t, (g.teams.get(r.t) || 0) + 1);
+      const routeCostFloor = Number(r.r) >= 4 ? 700 : 1200;
+      const sequence = (r.i || []).filter(([id, seconds]) => {
+        if (!includeItem(id) || !Number.isFinite(seconds)) return false;
+        const cost = Number(items[id]?.cost || 0);
+        return cost >= routeCostFloor || /boots|blink|spirit_vessel|urn_of_shadows/.test(id);
+      }).sort((a, b) => a[1] - b[1]).slice(0, 4);
+      if (sequence.length >= 2) {
+        const routeKey = `${r.h}|${sequence.map(pair => pair[0]).join('>')}`;
+        const route = g.routes.get(routeKey) || { hero: r.h, games: 0, wins: 0, times: sequence.map(() => []) };
+        route.games++; route.wins += Number(r.w || 0);
+        sequence.forEach((pair, idx) => route.times[idx].push(pair[1]));
+        g.routes.set(routeKey, route);
+      }
+      groups.set(key, g);
+    });
+    const top = [...groups.values()].sort((a, b) => b.games - a.games || b.wins - a.wins).slice(0, 25);
+    document.getElementById('pb-players-body').innerHTML = top.map(g => {
+      const team = [...g.teams].sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+      const routeEntry = [...g.routes].sort((a, b) => b[1].games - a[1].games || b[1].wins - a[1].wins)[0];
+      let routeHtml = '—', routeRate = '—', routeWinRate = '—';
+      if (routeEntry) {
+        const [routeKey, route] = routeEntry;
+        const hero = heroes[route.hero] || { name: route.hero, icon: '' };
+        const ids = routeKey.split('|')[1].split('>');
+        routeHtml = `<div class="pb-player-route"><span class="pb-route-hero">${icon(hero.icon, hero.name)}<b>${esc(hero.name)}</b></span><span class="pb-seq-items">${ids.map((id, idx) => {
+          const item = items[id] || { name: id, icon: '' }, med = median(route.times[idx] || []);
+          return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}<span class="pb-seq-step" title="${esc(item.name)} · ${timeText(med)}">${icon(item.icon, item.name)}<small>${timeText(med)}</small></span>`;
+        }).join('')}</span></div>`;
+        routeRate = `${pct(route.games, g.games)} (${route.games}局)`;
+        routeWinRate = pct(route.wins, route.games);
+      }
+      return `<tr><td><strong>${esc(g.name)}</strong></td><td>${esc(team)}</td><td>${g.games}</td><td class="${g.wins / g.games >= .5 ? 'pb-up' : 'pb-down'}">${pct(g.wins, g.games)}</td><td>${routeHtml}</td><td>${routeRate}</td><td>${routeWinRate}</td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="pb-no-data">没有选手路线数据</td></tr>';
+  }
+
+  function playerStyleProfiles(rows) {
+    const groups = new Map();
+    rows.forEach(r => {
+      if (!r.s) return;
+      const g = groups.get(r.s) || { id: r.s, name: r.n || r.s, games: 0, wins: 0, teams: new Map(), first: [], gpm: [], teamGames: 0, aggressionGames: 0, routes: new Map() };
+      g.games++; g.wins += Number(r.w || 0); g.teams.set(r.t, (g.teams.get(r.t) || 0) + 1);
+      const core = coreRoutePairs(r, 4), first = core[0]?.[1]; if (Number.isFinite(first)) g.first.push(first);
+      if (Number(r.du) > 0 && Number(r.nw) > 0) g.gpm.push(Number(r.nw) / (Number(r.du) / 60));
+      const ids = new Set((r.i || []).map(x => x[0]));
+      if ([...teamStyleItems].some(id => ids.has(id))) g.teamGames++;
+      if ([...aggressionStyleItems].some(id => ids.has(id))) g.aggressionGames++;
+      if (core.length >= 2) { const key = core.map(x => x[0]).join('>'); g.routes.set(key, (g.routes.get(key) || 0) + 1); }
+      groups.set(r.s, g);
+    });
+    const profiles = [...groups.values()].filter(g => g.games >= 3).map(g => {
+      const validRoutes = [...g.routes.values()].reduce((sum, count) => sum + count, 0), topRoute = [...g.routes].sort((a, b) => b[1] - a[1])[0];
+      return { ...g, raw: { tempo: median(g.first), team: g.teamGames / g.games, aggression: g.aggressionGames / g.games, stability: validRoutes ? (topRoute?.[1] || 0) / validRoutes : 0, economy: median(g.gpm), diversity: validRoutes ? g.routes.size / validRoutes : 0 }, topRoute };
+    });
+    const keys = ['tempo','team','aggression','stability','economy','diversity'];
+    keys.forEach(key => {
+      const values = profiles.map(p => Number(p.raw[key])).filter(Number.isFinite), min = Math.min(...values), max = Math.max(...values);
+      profiles.forEach(p => { let value = Number(p.raw[key]); let score = Number.isFinite(value) && max > min ? (value - min) * 100 / (max - min) : 50; if (key === 'tempo') score = 100 - score; p.scores = { ...(p.scores || {}), [key]: Math.max(0, Math.min(100, score)) }; });
+    });
+    return profiles.sort((a, b) => b.games - a.games || a.name.localeCompare(b.name));
+  }
+
+  function renderPlayerStyle(rows) {
+    const select = document.getElementById('pb-style-player'), radar = document.getElementById('pb-style-radar'), summary = document.getElementById('pb-style-summary'), similar = document.getElementById('pb-style-similar');
+    if (!select || !radar || !summary || !similar) return;
+    const profiles = playerStyleProfiles(rows), old = select.value;
+    select.innerHTML = profiles.map(p => option(p.id, `${p.name} (${p.games}局)`)).join('');
+    select.value = profiles.some(p => p.id === old) ? old : (profiles[0]?.id || '');
+    const profile = profiles.find(p => p.id === select.value);
+    if (!profile) { radar.innerHTML = '<div class="pb-no-data">至少需要3局样本</div>'; summary.innerHTML = ''; similar.innerHTML = ''; return; }
+    const axes = [['tempo','成装速度'],['team','团队装'],['aggression','进攻装'],['stability','路线稳定'],['economy','经济效率'],['diversity','路线多样']];
+    const cx = 180, cy = 145, radius = 100, point = (index, scale) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / axes.length; return [cx + Math.cos(angle) * radius * scale, cy + Math.sin(angle) * radius * scale]; };
+    const rings = [.25,.5,.75,1].map(scale => `<polygon points="${axes.map((_, i) => point(i, scale).join(',')).join(' ')}"/>`).join('');
+    const axisLines = axes.map(([, label], i) => { const [x, y] = point(i, 1), [lx, ly] = point(i, 1.22); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"/><text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle">${label}</text>`; }).join('');
+    const valuePoints = axes.map(([key], i) => point(i, profile.scores[key] / 100).join(',')).join(' ');
+    radar.innerHTML = `<svg viewBox="0 0 360 290" role="img" aria-label="${esc(profile.name)}风格雷达图"><g class="pb-radar-grid">${rings}${axisLines}</g><polygon class="pb-radar-value" points="${valuePoints}"/>${axes.map(([key], i) => { const [x, y] = point(i, profile.scores[key] / 100); return `<circle cx="${x}" cy="${y}" r="4"><title>${axes[i][1]} ${profile.scores[key].toFixed(0)}</title></circle>`; }).join('')}</svg>`;
+    const team = [...profile.teams].sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const rawCards = [['成装速度',timeText(profile.raw.tempo)],['团队装局率',pct(profile.teamGames,profile.games)],['进攻装局率',pct(profile.aggressionGames,profile.games)],['路线稳定度',pct(profile.raw.stability,1)],['终局经济效率',`${Math.round(profile.raw.economy || 0)} /分钟`],['路线多样度',pct(profile.raw.diversity,1)]];
+    summary.innerHTML = `<h3>${esc(profile.name)}</h3><p>${esc(team)} · ${profile.games}局 · 胜率${pct(profile.wins,profile.games)}</p><div>${rawCards.map(([label,value],i)=>`<article><span>${label}</span><strong>${value}</strong><small>样本标准分 ${profile.scores[axes[i][0]].toFixed(0)}</small></article>`).join('')}</div>`;
+    const distances = profiles.filter(p => p.id !== profile.id).map(p => {
+      const distance = Math.sqrt(axes.reduce((sum,[key]) => sum + Math.pow(profile.scores[key]-p.scores[key],2),0)); return { p, similarity: Math.max(0,100-distance/Math.sqrt(axes.length)) };
+    }).sort((a,b)=>b.similarity-a.similarity).slice(0,10);
+    similar.innerHTML = `<table class="pb-table"><thead><tr><th>相似选手</th><th>战队</th><th>局数</th><th>风格相似度</th><th>代表核心路线</th></tr></thead><tbody>${distances.map(({p,similarity}) => { const pTeam=[...p.teams].sort((a,b)=>b[1]-a[1])[0]?.[0]||'—', route=p.topRoute?.[0]?.split('>')||[]; return `<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(pTeam)}</td><td>${p.games}</td><td>${similarity.toFixed(1)}</td><td><span class="pb-mini-route">${route.map(id=>{const it=items[id]||{name:id,icon:''};return icon(it.icon,it.name)}).join('')}</span></td></tr>`; }).join('')}</tbody></table>`;
+  }
+
+  function routeSequences(rows, limit) {
+    const counts = new Map();
+    rows.forEach(r => {
+      const seq = coreRoutePairs(r, limit || 6);
+      if (seq.length < 2) return;
+      const key = seq.map(x => x[0]).join('>');
+      const entry = counts.get(key) || { count: 0, wins: 0, times: seq.map(() => []) };
+      entry.count++; entry.wins += Number(r.w || 0);
+      seq.forEach((pair, idx) => entry.times[idx].push(pair[1]));
+      counts.set(key, entry);
+    });
+    return [...counts].sort((a, b) => b[1].count - a[1].count);
+  }
+
+  function renderRouteFlow(rows) {
+    const host = document.getElementById('pb-route-flow');
+    const routes = routeSequences(rows, 6).slice(0, 18);
+    if (!controls.hero.value || !routes.length) {
+      host.innerHTML = '<div class="pb-route-prompt">选择英雄后生成路线流向图；节点是第 N 件常见物品，连线宽度代表共同出现次数。</div>';
+      return;
+    }
+    const nodes = new Map(), edges = new Map();
+    routes.forEach(([key, stat]) => {
+      const ids = key.split('>');
+      ids.forEach((id, step) => nodes.set(`${step}|${id}`, (nodes.get(`${step}|${id}`) || 0) + stat.count));
+      ids.slice(0, -1).forEach((id, step) => {
+        const edge = `${step}|${id}|${ids[step + 1]}`;
+        edges.set(edge, (edges.get(edge) || 0) + stat.count);
+      });
+    });
+    const byStep = new Map();
+    [...nodes].forEach(([key, count]) => {
+      const [step, id] = key.split('|');
+      if (!byStep.has(step)) byStep.set(step, []);
+      byStep.get(step).push({ id, count });
+    });
+    byStep.forEach(list => list.sort((a, b) => b.count - a.count).splice(6));
+    const pos = new Map();
+    let maxStep = 0, maxRows = 1;
+    byStep.forEach((list, stepText) => {
+      const step = Number(stepText); maxStep = Math.max(maxStep, step); maxRows = Math.max(maxRows, list.length);
+      list.forEach((node, idx) => pos.set(`${step}|${node.id}`, { x: 34 + step * 150, y: 34 + idx * 62, ...node }));
+    });
+    const width = Math.max(640, 105 + maxStep * 150), height = Math.max(160, 44 + maxRows * 62);
+    const maxEdge = Math.max(1, ...edges.values());
+    const edgeSvg = [...edges].map(([key, count]) => {
+      const [step, from, to] = key.split('|'), a = pos.get(`${step}|${from}`), b = pos.get(`${Number(step) + 1}|${to}`);
+      if (!a || !b) return '';
+      return `<path d="M${a.x + 42},${a.y + 17} C${a.x + 85},${a.y + 17} ${b.x - 42},${b.y + 17} ${b.x},${b.y + 17}" stroke="rgba(196,163,82,.65)" stroke-width="${Math.max(1.5, count * 10 / maxEdge)}" fill="none"><title>${count} 局</title></path>`;
+    }).join('');
+    const nodeSvg = [...pos].map(([key, p]) => {
+      const item = items[p.id] || { name: p.id, icon: '' }, step = Number(key.split('|')[0]) + 1;
+      return `<g><rect x="${p.x}" y="${p.y}" width="84" height="36" rx="3" fill="#11181d" stroke="#596149"/><image href="${esc(item.icon)}" x="${p.x + 4}" y="${p.y + 5}" width="34" height="25"/><text x="${p.x + 43}" y="${p.y + 15}" fill="#e4e9ed" font-size="9">${esc(item.name).slice(0, 9)}</text><text x="${p.x + 43}" y="${p.y + 27}" fill="#9b8750" font-size="8">第${step}件 · ${p.count}局</text></g>`;
+    }).join('');
+    host.innerHTML = `<svg id="pb-route-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="出装路线流向图">${edgeSvg}${nodeSvg}</svg>`;
+  }
+
+  function renderRecommendation(rows, stats) {
+    const host = document.getElementById('pb-recommendation');
+    const eligible = stats.filter(s => s.games >= Math.max(3, Math.ceil(rows.length * .03)));
+    const scored = eligible.map(s => ({ ...s, score: (s.games / Math.max(1, rows.length)) * .45 + s.adjusted * .4 + (s.median ? Math.max(0, 1 - s.median / 3600) : 0) * .15 }))
+      .sort((a, b) => b.score - a.score).slice(0, 5);
+    const route = controls.hero.value ? clusteredRoutes(rows)[0] : null;
+    const routeHtml = route ? route.representative.map(id => {
+      const it = items[id] || { name: id, icon: '' }; return icon(it.icon, it.name);
+    }).join('<span class="pb-seq-arrow">›</span>') : '样本不足';
+    host.innerHTML = `<article><span>推荐核心路线簇</span><div class="pb-mini-route">${routeHtml}</div><small>${route ? `${route.games}局 · ${route.variants.size}种近似变体 · 胜率 ${pct(route.wins, route.games)}` : '请选择英雄并扩大日期范围'}</small></article>
+      ${scored.map((s, idx) => { const it = items[s.id] || { name: s.id, icon: '' }; return `<article><span>#${idx + 1} 综合候选</span><strong>${icon(it.icon, it.name)} ${esc(it.name)}</strong><small>采用 ${pct(s.games, rows.length)} · 校正胜率 ${pct(s.adjusted, 1)} · ${timeText(s.median)}</small></article>`; }).join('') || '<div class="pb-no-data">当前条件没有达到最低样本量的推荐</div>'}`;
+  }
+
+  function renderComparison(rows) {
+    const host = document.getElementById('pb-comparison');
+    const from = new Date(`${controls.from.value}T00:00:00Z`), to = new Date(`${controls.to.value}T00:00:00Z`);
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || to < from) { host.innerHTML = '<div class="pb-no-data">请选择有效日期范围</div>'; return; }
+    const days = Math.round((to - from) / 86400000) + 1;
+    const prevTo = new Date(from.getTime() - 86400000), prevFrom = new Date(prevTo.getTime() - (days - 1) * 86400000);
+    const iso = d => d.toISOString().slice(0, 10);
+    const base = filteredRows(true), previous = base.filter(r => r.d >= iso(prevFrom) && r.d <= iso(prevTo));
+    const curMap = new Map(itemStats(rows).map(s => [s.id, s])), prevMap = new Map(itemStats(previous).map(s => [s.id, s]));
+    const candidates = [...curMap.values()].sort((a, b) => b.games - a.games).slice(0, 15);
+    document.getElementById('pb-compare-context').textContent = `${controls.from.value}—${controls.to.value} vs ${iso(prevFrom)}—${iso(prevTo)}`;
+    host.innerHTML = `<table class="pb-table"><thead><tr><th>物品</th><th>当前采用</th><th>前窗采用</th><th>变化</th><th>胜率变化</th></tr></thead><tbody>${candidates.map(s => {
+      const old = prevMap.get(s.id), nowRate = s.games / Math.max(1, rows.length), oldRate = (old?.games || 0) / Math.max(1, previous.length), delta = nowRate - oldRate;
+      const item = items[s.id] || { name: s.id, icon: '' }, wrDelta = s.wins / s.games - (old?.games ? old.wins / old.games : 0);
+      return `<tr><td><span class="pb-item-name">${icon(item.icon, item.name)}${esc(item.name)}</span></td><td>${pct(s.games, rows.length)}</td><td>${pct(old?.games || 0, previous.length)}</td><td class="${delta >= 0 ? 'pb-up' : 'pb-down'}">${delta >= 0 ? '+' : ''}${pct(delta, 1)}</td><td>${old ? `${wrDelta >= 0 ? '+' : ''}${pct(wrDelta, 1)}` : '新出现'}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  }
+
+  function renderSituations(rows) {
+    const host = document.getElementById('pb-situations');
+    host.innerHTML = ['ahead', 'even', 'behind'].map(state => {
+      const subset = rows.filter(r => situation(r) === state), top = itemStats(subset).slice(0, 4);
+      return `<article><span>${situationName(state)} · ${subset.length}局</span>${top.map(s => { const it = items[s.id] || { name: s.id, icon: '' }; return `<div class="pb-ranked-item">${icon(it.icon, it.name)}<b>${esc(it.name)}</b><small>${pct(s.games, subset.length)} · ${timeText(s.median)}</small></div>`; }).join('') || '<small>没有15分钟快照</small>'}</article>`;
+    }).join('');
+  }
+
+  function renderMatchups(rows) {
+    const groups = new Map();
+    rows.forEach(r => enemyHeroes(r).forEach(hero => {
+      const g = groups.get(hero) || { games: 0, wins: 0, items: new Map() };
+      g.games++; g.wins += Number(r.w || 0); (r.i || []).forEach(([id]) => { if (includeItem(id)) g.items.set(id, (g.items.get(id) || 0) + 1); }); groups.set(hero, g);
+    }));
+    const list = [...groups].sort((a, b) => b[1].games - a[1].games).slice(0, 20);
+    document.getElementById('pb-matchups').innerHTML = `<table class="pb-table"><thead><tr><th>对手英雄</th><th>交手局</th><th>样本胜率</th><th>最常应对物品</th></tr></thead><tbody>${list.map(([hero, g]) => {
+      const itemId = [...g.items].sort((a, b) => b[1] - a[1])[0]?.[0], it = items[itemId], h = heroes[hero] || { name: hero, icon: '' };
+      return `<tr><td><span class="pb-item-name">${icon(h.icon, h.name)}${esc(h.name)}</span></td><td>${g.games}</td><td>${pct(g.wins, g.games)}</td><td>${it ? `<span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span>` : '—'}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  }
+
+  function renderSkills(rows) {
+    const host = document.getElementById('pb-skills');
+    if (!detailRowsReady(rows)) {
+      host.innerHTML = '<div class="pb-no-data">正在按当前日期范围加载技能明细…</div>';
+      ensureDetailRows(rows).then(() => { if (activeTab === 'situations') renderSkills(currentRows); }).catch(err => { host.innerHTML = `<div class="pb-no-data">技能明细加载失败：${esc(err.message)}</div>`; });
+      return;
+    }
+    const seqs = new Map();
+    rows.forEach(r => {
+      const abilityRows = detailData.players?.[rowKey(r)]?.a || [];
+      const seq = abilityRows.filter(a => !String(a[1]).startsWith('special_bonus_')).slice(0, 8).map(a => a[1]);
+      if (!seq.length) return; const key = seq.join('>'); const st = seqs.get(key) || { games: 0, wins: 0 }; st.games++; st.wins += Number(r.w || 0); seqs.set(key, st);
+    });
+    const pretty = value => String(value).replace(/^.*?_/, '').replaceAll('_', ' ');
+    host.innerHTML = [...seqs].sort((a, b) => b[1].games - a[1].games).slice(0, 6).map(([key, st], idx) => `<article><span>技能路线 #${idx + 1}</span><div class="pb-skill-seq">${key.split('>').map((a, i) => `<b title="${esc(a)}">${i + 1}. ${esc(pretty(a))}</b>`).join('')}</div><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 与当前装备筛选联动</small></article>`).join('') || '<div class="pb-no-data">当前样本没有技能加点事件</div>';
+  }
+
+  function renderSubstitutions(rows, selectedStat) {
+    const host = document.getElementById('pb-substitutions');
+    if (!selectedStat) { host.innerHTML = '<div class="pb-no-data">先点击一个物品</div>'; return; }
+    const selectedRows = new Set(rows.filter(r => (r.i || []).some(([id]) => id === selectedStat.id)).map(r => `${r.m}:${r.s}`));
+    const target = items[selectedStat.id] || {}, alternatives = new Map();
+    rows.forEach(r => {
+      if (selectedRows.has(`${r.m}:${r.s}`)) return;
+      (r.i || []).forEach(([id, seconds]) => {
+        const it = items[id]; if (!includeItem(id) || !it || id === selectedStat.id) return;
+        const costRatio = Number(it.cost || 0) / Math.max(1, Number(target.cost || 1));
+        if (it.category !== target.category && (costRatio < .55 || costRatio > 1.65)) return;
+        const st = alternatives.get(id) || { games: 0, wins: 0, times: [] }; st.games++; st.wins += Number(r.w || 0); if (Number.isFinite(seconds)) st.times.push(seconds); alternatives.set(id, st);
+      });
+    });
+    const times = selectedStat.times.slice().sort((a, b) => a - b), med = selectedStat.median;
+    const faster = times.filter(t => t <= med).length, timingScore = times.length ? Math.round(faster * 100 / times.length) : 0;
+    host.innerHTML = `<article><span>${esc(target.name || selectedStat.id)} 时机评分</span><strong>${timingScore} / 100</strong><small>中位 ${timeText(med)}；分数表示该时点在样本中的完成百分位</small></article>${[...alternatives].sort((a, b) => b[1].games - a[1].games).slice(0, 5).map(([id, st]) => { const it = items[id] || { name: id, icon: '' }; return `<article><span>替代候选</span><strong>${icon(it.icon, it.name)} ${esc(it.name)}</strong><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 中位 ${timeText(median(st.times))}</small></article>`; }).join('')}`;
+  }
+
+  function renderConfidence(rows, selectedStat) {
+    const assigned = rows.filter(r => r.r).length, lane = rows.filter(r => r.rm === 'lanes').length, fallback = rows.filter(r => r.rm === 'hits').length;
+    const avgConfidence = rows.filter(r => Number.isFinite(Number(r.rc))).reduce((s, r) => s + Number(r.rc), 0) / Math.max(1, rows.filter(r => Number.isFinite(Number(r.rc))).length);
+    const ci = selectedStat?.ci || [0, 0], warning = !selectedStat ? '未选择物品' : selectedStat.games < 10 ? '极小样本，仅供探索' : selectedStat.games < 30 ? '样本偏小，区间较宽' : '样本量可用于描述性比较';
+    document.getElementById('pb-confidence').innerHTML = `<article><span>职责位置覆盖</span><strong>${pct(assigned, rows.length)}</strong><small>分路法 ${lane}局 · 补刀兜底 ${fallback}局 · slot 未参与</small></article><article><span>平均判位可信度</span><strong>${pct(avgConfidence, 1)}</strong><small>分路众数一致性；纯补刀兜底固定为50%</small></article><article><span>所选物品胜率区间</span><strong>${pct(ci[0], 1)} – ${pct(ci[1], 1)}</strong><small>Wilson 95% · ${esc(warning)}</small></article><article><span>校正说明</span><strong>职责 × 局势 × 时长</strong><small>情境校正不是因果推断，不消除英雄克制与阵容选择偏差</small></article>`;
+  }
+
+  function renderDataQuality() {
+    const summary = document.getElementById('pb-quality-summary'), table = document.getElementById('pb-quality-table'), source = document.getElementById('pb-quality-source');
+    if (!summary || !table || !source) return;
+    const games = Number(dataMeta.player_games || allRows.length), matches = Number(dataMeta.matches || 0), advanced = dataMeta.advanced || {}, positions = dataMeta.positions || {};
+    const card = (label, numerator, denominator, note) => {
+      const rate = denominator ? numerator / denominator : 0, state = rate >= .98 ? 'good' : rate >= .9 ? 'warn' : 'bad';
+      return `<article class="pb-quality-${state}"><span>${esc(label)}</span><strong>${pct(numerator, denominator)}</strong><small>${Number(numerator).toLocaleString()} / ${Number(denominator).toLocaleString()} · ${esc(note)}</small></article>`;
+    };
+    summary.innerHTML = card('职责位置', Number(positions.assigned_player_games || 0), games, 'lane_role + 补刀聚合')
+      + card('15分钟快照', Number(advanced.snapshot_player_games || 0), games, '经济、等级、KDA与坐标')
+      + card('购买时点', Number(advanced.timed_item_player_games || 0), games, 'DWD优先，ODS购买日志有界兜底')
+      + card('单局选手明细', Number(advanced.detail_player_games || 0), games, '按月份延迟加载')
+      + card('BP覆盖', Number(advanced.draft_matches || 0), matches, 'match_picks_bans')
+      + card('事件时间线', Number(advanced.event_matches || 0), matches, '英雄死亡、买活与建筑')
+      + `<article class="${Number(dataMeta.unresolved_inventory_names || 0) ? 'pb-quality-warn' : 'pb-quality-good'}"><span>未识别库存名</span><strong>${Number(dataMeta.unresolved_inventory_names || 0).toLocaleString()}</strong><small>需要补充物品映射；不等于选手未购买</small></article>`;
+    const months = new Map();
+    allRows.forEach(r => {
+      const month = String(r.d || '').slice(0, 7), m = months.get(month) || { games: 0, roles: 0, snapshots: 0, matches: new Set() };
+      m.games++; if (r.r) m.roles++; if (r.g) m.snapshots++; m.matches.add(r.m); months.set(month, m);
+    });
+    table.innerHTML = `<table class="pb-table"><thead><tr><th>月份</th><th>比赛</th><th>选手局</th><th>位置覆盖</th><th>快照覆盖</th><th>明细分片</th><th>BP</th><th>事件</th></tr></thead><tbody>${[...months].sort((a, b) => b[0].localeCompare(a[0])).map(([month, m]) => {
+      const shard = detailManifest?.buckets?.[month];
+      return `<tr><td><strong>${month}</strong></td><td>${m.matches.size}</td><td>${m.games}</td><td>${pct(m.roles, m.games)}</td><td>${pct(m.snapshots, m.games)}</td><td>${shard ? `${(Number(shard.bytes || 0) / 1048576).toFixed(1)}MB` : '索引加载中'}</td><td>${shard ? `${shard.draft_matches}/${shard.matches}` : '—'}</td><td>${shard ? `${shard.event_matches}/${shard.matches}` : '—'}</td></tr>`;
+    }).join('')}</tbody></table>`;
+    const scope = dataMeta.query_scope || {}, sourceStats = positions.source_stats || {}, update = dataMeta.update_status || dataMeta.update || {};
+    const dwdPurchases = Number(advanced.dwd_purchase_matches_latest_increment ?? advanced.dwd_purchase_matches ?? 0), odsPurchases = Number(advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0);
+    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>本次购买时点</span><strong>DWD ${dwdPurchases}场 · ODS兜底 ${odsPurchases}场</strong></div><p><b>来源披露：</b>主比赛、选手、快照、技能、BP和事件来自 <code>dota2_analysis</code>；职责位置与购买映射仍含 <code>dwd_dota2</code> 执行依赖（本次增量判位主路径 ${Number(sourceStats.primary_leagues || 0)} 个联赛，补刀兜底 ${Number(sourceStats.fallback_leagues || 0)} 个联赛）。购买时点优先使用 DWD 明细；未产出的比赛只查询相同精确 <code>dt</code> 与比赛 ID 的 ODS 购买日志。增量任务始终使用有界日期、精确分区和比赛 ID 批次。</p>`;
+  }
+
+  function renderTeams(rows) {
+    const groups = new Map();
+    rows.forEach(r => { const g = groups.get(r.t) || { games: 0, wins: 0, times: [], routes: new Set(), items: new Map() }; g.games++; g.wins += Number(r.w || 0); const seq = (r.i || []).filter(x => includeItem(x[0])).sort((a, b) => (a[1] || 1e9) - (b[1] || 1e9)); if (seq.length) { g.routes.add(seq.slice(0, 4).map(x => x[0]).join('>')); seq.forEach(([id, t]) => { g.items.set(id, (g.items.get(id) || 0) + 1); if (Number.isFinite(t)) g.times.push(t); }); } groups.set(r.t, g); });
+    document.getElementById('pb-teams').innerHTML = `<table class="pb-table"><thead><tr><th>战队</th><th>局数</th><th>胜率</th><th>首件中位</th><th>路线变体</th><th>代表物品</th></tr></thead><tbody>${[...groups].sort((a, b) => b[1].games - a[1].games).slice(0, 25).map(([name, g]) => { const id = [...g.items].sort((a, b) => b[1] - a[1])[0]?.[0], it = items[id]; return `<tr><td><strong>${esc(name)}</strong></td><td>${g.games}</td><td>${pct(g.wins, g.games)}</td><td>${timeText(median(g.times))}</td><td>${g.routes.size}</td><td>${it ? `<span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span>` : '—'}</td></tr>`; }).join('')}</tbody></table>`;
+  }
+
+  function populateDuelSelectors(force) {
+    const kind = document.getElementById('pb-duel-kind')?.value || 'player';
+    const a = document.getElementById('pb-duel-a'), b = document.getElementById('pb-duel-b');
+    if (!a || !b) return;
+    const oldA = force ? '' : a.value, oldB = force ? '' : b.value;
+    const contextRows = allRows.length ? filteredRows(false, new Set([kind])) : [];
+    let choices = [];
+    if (kind === 'patch') {
+      choices = uniq(contextRows, r => r.p).sort().map(value => [value, value]);
+    } else {
+      const players = new Map();
+      contextRows.forEach(r => { if (!r.s) return; const p = players.get(r.s) || { name: r.n || r.s, games: 0 }; p.games++; players.set(r.s, p); });
+      choices = [...players].filter(([, p]) => p.games >= 2).sort((x, y) => y[1].games - x[1].games || x[1].name.localeCompare(y[1].name)).map(([id, p]) => [id, `${p.name} (${p.games}局)`]);
+    }
+    const html = choices.map(([value, label]) => option(value, label)).join(''); a.innerHTML = html; b.innerHTML = html;
+    const values = new Set(choices.map(x => x[0]));
+    a.value = values.has(oldA) ? oldA : (choices[0]?.[0] || '');
+    b.value = values.has(oldB) && oldB !== a.value ? oldB : (choices.find(x => x[0] !== a.value)?.[0] || a.value);
+  }
+
+  function renderDuel() {
+    const kind = document.getElementById('pb-duel-kind')?.value || 'player';
+    const aValue = document.getElementById('pb-duel-a')?.value || '', bValue = document.getElementById('pb-duel-b')?.value || '';
+    const summary = document.getElementById('pb-duel-summary'), table = document.getElementById('pb-duel-items');
+    if (!summary || !table) return;
+    if (!aValue || !bValue || aValue === bValue) { summary.innerHTML = '<div class="pb-no-data">请选择两个不同样本</div>'; table.innerHTML = ''; return; }
+    const base = filteredRows(false, new Set([kind]));
+    const subset = value => base.filter(r => kind === 'patch' ? r.p === value : r.s === value);
+    const aRows = subset(aValue), bRows = subset(bValue);
+    const playerName = value => allRows.find(r => r.s === value)?.n || value;
+    const label = value => kind === 'patch' ? `版本 ${value}` : playerName(value);
+    const side = (value, rows) => {
+      const clusters = clusteredRoutes(rows), route = clusters[0], firstTimes = rows.map(r => coreRoutePairs(r, 1)[0]?.[1]).filter(Number.isFinite);
+      const routeHtml = route ? route.representative.map((id, idx) => { const it = items[id] || { name: id, icon: '' }; return `${idx ? '<span class="pb-seq-arrow">›</span>' : ''}${icon(it.icon, it.name)}`; }).join('') : '<small>路线样本不足</small>';
+      return `<article class="pb-duel-side"><h3>${esc(label(value))}</h3><div class="pb-duel-metrics"><div><span>局数</span><strong>${rows.length}</strong></div><div><span>胜率</span><strong>${pct(rows.reduce((s, r) => s + Number(r.w || 0), 0), rows.length)}</strong></div><div><span>核心首件</span><strong>${timeText(median(firstTimes))}</strong></div><div><span>路线簇</span><strong>${clusters.length}</strong></div></div><div class="pb-duel-route">${routeHtml}<small>${route ? `${route.games}局 · ${route.variants.size}种变体` : ''}</small></div></article>`;
+    };
+    summary.innerHTML = side(aValue, aRows) + side(bValue, bRows);
+    const aStats = new Map(itemStats(aRows).map(s => [s.id, s])), bStats = new Map(itemStats(bRows).map(s => [s.id, s]));
+    const ids = [...new Set([...aStats.keys(), ...bStats.keys()])].map(id => {
+      const ar = (aStats.get(id)?.games || 0) / Math.max(1, aRows.length), br = (bStats.get(id)?.games || 0) / Math.max(1, bRows.length); return { id, ar, br, delta: ar - br };
+    }).sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta) || y.ar + y.br - x.ar - x.br).slice(0, 18);
+    table.innerHTML = `<table class="pb-table"><thead><tr><th>物品</th><th>${esc(label(aValue))}</th><th>${esc(label(bValue))}</th><th>采用率差</th><th>购买时间差</th></tr></thead><tbody>${ids.map(row => {
+      const it = items[row.id] || { name: row.id, icon: '' }, as = aStats.get(row.id), bs = bStats.get(row.id), timeDelta = Number(as?.median) - Number(bs?.median);
+      return `<tr><td><span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span></td><td>${pct(as?.games || 0, aRows.length)}</td><td>${pct(bs?.games || 0, bRows.length)}</td><td class="${row.delta >= 0 ? 'pb-up' : 'pb-down'}">${row.delta >= 0 ? '+' : ''}${pct(row.delta, 1)}</td><td>${Number.isFinite(timeDelta) ? `${timeDelta >= 0 ? '+' : '−'}${timeText(Math.abs(timeDelta))}` : '—'}</td></tr>`;
+    }).join('') || '<tr><td colspan="5" class="pb-no-data">当前筛选没有可比较物品</td></tr>'}</tbody></table>`;
+  }
+
+  function renderAlerts() {
+    const base = filteredRows(true), maxDate = base.map(r => r.d).sort().at(-1);
+    if (!maxDate) { document.getElementById('pb-alerts').innerHTML = '<div class="pb-no-data">没有数据</div>'; return; }
+    const end = new Date(`${maxDate}T00:00:00Z`), curFrom = new Date(end - 29 * 86400000), prevFrom = new Date(end - 59 * 86400000), prevTo = new Date(end - 30 * 86400000), iso = d => d.toISOString().slice(0, 10);
+    const cur = base.filter(r => r.d >= iso(curFrom)), old = base.filter(r => r.d >= iso(prevFrom) && r.d <= iso(prevTo));
+    const cm = new Map(itemStats(cur).map(s => [s.id, s])), om = new Map(itemStats(old).map(s => [s.id, s]));
+    const movers = [...cm.values()].map(s => ({ ...s, delta: s.games / Math.max(1, cur.length) - (om.get(s.id)?.games || 0) / Math.max(1, old.length) })).filter(s => s.games >= 5).sort((a, b) => b.delta - a.delta).slice(0, 6);
+    document.getElementById('pb-alerts').innerHTML = `<article><span>数据新鲜度</span><strong>${maxDate}</strong><small>${Math.floor((Date.now() - end) / 86400000)} 天前；超过7天应重新抽取数据库</small></article>${movers.map(s => { const it = items[s.id] || { name: s.id, icon: '' }; return `<article><span>采用率上升</span><strong>${icon(it.icon, it.name)} ${esc(it.name)}</strong><small>最近30天 ${pct(s.games, cur.length)} · 环比 ${s.delta >= 0 ? '+' : ''}${pct(s.delta, 1)}</small></article>`; }).join('')}`;
+  }
+
+  function renderMatches(rows) {
+    const list = rows.slice().sort((a, b) => b.d.localeCompare(a.d) || b.m - a.m).slice(0, 100);
+    document.getElementById('pb-matches-body').innerHTML = list.map(r => `<tr data-pb-match="${esc(rowKey(r))}" class="${selectedMatchKey === rowKey(r) ? 'is-selected' : ''}"><td><strong>${r.m}</strong><br><small>${r.d}</small></td><td>${esc(r.n)}</td><td>${esc(heroes[r.h]?.name || r.h)}</td><td>${r.r || '—'}</td><td class="${Number(r.g?.[6]) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(Number(r.g?.[6])) ? Number(r.g[6]).toLocaleString() : '—'}</td><td>${r.w ? '胜' : '负'}</td></tr>`).join('');
+  }
+
+  function setMatchDetailHtml(html) {
+    const inline = document.getElementById('pb-match-detail'); if (inline) inline.innerHTML = html;
+    const drawer = document.getElementById('pb-match-drawer-detail'); if (drawer && matchDrawerOpen) drawer.innerHTML = html;
+  }
+
+  function updateMatchDrawerVisibility() {
+    if (!matchDrawer) return;
+    matchDrawer.hidden = !matchDrawerOpen;
+    document.documentElement.classList.toggle('pb-match-open', matchDrawerOpen);
+  }
+
+  function openMatchDrawer(key) {
+    selectedMatchKey = key || '';
+    matchDrawerOpen = Boolean(selectedMatchKey);
+    updateMatchDrawerVisibility();
+    if (selectedMatchKey) renderMatchDetail(selectedMatchKey);
+    syncUrl();
+  }
+
+  function closeMatchDrawer() {
+    matchDrawerOpen = false;
+    selectedMatchKey = '';
+    updateMatchDrawerVisibility();
+    syncUrl();
+    if (activeTab === 'matches') renderMatches(currentRows);
+  }
+
+  function renderMatchDetail(key) {
+    const r = allRows.find(row => rowKey(row) === key);
+    if (!r) return;
+    updateMatchDrawerVisibility();
+    if (!detailRowsReady([r])) {
+      setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)}</p><div class="pb-no-data">正在加载 ${r.d.slice(0, 7)} 单局明细…</div>`);
+      ensureDetailRows([r]).then(() => { if (selectedMatchKey === key) renderMatchDetail(key); }).catch(err => { if (selectedMatchKey === key) setMatchDetailHtml(`<div class="pb-no-data">加载失败：${esc(err.message)}</div>`); });
+      return;
+    }
+    const detail = detailData.players?.[key] || { q: [], a: [] }, draft = detailData.drafts?.[String(r.m)] || { p: [], b: [] }, events = detailData.events?.[String(r.m)] || [];
+    const allied = draft.p.filter(p => p[1] === r.tm), enemies = draft.p.filter(p => p[1] !== r.tm);
+    const heroChip = p => { const h = Object.values(heroes).find(x => x.name === p[3]) || heroes[p[3]] || { name: p[3], icon: '' }; return `<span>${icon(h.icon, h.name)}${esc(h.name)}</span>`; };
+    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${r.w ? '胜利' : '失败'}</p><h4>双方选人</h4><div class="pb-draft"><div>${allied.map(heroChip).join('')}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('')}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('')}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
+  }
+
+  function renderHeatmap(rows) {
+    const canvas = document.getElementById('pb-heatmap'); if (!canvas) return;
+    if (!heatmapRequested) {
+      const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#091015'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      document.getElementById('pb-heatmap-legend').innerHTML = `<button type="button" class="pb-load-detail" data-pb-load-heatmap>加载当前范围热力图</button><p>地图快照体积较大，仅在你明确打开时按月份加载。</p>`;
+      return;
+    }
+    if (!detailRowsReady(rows)) {
+      const legend = document.getElementById('pb-heatmap-legend'); if (legend) legend.textContent = '正在按当前日期范围加载地图快照…';
+      ensureDetailRows(rows).then(() => { if (activeTab === 'matches') renderHeatmap(currentRows); }).catch(err => { if (legend) legend.textContent = `地图快照加载失败：${err.message}`; });
+      return;
+    }
+    const ctx = canvas.getContext('2d'), patch = controls.patch.value || rows[0]?.p || config.theoryPatch;
+    ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#091015'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const points = [];
+    rows.forEach(r => (detailData.players?.[rowKey(r)]?.q || []).forEach(q => { if (Number.isFinite(q[7]) && Number.isFinite(q[8])) points.push(q); }));
+    const draw = () => { const stride = Math.max(1, Math.ceil(points.length / 8000)); ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < points.length; i += stride) { const q = points[i], x = q[7] / 256 * canvas.width, y = canvas.height - q[8] / 256 * canvas.height; const grd = ctx.createRadialGradient(x, y, 1, x, y, 20); grd.addColorStop(0, 'rgba(255,195,64,.18)'); grd.addColorStop(1, 'rgba(255,70,30,0)'); ctx.fillStyle = grd; ctx.fillRect(x - 20, y - 20, 40, 40); } ctx.globalCompositeOperation = 'source-over'; document.getElementById('pb-heatmap-legend').textContent = `${points.length.toLocaleString()} 个5分钟位置快照 · 亮区表示职业选手更常出现的位置`; };
+    const img = new Image(); img.onload = () => { ctx.globalAlpha = .62; ctx.drawImage(img, 0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1; draw(); }; img.onerror = draw; img.src = `icons/maps/map_${patch}.webp`;
+  }
+
+  function render() {
+    const rows = filteredRows();
+    currentRows = rows;
+    syncUrl();
+    const matches = new Set(rows.map(r => r.m));
+    document.getElementById('pb-kpi-matches').textContent = matches.size.toLocaleString();
+    document.getElementById('pb-kpi-games').textContent = rows.length.toLocaleString();
+    document.getElementById('pb-kpi-winrate').textContent = pct(rows.reduce((s, r) => s + Number(r.w || 0), 0), rows.length);
+    document.getElementById('pb-kpi-players').textContent = new Set(rows.map(r => r.s)).size.toLocaleString();
+    document.getElementById('pb-kpi-heroes').textContent = new Set(rows.map(r => r.h)).size.toLocaleString();
+    renderContext(rows);
+    renderSampleGuidance(rows);
+    lastItemStats = itemStats(rows);
+    if (!selectedItem || !lastItemStats.some(s => s.id === selectedItem)) selectedItem = lastItemStats[0]?.id || '';
+    const selectedStat = lastItemStats.find(s => s.id === selectedItem);
+    if (activeTab === 'overview') {
+      renderItems(rows, lastItemStats); renderTheory(rows, selectedStat);
+      renderTiming(lastItemStats); renderRecommendation(rows, lastItemStats);
+    } else if (activeTab === 'routes') {
+      renderSequences(rows); renderRouteTrends(rows); renderBranchTree(rows); renderRouteFlow(rows);
+      renderSubstitutions(rows, selectedStat);
+    } else if (activeTab === 'people') {
+      renderPlayers(rows); renderTeams(rows); renderPlayerStyle(rows); populateDuelSelectors(false); renderDuel();
+    } else if (activeTab === 'situations') {
+      renderComparison(rows); renderSituations(rows); renderMatchups(rows); renderSkills(rows);
+    } else if (activeTab === 'quality') {
+      renderDataQuality(); renderConfidence(rows, selectedStat); renderAlerts();
+    } else if (activeTab === 'matches') {
+      renderMatches(rows); renderHeatmap(rows);
+    }
+    updateMatchDrawerVisibility();
+    if (selectedMatchKey) renderMatchDetail(selectedMatchKey);
+  }
+
+  page.addEventListener('click', e => {
+    const modeButton = e.target.closest('[data-pb-mode]');
+    if (modeButton) {
+      setResearchMode(modeButton.dataset.pbMode || 'hero', true);
+      return;
+    }
+    if (e.target.closest('[data-pb-close-match]')) { closeMatchDrawer(); return; }
+    const clearChip = e.target.closest('[data-pb-clear]');
+    if (clearChip) {
+      const key = clearChip.dataset.pbClear;
+      if (key === 'dates') { controls.from.value = controls.from.min || ''; controls.to.value = controls.to.max || ''; }
+      else if (controls[key]) controls[key].value = key === 'scope' ? 'core' : '';
+      syncSearchInputs(); heatmapRequested = false; render(); return;
+    }
+    const guidance = e.target.closest('[data-pb-guidance]');
+    if (guidance) {
+      const range = guidance.dataset.pbGuidance;
+      if (String(range).startsWith('clear-')) {
+        const key = String(range).slice(6); if (controls[key]) controls[key].value = '';
+        syncSearchInputs();
+      } else if (range === 'all') { controls.from.value = controls.from.min || ''; controls.to.value = controls.to.max || ''; }
+      else {
+        const days = Number(range), max = controls.to.max || controls.to.value;
+        if (max && Number.isFinite(days)) { const end = new Date(`${max}T00:00:00Z`), start = new Date(end - (days - 1) * 86400000); controls.from.value = start.toISOString().slice(0, 10); controls.to.value = max; }
+      }
+      render(); return;
+    }
+    const tabButton = e.target.closest('[data-pb-tab]');
+    if (tabButton) {
+      setActiveTab(tabButton.dataset.pbTab || 'overview', true);
+      render();
+      return;
+    }
+    const clusterRow = e.target.closest('[data-pb-cluster]');
+    if (clusterRow) {
+      selectedRouteClusterId = clusterRow.dataset.pbCluster || '';
+      syncUrl(); renderSequences(currentRows); return;
+    }
+    const clusterMatch = e.target.closest('[data-pb-cluster-match]');
+    if (clusterMatch) {
+      openMatchDrawer(clusterMatch.dataset.pbClusterMatch || ''); return;
+    }
+    if (e.target.closest('[data-pb-load-heatmap]')) { heatmapRequested = true; renderHeatmap(currentRows); return; }
+    const matchRow = e.target.closest('[data-pb-match]');
+    if (matchRow) {
+      openMatchDrawer(matchRow.dataset.pbMatch || '');
+      renderMatches(currentRows);
+      return;
+    }
+    const row = e.target.closest('[data-pb-item]');
+    if (!row) return;
+    selectedItem = row.dataset.pbItem || '';
+    render();
+  });
+  page.querySelectorAll('[data-pb-range]').forEach(button => button.addEventListener('click', () => {
+    const days = Number(button.dataset.pbRange || 30), max = controls.to.max || controls.to.value;
+    if (!max) return; const end = new Date(`${max}T00:00:00Z`), start = new Date(end - (days - 1) * 86400000);
+    controls.from.value = start.toISOString().slice(0, 10); controls.to.value = max; render();
+  }));
+
+  function download(name, body, type) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  document.getElementById('pb-export-csv')?.addEventListener('click', () => {
+    const head = ['match_id','date','patch','league','team','steamid','player','hero','position','position_method','position_confidence','result','level','networth','duration','networth_diff_15m','items'];
+    const quote = v => `"${String(v == null ? '' : v).replaceAll('"', '""')}"`;
+    const lines = currentRows.map(r => [r.m,r.d,r.p,r.l,r.t,r.s,r.n,r.h,r.r,r.rm,r.rc,r.w,r.lv,r.nw,r.du,r.g?.[6],(r.i || []).map(x => `${x[0]}@${x[1] ?? ''}`).join('|')].map(quote).join(','));
+    download(`pro-builds-${controls.from.value}-${controls.to.value}.csv`, '\ufeff' + head.join(',') + '\n' + lines.join('\n'), 'text/csv;charset=utf-8');
+  });
+  document.getElementById('pb-export-route')?.addEventListener('click', () => {
+    const svg = document.getElementById('pb-route-svg'); if (!svg) return;
+    download(`build-route-${controls.hero.value || 'all'}.svg`, new XMLSerializer().serializeToString(svg), 'image/svg+xml');
+  });
+  document.getElementById('pb-export-report')?.addEventListener('click', () => {
+    const title = `${heroes[controls.hero.value]?.name || controls.hero.value || '全部英雄'}职业出装分析`;
+    const top = lastItemStats.slice(0, 12).map(s => `<tr><td>${esc(items[s.id]?.name || s.id)}</td><td>${pct(s.games, currentRows.length)}</td><td>${pct(s.wins, s.games)}</td><td>${pct(s.adjusted, 1)}</td><td>${timeText(s.median)}</td></tr>`).join('');
+    const html = `<!doctype html><meta charset="utf-8"><title>${esc(title)}</title><style>body{font:14px system-ui;max-width:1000px;margin:40px auto;color:#222}h1{margin-bottom:4px}small{color:#666}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:8px;border:1px solid #ccc;text-align:right}th:first-child,td:first-child{text-align:left}</style><h1>${esc(title)}</h1><small>${esc(controls.from.value)}—${esc(controls.to.value)} · ${currentRows.length}个选手-英雄局 · 生成于 ${new Date().toLocaleString()}</small><p>职责位置来自联赛内 lane_role 与补刀聚合，slot 不参与。校正胜率按职责、15分钟局势与比赛时长分层，仅用于描述性比较。</p><table><thead><tr><th>物品</th><th>采用率</th><th>样本胜率</th><th>情境校正</th><th>中位时点</th></tr></thead><tbody>${top}</tbody></table>`;
+    download(`pro-build-report-${controls.hero.value || 'all'}.html`, html, 'text/html;charset=utf-8');
+  });
+  document.getElementById('pb-save-view')?.addEventListener('click', saveCurrentView);
+  document.getElementById('pb-load-view')?.addEventListener('click', loadSavedView);
+  document.getElementById('pb-delete-view')?.addEventListener('click', deleteSavedView);
+  document.getElementById('pb-duel-kind')?.addEventListener('change', () => { populateDuelSelectors(true); renderDuel(); });
+  document.getElementById('pb-duel-a')?.addEventListener('change', renderDuel);
+  document.getElementById('pb-duel-b')?.addEventListener('change', renderDuel);
+  document.getElementById('pb-style-player')?.addEventListener('change', () => renderPlayerStyle(currentRows));
+  document.getElementById('pb-route-trend-grain')?.addEventListener('change', event => { routeTrendGrain = event.target.value; syncUrl(); renderRouteTrends(currentRows); });
+  document.getElementById('pb-advanced-toggle')?.addEventListener('click', event => {
+    const expanded = advancedPanel.hidden;
+    advancedPanel.hidden = !expanded;
+    event.currentTarget.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    event.currentTarget.textContent = expanded ? '收起高级筛选' : '高级筛选与工具';
+  });
+  page.querySelectorAll('[data-pb-close-match]').forEach(button => button.addEventListener('click', event => {
+    event.stopPropagation();
+    closeMatchDrawer();
+  }));
+  document.getElementById('pb-run-analysis')?.addEventListener('click', () => {
+    const requiredSearch = researchMode === 'hero' ? 'hero' : researchMode === 'player' ? 'player' : controls.player.value ? 'player' : 'team';
+    if (SEARCH_CONTROLS[requiredSearch]?.input?.value && !commitSearchControl(requiredSearch)) return;
+    setActiveTab(MODE_CONFIG[researchMode].tab, true);
+    render();
+    document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  Object.entries(SEARCH_CONTROLS).forEach(([key, binding]) => {
+    binding.input?.addEventListener('change', () => { if (commitSearchControl(key)) { heatmapRequested = false; render(); } });
+    binding.input?.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (commitSearchControl(key)) { heatmapRequested = false; render(); }
+    });
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && matchDrawerOpen) closeMatchDrawer(); });
+  layoutModeFilters();
+  refreshSavedViews();
+  Object.values(controls).forEach(el => el && el.addEventListener('change', () => { heatmapRequested = false; render(); }));
+  document.getElementById('pb-reset')?.addEventListener('click', () => {
+    Object.entries(controls).forEach(([key, el]) => {
+      if (!el) return;
+      if (key === 'scope') el.value = 'core';
+      else if (key === 'from') el.value = el.min || '';
+      else if (key === 'to') el.value = el.max || '';
+      else el.value = '';
+    });
+    selectedItem = '';
+    routeTrendGrain = 'week';
+    syncSearchInputs();
+    render();
+  });
+
+  const coreLoadStarted = Date.now();
+  fetch(config.dataUrl, { cache: 'no-cache' })
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(payload => {
+      allRows = decodeCorePayload(payload);
+      matchTeams = new Map();
+      allRows.forEach(r => {
+        const match = String(r.m); if (!matchTeams.has(match)) matchTeams.set(match, new Map());
+        if (!matchTeams.get(match).has(r.t)) matchTeams.get(match).set(r.t, new Set());
+        matchTeams.get(match).get(r.t).add(r.h);
+      });
+      const meta = payload.meta || {};
+      dataMeta = meta;
+      renderFreshness(meta);
+      populateFilters(allRows, meta);
+      populateDuelSelectors(true);
+      applyUrlFilters();
+      layoutModeFilters();
+      setActiveTab(activeTab, false);
+      const assigned = Number(meta.positions?.assigned_player_games || 0);
+      const coverage = Number(meta.player_games || 0) ? (assigned * 100 / Number(meta.player_games)).toFixed(1) : '0.0';
+      note.textContent = `${Number(meta.matches || 0).toLocaleString()} 场职业比赛 · ${Number(meta.player_games || 0).toLocaleString()} 个选手-英雄局 · 职责位置覆盖 ${coverage}% · ${meta.date_min || '?'} — ${meta.date_max || '?'} · 紧凑缓存 ${(Date.now() - coreLoadStarted) / 1000 < 10 ? ((Date.now() - coreLoadStarted) / 1000).toFixed(1) + '秒' : '已加载'}`;
+      loading.hidden = true;
+      dashboard.hidden = false;
+      render();
+      loadDetailManifest().catch(() => {});
+    })
+    .catch(err => {
+      loading.textContent = `职业比赛数据加载失败：${err.message}`;
+      loading.classList.add('is-error');
+      note.textContent = '请先运行职业数据抽取脚本并重新构建';
+    });
 })();
 
 // ---- HERO STATS: vertical frozen-pane divider after the pinned Hero column ----

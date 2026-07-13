@@ -10,6 +10,7 @@ Pages are built in dependency order:
   mana    -- mana items table
   stats   -- hero stats table
   lab     -- hero lab calculator
+  pro     -- professional item-build analytics
   hdyn    -- hero dynamics matrix
   idyn    -- item dynamics matrix
   terrain -- terrain comparison
@@ -55,6 +56,7 @@ STEPS = [
     ("stats",   "builders/heroes_stats.py", "Hero Stats table"),
     ("aoe",     "builders/aoe_increase.py", "AoE Increase table"),
     ("lab",     "builders/hero_lab.py",     "Hero Lab calculator"),
+    ("pro",     "builders/pro_builds.py",    "Professional item-build analytics"),
     ("hdyn",    "builders/heroes_dyn.py",   "Hero Dynamics matrix"),
     ("idyn",    "builders/items_dyn.py",    "Item Dynamics matrix"),
     ("terrain", "builders/terrain.py",      "Terrain comparison"),
