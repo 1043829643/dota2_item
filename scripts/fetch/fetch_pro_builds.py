@@ -230,6 +230,22 @@ def _unix_date(value) -> str:
     return datetime.fromtimestamp(seconds, tz=timezone.utc).date().isoformat()
 
 
+def _normalize_steam64(value) -> str:
+    """Return one canonical Steam64 identity for Steam64/account-id inputs."""
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        numeric = int(raw)
+    except (TypeError, ValueError):
+        return raw
+    if numeric <= 0:
+        return ""
+    if numeric < STEAM64_ACCOUNT_BASE:
+        numeric += STEAM64_ACCOUNT_BASE
+    return str(numeric)
+
+
 def _team_identity(team_id, team_tag) -> str:
     """Prefer stable organization ID; use a labeled tag fallback if absent."""
     stable_id = str(team_id or "").strip()
@@ -730,6 +746,57 @@ def _assign_positions(raw_rows: list) -> tuple[dict, dict]:
     return roles, dict(stats)
 
 
+def _project_consistent_roles_by_player(roles: dict) -> tuple[dict, dict]:
+    """Project team roles to league/player when every candidate agrees.
+
+    Team IDs may change within qualifiers even when the displayed team and
+    roster stay the same.  Backfills cannot safely pick a team candidate from
+    the compact cache, so only candidates with the same position and method
+    are merged.  Genuine disagreements remain unresolved.
+    """
+    candidates: dict[tuple[int, str], list[dict]] = defaultdict(list)
+    for (league_id, _team_key_value, steam), info in roles.items():
+        candidates[(league_id, steam)].append(info)
+
+    projected = {}
+    stats = Counter()
+    for key, values in candidates.items():
+        signatures = {
+            (value.get("position"), value.get("method")) for value in values
+        }
+        if len(signatures) != 1:
+            stats["ambiguous_players"] += 1
+            continue
+        merged = dict(values[0])
+        if len(values) == 1:
+            stats["unique_players"] += 1
+        else:
+            stats["consensus_players"] += 1
+            merged["confidence"] = round(
+                min(float(value.get("confidence") or 0) for value in values), 3
+            )
+            merged["games"] = sum(int(value.get("games") or 0) for value in values)
+            total_games = merged["games"]
+            if total_games:
+                merged["avg_hits"] = round(
+                    sum(
+                        float(value.get("avg_hits") or 0)
+                        * int(value.get("games") or 0)
+                        for value in values
+                    ) / total_games,
+                    2,
+                )
+            lane_roles = {value.get("lane_role") for value in values}
+            if len(lane_roles) != 1:
+                merged["lane_role"] = None
+            hit_sources = {value.get("hits_source") for value in values}
+            if len(hit_sources) != 1:
+                merged["hits_source"] = "mixed"
+        projected[key] = merged
+    stats["projected_players"] = len(projected)
+    return projected, dict(stats)
+
+
 def _load_positions(
     cur,
     league_by_match: dict[int, int],
@@ -827,7 +894,7 @@ def _load_positions(
     for match_id_raw, steamid, nickname, team_raw, hits_raw, lane_raw in dwd_rows:
         match_id = _to_int(match_id_raw, "dwd_match_player_positions.match_id")
         team = _to_int(team_raw, "dwd_match_player_positions.team")
-        steam = str(steamid or "").strip()
+        steam = _normalize_steam64(steamid)
         if match_id not in matches or not steam or steam == "0":
             continue
         team_name = team_identity(match_id, team)
@@ -879,7 +946,7 @@ def _load_positions(
         match_id = _to_int(match_id_raw, "players.match_id")
         slot = _to_int(slot_raw, "players.slot")
         team = _to_int(team_raw, "players.team")
-        steam = str(steamid or "").strip()
+        steam = _normalize_steam64(steamid)
         if match_id not in matches or slot is None or not steam or steam == "0":
             continue
         team_name = team_identity(match_id, team)
@@ -1006,12 +1073,7 @@ def _load_positions(
     )
 
     roles, assign_stats = _assign_positions(source_rows)
-    candidates: dict[tuple[int, str], list[dict]] = defaultdict(list)
-    for (league_id, _team_key_value, steam), info in roles.items():
-        candidates[(league_id, steam)].append(info)
-    unique_by_player = {
-        key: values[0] for key, values in candidates.items() if len(values) == 1
-    }
+    roles_by_player, projection_stats = _project_consistent_roles_by_player(roles)
 
     stats = {
         "source_rows": len(source_rows),
@@ -1048,8 +1110,9 @@ def _load_positions(
             **recovery_stats,
             "failed_match_ids": opendota_failed,
         },
+        "player_projection": projection_stats,
     }
-    return roles, unique_by_player, stats
+    return roles, roles_by_player, stats
 
 
 def main() -> int:
@@ -1147,7 +1210,7 @@ def main() -> int:
             table="pro_players",
             columns=("steamid", "name"),
         )
-        pro_names.update({str(s): n for s, n in name_rows if n})
+        pro_names.update({_normalize_steam64(s): n for s, n in name_rows if n})
 
     print("[4/13] Computing full-league positions from DWD lanes/hits with explicit fallbacks...")
     scoped_players_by_match: dict[int, set[str]] = defaultdict(set)
@@ -1182,7 +1245,7 @@ def main() -> int:
         match_time = _unix_date(scope["start_time"])
         radiant_id, radiant_tag, dire_id, dire_tag, _end_time = info
         slot = int(slot)
-        steam_key = str(steamid or "")
+        steam_key = _normalize_steam64(steamid)
         is_radiant = int(team or 0) == 2
         team_id = str(radiant_id if is_radiant else dire_id)
         team_name = radiant_tag if is_radiant else dire_tag

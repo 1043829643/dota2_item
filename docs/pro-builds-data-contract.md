@@ -20,7 +20,7 @@
 
 | 物理表 | 输出粒度 / discriminator | 读取字段 | 应用层去重键 | 转换与限制 |
 |---|---|---|---|---|
-| `dwd_dota2.dwd_match_player_positions` | 一场中的一个选手 | `match_id,steamid,name,team,hits_5m,lane_role` | `(match_id, steamid)` | 已批准的判位主源；`lane_role` 1/2/3 对应优势/中/劣势路，4不参与2-1-2；`hits_5m` 是5分钟正补；派生表可能滞后或不准确 |
+| `dwd_dota2.dwd_match_player_positions` | 一场中的一个选手 | `match_id,steamid,name,team,hits_5m,lane_role` | `(match_id, steamid)` | 已批准的判位主源；`steamid` 可能混用32位 Account ID 与 Steam64，进入聚合前必须统一为 Steam64；`lane_role` 1/2/3 对应优势/中/劣势路，4不参与2-1-2；`hits_5m` 是5分钟正补；派生表可能滞后或不准确 |
 | `pro_match_list_2` | 一场职业比赛 | `match_id, patch_version, league_id, league_name, start_time` | `match_id` | `start_time` 是近似 Unix 秒，仅投影 UTC 日期和发现比赛范围 |
 | `match_info` | 一场比赛 | `match_id, radiant_team_id, radiant_team_tag, dire_team_id, dire_team_tag, end_time, league_id` | `match_id` | 身份优先使用 team ID；tag 仅展示或作为明确标记的缺失兜底；判位用 `league_id` 取得整届联赛范围 |
 | `players` | 一场中的一个选手槽位 | `match_id, slot, steamid, hero_name, hero_id, persona, team, win` | `(match_id, slot)` | `steamid/hero_id` 用于身份；名称只展示；`team` 2/3 是阵营 |
@@ -50,6 +50,8 @@
 - 字符串数值转换失败写入 `meta.conversion_failures`；空、`null`、零和 `false`
   不会在验证前合并为同一个状态。
 - `slot` 只表示一场比赛中的参与者位置和连接键，不代表 Dota 1–5 号职责位置。
+- 同一联赛的同一选手可能因战队 ID 漂移产生多个判位候选；只有所有候选的职责位置
+  和判位方法均一致时才允许投影到联赛+选手，存在真实冲突时继续标记为未判位。
 - 每队按出场次数、平均补刀依次排序取 Top 5；不足5人或 Top 5 任一人完全没有
   补刀时不判位。严格2-1-2时只在同路比较平均补刀；否则最终按平均补刀从高到低
   分配1–5号位。

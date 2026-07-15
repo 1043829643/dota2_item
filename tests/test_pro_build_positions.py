@@ -7,8 +7,10 @@ from scripts.fetch.fetch_pro_builds import (
     _deduplicate_rows,
     _load_replay_item_mapping,
     _mapped_inventory,
+    _normalize_steam64,
     _parse_opendota_lane_roles,
     _parse_opendota_ability_route,
+    _project_consistent_roles_by_player,
     _team_lane_shapes,
 )
 
@@ -165,6 +167,44 @@ def test_opendota_account_ids_are_converted_to_steam64() -> None:
         str(STEAM64_ACCOUNT_BASE + 111620041): 1,
         str(STEAM64_ACCOUNT_BASE + 210053851): 2,
     }
+
+
+def test_dwd_account_ids_and_steam64_share_one_canonical_identity() -> None:
+    account_id = 258607808
+    steam64 = STEAM64_ACCOUNT_BASE + account_id
+    assert _normalize_steam64(account_id) == str(steam64)
+    assert _normalize_steam64(str(account_id)) == str(steam64)
+    assert _normalize_steam64(steam64) == str(steam64)
+    assert _normalize_steam64("0") == ""
+
+
+def test_multi_team_candidates_are_projected_only_when_they_agree() -> None:
+    agreed = {
+        (19885, "id:one", "steam"): {
+            "position": 2, "method": "lanes", "confidence": 1.0,
+            "games": 6, "avg_hits": 24.83, "lane_role": 2,
+            "hits_source": "dwd_hits_5m",
+        },
+        (19885, "id:two", "steam"): {
+            "position": 2, "method": "lanes", "confidence": 0.9,
+            "games": 1, "avg_hits": 24.0, "lane_role": 2,
+            "hits_source": "dwd_hits_5m",
+        },
+    }
+    projected, stats = _project_consistent_roles_by_player(agreed)
+    assert projected[(19885, "steam")]["position"] == 2
+    assert projected[(19885, "steam")]["games"] == 7
+    assert projected[(19885, "steam")]["confidence"] == 0.9
+    assert stats["consensus_players"] == 1
+
+    conflicted = dict(agreed)
+    conflicted[(19885, "id:two", "steam")] = {
+        **conflicted[(19885, "id:two", "steam")],
+        "position": 3,
+    }
+    projected, stats = _project_consistent_roles_by_player(conflicted)
+    assert (19885, "steam") not in projected
+    assert stats["ambiguous_players"] == 1
 
 
 def test_opendota_ability_ids_become_ordered_rank_rows() -> None:
