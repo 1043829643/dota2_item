@@ -94,3 +94,11 @@ def test_new_decision_modules_explain_their_data_boundaries(page_html: str) -> N
     assert page_html.count("data-pb-complete-jump=") == 4
     assert "技能与天赋" in page_html
     assert "中立物品与附魔" in page_html
+
+
+def test_skill_config_contains_icons_and_current_talent_slots(page_html: str) -> None:
+    assert '"abilityIcons"' in page_html
+    assert '"heroTalents"' in page_html
+    assert '"ember_spirit_flame_guard":"icons/abilities/ember_spirit_flame_guard.png"' in page_html
+    assert '"ember_spirit"' in page_html
+    assert '"special_bonus_attack_damage_12"' in page_html

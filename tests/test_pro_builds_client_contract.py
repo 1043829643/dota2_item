@@ -173,6 +173,12 @@ def test_skill_routes_disclose_opendota_fallback() -> None:
     assert "abilityDetail.a_src === 'opendota'" in source
     assert "OpenDota兜底 ${skillOpenDota}" in source
     assert "ability_upgrades_arr" in source
+    assert "const abilityIcons = config.abilityIcons || {}" in source
+    assert "const heroTalents = config.heroTalents || {}" in source
+    assert "pb-ability-art" in source
+    assert "abilityStep(slug, index, false)" in source
+    assert "当前版本真实左右槽位" in source
+    assert "[25, 20, 15, 10].map" in source
 
 
 def test_short_matches_keep_observed_small_item_route() -> None:

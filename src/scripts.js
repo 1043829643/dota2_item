@@ -5200,7 +5200,9 @@
   const items = config.items || {};
   const heroes = config.heroes || {};
   const abilityNames = config.abilityNames || {};
+  const abilityIcons = config.abilityIcons || {};
   const heroAbilities = config.heroAbilities || {};
+  const heroTalents = config.heroTalents || {};
   const loading = document.getElementById('pb-loading');
   const dashboard = document.getElementById('pb-dashboard');
   const note = document.getElementById('pb-data-note');
@@ -5338,6 +5340,10 @@
   const intervalText = seconds => Number.isFinite(seconds) ? `+${timeText(Math.max(0, Math.round(seconds)))}` : '—';
   const abilityLabel = slug => (abilityNames[slug] || String(slug || '').replace(/^.*?_/, '').replaceAll('_', ' '))
     .replace(/\{s:[^}]+\}\s*/g, '').replace(/\s{2,}/g, ' ').trim();
+  const abilityStep = (slug, index, compact) => {
+    const name = abilityLabel(slug), src = abilityIcons[slug];
+    return `<span class="pb-ability-step ${compact ? 'is-compact' : ''}" title="第${index + 1}次加点 · ${esc(name)}"><span class="pb-ability-art">${src ? `<img src="${esc(src)}" alt="${esc(name)}" loading="lazy">` : `<b>${esc(name.slice(0, 1) || '?')}</b>`}<i>${index + 1}</i></span>${compact ? '' : `<small>${esc(name)}</small>`}</span>`;
+  };
   const situation = r => !r.g || !Number.isFinite(Number(r.g[6])) ? 'unknown'
     : Number(r.g[6]) >= 1500 ? 'ahead' : Number(r.g[6]) <= -1500 ? 'behind' : 'even';
   const situationName = value => ({ ahead: '优势', even: '均势', behind: '劣势', unknown: '未知' }[value] || value);
@@ -6323,11 +6329,13 @@
     let skillCoverage = 0, skillStarRocks = 0, skillOpenDota = 0;
     if (detailRowsReady(rows)) {
       const skillRoutes = new Map(), talents = new Map();
+      const configuredTalents = heroTalents[controls.hero.value] || [];
+      const talentLevelBySlug = new Map(configuredTalents.map((slug, index) => [slug, [10, 15, 20, 25][Math.floor(index / 2)] || 25]));
       rows.forEach(row => {
         const abilityDetail = detailData.players?.[rowKey(row)] || {};
         const abilityRows = abilityDetail.a || [];
         const kit = new Set(heroAbilities[row.h] || []);
-        const skills = abilityRows.filter(entry => !String(entry[1]).startsWith('special_bonus_') && (!kit.size || kit.has(entry[1]))).slice(0, 12).map(entry => entry[1]);
+        const skills = abilityRows.filter(entry => !String(entry[1]).startsWith('special_bonus_') && (!kit.size || kit.has(entry[1]))).slice(0, 10).map(entry => entry[1]);
         if (skills.length) {
           skillCoverage++;
           if (abilityDetail.a_src === 'opendota') skillOpenDota++; else skillStarRocks++;
@@ -6336,7 +6344,7 @@
         }
         const rowTalents = abilityRows.filter(entry => String(entry[1]).startsWith('special_bonus_') && entry[1] !== 'special_bonus_attributes');
         rowTalents.forEach((entry, index) => {
-          const level = [10, 15, 20, 25][index] || 25, key = `${level}:${entry[1]}`;
+          const level = talentLevelBySlug.get(entry[1]) || [10, 15, 20, 25][index] || 25, key = `${level}:${entry[1]}`;
           const stat = talents.get(key) || { level, slug: entry[1], games: 0, wins: 0 };
           stat.games++; stat.wins += Number(row.w || 0); talents.set(key, stat);
         });
@@ -6344,14 +6352,23 @@
       const routes = [...skillRoutes.values()].sort((a, b) => b.games - a.games || b.wins - a.wins);
       const common = routes[0];
       const winning = routes.filter(route => route.games >= Math.max(2, Math.ceil(skillCoverage * .03))).sort((a, b) => b.wins / b.games - a.wins / a.games || b.games - a.games)[0];
-      const skillRoute = (route, label) => route ? `<article><span>${label}</span><div class="pb-ability-route">${route.abilities.map((slug, index) => `<b title="${esc(slug)}"><i>${index + 1}</i>${esc(abilityLabel(slug))}</b>`).join('')}</div><small>${route.games}局 · ${pct(route.wins, route.games)} 样本胜率</small></article>` : '';
-      skillHtml = skillRoute(common, '最常见加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率加点') : '') || '<div class="pb-no-data">StarRocks 与 OpenDota 当前都没有可识别的技能加点记录；这不表示该英雄没有技能路线。</div>';
+      const skillRoute = (route, label) => route ? `<article><span>${label}</span><div class="pb-ability-route">${route.abilities.map((slug, index) => abilityStep(slug, index, false)).join('')}</div><small>${route.games}局 · ${pct(route.wins, route.games)} 样本胜率</small></article>` : '';
+      skillHtml = skillRoute(common, '最常见前10次加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率前10次加点') : '') || '<div class="pb-no-data">StarRocks 与 OpenDota 当前都没有可识别的技能加点记录；这不表示该英雄没有技能路线。</div>';
       const byLevel = new Map();
       [...talents.values()].forEach(stat => { if (!byLevel.has(stat.level)) byLevel.set(stat.level, []); byLevel.get(stat.level).push(stat); });
-      talentHtml = [10, 15, 20, 25].map(level => {
-        const choices = (byLevel.get(level) || []).sort((a, b) => b.games - a.games).slice(0, 2);
-        return `<article><span>Lv ${level}</span><div>${choices.map(stat => `<b title="${esc(stat.slug)}">${esc(abilityLabel(stat.slug))}<small>${stat.games}局 · ${pct(stat.wins, stat.games)}</small></b>`).join('') || '<b class="is-missing">当前范围没有天赋日志</b>'}</div></article>`;
-      }).join('');
+      talentHtml = [25, 20, 15, 10].map(level => {
+        const observed = (byLevel.get(level) || []).sort((a, b) => b.games - a.games);
+        const configured = configuredTalents.slice(([10, 15, 20, 25].indexOf(level)) * 2, ([10, 15, 20, 25].indexOf(level)) * 2 + 2);
+        const slugs = (configured.length ? configured : observed.map(stat => stat.slug)).slice(0, 2);
+        while (slugs.length < 2) slugs.push('');
+        const total = observed.reduce((sum, stat) => sum + stat.games, 0);
+        const cell = slug => {
+          if (!slug) return '<div class="pb-talent-choice is-missing"><b>当前版本无可用天赋</b><small>—</small></div>';
+          const stat = observed.find(row => row.slug === slug) || { games: 0, wins: 0 };
+          return `<div class="pb-talent-choice ${stat.games ? '' : 'is-missing'}" title="${esc(slug)}"><b>${esc(abilityLabel(slug))}</b><small>采用 ${stat.games ? pct(stat.games, total) : '—'} · ${stat.games}局 · 胜率 ${stat.games ? pct(stat.wins, stat.games) : '—'}</small></div>`;
+        };
+        return `<article>${cell(slugs[0])}<span>${level}</span>${cell(slugs[1])}</article>`;
+      }).join('') + '<small class="pb-talent-note">当前版本真实左右槽位 · 采用率分母为该等级有天赋记录的选手局</small>';
     } else {
       ensureDetailRows(rows).then(() => { if (activeTab === 'routes' && controls.hero.value) renderCompleteBuild(currentRows); }).catch(err => {
         if (activeTab === 'routes') { const target = document.getElementById('pb-complete-build-status'); if (target) target.textContent = `技能明细加载失败：${err.message}`; }
@@ -6362,7 +6379,7 @@
     status.textContent = `${rows.length}局 · 路线可还原 ${pct(reconstructable, rows.length)} · 技能覆盖 ${pct(skillCoverage, rows.length)}`;
     host.innerHTML = `<section class="pb-complete-opening" id="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>精确出生装与首轮补给</h3></div><small>库存快照与购买日志分开统计</small></header><div class="pb-opening-block"><h4>出生时可观察库存</h4>${exactOpeningHtml}</div><div class="pb-opening-block"><h4>0–3分钟购买记录</h4><div class="pb-opening-routes">${openingHtml}</div></div></section>
       <section class="pb-complete-stages" id="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>阶段选择与同时持有装备</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线；完整背包单独呈现</small></header><div>${stageHtml}</div><div class="pb-inventory-checkpoints">${concurrentInventoryHtml}</div></section>
-      <section class="pb-complete-skills" id="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局 · StarRocks ${skillStarRocks} · OpenDota兜底 ${skillOpenDota}` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
+      <section class="pb-complete-skills" id="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局 · StarRocks ${skillStarRocks} · OpenDota兜底 ${skillOpenDota}` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-tree">${talentHtml}</div></div></section>
       <section class="pb-complete-special" id="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>OpenDota 精确选择历史 · 按 Tier 统计最终组合</small></header><div class="pb-neutral-analysis">${renderNeutralAnalysis(rows)}</div></section>
       <footer><strong>阅读边界</strong><span>这张卡描述职业样本中的常见选择；低样本胜率、阶段先后与装备效果都不能单独解释胜负。</span></footer>`;
   }
@@ -7033,7 +7050,7 @@
       const seq = abilityRows.filter(a => !String(a[1]).startsWith('special_bonus_') && (!kit.size || kit.has(a[1]))).slice(0, 8).map(a => a[1]);
       if (!seq.length) return; const key = seq.join('>'); const st = seqs.get(key) || { games: 0, wins: 0 }; st.games++; st.wins += Number(r.w || 0); seqs.set(key, st);
     });
-    host.innerHTML = [...seqs].sort((a, b) => b[1].games - a[1].games).slice(0, 6).map(([key, st], idx) => `<article><span>技能路线 #${idx + 1}</span><div class="pb-skill-seq">${key.split('>').map((a, i) => `<b title="${esc(a)}">${i + 1}. ${esc(abilityLabel(a))}</b>`).join('')}</div><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 与当前装备筛选联动</small></article>`).join('') || '<div class="pb-no-data">当前样本没有技能加点事件</div>';
+    host.innerHTML = [...seqs].sort((a, b) => b[1].games - a[1].games).slice(0, 6).map(([key, st], idx) => `<article><span>技能路线 #${idx + 1}</span><div class="pb-ability-route is-compact">${key.split('>').map((slug, index) => abilityStep(slug, index, true)).join('')}</div><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 与当前装备筛选联动</small></article>`).join('') || '<div class="pb-no-data">当前样本没有技能加点事件</div>';
   }
 
   function renderPatchMeta(rows) {

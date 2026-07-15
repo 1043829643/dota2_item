@@ -55,6 +55,7 @@ def _config() -> dict:
         except (OSError, ValueError, json.JSONDecodeError):
             ability_names = {}
     hero_abilities = {}
+    hero_talents = {}
     hero_kv_path = ROOT / "data" / "stats" / version / "npc_heroes.txt"
     if hero_kv_path.exists():
         try:
@@ -81,8 +82,30 @@ def _config() -> dict:
                     ]
                 if values:
                     hero_abilities[hero["id"]] = values
+                talents = [
+                    value
+                    for key, value in sorted(
+                        row.items(),
+                        key=lambda entry: (
+                            int(entry[0].replace("Ability", ""))
+                            if entry[0].startswith("Ability")
+                            and entry[0].replace("Ability", "").isdigit()
+                            else 999
+                        ),
+                    )
+                    if key.startswith("Ability")
+                    and str(value or "").startswith("special_bonus_")
+                ]
+                if talents:
+                    hero_talents[hero["id"]] = talents[:8]
         except (OSError, ValueError, TypeError):
             hero_abilities = {}
+            hero_talents = {}
+    ability_icons = {
+        slug: f"icons/abilities/{slug}.png"
+        for slug in sorted({slug for values in hero_abilities.values() for slug in values})
+        if (ROOT / "icons" / "abilities" / f"{slug}.png").exists()
+    }
     return {
         "dataUrl": "data/pro_builds.json",
         "dataGzipUrl": "data/pro_builds.json.gz",
@@ -90,7 +113,9 @@ def _config() -> dict:
         "dynamicsUrl": "_dynamics.json",
         "theoryPatch": version,
         "abilityNames": ability_names,
+        "abilityIcons": ability_icons,
         "heroAbilities": hero_abilities,
+        "heroTalents": hero_talents,
         "heroes": {
             h["id"]: {"name": h["name"], "icon": h["icon"]}
             for h in heroes

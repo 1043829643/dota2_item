@@ -412,6 +412,8 @@ def main() -> int:
         "averageFirstUseDelay", "pb-first-use-gap", "DecompressionStream",
         "neutralTierStats", "OpenDota 精确历史覆盖", "data-pb-neutral-filter",
         "每个选手局、每个 Tier 只统计最后一次有效组合", "matchNeutralTimeline",
+        "abilityIcons", "heroTalents", "pb-ability-art",
+        "当前版本真实左右槽位", "最常见前10次加点",
     )
     for marker in required_js:
         if marker not in js:
