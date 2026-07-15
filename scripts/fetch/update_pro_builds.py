@@ -147,7 +147,12 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
     matches = {int(row.get("m") or 0) for row in records}
     positions = {
         "assigned_player_games": sum(row.get("r") is not None for row in records),
-        "lane_method_player_games": sum(row.get("rm") == "lanes" for row in records),
+        "lane_method_player_games": sum(
+            str(row.get("rm") or "").startswith("lanes") for row in records
+        ),
+        "opendota_lane_player_games": sum(
+            row.get("rm") == "lanes_opendota" for row in records
+        ),
         "hits_fallback_player_games": sum(row.get("rm") == "hits" for row in records),
         "source_stats": (incoming_meta.get("positions") or {}).get("source_stats")
         or (meta.get("positions") or {}).get("source_stats") or {},
@@ -157,9 +162,27 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "snapshot_player_games": sum(bool((value or {}).get("q")) for value in players.values()),
         "detail_player_games": len(players),
         "ability_events": sum(len((value or {}).get("a") or []) for value in players.values()),
+        "ability_player_games": sum(bool((value or {}).get("a")) for value in players.values()),
+        "opendota_ability_player_games": sum(
+            (value or {}).get("a_src") == "opendota" for value in players.values()
+        ),
+        "opendota_ability_events": sum(
+            len((value or {}).get("a") or [])
+            for value in players.values()
+            if (value or {}).get("a_src") == "opendota"
+        ),
         "draft_matches": len(detail.get("drafts") or {}),
         "event_matches": len(detail.get("events") or {}),
         "event_query_failures": int((incoming_meta.get("advanced") or {}).get("event_query_failures") or 0),
+        "inventory_snapshot_player_games": sum(
+            bool((value or {}).get("iv")) for value in players.values()
+        ),
+        "damage_bucket_player_rows": sum(
+            len((value or {}).get("dm") or []) for value in players.values()
+        ),
+        "damage_query_failures": int(
+            (incoming_meta.get("advanced") or {}).get("damage_query_failures") or 0
+        ),
         "timed_item_player_games": sum(
             any(isinstance(pair[1], int) for pair in (row.get("i") or []))
             for row in records
@@ -182,11 +205,8 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "item_use_source_matches_latest_increment": int(
             (incoming_meta.get("advanced") or {}).get("item_use_source_matches") or 0
         ),
-        "dwd_purchase_matches_latest_increment": int(
-            (incoming_meta.get("advanced") or {}).get("dwd_purchase_matches") or 0
-        ),
-        "combatlog_purchase_fallback_matches_latest_increment": int(
-            (incoming_meta.get("advanced") or {}).get("combatlog_purchase_fallback_matches") or 0
+        "combatlog_purchase_matches_latest_increment": int(
+            (incoming_meta.get("advanced") or {}).get("combatlog_purchase_matches") or 0
         ),
         "snapshot_times": (incoming_meta.get("advanced") or {}).get("snapshot_times")
         or (meta.get("advanced") or {}).get("snapshot_times") or [],
@@ -198,7 +218,7 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
     meta.update(
         {
             "generated_at": utc_now(),
-            "source": "StarRocks read-only incremental export",
+            "source": "dota2_analysis authoritative incremental export + exact OpenDota fallbacks",
             "matches": len(matches),
             "player_games": len(records),
             "date_min": min(dates, default=""),
@@ -208,6 +228,8 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
             "positions": positions,
             "advanced": advanced,
             "update": update,
+            "dedup_audit": incoming_meta.get("dedup_audit") or {},
+            "conversion_failures": incoming_meta.get("conversion_failures") or {},
         }
     )
     meta["query_scope"] = {
@@ -216,7 +238,8 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "date_to": update["date_to"],
         "max_window_days": SAFE_WINDOW_DAYS,
         "partition_filter": "one exact dt partition per fact query",
-        "dedup": "ROW_NUMBER per business key; complete incoming matches replace cached matches",
+        "match_id_scope": "metadata discovery first; finite IDs for every in-match query",
+        "dedup": "post-fetch per-table semantic keys; complete incoming matches replace cached matches",
     }
     if "unresolved_inventory_names" in incoming_meta:
         meta["unresolved_inventory_names_latest_increment"] = int(incoming_meta.get("unresolved_inventory_names") or 0)

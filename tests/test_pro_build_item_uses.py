@@ -85,19 +85,16 @@ class ProBuildItemUseBackfillTests(unittest.TestCase):
         self.assertFalse(merge_first_use(row, "item_blink", True, VALID_ITEMS))
         self.assertEqual(row["u"], [["item_echo_sabre", 220]])
 
-    def test_query_is_exact_partition_bounded_and_deduplicated(self):
+    def test_query_is_exact_partition_bounded_and_raw(self):
         query = build_item_use_query("2026-07-01", [22, 11, 22])
         self.assertIn("dt = '2026-07-01'", query)
         self.assertIn("match_id IN ('11','22')", query)
-        self.assertIn(
-            "PARTITION BY match_id, time, log_index ORDER BY time ASC", query
-        )
+        self.assertIn("SELECT match_id, time, log_index, type", query)
+        self.assertNotIn("ROW_NUMBER", query)
         self.assertIn("type = 'DOTA_COMBATLOG_ITEM'", query)
-        self.assertIn("modifier_echo_sabre_debuff", query)
-        self.assertIn("THEN 'item_echo_sabre'", query)
+        self.assertNotIn("DOTA_COMBATLOG_MODIFIER_ADD", query)
         self.assertNotIn("MIN(GREATEST", query)
-        self.assertNotIn("GROUP BY match_id, attackername, item_id", query)
-        self.assertIn("ORDER BY match_id, attackername, use_time, item_id", query)
+        self.assertNotIn("GROUP BY", query)
         self.assertNotIn("SELECT *", query.upper())
         filtered = build_item_use_query(
             "2026-07-01", [11], {"item_blink", "item_echo_sabre"}

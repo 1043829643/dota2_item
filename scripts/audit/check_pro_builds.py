@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -183,8 +184,8 @@ def main() -> int:
         fail("core player_games does not match record count", errors)
     if len({row.get("m") for row in records}) != int(meta.get("matches") or -1):
         fail("core match count does not match distinct record matches", errors)
-    if compact.get("schema") != "pro-builds-core-v2":
-        fail("dist core cache is not dictionary-encoded v2", errors)
+    if compact.get("schema") != "pro-builds-core-v3":
+        fail("dist core cache is not dictionary-encoded v3", errors)
     dictionaries = compact.get("dictionaries") or {}
     compact_rows = compact.get("records") or []
     update_status = (compact.get("meta") or {}).get("update_status") or {}
@@ -218,13 +219,13 @@ def main() -> int:
                 decoded_pairs.append([item_id, flat[index + 1]])
             return valid, decoded_pairs
 
-        fields = ("m", "d", "p", "li", "l", "t", "s", "n", "h", "hi", "sl", "tm", "r", "rm", "rc", "w", "lv", "nw", "du", "i", "g", "u")
+        fields = ("m", "d", "p", "li", "l", "t", "s", "n", "h", "hi", "sl", "tm", "r", "rm", "rc", "w", "lv", "nw", "du", "i", "g", "u", "x")
         for source, encoded in zip(records, compact_rows):
             if not isinstance(source, dict):
                 fail("compact round-trip source record is not an object", errors)
                 break
             match_id = source.get("m")
-            if not isinstance(encoded, list) or len(encoded) < 21:
+            if not isinstance(encoded, list) or len(encoded) < 23:
                 fail(f"compact row is truncated or malformed at match {match_id}", errors)
                 break
             purchases_ok, decoded_purchases = decode_pairs(encoded[19], "purchases", match_id)
@@ -243,6 +244,7 @@ def main() -> int:
                 decoded_purchases,
                 encoded[20],
                 decoded_uses,
+                encoded[22],
             ]
             expected = [source.get(field) if source.get(field) is not None or field not in {"d", "p", "l", "t", "s", "n", "h", "rm"} else "" for field in fields]
             if decoded != expected:
@@ -351,7 +353,7 @@ def main() -> int:
             fail(f"missing JS contract: {marker}", errors)
 
     tab_markers = [
-        'data-pb-tab="routes"', 'data-pb-tab="people"', 'data-pb-tab="situations"',
+        'data-pb-tab="routes"', 'data-pb-tab="situations"', 'data-pb-tab="people"',
         'data-pb-tab="matches"', 'data-pb-tab="quality"',
     ]
     tab_positions = [html.find(marker) for marker in tab_markers]
@@ -365,15 +367,37 @@ def main() -> int:
     fetcher = FETCHER.read_text(encoding="utf-8")
     updater = UPDATER.read_text(encoding="utf-8")
     required_query_contracts = (
-        "match_time >= '{date_from}'", "match_time < '{date_to_exclusive}'",
+        "start_time >= {start_timestamp}", "start_time < {end_timestamp}",
         "WHERE dt = '{partition_date}'", "match_id IN ({ids})",
-        "ROW_NUMBER() OVER (",
+        "_fetch_deduplicated(", '"players": ("match_id", "slot")',
+        "FROM dwd_dota2.dwd_match_player_positions",
+        '"approved_execution_dependency": True',
+        '"freshness_warning"',
     )
     for marker in required_query_contracts:
         if marker not in fetcher:
             fail(f"missing bounded query contract: {marker}", errors)
     if "WHERE dt BETWEEN" in fetcher or "WHERE dt >=" in fetcher:
         fail("partitioned fetch queries must use one exact dt, not ranges", errors)
+    forbidden_query_contracts = (
+        "ROW_NUMBER() OVER (", "SELECT DISTINCT",
+        "max_by(", "GROUP BY match_id",
+    )
+    for marker in forbidden_query_contracts:
+        if marker in fetcher:
+            fail(f"forbidden execution/query contract remains: {marker}", errors)
+    dwd_tables = set(re.findall(
+        r"\b(?:FROM|JOIN)\s+(dwd_dota2\.[A-Za-z0-9_]+)",
+        fetcher,
+        flags=re.IGNORECASE,
+    ))
+    allowed_dwd_tables = {"dwd_dota2.dwd_match_player_positions"}
+    if dwd_tables != allowed_dwd_tables:
+        fail(
+            "DWD execution scope must contain only the explicitly approved "
+            f"position table: {sorted(dwd_tables)}",
+            errors,
+        )
     required_update_contracts = (
         "SAFE_WINDOW_DAYS = 7", "class UpdateLock", "recover_if_needed",
         "begin_commit", "pending_quality_gate", "run_quality_gate",

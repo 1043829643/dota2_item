@@ -35,6 +35,7 @@ if str(WORKSPACE_ROOT) not in sys.path:
 from scripts.fetch.fetch_pro_builds import (
     ROOT,
     _connect,
+    _deduplicate_rows,
     _load_item_ids,
     _partition_batches,
     _varchar_id_sql,
@@ -143,7 +144,7 @@ def build_item_use_query(
     match_ids: list[int],
     item_ids: set[str] | None = None,
 ) -> str:
-    """Build one exact-partition, bounded-ID and deduplicated source query."""
+    """Build one exact-partition, bounded-ID raw retrieval query."""
     if not ISO_DAY.fullmatch(str(partition_date)):
         raise ValueError(f"Invalid exact dt partition: {partition_date!r}")
     if not match_ids:
@@ -153,36 +154,12 @@ def build_item_use_query(
     if item_ids:
         active_item_predicate = f"inflictor IN ({_varchar_sql(sorted(item_ids))})"
     return f"""
-        SELECT match_id, attackername, item_id,
-               GREATEST(time, 0) AS use_time
-        FROM (
-          SELECT match_id, time, attackername,
-                 CASE
-                   WHEN type = 'DOTA_COMBATLOG_ITEM' THEN inflictor
-                   WHEN type = 'DOTA_COMBATLOG_MODIFIER_ADD'
-                    AND inflictor = 'modifier_echo_sabre_debuff'
-                     THEN 'item_echo_sabre'
-                 END AS item_id
-          FROM (
-            SELECT match_id, time, log_index, type, attackername, inflictor,
-                   ROW_NUMBER() OVER (
-                     PARTITION BY match_id, time, log_index ORDER BY time ASC
-                   ) AS rn
-            FROM dota2_analysis.combat_logs
-            WHERE dt = '{partition_date}'
-              AND match_id IN ({ids})
-              AND attackername LIKE 'npc_dota_hero_%'
-              AND (
-                (type = 'DOTA_COMBATLOG_ITEM' AND {active_item_predicate})
-                OR (
-                  type = 'DOTA_COMBATLOG_MODIFIER_ADD'
-                  AND inflictor = 'modifier_echo_sabre_debuff'
-                )
-              )
-          ) dedup WHERE rn = 1
-        ) clean
-        WHERE item_id IS NOT NULL
-        ORDER BY match_id, attackername, use_time, item_id
+        SELECT match_id, time, log_index, type, attackername, inflictor
+        FROM dota2_analysis.combat_logs
+        WHERE dt = '{partition_date}'
+          AND match_id IN ({ids})
+          AND type = 'DOTA_COMBATLOG_ITEM'
+          AND {active_item_predicate}
     """
 
 
@@ -308,15 +285,12 @@ def update_metadata(
         "unscanned_matches": len(selected_match_ids - source_match_ids),
         "query_contract": (
             "one exact dt partition + cached match IDs per query; "
-            "ROW_NUMBER dedup on match_id,time,log_index"
+            "post-fetch application dedup on (match_id,log_index)"
         ),
         "provenance": {
             "source": "StarRocks ODS dota2_analysis.combat_logs",
             "active_event": "DOTA_COMBATLOG_ITEM inflictor=item_*",
-            "echo_sabre_event": (
-                "DOTA_COMBATLOG_MODIFIER_ADD "
-                "modifier_echo_sabre_debuff -> item_echo_sabre"
-            ),
+            "echo_sabre_event": "not inferred from modifier rows",
             "purchase_guard": "cached records[].i timed purchase; use >= purchase",
             "time_semantics": "absolute replay seconds; first recognized use",
             "missing_semantics": "null=source absent, []=source present/no valid use",
@@ -378,15 +352,19 @@ def main() -> int:
                     build_item_use_query(partition_date, batch, batch_item_ids)
                 )
                 query_batches += 1
-                result_rows = cursor.fetchall()
+                result_rows = _deduplicate_rows(
+                    cursor.fetchall(),
+                    table="combat_logs",
+                    columns=("match_id", "time", "log_index", "type", "attackername", "inflictor"),
+                )
                 source_rows += len(result_rows)
                 batch_source_matches = {int(result[0]) for result in result_rows}
                 source_match_ids.update(batch_source_matches)
                 for match_id in batch_source_matches:
                     for row in rows_by_match.get(match_id, []):
                         mark_scanned(row)
-                for match_id, attackername, item_id, use_time in result_rows:
-                    if use_time is None:
+                for match_id, use_time, _log_index, _type, attackername, item_id in result_rows:
+                    if use_time is None or not str(attackername or "").startswith("npc_dota_hero_"):
                         continue
                     targets = rows_by_match_hero.get(
                         (int(match_id), str(attackername or "")), []
@@ -396,7 +374,7 @@ def main() -> int:
                             merge_first_use(
                                 row,
                                 str(item_id or ""),
-                                int(use_time),
+                                max(0, int(use_time)),
                                 valid_items,
                             )
                         )

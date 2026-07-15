@@ -5256,6 +5256,8 @@
   let allRows = [];
   let dataMeta = {};
   let detailData = { players: {}, drafts: {}, events: {} };
+  let dynamicsData = null;
+  let dynamicsPromise = null;
   let detailManifest = null;
   let detailManifestPromise = null;
   const loadedDetailBuckets = new Set();
@@ -5280,18 +5282,31 @@
   let matchSearch = '';
   let matchResult = '';
   let matchState = '';
+  let matchSide = '';
+  let matchPickPhase = '';
   let matchItem = '';
   let matchComebackOnly = false;
   let matchRouteOnly = false;
   let matchSortKey = 'date';
   let matchSortDir = 'desc';
   let matchVisibleLimit = 50;
-  const matchColumns = new Set(['match', 'player', 'hero', 'route', 'role', 'nw15', 'result']);
+  const matchColumns = new Set(['match', 'player', 'hero', 'route', 'role', 'lane10', 'nw20', 'ppi', 'draft', 'result']);
   const MATCH_COLUMN_LABELS = {
     match: '比赛 / 日期', player: '选手', team: '战队', league: '赛事', hero: '英雄',
-    route: '核心出装时间线', role: '位置', state: '15m局势', nw15: '15m经济差',
-    kda15: '15m KDA', lh15: '15m补刀', duration: '时长', networth: '终局经济', result: '结果',
+    route: '核心出装时间线', role: '位置', side: '阵营', pick: '选人阶段',
+    state: '15m局势', lane10: '10m对位经济差', nw10: '10m经济', nw15: '15m团队经济差',
+    nw20: '20m经济', cs10: '10m补刀', cs20: '20m补刀', denies10: '10m反补',
+    kda15: '15m KDA', lh15: '15m补刀', gpm: 'GPM', xpm: 'XPM', damage: '英雄伤害',
+    towerDamage: '建筑伤害', tfp: '参战率', ppi: '职业表现指数', draft: '阵容先验',
+    duration: '时长', networth: '终局经济', result: '结果',
   };
+  let matchupSearch = '';
+  let matchupMin = 5;
+  let matchupRole = '';
+  let matchupKind = 'enemy';
+  let matchupMetaOnly = true;
+  const performanceCohorts = new Map();
+  let draftPriorScores = new Map();
 
   const mainFlow = page.querySelector('.pb-main');
   if (mainFlow && researchDrawer) mainFlow.prepend(researchDrawer);
@@ -5327,7 +5342,7 @@
   const rowKey = r => `${r.m}:${r.sl == null ? r.s : r.sl}`;
 
   function decodeCorePayload(payload) {
-    if (payload?.schema !== 'pro-builds-core-v2') return payload?.records || [];
+    if (!['pro-builds-core-v2', 'pro-builds-core-v3'].includes(payload?.schema)) return payload?.records || [];
     const d = payload.dictionaries || {}, value = (field, index) => d[field]?.[index] ?? '';
     return (payload.records || []).map(row => {
       const itemValues = row[19] || [], decodedItems = [], hasUseData = Array.isArray(row[21]);
@@ -5339,9 +5354,19 @@
         l: value('l', row[4]), t: value('t', row[5]), s: value('s', row[6]),
         n: value('n', row[7]), h: value('h', row[8]), hi: row[9], sl: row[10],
         tm: row[11], r: row[12], rm: value('rm', row[13]), rc: row[14],
-        w: row[15], lv: row[16], nw: row[17], du: row[18], i: decodedItems, g: row[20], u: hasUseData ? decodedUses : null,
+        w: row[15], lv: row[16], nw: row[17], du: row[18], i: decodedItems,
+        g: row[20], u: hasUseData ? decodedUses : null, x: row[22] || null,
       };
     });
+  }
+
+  function loadDynamics() {
+    if (dynamicsData) return Promise.resolve(dynamicsData);
+    if (dynamicsPromise) return dynamicsPromise;
+    dynamicsPromise = fetch(config.dynamicsUrl || '_dynamics.json', { cache: 'no-cache' })
+      .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+      .then(payload => { dynamicsData = payload; return payload; });
+    return dynamicsPromise;
   }
 
   function detailMonths(rows) {
@@ -5893,6 +5918,111 @@
     return opposingRows(r).find(other => Number(other.r) === Number(r.r)) || null;
   }
 
+  function detailFor(row) {
+    return detailData.players?.[rowKey(row)] || null;
+  }
+
+  function snapshotAt(row, seconds) {
+    return (detailFor(row)?.q || []).find(snapshot => Number(snapshot[0]) === Number(seconds)) || null;
+  }
+
+  function laneDeltaAt(row, seconds) {
+    const opponent = sameRoleOpponent(row), own = snapshotAt(row, seconds);
+    const other = opponent ? snapshotAt(opponent, seconds) : null;
+    return own && other && Number.isFinite(Number(own[2])) && Number.isFinite(Number(other[2]))
+      ? Number(own[2]) - Number(other[2]) : null;
+  }
+
+  function laneResult(row) {
+    const delta = laneDeltaAt(row, 600);
+    return !Number.isFinite(delta) ? 'unknown' : delta >= 500 ? 'won' : delta <= -500 ? 'lost' : 'drawn';
+  }
+
+  function draftPickPhase(row) {
+    const picks = (detailData.drafts?.[String(row.m)]?.p || [])
+      .filter(pick => Number(pick[1]) === Number(row.tm))
+      .sort((a, b) => Number(a[0]) - Number(b[0]));
+    const index = picks.findIndex(pick => String(pick[3] || '') === String(row.h));
+    if (index < 0) return 'unknown';
+    if (index <= 1) return 'early';
+    if (index <= 3) return 'middle';
+    return 'last';
+  }
+
+  function metricRates(row) {
+    const durationMinutes = Math.max(1, Number(row.du || 0) / 60);
+    const metrics = row.x || [];
+    const grossGold = Number(metrics[0]), xp = Number(metrics[1]);
+    return {
+      gpm: Number.isFinite(grossGold) && grossGold > 0 ? Math.round(grossGold / durationMinutes) : null,
+      xpm: Number.isFinite(xp) && xp > 0 ? Math.round(xp / durationMinutes) : null,
+      nwpm: Number.isFinite(Number(row.nw)) ? Math.round(Number(row.nw) / durationMinutes) : null,
+      tfp: Number.isFinite(Number(metrics[3])) ? Number(metrics[3]) : null,
+      heroDamage: Number.isFinite(Number(metrics[11])) ? Number(metrics[11]) : null,
+      towerDamage: Number.isFinite(Number(metrics[12])) ? Number(metrics[12]) : null,
+    };
+  }
+
+  function percentile(value, sorted) {
+    if (!Number.isFinite(value) || !sorted.length) return null;
+    let below = 0;
+    while (below < sorted.length && sorted[below] < value) below++;
+    let equal = below;
+    while (equal < sorted.length && sorted[equal] === value) equal++;
+    return (below + (equal - below) / 2) / sorted.length;
+  }
+
+  function performanceScore(row) {
+    const cohortKey = `${row.h}:${row.r || 0}`;
+    if (!performanceCohorts.has(cohortKey)) {
+      const cohort = allRows.filter(other => other.h === row.h && Number(other.r || 0) === Number(row.r || 0));
+      const collect = getter => cohort.map(getter).filter(Number.isFinite).sort((a, b) => a - b);
+      performanceCohorts.set(cohortKey, {
+        nwpm: collect(other => metricRates(other).nwpm),
+        nw15: collect(other => Number(other.g?.[1])),
+        kda: collect(other => other.g ? (Number(other.g[3] || 0) + Number(other.g[5] || 0)) / Math.max(1, Number(other.g[4] || 0)) : null),
+        level: collect(other => Number(other.lv)),
+      });
+    }
+    const cohort = performanceCohorts.get(cohortKey), rates = metricRates(row);
+    const values = [
+      [rates.nwpm, cohort.nwpm, .35],
+      [Number(row.g?.[1]), cohort.nw15, .3],
+      [row.g ? (Number(row.g[3] || 0) + Number(row.g[5] || 0)) / Math.max(1, Number(row.g[4] || 0)) : null, cohort.kda, .25],
+      [Number(row.lv), cohort.level, .1],
+    ];
+    const available = values.map(([value, sorted, weight]) => [percentile(value, sorted), weight]).filter(([value]) => value != null);
+    const weights = available.reduce((sum, value) => sum + value[1], 0);
+    return weights ? Math.round(available.reduce((sum, value) => sum + value[0] * value[1], 0) / weights * 100) : null;
+  }
+
+  function buildDraftPrior(rows) {
+    const result = new Map();
+    const overall = rows.length ? rows.reduce((sum, row) => sum + Number(row.w || 0), 0) / rows.length : .5;
+    const ally = new Map(), enemy = new Map();
+    const add = (map, hero, row) => {
+      const stat = map.get(hero) || { games: 0, wins: 0 };
+      stat.games++; stat.wins += Number(row.w || 0); map.set(hero, stat);
+    };
+    rows.forEach(row => (matchRowsById.get(String(row.m)) || []).forEach(other => {
+      if (rowKey(other) === rowKey(row)) return;
+      add(Number(other.tm) === Number(row.tm) ? ally : enemy, other.h, row);
+    }));
+    rows.forEach(row => {
+      const effects = [];
+      (matchRowsById.get(String(row.m)) || []).forEach(other => {
+        if (rowKey(other) === rowKey(row)) return;
+        const stat = (Number(other.tm) === Number(row.tm) ? ally : enemy).get(other.h);
+        if (!stat) return;
+        const shrink = stat.games / (stat.games + 15);
+        effects.push((stat.wins / stat.games - overall) * shrink);
+      });
+      const score = effects.length ? overall + effects.reduce((sum, value) => sum + value, 0) / effects.length : overall;
+      result.set(rowKey(row), Math.max(.05, Math.min(.95, score)));
+    });
+    return result;
+  }
+
   function filteredRows(ignoreDates, ignoredControls) {
     const ignored = ignoredControls || new Set();
     return allRows.filter(r => {
@@ -6012,11 +6142,20 @@
 
   function coreRoutePairs(r, limit) {
     const floor = Number(r.r) >= 4 ? 700 : 1200;
-    return (r.i || []).filter(([id, seconds]) => {
+    const timed = (r.i || []).filter(([id, seconds]) => {
       if (!includeItem(id) || !Number.isFinite(seconds)) return false;
       const cost = Number(items[id]?.cost || 0);
       return cost >= floor || /boots|blink|spirit_vessel|urn_of_shadows/.test(id);
-    }).sort((a, b) => a[1] - b[1]).slice(0, limit || 5);
+    }).sort((a, b) => a[1] - b[1]);
+    if (timed.length >= 2) return timed.slice(0, limit || 5);
+    // Very short matches can end before a second expensive node. Preserve the
+    // real small-item sequence instead of labelling an observed route missing.
+    const shortGame = (r.i || []).filter(([id, seconds]) => {
+      const item = items[id];
+      return Number.isFinite(seconds) && item?.class === 'regular' && !item.consumable
+        && (coreAllow.has(id) || /boots|spirit_vessel|urn_of_shadows/.test(id));
+    }).sort((a, b) => a[1] - b[1]);
+    return (shortGame.length >= 2 ? shortGame : timed).slice(0, limit || 5);
   }
 
   function observedItemBreakdown(rows, predicate) {
@@ -6071,6 +6210,32 @@
     const openingList = [...openings.values()].sort((a, b) => b.games - a.games || b.wins - a.wins).slice(0, 3);
     const openingHtml = openingList.map((entry, index) => `<article class="pb-opening-route"><span>#${index + 1} · ${entry.games}局</span><div>${entry.ids.map(id => { const item = items[id] || { name: id, icon: '' }; return `<span title="${esc(item.name)}">${icon(item.icon, item.name)}<b>${esc(item.name)}</b></span>`; }).join('<i>›</i>')}</div><small>采用 ${pct(entry.games, rows.length)} · 样本胜率 ${pct(entry.wins, entry.games)}</small></article>`).join('') || '<div class="pb-no-data">当前样本没有可确认的0–3分钟购买记录</div>';
 
+    const inventoryGroups = target => {
+      const groups = new Map();
+      rows.forEach(row => {
+        const snapshot = (detailFor(row)?.iv || []).find(entry => Number(entry[0]) === target);
+        const ids = (snapshot?.[2] || []).filter(id => items[id]);
+        if (!ids.length) return;
+        const key = ids.join('>'), stat = groups.get(key) || { ids, games: 0, wins: 0, observed: [] };
+        stat.games++; stat.wins += Number(row.w || 0); stat.observed.push(Number(snapshot[1])); groups.set(key, stat);
+      });
+      return [...groups.values()].sort((a, b) => b.games - a.games || b.wins - a.wins);
+    };
+    const inventoryRoute = (entry, total, index) => `<article class="pb-inventory-route"><span>#${index + 1} · ${entry.games}局</span><div>${entry.ids.map(id => { const item = items[id] || { name: id, icon: '' }; return `<span title="${esc(item.name)}">${icon(item.icon, item.name)}<b>${esc(item.name)}</b></span>`; }).join('')}</div><small>采用 ${pct(entry.games, total)} · 胜率 ${pct(entry.wins, entry.games)}</small></article>`;
+    let exactOpeningHtml = '<div class="pb-no-data">正在读取出生时可观察库存…</div>';
+    let concurrentInventoryHtml = '<div class="pb-no-data">正在读取控制时点完整背包…</div>';
+    if (detailRowsReady(rows)) {
+      const exact = inventoryGroups(0), exactCoverage = rows.filter(row => (detailFor(row)?.iv || []).some(entry => Number(entry[0]) === 0)).length;
+      exactOpeningHtml = exact.length
+        ? `<div class="pb-inventory-routes">${exact.slice(0, 3).map((entry, index) => inventoryRoute(entry, exactCoverage, index)).join('')}</div><small class="pb-evidence-note">出生库存覆盖 ${exactCoverage}/${rows.length}局；取0–90秒内最早可观察快照。</small>`
+        : '<div class="pb-no-data">当前缓存尚未包含出生库存快照；下方0–3分钟购买日志仍可使用。</div>';
+      const checkpoints = [[1200, '20分钟'], [2100, '35分钟'], [3300, '55分钟']];
+      concurrentInventoryHtml = checkpoints.map(([target, label]) => {
+        const groups = inventoryGroups(target), coverage = rows.filter(row => (detailFor(row)?.iv || []).some(entry => Number(entry[0]) === target)).length;
+        return `<article class="pb-inventory-checkpoint"><header><b>${label}完整背包</b><small>${coverage}/${rows.length}局有快照</small></header>${groups.slice(0, 2).map((entry, index) => inventoryRoute(entry, coverage, index)).join('') || '<div class="pb-no-data">当前范围没有该时点背包快照</div>'}</article>`;
+      }).join('');
+    }
+
     const stages = [
       ['0–6分钟', 0, 360], ['6–15分钟', 361, 900], ['15–30分钟', 901, 1800], ['30分钟后', 1801, Number.MAX_SAFE_INTEGER],
     ];
@@ -6082,20 +6247,29 @@
     const equipmentPanel = (title, className) => {
       const choices = observedItemBreakdown(rows, (id, _seconds, item) => item.class === className).slice(0, 5);
       const empty = className === 'enchant' ? '当前比赛范围没有可识别的中立附魔记录' : '当前比赛范围没有可识别的中立物品选择';
+      if (className === 'neutral') {
+        const tiers = [0, 1, 2, 3, 4].map(tier => {
+          const tierChoices = observedItemBreakdown(rows, (id, _seconds, item) => item.class === 'neutral' && Number(item.tier) === tier).slice(0, 4);
+          return `<section class="pb-neutral-tier"><span>Tier ${tier + 1}</span><div>${tierChoices.map(stat => compactItemChoice(stat, rows.length)).join('') || '<small>当前范围没有记录</small>'}</div></section>`;
+        }).join('');
+        return `<article class="pb-complete-subcard is-tiered"><span>${title}</span><div class="pb-neutral-tiers">${tiers}</div></article>`;
+      }
       return `<article class="pb-complete-subcard"><span>${title}</span><div class="pb-complete-choices">${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || `<small>${empty}</small>`}</div></article>`;
     };
 
     let skillHtml = '<div class="pb-no-data">正在按比赛月份加载逐局技能加点日志…</div>';
     let talentHtml = '<div class="pb-no-data">正在按比赛月份加载逐局天赋选择日志…</div>';
-    let skillCoverage = 0;
+    let skillCoverage = 0, skillStarRocks = 0, skillOpenDota = 0;
     if (detailRowsReady(rows)) {
       const skillRoutes = new Map(), talents = new Map();
       rows.forEach(row => {
-        const abilityRows = detailData.players?.[rowKey(row)]?.a || [];
+        const abilityDetail = detailData.players?.[rowKey(row)] || {};
+        const abilityRows = abilityDetail.a || [];
         const kit = new Set(heroAbilities[row.h] || []);
         const skills = abilityRows.filter(entry => !String(entry[1]).startsWith('special_bonus_') && (!kit.size || kit.has(entry[1]))).slice(0, 12).map(entry => entry[1]);
         if (skills.length) {
           skillCoverage++;
+          if (abilityDetail.a_src === 'opendota') skillOpenDota++; else skillStarRocks++;
           const key = skills.join('>'), stat = skillRoutes.get(key) || { abilities: skills, games: 0, wins: 0 };
           stat.games++; stat.wins += Number(row.w || 0); skillRoutes.set(key, stat);
         }
@@ -6110,7 +6284,7 @@
       const common = routes[0];
       const winning = routes.filter(route => route.games >= Math.max(2, Math.ceil(skillCoverage * .03))).sort((a, b) => b.wins / b.games - a.wins / a.games || b.games - a.games)[0];
       const skillRoute = (route, label) => route ? `<article><span>${label}</span><div class="pb-ability-route">${route.abilities.map((slug, index) => `<b title="${esc(slug)}"><i>${index + 1}</i>${esc(abilityLabel(slug))}</b>`).join('')}</div><small>${route.games}局 · ${pct(route.wins, route.games)} 样本胜率</small></article>` : '';
-      skillHtml = skillRoute(common, '最常见加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率加点') : '') || '<div class="pb-no-data">StarRocks 当前比赛范围没有可识别的技能加点日志；这不表示该英雄没有技能路线。</div>';
+      skillHtml = skillRoute(common, '最常见加点') + (winning && winning !== common ? skillRoute(winning, '较高胜率加点') : '') || '<div class="pb-no-data">StarRocks 与 OpenDota 当前都没有可识别的技能加点记录；这不表示该英雄没有技能路线。</div>';
       const byLevel = new Map();
       [...talents.values()].forEach(stat => { if (!byLevel.has(stat.level)) byLevel.set(stat.level, []); byLevel.get(stat.level).push(stat); });
       talentHtml = [10, 15, 20, 25].map(level => {
@@ -6125,9 +6299,9 @@
 
     const reconstructable = rows.filter(row => coreRoutePairs(row, 5).length >= 2).length;
     status.textContent = `${rows.length}局 · 路线可还原 ${pct(reconstructable, rows.length)} · 技能覆盖 ${pct(skillCoverage, rows.length)}`;
-    host.innerHTML = `<section class="pb-complete-opening" id="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>0–3分钟开局与首轮补给</h3></div><small>来自购买日志，不等同于出生时库存</small></header><div>${openingHtml}</div></section>
-      <section class="pb-complete-stages" id="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>按比赛阶段做选择</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线</small></header><div>${stageHtml}</div></section>
-      <section class="pb-complete-skills" id="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局有技能事件` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
+    host.innerHTML = `<section class="pb-complete-opening" id="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>精确出生装与首轮补给</h3></div><small>库存快照与购买日志分开统计</small></header><div class="pb-opening-block"><h4>出生时可观察库存</h4>${exactOpeningHtml}</div><div class="pb-opening-block"><h4>0–3分钟购买记录</h4><div class="pb-opening-routes">${openingHtml}</div></div></section>
+      <section class="pb-complete-stages" id="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>阶段选择与同时持有装备</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线；完整背包单独呈现</small></header><div>${stageHtml}</div><div class="pb-inventory-checkpoints">${concurrentInventoryHtml}</div></section>
+      <section class="pb-complete-skills" id="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局 · StarRocks ${skillStarRocks} · OpenDota兜底 ${skillOpenDota}` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
       <section class="pb-complete-special" id="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>来自该局可观察到的最终选择；无记录时明确标注</small></header><div>${equipmentPanel('常见中立物品', 'neutral')}${equipmentPanel('常见中立附魔', 'enchant')}</div></section>
       <footer><strong>阅读边界</strong><span>这张卡描述职业样本中的常见选择；低样本胜率、阶段先后与装备效果都不能单独解释胜负。</span></footer>`;
   }
@@ -6420,8 +6594,9 @@
     rows.forEach(r => {
       const key = r.s || r.n;
       let g = groups.get(key);
-      if (!g) g = { name: r.n || key, games: 0, wins: 0, teams: new Map(), routes: new Map() };
+      if (!g) g = { name: r.n || key, games: 0, wins: 0, scores: [], teams: new Map(), routes: new Map(), finalBuilds: new Map() };
       g.games++; g.wins += Number(r.w || 0); g.teams.set(r.t, (g.teams.get(r.t) || 0) + 1);
+      const score = performanceScore(r); if (Number.isFinite(score)) g.scores.push(score);
       const firstUses = new Map(r.u || []);
       const routeCostFloor = Number(r.r) >= 4 ? 700 : 1200;
       const sequence = (r.i || []).filter(([id, seconds]) => {
@@ -6439,6 +6614,17 @@
           if (Number.isFinite(firstUse) && firstUse >= purchaseTime) route.useDelays[idx].push(firstUse - purchaseTime);
         });
         g.routes.set(routeKey, route);
+      }
+      const finalIds = [...new Set((r.i || []).map(pair => pair[0]).filter(id => {
+        if (!includeItem(id)) return false;
+        const cost = Number(items[id]?.cost || 0);
+        return cost >= routeCostFloor || /boots|blink|spirit_vessel|urn_of_shadows/.test(id);
+      }))].sort();
+      if (finalIds.length >= 2) {
+        const buildKey = `${r.h}|${finalIds.join('>')}`;
+        const build = g.finalBuilds.get(buildKey) || { hero: r.h, games: 0, wins: 0 };
+        build.games++; build.wins += Number(r.w || 0);
+        g.finalBuilds.set(buildKey, build);
       }
       groups.set(key, g);
     });
@@ -6458,9 +6644,20 @@
         }).join('')}</span></div>`;
         routeRate = `${pct(route.games, g.games)} (${route.games}局)`;
         routeWinRate = pct(route.wins, route.games);
+      } else {
+        const buildEntry = [...g.finalBuilds].sort((a, b) => b[1].games - a[1].games || b[1].wins - a[1].wins)[0];
+        if (buildEntry) {
+          const [buildKey, build] = buildEntry;
+          const hero = heroes[build.hero] || { name: build.hero, icon: '' };
+          const ids = buildKey.split('|')[1].split('>');
+          routeHtml = `<div class="pb-player-route pb-player-build-fallback" title="这些物品来自终局背包；缺少购买时点，因此不表示先后顺序"><span class="pb-route-hero">${icon(hero.icon, hero.name)}<b>${esc(hero.name)}</b></span><span class="pb-seq-items">${ids.map(id => { const item = items[id] || { name: id, icon: '' }; return `<span class="pb-seq-step">${icon(item.icon, item.name)}</span>`; }).join('')}</span><small>终局成装组合 · 顺序待还原</small></div>`;
+          routeRate = `成装覆盖 ${pct(build.games, g.games)} (${build.games}局)`;
+          routeWinRate = '路线胜率待还原';
+        }
       }
-      return `<tr><td><strong>${esc(g.name)}</strong></td><td>${esc(team)}</td><td>${g.games}</td><td class="${g.wins / g.games >= .5 ? 'pb-up' : 'pb-down'}">${pct(g.wins, g.games)}</td><td>${routeHtml}</td><td>${routeRate}</td><td>${routeWinRate}</td></tr>`;
-    }).join('') || '<tr><td colspan="7" class="pb-no-data">没有选手路线数据</td></tr>';
+      const score = mean(g.scores);
+      return `<tr><td><strong>${esc(g.name)}</strong></td><td>${esc(team)}</td><td>${g.games}</td><td class="${g.wins / g.games >= .5 ? 'pb-up' : 'pb-down'}">${pct(g.wins, g.games)}</td><td><strong class="${Number(score) >= 60 ? 'pb-up' : Number(score) < 40 ? 'pb-down' : ''}">${Number.isFinite(score) ? score : '—'}</strong></td><td>${routeHtml}</td><td>${routeRate}</td><td>${routeWinRate}</td></tr>`;
+    }).join('') || '<tr><td colspan="8" class="pb-no-data">没有选手路线数据</td></tr>';
   }
 
   function playerStyleProfiles(rows) {
@@ -6608,26 +6805,111 @@
     }).join('');
   }
 
-  function renderMatchups(rows) {
-    const groups = new Map();
-    rows.forEach(r => enemyHeroes(r).forEach(hero => {
-      const g = groups.get(hero) || { games: 0, wins: 0, items: new Map(), laneDeltas: [], routes: new Map() };
-      g.games++; g.wins += Number(r.w || 0);
-      (r.i || []).forEach(([id]) => { if (includeItem(id)) g.items.set(id, (g.items.get(id) || 0) + 1); });
-      const laneOpponent = sameRoleOpponent(r);
-      if (laneOpponent?.h === hero && Number.isFinite(Number(r.g?.[1])) && Number.isFinite(Number(laneOpponent.g?.[1]))) g.laneDeltas.push(Number(r.g[1]) - Number(laneOpponent.g[1]));
-      const route = coreRoutePairs(r, 4).map(pair => pair[0]);
-      if (route.length >= 2) { const key = route.join('>'); g.routes.set(key, (g.routes.get(key) || 0) + 1); }
-      groups.set(hero, g);
+  function renderPerformance(rows) {
+    const summary = document.getElementById('pb-performance-summary');
+    const economyHost = document.getElementById('pb-economy-curve');
+    const damageHost = document.getElementById('pb-damage-curve');
+    const levelHost = document.getElementById('pb-level-performance');
+    const status = document.getElementById('pb-performance-status');
+    if (!summary || !economyHost || !damageHost || !levelHost) return;
+    if (!detailRowsReady(rows)) {
+      summary.innerHTML = '<div class="pb-no-data">正在按月份加载10/20分钟快照、BP与伤害明细…</div>';
+      economyHost.innerHTML = damageHost.innerHTML = levelHost.innerHTML = '';
+      ensureDetailRows(rows).then(() => { if (activeTab === 'situations') { renderPerformance(currentRows); renderMatchups(currentRows); } }).catch(err => {
+        summary.innerHTML = `<div class="pb-no-data">表现明细加载失败：${esc(err.message)}</div>`;
+      });
+      return;
+    }
+    const wins = sample => sample.reduce((sum, row) => sum + Number(row.w || 0), 0);
+    const snapshotValues = (seconds, index) => rows.map(row => Number(snapshotAt(row, seconds)?.[index])).filter(Number.isFinite);
+    const nw10 = snapshotValues(600, 2), nw15 = snapshotValues(900, 2), nw20 = snapshotValues(1200, 2);
+    const cs10 = snapshotValues(600, 3), cs20 = snapshotValues(1200, 3);
+    const denies10 = snapshotValues(600, 10);
+    const rateRows = rows.map(metricRates);
+    const gpms = rateRows.map(row => row.gpm).filter(Number.isFinite), xpms = rateRows.map(row => row.xpm).filter(Number.isFinite);
+    const tfps = rateRows.map(row => row.tfp).filter(Number.isFinite);
+    const card = (label, value, note) => `<article><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`;
+    summary.innerHTML = card('平均经济 @10 / 15 / 20', `${mean(nw10)?.toLocaleString() || '—'} / ${mean(nw15)?.toLocaleString() || '—'} / ${mean(nw20)?.toLocaleString() || '—'}`, `${nw20.length}/${rows.length}局有20分钟快照`)
+      + card('平均补刀 @10 / 20', `${mean(cs10)?.toLocaleString() || '—'} / ${mean(cs20)?.toLocaleString() || '—'}`, `10分钟平均反补 ${mean(denies10)?.toLocaleString() || '—'}`)
+      + card('平均 GPM / XPM', `${mean(gpms)?.toLocaleString() || '—'} / ${mean(xpms)?.toLocaleString() || '—'}`, gpms.length ? `${gpms.length}局有累计金钱与经验` : '旧缓存暂未保存累计金钱与经验')
+      + card('平均参战率', tfps.length ? pct(tfps.reduce((sum, value) => sum + value, 0) / tfps.length, 1) : '—', tfps.length ? `${tfps.length}局有终局指标` : '等待新采集字段')
+      + [['won', '赢线'], ['drawn', '平线'], ['lost', '输线']].map(([key, label]) => {
+        const sample = rows.filter(row => laneResult(row) === key);
+        return card(label, pct(wins(sample), sample.length), `${sample.length}局 · 以10分钟同位置经济差±500划分`);
+      }).join('')
+      + [[2, '天辉'], [3, '夜魇']].map(([team, label]) => {
+        const sample = rows.filter(row => Number(row.tm) === team);
+        return card(label, pct(wins(sample), sample.length), `${sample.length}局`);
+      }).join('')
+      + [['early', '前段选出'], ['middle', '中段选出'], ['last', '后段 / 最后手']].map(([phase, label]) => {
+        const sample = rows.filter(row => draftPickPhase(row) === phase);
+        return card(label, pct(wins(sample), sample.length), `${sample.length}局有BP顺序`);
+      }).join('');
+
+    const economyPoints = [300, 600, 900, 1200, 1500, 1800, 2400, 3000].map(seconds => ({
+      seconds, values: snapshotValues(seconds, 2), cs: snapshotValues(seconds, 3),
+    })).filter(point => point.values.length);
+    const maxEconomy = Math.max(1, ...economyPoints.map(point => mean(point.values) || 0));
+    economyHost.innerHTML = `<header><div><span>ECONOMY CURVE</span><h3>经济与补刀成长</h3></div><small>控制时点均值</small></header><div class="pb-curve-bars">${economyPoints.map(point => `<span title="${timeText(point.seconds)} · ${mean(point.values)?.toLocaleString()}经济 · ${mean(point.cs)?.toLocaleString()}补刀"><i style="height:${Math.max(4, (mean(point.values) || 0) / maxEconomy * 100)}%"></i><b>${timeText(point.seconds)}</b><small>${mean(point.values)?.toLocaleString()}</small></span>`).join('')}</div>`;
+
+    const damageBuckets = new Map();
+    rows.forEach(row => (detailFor(row)?.dm || []).forEach(entry => {
+      const bucket = Number(entry[0]), stat = damageBuckets.get(bucket) || { damage: 0, tower: 0, games: new Set() };
+      stat.damage += Number(entry[1] || 0); stat.tower += Number(entry[2] || 0); stat.games.add(rowKey(row)); damageBuckets.set(bucket, stat);
     }));
-    const list = [...groups].sort((a, b) => b[1].games - a[1].games).slice(0, 20);
-    document.getElementById('pb-matchups').innerHTML = `<table class="pb-table"><thead><tr><th>对手英雄</th><th>交手局</th><th>样本胜率</th><th>同位置15m经济差</th><th>最常应对物品</th><th>常见应对路线</th></tr></thead><tbody>${list.map(([hero, g]) => {
-      const itemId = [...g.items].sort((a, b) => b[1] - a[1])[0]?.[0], it = items[itemId], h = heroes[hero] || { name: hero, icon: '' };
+    const damagePoints = [...damageBuckets].sort((a, b) => a[0] - b[0]).map(([seconds, stat]) => ({ seconds, damage: Math.round(stat.damage / Math.max(1, stat.games.size)), tower: Math.round(stat.tower / Math.max(1, stat.games.size)) }));
+    const maxDamage = Math.max(1, ...damagePoints.map(point => point.damage));
+    damageHost.innerHTML = `<header><div><span>DAMAGE OVER TIME</span><h3>每5分钟英雄伤害</h3></div><small>每局分桶均值</small></header>${damagePoints.length ? `<div class="pb-curve-bars is-damage">${damagePoints.map(point => `<span title="${timeText(point.seconds)}–${timeText(point.seconds + 299)} · 英雄伤害 ${point.damage.toLocaleString()} · 建筑 ${point.tower.toLocaleString()}"><i style="height:${Math.max(4, point.damage / maxDamage * 100)}%"></i><b>${timeText(point.seconds)}</b><small>${point.damage.toLocaleString()}</small></span>`).join('')}</div>` : '<div class="pb-no-data">旧缓存没有分时伤害；下次有界增量会写入每5分钟英雄与建筑伤害。</div>'}`;
+
+    const levels = new Map();
+    rows.forEach(row => { const level = Number(row.lv); if (!Number.isFinite(level)) return; const stat = levels.get(level) || { games: 0, wins: 0 }; stat.games++; stat.wins += Number(row.w || 0); levels.set(level, stat); });
+    levelHost.innerHTML = `<table class="pb-table"><thead><tr><th>终局等级</th><th>比赛</th><th>胜率</th><th>分布</th></tr></thead><tbody>${[...levels].sort((a, b) => a[0] - b[0]).map(([level, stat]) => `<tr><td><strong>Lv ${level}</strong></td><td>${stat.games}</td><td>${pct(stat.wins, stat.games)}</td><td><span class="pb-inline-meter"><i style="width:${pct(stat.games, rows.length)}"></i></span></td></tr>`).join('')}</tbody></table>`;
+    if (status) status.textContent = `快照覆盖 ${nw10.length}/${rows.length}局 · BP ${rows.filter(row => draftPickPhase(row) !== 'unknown').length}局 · 伤害 ${damagePoints.length ? '已加载' : '等待新缓存'}`;
+  }
+
+  function renderMatchups(rows) {
+    const groups = new Map(), wantAllies = matchupKind === 'ally';
+    const overall = rows.length ? rows.reduce((sum, row) => sum + Number(row.w || 0), 0) / rows.length : 0;
+    rows.forEach(row => {
+      const related = (matchRowsById.get(String(row.m)) || []).filter(other => rowKey(other) !== rowKey(row) && (Number(other.tm) === Number(row.tm)) === wantAllies);
+      const seen = new Set();
+      related.forEach(other => {
+        if (matchupRole && String(other.r || '') !== matchupRole) return;
+        if (seen.has(other.h)) return; seen.add(other.h);
+        const g = groups.get(other.h) || { games: 0, wins: 0, items: new Map(), laneDeltas: [], routes: new Map(), roles: new Map() };
+        g.games++; g.wins += Number(row.w || 0); g.roles.set(other.r || 0, (g.roles.get(other.r || 0) || 0) + 1);
+        (row.i || []).forEach(([id]) => { if (includeItem(id)) g.items.set(id, (g.items.get(id) || 0) + 1); });
+        if (!wantAllies && Number(other.r) === Number(row.r)) {
+          const delta = laneDeltaAt(row, 600); if (Number.isFinite(delta)) g.laneDeltas.push(delta);
+        }
+        const route = coreRoutePairs(row, 4).map(pair => pair[0]);
+        if (route.length >= 2) { const key = route.join('>'); g.routes.set(key, (g.routes.get(key) || 0) + 1); }
+        groups.set(other.h, g);
+      });
+    });
+    const commonFloor = matchupMetaOnly ? Math.max(matchupMin, Math.ceil(rows.length * .015)) : matchupMin;
+    const query = matchupSearch.trim().toLowerCase();
+    const list = [...groups].map(([hero, stat]) => ({ hero, ...stat, laneDelta: mean(stat.laneDeltas), lift: stat.games ? stat.wins / stat.games - overall : 0 }))
+      .filter(stat => stat.games >= commonFloor && (!query || String(heroes[stat.hero]?.name || stat.hero).toLowerCase().includes(query)))
+      .sort((a, b) => b.games - a.games || b.lift - a.lift);
+
+    const plot = document.getElementById('pb-matchup-plot');
+    if (plot) {
+      const points = list.filter(stat => wantAllies || Number.isFinite(stat.laneDelta)).slice(0, 40);
+      const xValues = points.map(stat => wantAllies ? stat.games / Math.max(1, rows.length) : stat.laneDelta);
+      const xAbs = Math.max(1, ...xValues.map(Math.abs)), yAbs = Math.max(.05, ...points.map(stat => Math.abs(stat.lift)));
+      const px = stat => wantAllies ? 60 + (stat.games / Math.max(1, rows.length)) / Math.max(.01, xAbs) * 650 : 380 + stat.laneDelta / xAbs * 315;
+      const py = stat => 145 - stat.lift / yAbs * 110;
+      plot.innerHTML = points.length ? `<svg viewBox="0 0 760 300" role="img" aria-label="${wantAllies ? '协同采用率与胜率差' : '10分钟对位经济差与最终胜率差'}"><line x1="60" y1="145" x2="710" y2="145"/><line x1="${wantAllies ? 60 : 380}" y1="25" x2="${wantAllies ? 60 : 380}" y2="260"/><text x="60" y="286">${wantAllies ? '同队出现率 →' : '← 对线劣势　10分钟经济差　对线优势 →'}</text><text x="8" y="22">胜率差</text>${points.map(stat => { const hero = heroes[stat.hero] || { name: stat.hero }; const x = px(stat), y = py(stat); return `<g class="${stat.lift >= 0 ? 'is-positive' : 'is-negative'}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${Math.max(4, Math.min(11, Math.sqrt(stat.games)))}"><title>${esc(hero.name)} · ${stat.games}局 · 胜率差 ${stat.lift >= 0 ? '+' : ''}${pct(stat.lift, 1)}${!wantAllies ? ` · 对位经济 ${stat.laneDelta >= 0 ? '+' : ''}${stat.laneDelta}` : ''}</title></circle><text x="${(x + 7).toFixed(1)}" y="${(y - 7).toFixed(1)}">${esc(hero.name)}</text></g>`; }).join('')}</svg>` : '<div class="pb-no-data">当前筛选下没有达到样本门槛的可绘制英雄</div>';
+    }
+    const host = document.getElementById('pb-matchups');
+    host.innerHTML = `<table class="pb-table"><thead><tr><th>${wantAllies ? '协同英雄' : '对手英雄'}</th><th>样本</th><th>胜率</th><th>相对总体</th><th>${wantAllies ? '常见位置' : '10m同位置经济差'}</th><th>代表物品</th><th>常见路线</th></tr></thead><tbody>${list.slice(0, 40).map(g => {
+      const itemId = [...g.items].sort((a, b) => b[1] - a[1])[0]?.[0], it = items[itemId], h = heroes[g.hero] || { name: g.hero, icon: '' };
       const routeKey = [...g.routes].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
       const routeHtml = routeKey ? routeKey.split('>').map(id => { const item = items[id] || { name: id, icon: '' }; return icon(item.icon, item.name); }).join('<span class="pb-seq-arrow">›</span>') : '—';
-      const laneDelta = mean(g.laneDeltas);
-      return `<tr><td><span class="pb-item-name">${icon(h.icon, h.name)}${esc(h.name)}</span></td><td>${g.games}</td><td>${pct(g.wins, g.games)}</td><td class="${Number(laneDelta) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(laneDelta) ? `${laneDelta >= 0 ? '+' : ''}${laneDelta.toLocaleString()} (${g.laneDeltas.length}局)` : '—'}</td><td>${it ? `<span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span>` : '—'}</td><td><span class="pb-mini-route">${routeHtml}</span></td></tr>`;
-    }).join('')}</tbody></table>`;
+      const commonRole = [...g.roles].sort((a, b) => b[1] - a[1])[0]?.[0];
+      return `<tr><td><span class="pb-item-name">${icon(h.icon, h.name)}${esc(h.name)}</span></td><td>${g.games}</td><td>${pct(g.wins, g.games)}</td><td class="${g.lift >= 0 ? 'pb-up' : 'pb-down'}">${g.lift >= 0 ? '+' : ''}${pct(g.lift, 1)}</td><td class="${Number(g.laneDelta) >= 0 ? 'pb-up' : 'pb-down'}">${wantAllies ? (commonRole ? `${commonRole}号位` : '—') : Number.isFinite(g.laneDelta) ? `${g.laneDelta >= 0 ? '+' : ''}${g.laneDelta.toLocaleString()} (${g.laneDeltas.length}局)` : '—'}</td><td>${it ? `<span class="pb-item-name">${icon(it.icon, it.name)}${esc(it.name)}</span>` : '—'}</td><td><span class="pb-mini-route">${routeHtml}</span></td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="pb-no-data">没有符合搜索、位置与样本门槛的英雄</td></tr>'}</tbody></table>`;
   }
 
   function renderLineupDecisions(rows) {
@@ -6693,6 +6975,47 @@
     host.innerHTML = [...seqs].sort((a, b) => b[1].games - a[1].games).slice(0, 6).map(([key, st], idx) => `<article><span>技能路线 #${idx + 1}</span><div class="pb-skill-seq">${key.split('>').map((a, i) => `<b title="${esc(a)}">${i + 1}. ${esc(abilityLabel(a))}</b>`).join('')}</div><small>${st.games}局 · 胜率 ${pct(st.wins, st.games)} · 与当前装备筛选联动</small></article>`).join('') || '<div class="pb-no-data">当前样本没有技能加点事件</div>';
   }
 
+  function renderPatchMeta(rows) {
+    const host = document.getElementById('pb-patch-meta'); if (!host) return;
+    if (!controls.hero.value) { host.innerHTML = '<div class="pb-empty">先选择英雄，再把补丁改动与职业路线响应放在一起。</div>'; return; }
+    if (!dynamicsData) {
+      host.innerHTML = '<div class="pb-no-data">正在加载英雄补丁历史…</div>';
+      loadDynamics().then(() => { if (activeTab === 'situations') renderPatchMeta(currentRows); }).catch(err => { host.innerHTML = `<div class="pb-no-data">补丁历史加载失败：${esc(err.message)}</div>`; });
+      return;
+    }
+    const hero = heroes[controls.hero.value] || { name: controls.hero.value };
+    const entityEntry = Object.entries(dynamicsData.entities || {}).find(([key, entity]) => entity.kind === 'hero' && (entity.icon === controls.hero.value || entity.name === hero.name || key === `hero|${String(controls.hero.value).replaceAll('_', '-')}`));
+    const entity = entityEntry?.[1], patchByVersion = new Map((dynamicsData.patches || []).map(patch => [patch.version, patch]));
+    const badgeLabel = { buff: '增强', nerf: '削弱', rework: '重做', new: '新增', del: '移除', misc: '杂项', qol: '体验' };
+    const patchRows = [...new Set(rows.map(row => row.p))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    const routeForPatch = version => {
+      const map = new Map();
+      rows.filter(row => row.p === version).forEach(row => { const ids = coreRoutePairs(row, 4).map(pair => pair[0]); if (ids.length < 2) return; const key = ids.join('>'), stat = map.get(key) || { ids, games: 0, wins: 0 }; stat.games++; stat.wins += Number(row.w || 0); map.set(key, stat); });
+      return [...map.values()].sort((a, b) => b.games - a.games || b.wins - a.wins)[0] || null;
+    };
+    const versions = [...new Set([...(entity ? Object.keys(entity.patches || {}) : []), ...patchRows])].sort((a, b) => b.localeCompare(a, undefined, { numeric: true })).slice(0, 10);
+    host.innerHTML = versions.map(version => {
+      const changes = entity?.patches?.[version] || {}, patch = patchByVersion.get(version), route = routeForPatch(version), sample = rows.filter(row => row.p === version), wins = sample.reduce((sum, row) => sum + Number(row.w || 0), 0);
+      const badges = Object.entries(changes).map(([kind, count]) => `<b class="is-${kind}">${badgeLabel[kind] || kind} ×${count}</b>`).join('') || '<i>本地补丁页未记录该英雄改动</i>';
+      const routeHtml = route ? route.ids.map(id => { const item = items[id] || { name: id, icon: '' }; return icon(item.icon, item.name); }).join('<span>›</span>') : '—';
+      const content = `<article><div><span>版本 ${esc(version)}</span><small>${esc(patch?.date || '日期未知')}</small></div><div class="pb-patch-badges">${badges}</div><div><span>职业样本</span><strong>${sample.length}局 · ${pct(wins, sample.length)}</strong></div><div><span>该版本主路线</span><span class="pb-mini-route">${routeHtml}</span>${route ? `<small>${route.games}局</small>` : ''}</div></article>`;
+      return patch?.filename ? `<a href="patches/${esc(patch.filename)}#${esc(String(entityEntry?.[0] || '').split('|')[1] || '')}" title="打开 ${esc(version)} 补丁中的英雄改动">${content}</a>` : content;
+    }).join('') || '<div class="pb-no-data">当前英雄没有可关联的补丁与路线样本</div>';
+  }
+
+  function renderOffMeta(rows) {
+    const host = document.getElementById('pb-off-meta'); if (!host) return;
+    const reconstructable = rows.filter(row => coreRoutePairs(row, 5).length >= 2);
+    const clusters = clusteredRoutes(rows).filter(cluster => cluster.games >= 2 && cluster.games / Math.max(1, reconstructable.length) < .12);
+    const latestDate = rows.reduce((latest, row) => row.d > latest ? row.d : latest, '');
+    const recentFrom = latestDate ? new Date(new Date(`${latestDate}T00:00:00Z`).getTime() - 29 * 86400000).toISOString().slice(0, 10) : '';
+    const candidates = clusters.map(cluster => {
+      const recent = cluster.rows.filter(row => !recentFrom || row.d >= recentFrom).length;
+      return { ...cluster, recent, emerging: cluster.games ? recent / cluster.games : 0 };
+    }).sort((a, b) => b.emerging - a.emerging || b.wins / b.games - a.wins / a.games || b.games - a.games).slice(0, 6);
+    host.innerHTML = candidates.map((cluster, index) => `<article><span>${index === 0 && cluster.emerging >= .5 ? '近期出现' : '低采用路线'} · ${cluster.games}局</span><div class="pb-mini-route">${cluster.representative.map(id => { const item = items[id] || { name: id, icon: '' }; return icon(item.icon, item.name); }).join('<span>›</span>')}</div><strong>${pct(cluster.wins, cluster.games)} 样本胜率</strong><small>可还原样本采用 ${pct(cluster.games, reconstructable.length)} · 最近30天占该路线 ${pct(cluster.recent, cluster.games)} · ${cluster.variants.size}种变体</small><button type="button" data-pb-offmeta-cluster="${esc(cluster.stableId)}">查看真实比赛组成</button></article>`).join('') || '<div class="pb-no-data">当前范围没有至少2局的低采用完整路线；扩大日期后再观察。</div>';
+  }
+
   function renderSubstitutions(rows, selectedStat) {
     const host = document.getElementById('pb-substitutions');
     if (!selectedStat) { host.innerHTML = '<div class="pb-no-data">先点击一个物品</div>'; return; }
@@ -6713,10 +7036,10 @@
   }
 
   function renderConfidence(rows, selectedStat) {
-    const assigned = rows.filter(r => r.r).length, lane = rows.filter(r => r.rm === 'lanes').length, fallback = rows.filter(r => r.rm === 'hits').length;
+    const assigned = rows.filter(r => r.r).length, lane = rows.filter(r => r.rm === 'lanes').length, openDotaLane = rows.filter(r => r.rm === 'lanes_opendota').length, fallback = rows.filter(r => r.rm === 'hits').length;
     const avgConfidence = rows.filter(r => Number.isFinite(Number(r.rc))).reduce((s, r) => s + Number(r.rc), 0) / Math.max(1, rows.filter(r => Number.isFinite(Number(r.rc))).length);
     const ci = selectedStat?.ci || [0, 0], warning = !selectedStat ? '未选择物品' : selectedStat.games < 10 ? '极小样本，仅供探索' : selectedStat.games < 30 ? '样本偏小，区间较宽' : '样本量可用于描述性比较';
-    document.getElementById('pb-confidence').innerHTML = `<article><span>职责位置覆盖</span><strong>${pct(assigned, rows.length)}</strong><small>分路法 ${lane}局 · 补刀兜底 ${fallback}局 · slot 未参与</small></article><article><span>平均判位可信度</span><strong>${pct(avgConfidence, 1)}</strong><small>分路众数一致性；纯补刀兜底固定为50%</small></article><article><span>所选物品胜率区间</span><strong>${pct(ci[0], 1)} – ${pct(ci[1], 1)}</strong><small>Wilson 95% · ${esc(warning)}</small></article><article><span>校正说明</span><strong>职责 × 局势 × 时长</strong><small>情境校正不是因果推断，不消除英雄克制与阵容选择偏差</small></article>`;
+    document.getElementById('pb-confidence').innerHTML = `<article><span>职责位置覆盖</span><strong>${pct(assigned, rows.length)}</strong><small>DWD主分路 ${lane}局 · OpenDota补分路 ${openDotaLane}局 · 纯补刀最终兜底 ${fallback}局</small></article><article><span>平均判位可信度</span><strong>${pct(avgConfidence, 1)}</strong><small>整届联赛分路众数 + 同路补刀；优先DWD 5分钟，缺失才用10分钟</small></article><article><span>所选物品胜率区间</span><strong>${pct(ci[0], 1)} – ${pct(ci[1], 1)}</strong><small>Wilson 95% · ${esc(warning)}</small></article><article><span>校正说明</span><strong>职责 × 局势 × 时长</strong><small>情境校正不是因果推断，不消除英雄克制与阵容选择偏差</small></article>`;
   }
 
   function renderDataQuality() {
@@ -6727,14 +7050,17 @@
       const rate = denominator ? numerator / denominator : 0, state = rate >= .98 ? 'good' : rate >= .9 ? 'warn' : 'bad';
       return `<article class="pb-quality-${state}"><span>${esc(label)}</span><strong>${pct(numerator, denominator)}</strong><small>${Number(numerator).toLocaleString()} / ${Number(denominator).toLocaleString()} · ${esc(note)}</small></article>`;
     };
-    summary.innerHTML = card('职责位置', Number(positions.assigned_player_games || 0), games, 'lane_role + 补刀聚合')
+    summary.innerHTML = card('职责位置', Number(positions.assigned_player_games || 0), games, '整届联赛分路 + 补刀；OpenDota缺失兜底')
       + card('15分钟快照', Number(advanced.snapshot_player_games || 0), games, '经济、等级、KDA与坐标')
-      + card('购买时点', Number(advanced.timed_item_player_games || 0), games, 'DWD优先，ODS购买日志有界兜底')
+      + card('技能加点', Number(advanced.ability_player_games || 0), games, `StarRocks优先 · OpenDota兜底 ${Number(advanced.opendota_ability_player_games || 0)}局`)
+      + card('购买时点', Number(advanced.timed_item_player_games || 0), games, 'dota2_analysis 购买日志；精确比赛ID有界读取')
       + card('首用日志覆盖', Number(advanced.item_use_source_player_games || 0), games, 'ODS主动使用或明确触发')
       + card('已识别首用', Number(advanced.item_use_player_games || 0), games, '至少一件装备可计算；纯被动不强制命中')
       + card('单局选手明细', Number(advanced.detail_player_games || 0), games, '按月份延迟加载')
+      + card('控制时点背包', Number(advanced.inventory_snapshot_player_games || 0), games, '出生 / 20 / 35 / 55分钟')
       + card('BP覆盖', Number(advanced.draft_matches || 0), matches, 'match_picks_bans')
       + card('事件时间线', Number(advanced.event_matches || 0), matches, '英雄死亡、买活与建筑')
+      + `<article class="${Number(advanced.damage_bucket_player_rows || 0) ? 'pb-quality-good' : 'pb-quality-warn'}"><span>分时伤害桶</span><strong>${Number(advanced.damage_bucket_player_rows || 0).toLocaleString()}</strong><small>5分钟英雄 / 建筑伤害聚合行</small></article>`
       + `<article class="${Number(dataMeta.unresolved_inventory_names || 0) ? 'pb-quality-warn' : 'pb-quality-good'}"><span>未识别库存名</span><strong>${Number(dataMeta.unresolved_inventory_names || 0).toLocaleString()}</strong><small>需要补充物品映射；不等于选手未购买</small></article>`;
     const months = new Map();
     allRows.forEach(r => {
@@ -6745,11 +7071,13 @@
       const shard = detailManifest?.buckets?.[month];
       return `<tr><td><strong>${month}</strong></td><td>${m.matches.size}</td><td>${m.games}</td><td>${pct(m.roles, m.games)}</td><td>${pct(m.snapshots, m.games)}</td><td>${shard ? `${(Number(shard.bytes || 0) / 1048576).toFixed(1)}MB` : '索引加载中'}</td><td>${shard ? `${shard.draft_matches}/${shard.matches}` : '—'}</td><td>${shard ? `${shard.event_matches}/${shard.matches}` : '—'}</td></tr>`;
     }).join('')}</tbody></table>`;
-    const scope = dataMeta.query_scope || {}, sourceStats = positions.source_stats || {}, update = dataMeta.update_status || dataMeta.update || {};
-    const dwdPurchases = Number(advanced.dwd_purchase_matches_latest_increment ?? advanced.dwd_purchase_matches ?? 0), odsPurchases = Number(advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0), backfill = advanced.bounded_route_backfill || {}, useBackfill = advanced.item_use_backfill || {};
+    const scope = dataMeta.query_scope || {}, sourceStats = positions.source_stats || {}, dwdPosition = sourceStats.dwd || {}, positionFallback = sourceStats.fallback || {}, openDotaPosition = sourceStats.opendota || {}, update = dataMeta.update_status || dataMeta.update || {};
+    const odsPurchases = Number(advanced.combatlog_purchase_matches_latest_increment ?? advanced.combatlog_purchase_matches ?? advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0), backfill = advanced.bounded_route_backfill || {}, useBackfill = advanced.item_use_backfill || {};
     const backfillHtml = backfill.completed_at ? `<div><span>限定路线回填</span><strong>${esc(backfill.hero || '—')} ${Number(backfill.complete_matches || 0)}/${Number(backfill.player_games || 0)} · ODS ${Number(backfill.ods_matches || 0)}场 · OpenDota ${Number(backfill.opendota_matches || 0)}场</strong></div>` : '';
     const useBackfillHtml = useBackfill.completed_at ? `<div><span>首次使用回填</span><strong>ODS ${Number(useBackfill.source_matches || 0)}/${Number(useBackfill.selected_matches || 0)}场 · ${Number(useBackfill.item_use_records || 0).toLocaleString()}条</strong></div>` : '';
-    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>本次购买时点</span><strong>DWD ${dwdPurchases}场 · ODS兜底 ${odsPurchases}场</strong></div>${backfillHtml}${useBackfillHtml}<p><b>来源披露：</b>主比赛、选手、快照、技能、BP和事件来自 <code>dota2_analysis</code>；职责位置与购买映射仍含 <code>dwd_dota2</code> 执行依赖（本次增量判位主路径 ${Number(sourceStats.primary_leagues || 0)} 个联赛，补刀兜底 ${Number(sourceStats.fallback_leagues || 0)} 个联赛）。购买时点优先使用 DWD 明细；未产出的比赛只查询相同精确 <code>dt</code> 与比赛 ID 的 ODS 购买日志。首次使用来自 ODS <code>DOTA_COMBATLOG_ITEM</code>，Echo Sabre 使用明确 debuff 触发映射；OpenDota 只有使用次数而没有时点，因此不会伪造首用间隔。纯被动装备、未发生可识别使用或源日志缺失时显示“—”。增量任务始终使用有界日期、精确分区和比赛 ID 批次。</p>`;
+    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>DWD判位主源</span><strong>${Number(dwdPosition.player_rows || 0)}条逐场选手 · 5分钟补刀 ${Number(dwdPosition.hits_5m_rows || 0)}条</strong></div><div><span>10分钟补刀兜底</span><strong>${Number(positionFallback.ten_minute_hits_recovered || 0)}条</strong></div><div><span>OpenDota补分路</span><strong>${Number(openDotaPosition.matched_matches || 0)}场 · 恢复212阵型 ${Number(openDotaPosition.recovered_212_teams || 0)}队</strong></div><div><span>OpenDota补技能</span><strong>${Number(advanced.opendota_ability_player_games || 0)}个选手局</strong></div><div><span>本次购买时点</span><strong>ODS ${odsPurchases}场</strong></div>${backfillHtml}${useBackfillHtml}<p><b>来源披露：</b>比赛、选手和局内明细以 <code>dota2_analysis</code> 为权威执行来源；职责判位按本次明确授权使用派生表 <code>dwd_dota2.dwd_match_player_positions</code> 的逐场 <code>lane_role</code> 与5分钟 <code>hits_5m</code>。DWD可能存在滞后或误差；只有缺少选手或补刀时才读取有限比赛ID下的 <code>players</code>/<code>player_intervals2</code> 十分钟补刀，只有DWD分路不能组成严格2-1-2且OpenDota能够恢复2-1-2时才采用精确比赛的 <code>lane_role</code>。所有Dota表均显式选择最小字段，取回后按各自语义键独立去重，再连接与汇总；<code>slot</code> 只作局内连接键，从不参与1–5号位判定。技能加点以 <code>hero_ability_level</code> 为主，选手局完全缺失时读取 OpenDota <code>ability_upgrades_arr</code>，保留真实顺序但不伪造升级秒数。购买与首次使用均来自 <code>combat_logs</code> 的 <code>DOTA_COMBATLOG_PURCHASE</code>/<code>DOTA_COMBATLOG_ITEM</code>；OpenDota 没有使用时点时不伪造首用间隔。出生装取0–90秒内最早可观察库存，20/35/55分钟背包取目标前120秒内最后快照，终局背包在解析时长附近的有界窗口内选择。伤害事件先去重，再在应用层按5分钟聚合并排除幻象。</p>`;
+    if (!/post-fetch|应用层/.test(String(scope.dedup || ''))) source.insertAdjacentHTML('afterbegin', `<p class="pb-data-warning"><b>缓存迁移提示：</b>当前完整历史缓存仍包含旧查询规范生成的区间；新抓取器和后续增量已切换到应用层语义去重。完成全历史重建前，请以这里显示的“去重策略”判断当前筛选区间的契约版本。</p>`);
+    source.innerHTML += `<p><b>统计边界：</b>职业表现指数是同英雄同位置的样本内百分位；阵容先验是经15局收缩的描述性估计，两者都不是因果或机器学习胜率。</p>`;
   }
 
   function renderTeams(rows) {
@@ -6839,6 +7167,9 @@
     const summary = document.getElementById('pb-match-summary'), itemSelect = document.getElementById('pb-match-item');
     const more = document.getElementById('pb-matches-more'), columnOptions = document.getElementById('pb-match-column-options');
     if (!body || !head || !summary) return;
+    if (!detailRowsReady(rows)) {
+      ensureDetailRows(rows).then(() => { if (activeTab === 'matches') renderMatches(currentRows); }).catch(() => {});
+    }
 
     if (itemSelect) {
       const counts = new Map();
@@ -6854,6 +7185,8 @@
     const filtered = rows.filter(row => {
       if (matchResult !== '' && String(row.w) !== matchResult) return false;
       if (matchState && situation(row) !== matchState) return false;
+      if (matchSide && String(row.tm) !== matchSide) return false;
+      if (matchPickPhase && draftPickPhase(row) !== matchPickPhase) return false;
       if (matchItem && !(row.i || []).some(pair => pair[0] === matchItem)) return false;
       if (matchComebackOnly && !(situation(row) === 'behind' && Number(row.w) === 1)) return false;
       if (matchRouteOnly && coreRoutePairs(row, 5).length < 2) return false;
@@ -6864,11 +7197,17 @@
       }
       return true;
     });
+    draftPriorScores = buildDraftPrior(filtered);
     const valueForSort = (row, key) => ({
       date: `${row.d || ''}:${String(row.m || '').padStart(12, '0')}`,
       match: Number(row.m || 0), player: row.n || '', team: row.t || '', league: row.l || '', hero: heroes[row.h]?.name || row.h || '',
       role: Number(row.r || 0), state: Number(row.g?.[6]), nw15: Number(row.g?.[6]), kda15: Number(row.g?.[3] || 0) + Number(row.g?.[5] || 0) - Number(row.g?.[4] || 0),
-      lh15: Number(row.g?.[2]), duration: Number(row.du), networth: Number(row.nw), result: Number(row.w),
+      lane10: laneDeltaAt(row, 600), nw10: Number(snapshotAt(row, 600)?.[2]), nw20: Number(snapshotAt(row, 1200)?.[2]),
+      cs10: Number(snapshotAt(row, 600)?.[3]), cs20: Number(snapshotAt(row, 1200)?.[3]), denies10: Number(snapshotAt(row, 600)?.[10]),
+      lh15: Number(row.g?.[2]), gpm: metricRates(row).gpm, xpm: metricRates(row).xpm,
+      damage: metricRates(row).heroDamage, towerDamage: metricRates(row).towerDamage, tfp: metricRates(row).tfp,
+      ppi: performanceScore(row), draft: draftPriorScores.get(rowKey(row)),
+      duration: Number(row.du), networth: Number(row.nw), result: Number(row.w),
     }[key]);
     filtered.sort((a, b) => {
       const av = valueForSort(a, matchSortKey), bv = valueForSort(b, matchSortKey);
@@ -6882,10 +7221,11 @@
     const kdaValues = filtered.filter(row => row.g && [3, 4, 5].every(index => Number.isFinite(Number(row.g[index])))).map(row => (Number(row.g[3]) + Number(row.g[5])) / Math.max(1, Number(row.g[4])));
     const durations = filtered.map(row => Number(row.du)).filter(value => Number.isFinite(value) && value > 0);
     const reconstructable = filtered.filter(row => coreRoutePairs(row, 5).length >= 2).length;
-    summary.innerHTML = `<article><span>筛选比赛</span><strong>${filtered.length.toLocaleString()}</strong></article><article><span>样本胜率</span><strong>${pct(wins, filtered.length)}</strong></article><article><span>平均15m团队经济差</span><strong>${nw15Values.length ? `${mean(nw15Values) >= 0 ? '+' : ''}${mean(nw15Values).toLocaleString()}` : '—'}</strong></article><article><span>平均15m KDA</span><strong>${kdaValues.length ? (kdaValues.reduce((sum, value) => sum + value, 0) / kdaValues.length).toFixed(2) : '—'}</strong></article><article><span>中位时长</span><strong>${timeText(median(durations))}</strong></article><article><span>路线覆盖</span><strong>${pct(reconstructable, filtered.length)}</strong></article>`;
+    const ppiValues = filtered.map(performanceScore).filter(Number.isFinite), draftValues = filtered.map(row => draftPriorScores.get(rowKey(row))).filter(Number.isFinite);
+    summary.innerHTML = `<article><span>筛选比赛</span><strong>${filtered.length.toLocaleString()}</strong></article><article><span>样本胜率</span><strong>${pct(wins, filtered.length)}</strong></article><article><span>平均15m团队经济差</span><strong>${nw15Values.length ? `${mean(nw15Values) >= 0 ? '+' : ''}${mean(nw15Values).toLocaleString()}` : '—'}</strong></article><article><span>平均15m KDA</span><strong>${kdaValues.length ? (kdaValues.reduce((sum, value) => sum + value, 0) / kdaValues.length).toFixed(2) : '—'}</strong></article><article><span>平均职业表现指数</span><strong>${mean(ppiValues) ?? '—'}</strong></article><article><span>平均阵容先验</span><strong>${draftValues.length ? pct(draftValues.reduce((sum, value) => sum + value, 0) / draftValues.length, 1) : '—'}</strong></article><article><span>中位时长</span><strong>${timeText(median(durations))}</strong></article><article><span>路线覆盖</span><strong>${pct(reconstructable, filtered.length)}</strong></article>`;
 
     const columns = Object.keys(MATCH_COLUMN_LABELS).filter(key => matchColumns.has(key));
-    const sortable = new Set(['match', 'player', 'team', 'league', 'hero', 'role', 'state', 'nw15', 'kda15', 'lh15', 'duration', 'networth', 'result']);
+    const sortable = new Set(['match', 'player', 'team', 'league', 'hero', 'role', 'state', 'lane10', 'nw10', 'nw15', 'nw20', 'cs10', 'cs20', 'denies10', 'kda15', 'lh15', 'gpm', 'xpm', 'damage', 'towerDamage', 'tfp', 'ppi', 'draft', 'duration', 'networth', 'result']);
     head.innerHTML = `<tr>${columns.map(key => `<th class="pb-match-col-${key}" ${sortable.has(key) ? `data-pb-match-sort="${key === 'match' ? 'date' : key}" tabindex="0" role="button"` : ''}>${esc(MATCH_COLUMN_LABELS[key])}${matchSortKey === (key === 'match' ? 'date' : key) ? `<i class="pb-sort-arrow">${matchSortDir === 'asc' ? '↑' : '↓'}</i>` : ''}</th>`).join('')}</tr>`;
     const cell = (row, key) => {
       const state = situation(row), teamDiff = Number(row.g?.[6]);
@@ -6896,10 +7236,21 @@
       if (key === 'hero') { const hero = heroes[row.h] || { name: row.h, icon: '' }; return `<td><span class="pb-item-name">${icon(hero.icon, hero.name)}${esc(hero.name)}</span></td>`; }
       if (key === 'route') return `<td class="pb-match-route-cell">${matchItemTimeline(row, true)}</td>`;
       if (key === 'role') return `<td>${row.r ? `${row.r}号位` : '—'}</td>`;
+      if (key === 'side') return `<td>${Number(row.tm) === 2 ? '天辉' : Number(row.tm) === 3 ? '夜魇' : '—'}</td>`;
+      if (key === 'pick') return `<td>${({ early: '前段', middle: '中段', last: '后段 / 最后手', unknown: '—' })[draftPickPhase(row)]}</td>`;
       if (key === 'state') return `<td>${situationName(state)}</td>`;
+      if (key === 'lane10') { const value = laneDeltaAt(row, 600); return `<td class="${Number(value) >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(value) ? `${value >= 0 ? '+' : ''}${value.toLocaleString()}` : '—'}</td>`; }
+      if (key === 'nw10' || key === 'nw20') { const value = Number(snapshotAt(row, key === 'nw10' ? 600 : 1200)?.[2]); return `<td>${Number.isFinite(value) ? value.toLocaleString() : '—'}</td>`; }
+      if (key === 'cs10' || key === 'cs20') { const value = Number(snapshotAt(row, key === 'cs10' ? 600 : 1200)?.[3]); return `<td>${Number.isFinite(value) ? value.toLocaleString() : '—'}</td>`; }
+      if (key === 'denies10') { const value = Number(snapshotAt(row, 600)?.[10]); return `<td>${Number.isFinite(value) ? value.toLocaleString() : '—'}</td>`; }
       if (key === 'nw15') return `<td class="${teamDiff >= 0 ? 'pb-up' : 'pb-down'}">${Number.isFinite(teamDiff) ? `${teamDiff >= 0 ? '+' : ''}${teamDiff.toLocaleString()}` : '—'}</td>`;
       if (key === 'kda15') return `<td>${row.g ? `${Number(row.g[3] || 0)}/${Number(row.g[4] || 0)}/${Number(row.g[5] || 0)}` : '—'}</td>`;
       if (key === 'lh15') return `<td>${Number.isFinite(Number(row.g?.[2])) ? Number(row.g[2]).toLocaleString() : '—'}</td>`;
+      if (key === 'gpm' || key === 'xpm') { const value = metricRates(row)[key]; return `<td>${Number.isFinite(value) ? value.toLocaleString() : '—'}</td>`; }
+      if (key === 'damage' || key === 'towerDamage') { const value = metricRates(row)[key === 'damage' ? 'heroDamage' : 'towerDamage']; return `<td>${Number.isFinite(value) ? value.toLocaleString() : '—'}</td>`; }
+      if (key === 'tfp') { const value = metricRates(row).tfp; return `<td>${Number.isFinite(value) ? pct(value, 1) : '—'}</td>`; }
+      if (key === 'ppi') { const value = performanceScore(row); return `<td><strong class="${Number(value) >= 60 ? 'pb-up' : Number(value) < 40 ? 'pb-down' : ''}" title="同英雄、同位置职业样本内的经济节奏、15分钟表现、KDA和等级百分位综合">${Number.isFinite(value) ? value : '—'}</strong></td>`; }
+      if (key === 'draft') { const value = draftPriorScores.get(rowKey(row)); return `<td><strong title="基于当前筛选中同队与敌方英雄的历史胜率差，并做15局贝叶斯收缩；不是机器学习预测">${Number.isFinite(value) ? pct(value, 1) : '—'}</strong></td>`; }
       if (key === 'duration') return `<td>${timeText(Number(row.du))}</td>`;
       if (key === 'networth') return `<td>${Number.isFinite(Number(row.nw)) ? Number(row.nw).toLocaleString() : '—'}</td>`;
       if (key === 'result') return `<td><b class="${row.w ? 'pb-up' : 'pb-down'}">${row.w ? '胜' : '负'}</b></td>`;
@@ -6947,10 +7298,13 @@
       ensureDetailRows([r]).then(() => { if (selectedMatchKey === key) renderMatchDetail(key); }).catch(err => { if (selectedMatchKey === key) setMatchDetailHtml(`<div class="pb-no-data">加载失败：${esc(err.message)}</div>`); });
       return;
     }
-    const detail = detailData.players?.[key] || { q: [], a: [] }, draft = detailData.drafts?.[String(r.m)] || { p: [], b: [] }, events = detailData.events?.[String(r.m)] || [];
+    const detail = detailData.players?.[key] || { q: [], a: [], iv: [], dm: [] }, draft = detailData.drafts?.[String(r.m)] || { p: [], b: [] }, events = detailData.events?.[String(r.m)] || [];
     const allied = draft.p.filter(p => p[1] === r.tm), enemies = draft.p.filter(p => p[1] !== r.tm);
     const heroChip = p => { const h = Object.values(heroes).find(x => x.name === p[3]) || heroes[p[3]] || { name: p[3], icon: '' }; return `<span>${icon(h.icon, h.name)}${esc(h.name)}</span>`; };
-    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${r.w ? '胜利' : '失败'}</p><h4>出装时间线</h4>${itemTimeline}<h4>双方选人</h4><div class="pb-draft"><div>${allied.map(heroChip).join('') || '<span>没有可靠阵容明细</span>'}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('') || '<span>该局没有可靠经济快照</span>'}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('') || '<span>该局没有可靠技能加点明细</span>'}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
+    const rates = metricRates(r), ppi = performanceScore(r), draftScore = buildDraftPrior(currentRows).get(rowKey(r));
+    const inventoryHtml = (detail.iv || []).map(entry => `<article><span>${Number(entry[0]) === 0 ? '出生库存' : `${Math.round(Number(entry[0]) / 60)}分钟背包`}</span><div>${(entry[2] || []).map(id => { const item = items[id] || { name: id, icon: '' }; return `<b title="${esc(item.name)}">${icon(item.icon, item.name)}</b>`; }).join('') || '—'}</div><small>实际快照 ${timeText(Number(entry[1]))}</small></article>`).join('');
+    const damageHtml = (detail.dm || []).map(entry => `<span><b>${timeText(Number(entry[0]))}–${timeText(Number(entry[0]) + 299)}</b>英雄 ${Number(entry[1] || 0).toLocaleString()} · 建筑 ${Number(entry[2] || 0).toLocaleString()}</span>`).join('');
+    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${Number(r.tm) === 2 ? '天辉' : '夜魇'} · ${r.w ? '胜利' : '失败'}</p><div class="pb-match-scorecards"><article><span>职业表现指数</span><strong>${Number.isFinite(ppi) ? ppi : '—'}</strong><small>同英雄同位置百分位</small></article><article><span>阵容先验</span><strong>${Number.isFinite(draftScore) ? pct(draftScore, 1) : '—'}</strong><small>描述性收缩估计，非ML预测</small></article><article><span>GPM / XPM</span><strong>${rates.gpm || '—'} / ${rates.xpm || '—'}</strong><small>终局累计值 / 比赛分钟</small></article><article><span>伤害 / 参战</span><strong>${Number.isFinite(rates.heroDamage) ? rates.heroDamage.toLocaleString() : '—'} / ${Number.isFinite(rates.tfp) ? pct(rates.tfp, 1) : '—'}</strong><small>新采集字段</small></article></div><h4>出装时间线</h4>${itemTimeline}<h4>控制时点完整背包</h4><div class="pb-match-inventories">${inventoryHtml || '<span>旧缓存没有出生与控制时点背包</span>'}</div><h4>双方选人 · ${({ early: '前段选出', middle: '中段选出', last: '后段 / 最后手', unknown: '阶段未知' })[draftPickPhase(r)]}</h4><div class="pb-draft"><div>${allied.map(heroChip).join('') || '<span>没有可靠阵容明细</span>'}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[3].toLocaleString()}补刀${Number.isFinite(Number(q[10])) ? ` / ${Number(q[10])}反补` : ''} · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('') || '<span>该局没有可靠经济快照</span>'}</div><h4>分时伤害</h4><div class="pb-event-list">${damageHtml || '<span>旧缓存没有分时伤害；新增量会自动写入</span>'}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('') || '<span>该局没有可靠技能加点明细</span>'}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
   }
 
   function renderHeatmap(rows) {
@@ -7008,7 +7362,8 @@
     } else if (activeTab === 'people') {
       renderPlayers(rows); renderTeams(rows); renderPlayerStyle(rows); populateDuelSelectors(false); renderDuel();
     } else if (activeTab === 'situations') {
-      renderComparison(rows); renderSituations(rows); renderMatchups(rows); renderLineupDecisions(rows); renderSkills(rows);
+      renderComparison(rows); renderSituations(rows); renderPerformance(rows); renderMatchups(rows);
+      renderLineupDecisions(rows); renderSkills(rows); renderPatchMeta(rows); renderOffMeta(rows);
     } else if (activeTab === 'quality') {
       renderDataQuality(); renderConfidence(rows, selectedStat); renderAlerts();
     } else if (activeTab === 'matches') {
@@ -7060,6 +7415,13 @@
     const completeJump = e.target.closest('[data-pb-complete-jump]');
     if (completeJump) {
       document.getElementById(completeJump.dataset.pbCompleteJump || '')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const offMetaCluster = e.target.closest('[data-pb-offmeta-cluster]');
+    if (offMetaCluster) {
+      selectedRouteClusterId = offMetaCluster.dataset.pbOffmetaCluster || '';
+      setActiveTab('routes', true); render();
+      document.getElementById('pb-route-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     const briefMatch = e.target.closest('[data-pb-brief-match]');
@@ -7148,6 +7510,8 @@
   document.getElementById('pb-match-search')?.addEventListener('input', event => { matchSearch = event.target.value || ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-result')?.addEventListener('change', event => { matchResult = event.target.value || ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-state')?.addEventListener('change', event => { matchState = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-side')?.addEventListener('change', event => { matchSide = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-pick-phase')?.addEventListener('change', event => { matchPickPhase = event.target.value || ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-item')?.addEventListener('change', event => { matchItem = event.target.value || ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-comeback')?.addEventListener('change', event => { matchComebackOnly = Boolean(event.target.checked); refreshMatchExplorer(); });
   document.getElementById('pb-match-route-only')?.addEventListener('change', event => { matchRouteOnly = Boolean(event.target.checked); refreshMatchExplorer(); });
@@ -7160,6 +7524,11 @@
     if (input.checked) matchColumns.add(input.dataset.pbMatchColumn); else matchColumns.delete(input.dataset.pbMatchColumn);
     matchColumns.add('match'); renderMatches(currentRows);
   });
+  document.getElementById('pb-matchup-search')?.addEventListener('input', event => { matchupSearch = event.target.value || ''; if (activeTab === 'situations') renderMatchups(currentRows); });
+  document.getElementById('pb-matchup-min')?.addEventListener('input', event => { matchupMin = Number(event.target.value || 5); const output = document.getElementById('pb-matchup-min-value'); if (output) output.value = `${matchupMin}局`; if (activeTab === 'situations') renderMatchups(currentRows); });
+  document.getElementById('pb-matchup-role')?.addEventListener('change', event => { matchupRole = event.target.value || ''; if (activeTab === 'situations') renderMatchups(currentRows); });
+  document.getElementById('pb-matchup-kind')?.addEventListener('change', event => { matchupKind = event.target.value || 'enemy'; if (activeTab === 'situations') renderMatchups(currentRows); });
+  document.getElementById('pb-matchup-meta-only')?.addEventListener('change', event => { matchupMetaOnly = Boolean(event.target.checked); if (activeTab === 'situations') renderMatchups(currentRows); });
   document.getElementById('pb-matches-more')?.addEventListener('click', () => { matchVisibleLimit += 50; renderMatches(currentRows); });
   page.addEventListener('keydown', event => {
     const header = event.target.closest('[data-pb-match-sort]');

@@ -27,7 +27,7 @@ DATA_PATH = ROOT / "data" / "pro_builds.json"
 DETAIL_DATA_PATH = ROOT / "data" / "pro_builds_detail.json"
 UPDATE_STATUS_PATH = ROOT / "data" / "pro_builds_update_status.json"
 DIST = ROOT / "dist"
-CORE_SCHEMA = "pro-builds-core-v2"
+CORE_SCHEMA = "pro-builds-core-v3"
 
 
 def _latest_href() -> str:
@@ -87,6 +87,7 @@ def _config() -> dict:
         "dataUrl": "data/pro_builds.json",
         "dataGzipUrl": "data/pro_builds.json.gz",
         "detailManifestUrl": "data/pro_builds_detail_manifest.json",
+        "dynamicsUrl": "_dynamics.json",
         "theoryPatch": version,
         "abilityNames": ability_names,
         "heroAbilities": hero_abilities,
@@ -100,6 +101,7 @@ def _config() -> dict:
                 "icon": item["icon"],
                 "cost": item.get("cost", 0),
                 "class": item.get("class", "regular"),
+                "tier": item.get("tier"),
                 "category": item.get("category"),
                 "consumable": bool(item.get("consumable")),
                 "bonus": {
@@ -223,6 +225,7 @@ def _write_compact_core() -> dict:
                 row.get("tm"), row.get("r"), encode("rm", row.get("rm")),
                 row.get("rc"), row.get("w"), row.get("lv"), row.get("nw"),
                 row.get("du"), encoded_items, row.get("g"), encoded_uses,
+                row.get("x"),
             ]
         )
     meta = dict(payload.get("meta") or {})
@@ -387,7 +390,7 @@ def render_html() -> str:
       <label data-pb-field="result"><span>结果</span><select id="pb-result"><option value="">全部结果</option><option value="1">胜利</option><option value="0">失败</option></select></label>
       <label data-pb-field="situation"><span>15分钟局势</span><select id="pb-situation"><option value="">全部局势</option><option value="ahead">优势（经济领先 ≥1500）</option><option value="even">均势（±1500）</option><option value="behind">劣势（经济落后 ≥1500）</option></select></label>
       <label data-pb-field="opponent"><span>对手英雄</span><input id="pb-opponent-search" type="search" list="pb-opponent-options" autocomplete="off" placeholder="搜索对手英雄" aria-label="搜索对手英雄"><datalist id="pb-opponent-options"></datalist><select id="pb-opponent" hidden><option value="">全部对手</option></select></label>
-      <label data-pb-field="method"><span>判位方法</span><select id="pb-role-method"><option value="">全部方法</option><option value="lanes">分路 + 补刀</option><option value="hits">纯补刀兜底</option></select></label>
+      <label data-pb-field="method"><span>判位方法</span><select id="pb-role-method"><option value="">全部方法</option><option value="lanes">DWD 分路 + 5分钟补刀</option><option value="lanes_opendota">OpenDota 补分路 + 补刀</option><option value="hits">纯补刀最终兜底</option></select></label>
       <label data-pb-field="scope"><span>物品范围</span><select id="pb-scope"><option value="core">核心成装</option><option value="regular">全部常规物品</option><option value="all">含消耗品/中立物品</option></select></label>
     </div>
     <div class="pb-hero-shortcuts" id="pb-hero-shortcuts" aria-label="热门英雄"></div>
@@ -495,8 +498,23 @@ def render_html() -> str:
       <div id="pb-situations" class="pb-analysis-grid"></div>
     </section>
 
+    <section class="pb-card pb-performance-card" data-pb-panel="situations">
+      <header><div><span class="pb-card-kicker">ROLE PERFORMANCE</span><h2>英雄表现与比赛节奏</h2></div><small id="pb-performance-status">10分钟分路、经济成长、阵营与选人阶段</small></header>
+      <div id="pb-performance-summary" class="pb-analysis-grid"></div>
+      <div class="pb-performance-grid"><div id="pb-economy-curve" class="pb-metric-chart"></div><div id="pb-damage-curve" class="pb-metric-chart"></div></div>
+      <div id="pb-level-performance" class="pb-table-wrap"></div>
+    </section>
+
     <section class="pb-card pb-matchup-card" data-pb-panel="situations">
-      <header><div><span class="pb-card-kicker">MATCHUPS</span><h2>对手阵容与装备应对</h2></div><small>按对手英雄拆分采用率与样本胜率</small></header>
+      <header><div><span class="pb-card-kicker">MATCHUP EXPLORER</span><h2>对线、克制与协同探索器</h2></div><small>区分10分钟分路结果与最终比赛结果</small></header>
+      <div class="pb-matchup-tools">
+        <label><span>搜索英雄</span><input id="pb-matchup-search" type="search" placeholder="输入英雄名称"></label>
+        <label><span>最少样本</span><input id="pb-matchup-min" type="range" min="1" max="50" value="5"><output id="pb-matchup-min-value">5局</output></label>
+        <label><span>敌方位置</span><select id="pb-matchup-role"><option value="">全部位置</option><option value="1">1号位</option><option value="2">2号位</option><option value="3">3号位</option><option value="4">4号位</option><option value="5">5号位</option></select></label>
+        <label><span>观察维度</span><select id="pb-matchup-kind"><option value="enemy">敌方英雄</option><option value="ally">协同英雄</option></select></label>
+        <label class="pb-switch"><input id="pb-matchup-meta-only" type="checkbox" checked> 只看常见英雄</label>
+      </div>
+      <div id="pb-matchup-plot" class="pb-matchup-plot"></div>
       <div id="pb-matchups" class="pb-table-wrap"></div>
     </section>
 
@@ -508,6 +526,16 @@ def render_html() -> str:
     <section class="pb-card pb-skill-card" data-pb-panel="situations">
       <header><div><span class="pb-card-kicker">SKILL × ITEM</span><h2>技能加点与出装联动</h2></div><small id="pb-detail-status">正在加载单局明细…</small></header>
       <div id="pb-skills" class="pb-analysis-grid"></div>
+    </section>
+
+    <section class="pb-card pb-patch-meta-card" data-pb-panel="situations">
+      <header><div><span class="pb-card-kicker">PATCH + META</span><h2>英雄改动与版本响应</h2></div><small>把补丁改动和职业路线变化放在同一条时间线上</small></header>
+      <div id="pb-patch-meta" class="pb-patch-meta"><div class="pb-empty">选择英雄后加载版本改动</div></div>
+    </section>
+
+    <section class="pb-card pb-off-meta-card" data-pb-panel="situations">
+      <header><div><span class="pb-card-kicker">OFF-META LAB</span><h2>非主流与新出现路线</h2></div><small>低采用不等于更强；仅用于发现值得复盘的真实样本</small></header>
+      <div id="pb-off-meta" class="pb-analysis-grid"></div>
     </section>
 
     <section class="pb-card pb-sub-card" data-pb-panel="routes">
@@ -530,7 +558,7 @@ def render_html() -> str:
     <section class="pb-card pb-players-card" data-pb-panel="people">
       <header><div><span class="pb-card-kicker">PLAYER SIGNATURE</span><h2>选手风格</h2></div><small>按英雄聚合的常见核心节点路线</small></header>
       <div class="pb-table-wrap">
-        <table class="pb-table"><thead><tr><th>选手</th><th>战队</th><th>场次</th><th>总胜率</th><th>常见英雄 / 核心出装路线（购买中位 · 平均第一次使用间隔）</th><th>路线采用率</th><th>路线胜率</th></tr></thead><tbody id="pb-players-body"></tbody></table>
+        <table class="pb-table"><thead><tr><th>选手</th><th>战队</th><th>场次</th><th>总胜率</th><th title="同英雄同位置职业样本内的经济节奏、15分钟表现、KDA和等级百分位综合">平均职业表现指数</th><th>常见英雄 / 核心出装路线（购买中位 · 平均第一次使用间隔）</th><th>路线采用率</th><th>路线胜率</th></tr></thead><tbody id="pb-players-body"></tbody></table>
       </div>
     </section>
 
@@ -569,6 +597,8 @@ def render_html() -> str:
           <label><span>搜索</span><input id="pb-match-search" type="search" placeholder="比赛 / 选手 / 战队 / 赛事 / 装备"></label>
           <label><span>结果</span><select id="pb-match-result"><option value="">全部</option><option value="1">胜利</option><option value="0">失败</option></select></label>
           <label><span>15分钟局势</span><select id="pb-match-state"><option value="">全部</option><option value="ahead">优势</option><option value="even">均势</option><option value="behind">劣势</option><option value="unknown">未知</option></select></label>
+          <label><span>阵营</span><select id="pb-match-side"><option value="">全部</option><option value="2">天辉</option><option value="3">夜魇</option></select></label>
+          <label><span>选人阶段</span><select id="pb-match-pick-phase"><option value="">全部</option><option value="early">前段</option><option value="middle">中段</option><option value="last">后段 / 最后手</option><option value="unknown">未知</option></select></label>
           <label><span>包含装备</span><select id="pb-match-item"><option value="">全部装备</option></select></label>
           <label><span>排序</span><select id="pb-match-sort"><option value="date:desc">日期（新→旧）</option><option value="date:asc">日期（旧→新）</option><option value="nw15:desc">15分钟经济差（高→低）</option><option value="duration:desc">时长（长→短）</option><option value="networth:desc">终局经济（高→低）</option></select></label>
         </div>

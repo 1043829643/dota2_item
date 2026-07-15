@@ -61,13 +61,27 @@ def test_compact_match_timeline_falls_back_to_final_items() -> None:
 
 def test_complete_build_keeps_opening_and_stage_evidence_honest() -> None:
     complete = _function_source("renderCompleteBuild", "routeSimilarity")
-    assert "0–3分钟开局与首轮补给" in complete
-    assert "不等同于出生时库存" in complete
+    assert "精确出生装与首轮补给" in complete
+    assert "出生库存覆盖" in complete
+    assert "0–3分钟购买记录" in complete
+    assert "库存快照与购买日志分开统计" in complete
     assert "每个阶段独立统计，不能连读为唯一固定路线" in complete
     assert "special_bonus_" in complete
     assert "item.class === className" in complete
     assert "ensureDetailRows(rows)" in complete
     assert "这不表示该英雄没有技能路线" in complete
+
+
+def test_performance_matchup_and_meta_modules_disclose_proxy_boundaries() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    performance = _function_source("renderPerformance", "renderMatchups")
+    matchups = _function_source("renderMatchups", "renderLineupDecisions")
+    assert "以10分钟同位置经济差±500划分" in performance
+    assert "旧缓存没有分时伤害" in performance
+    assert "matchupMetaOnly" in matchups
+    assert "10分钟对位经济差与最终胜率差" in matchups
+    assert "职业表现指数是同英雄同位置的样本内百分位" in source
+    assert "阵容先验是经15局收缩的描述性估计" in source
 
 
 def test_lineup_decisions_use_same_role_networth_proxy() -> None:
@@ -120,3 +134,29 @@ def test_scout_flow_requires_target_hero_and_explicit_submit() -> None:
     assert "scoutAnalysisSubmitted = true" in source
     assert "params.set('run', '1')" in source
     assert "|| (researchMode === 'scout' && (key === 'team' || key === 'player'))" not in source
+
+
+def test_player_table_discloses_untimed_final_build_fallback() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    assert "finalBuilds: new Map()" in source
+    assert "终局成装组合 · 顺序待还原" in source
+    assert "路线胜率待还原" in source
+
+
+def test_position_quality_distinguishes_opendota_lane_fallback() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    assert "lanes_opendota" in source
+    assert "OpenDota补分路" in source
+
+
+def test_skill_routes_disclose_opendota_fallback() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    assert "abilityDetail.a_src === 'opendota'" in source
+    assert "OpenDota兜底 ${skillOpenDota}" in source
+    assert "ability_upgrades_arr" in source
+
+
+def test_short_matches_keep_observed_small_item_route() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    assert "Very short matches can end before a second expensive node" in source
+    assert "shortGame.length >= 2 ? shortGame : timed" in source
