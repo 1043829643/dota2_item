@@ -177,6 +177,16 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "inventory_snapshot_player_games": sum(
             bool((value or {}).get("iv")) for value in players.values()
         ),
+        "neutral_history_matches": len({
+            int(str(key).split(":", 1)[0])
+            for key, value in players.items() if bool((value or {}).get("ni"))
+        }),
+        "neutral_history_player_games": sum(
+            bool((value or {}).get("ni")) for value in players.values()
+        ),
+        "neutral_history_records": sum(
+            len((value or {}).get("ni") or []) for value in players.values()
+        ),
         "damage_bucket_player_rows": sum(
             len((value or {}).get("dm") or []) for value in players.values()
         ),
@@ -211,7 +221,7 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "snapshot_times": (incoming_meta.get("advanced") or {}).get("snapshot_times")
         or (meta.get("advanced") or {}).get("snapshot_times") or [],
     }
-    for key in ("bounded_route_backfill", "item_use_backfill"):
+    for key in ("bounded_route_backfill", "item_use_backfill", "neutral_history_backfill"):
         value = (incoming_meta.get("advanced") or {}).get(key) or (meta.get("advanced") or {}).get(key)
         if value:
             advanced[key] = value
@@ -304,6 +314,9 @@ def merge_payloads(existing_core: dict, existing_detail: dict, incoming_core: di
         "players": len(detail["players"]),
         "draft_matches": len(detail["drafts"]),
         "event_matches": len(detail["events"]),
+        "neutral_history_matches": core["meta"]["advanced"]["neutral_history_matches"],
+        "neutral_history_player_games": core["meta"]["advanced"]["neutral_history_player_games"],
+        "neutral_history_records": core["meta"]["advanced"]["neutral_history_records"],
         "update": update,
     }
     validation = validate_payloads(core, detail)

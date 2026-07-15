@@ -157,6 +157,66 @@ def _audit_item_uses(records, advanced, errors: list[str]) -> tuple[int, int, in
     return use_records, use_player_games, use_source_player_games
 
 
+def _audit_neutral_history(players, advanced, errors: list[str]) -> tuple[int, int, int]:
+    """Validate compact OpenDota [tier, time, neutral, enchantment] rows."""
+    matches: set[int] = set()
+    player_games = 0
+    records = 0
+    for key, player in (players or {}).items():
+        choices = (player or {}).get("ni")
+        if choices is None:
+            continue
+        if not isinstance(choices, list):
+            fail(f"neutral history must be an array at {key}", errors)
+            continue
+        if choices:
+            player_games += 1
+            try:
+                matches.add(int(str(key).split(":", 1)[0]))
+            except ValueError:
+                fail(f"neutral history has invalid player key: {key}", errors)
+        records += len(choices)
+        valid = []
+        seen_tiers: set[int] = set()
+        for index, choice in enumerate(choices):
+            if not isinstance(choice, list) or len(choice) != 4:
+                fail(f"invalid neutral history shape at {key}, index {index}", errors)
+                continue
+            tier, seconds, neutral_id, enchant_id = choice
+            if not _is_json_integer(tier) or tier not in range(5):
+                fail(f"invalid neutral tier at {key}, index {index}", errors)
+                continue
+            if tier in seen_tiers:
+                fail(f"duplicate neutral tier at {key}: {tier}", errors)
+                continue
+            seen_tiers.add(tier)
+            if not _is_json_integer(seconds) or seconds < 0:
+                fail(f"invalid neutral selection time at {key}, tier {tier}", errors)
+                continue
+            if not isinstance(neutral_id, str) or not neutral_id.startswith("item_"):
+                fail(f"invalid neutral item id at {key}, tier {tier}", errors)
+                continue
+            if not isinstance(enchant_id, str) or (enchant_id and not enchant_id.startswith("item_enhancement_")):
+                fail(f"invalid neutral enchantment id at {key}, tier {tier}", errors)
+                continue
+            valid.append(choice)
+        if len(valid) == len(choices) and choices != sorted(valid, key=lambda row: (row[0], row[1])):
+            fail(f"neutral history is not deterministically ordered at {key}", errors)
+        if choices and (player or {}).get("ni_src") != "opendota":
+            fail(f"neutral history source is not OpenDota at {key}", errors)
+
+    expected = {
+        "neutral_history_matches": len(matches),
+        "neutral_history_player_games": player_games,
+        "neutral_history_records": records,
+    }
+    for name, value in expected.items():
+        actual = (advanced or {}).get(name)
+        if not _is_json_integer(actual) or actual != value:
+            fail(f"{name} does not match meta: {value}, meta says {actual}", errors)
+    return len(matches), player_games, records
+
+
 def main() -> int:
     errors: list[str] = []
     for path in (CORE, DETAIL, DIST_CORE, DIST_CORE_GZIP, MANIFEST, FETCHER, UPDATER, UPDATE_STATUS, ROOT / "dist" / "pro_builds.html"):
@@ -283,6 +343,9 @@ def main() -> int:
     use_records, use_player_games, use_source_player_games = _audit_item_uses(
         records, advanced, errors
     )
+    neutral_matches, neutral_player_games, neutral_records = _audit_neutral_history(
+        detail.get("players") or {}, advanced, errors
+    )
     match_sizes: dict[int, int] = {}
     for row in records:
         match_id = int(row.get("m") or 0)
@@ -347,6 +410,8 @@ def main() -> int:
         "renderHeroProfile", "renderProfileInsights", "renderProBrief", "matchItemTimeline", "TAB_META",
         "openMatchDrawer", "commitSearchControl",
         "averageFirstUseDelay", "pb-first-use-gap", "DecompressionStream",
+        "neutralTierStats", "OpenDota 精确历史覆盖", "data-pb-neutral-filter",
+        "每个选手局、每个 Tier 只统计最后一次有效组合", "matchNeutralTimeline",
     )
     for marker in required_js:
         if marker not in js:
@@ -373,6 +438,7 @@ def main() -> int:
         "FROM dwd_dota2.dwd_match_player_positions",
         '"approved_execution_dependency": True',
         '"freshness_warning"',
+        "neutral_item_history", "_parse_opendota_neutral_choices",
     )
     for marker in required_query_contracts:
         if marker not in fetcher:

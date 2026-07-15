@@ -67,9 +67,28 @@ def test_complete_build_keeps_opening_and_stage_evidence_honest() -> None:
     assert "库存快照与购买日志分开统计" in complete
     assert "每个阶段独立统计，不能连读为唯一固定路线" in complete
     assert "special_bonus_" in complete
-    assert "item.class === className" in complete
+    assert "renderNeutralAnalysis(rows)" in complete
     assert "ensureDetailRows(rows)" in complete
     assert "这不表示该英雄没有技能路线" in complete
+
+
+def test_neutral_items_and_enchantments_use_exact_tier_history() -> None:
+    source = SCRIPTS.read_text(encoding="utf-8")
+    stats = _function_source("neutralTierStats", "neutralStatChoice")
+    analysis = _function_source("renderNeutralAnalysis", "renderCompleteBuild")
+    matches = _function_source("renderMatches", "setMatchDetailHtml")
+    detail = _function_source("renderMatchDetail", "renderHeatmap")
+    assert "detailFor(row)?.ni" in source
+    assert "Number(entry[0]) === Number(tier)" in stats
+    assert "itemCoverage" in stats and "enchantCoverage" in stats
+    assert "每个选手局、每个 Tier 只统计最后一次有效组合" in analysis
+    assert "采用率分母是该 Tier 有记录的比赛" in analysis
+    assert "data-pb-neutral-filter" in source
+    assert "rowHasObservedItem(row, matchItem)" in matches
+    assert "matchNeutralCompanion" in matches
+    assert "rowHasNeutralSelection(row, matchNeutralTier, matchItem, matchNeutralCompanion)" in matches
+    assert "matchNeutralTimeline(r)" in detail
+    assert "不代表选手没有选择中立物品" in source
 
 
 def test_performance_matchup_and_meta_modules_disclose_proxy_boundaries() -> None:

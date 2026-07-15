@@ -254,11 +254,15 @@ def _team_identity(team_id, team_tag) -> str:
     return f"tag:{_team_key(team_tag)}"
 
 
-def _load_item_ids() -> set[str]:
+def _load_item_catalog() -> dict[str, dict]:
     sys.path.insert(0, str(ROOT))
     from builders.hero_lab import _load_items, _versions
 
-    return {row["id"] for row in _load_items(_versions()[-1])}
+    return {row["id"]: row for row in _load_items(_versions()[-1])}
+
+
+def _load_item_ids() -> set[str]:
+    return set(_load_item_catalog())
 
 
 def _item_alias_key(value) -> str:
@@ -436,6 +440,56 @@ def _parse_opendota_ability_route(
         ranks[slug] += 1
         route.append([order, slug, ranks[slug]])
     return route
+
+
+def _parse_opendota_neutral_choices(
+    match: dict, hero_id: int, item_catalog: dict[str, dict]
+) -> list[list]:
+    """Return one final [tier, time, neutral, enchantment] choice per tier.
+
+    OpenDota's ``neutral_item_history`` records every replacement.  For an
+    adoption table, counting every replacement would count one player-game
+    more than once in a tier, so the latest valid history row wins.
+    """
+    player = next(
+        (
+            row for row in match.get("players") or []
+            if int(row.get("hero_id") or 0) == int(hero_id or 0)
+        ),
+        None,
+    )
+    if not player:
+        return []
+
+    by_tier: dict[int, list] = {}
+    for history in player.get("neutral_item_history") or []:
+        if not isinstance(history, dict):
+            continue
+        neutral_id = str(history.get("item_neutral") or "").strip()
+        enchant_id = str(history.get("item_neutral_enhancement") or "").strip()
+        if neutral_id and not neutral_id.startswith("item_"):
+            neutral_id = f"item_{neutral_id}"
+        if enchant_id and not enchant_id.startswith("item_"):
+            enchant_id = f"item_{enchant_id}"
+        neutral = item_catalog.get(neutral_id) or {}
+        if neutral.get("class") != "neutral":
+            continue
+        try:
+            tier = int(neutral.get("tier"))
+            seconds = int(history.get("time"))
+        except (TypeError, ValueError):
+            continue
+        if tier not in range(5) or seconds < 0:
+            continue
+        if enchant_id and (item_catalog.get(enchant_id) or {}).get("class") != "enchant":
+            enchant_id = ""
+        candidate = [tier, seconds, neutral_id, enchant_id]
+        previous = by_tier.get(tier)
+        if previous is None or (seconds, neutral_id, enchant_id) > (
+            previous[1], previous[2], previous[3]
+        ):
+            by_tier[tier] = candidate
+    return [by_tier[tier] for tier in sorted(by_tier)]
 
 
 def _load_opendota_match(match_id: int) -> dict:
@@ -1116,7 +1170,8 @@ def _load_positions(
 
 
 def main() -> int:
-    valid_item_ids = _load_item_ids()
+    item_catalog = _load_item_catalog()
+    valid_item_ids = set(item_catalog)
     conn = _connect()
     cur = conn.cursor()
     date_from, date_to = _date_bounds()
@@ -1295,13 +1350,13 @@ def main() -> int:
     snapshot_times = (300, 600, 900, 1200, 1500, 1800, 2400, 3000)
     duration_bounds: dict[int, tuple[int, int]] = {}
     duration_hint_sources: Counter = Counter()
+    opendota_matches: dict[int, dict] = {}
     for match_id in match_ids:
         duration = None
         try:
-            duration = _to_int(
-                _load_opendota_match(match_id).get("duration"),
-                "opendota.duration",
-            )
+            opendota_match = _load_opendota_match(match_id)
+            opendota_matches[match_id] = opendota_match
+            duration = _to_int(opendota_match.get("duration"), "opendota.duration")
         except (OSError, ValueError, json.JSONDecodeError):
             pass
         if duration is not None and duration > 0:
@@ -1314,6 +1369,24 @@ def main() -> int:
             approximate = max(0, end_time - start_time - 1800)
             duration_bounds[match_id] = (max(0, approximate - 600), approximate + 600)
             duration_hint_sources["metadata_approximation"] += 1
+
+    neutral_history_player_games = 0
+    neutral_history_records = 0
+    neutral_history_matches: set[int] = set()
+    for key, record in records.items():
+        choices = _parse_opendota_neutral_choices(
+            opendota_matches.get(key[0], {}), int(record.get("hi") or 0), item_catalog
+        )
+        if not choices:
+            continue
+        detail = detail_players.setdefault(
+            f"{key[0]}:{key[1]}", {"q": [], "a": [], "iv": [], "dm": [], "ni": []}
+        )
+        detail["ni"] = choices
+        detail["ni_src"] = "opendota"
+        neutral_history_player_games += 1
+        neutral_history_records += len(choices)
+        neutral_history_matches.add(key[0])
     final_interval_rows: dict[tuple[int, int], tuple] = {}
     snapshot_interval_rows: list[tuple] = []
     interval_columns = (
@@ -1905,10 +1978,11 @@ def main() -> int:
     rows = list(records.values())
     rows.sort(key=lambda r: (r["d"], r["m"], r["s"]))
     for player in detail_players.values():
-        player["q"].sort(key=lambda row: row[0])
-        player["a"].sort(key=lambda row: row[0])
-        player["iv"].sort(key=lambda row: row[0])
-        player["dm"].sort(key=lambda row: row[0])
+        player.setdefault("q", []).sort(key=lambda row: row[0])
+        player.setdefault("a", []).sort(key=lambda row: row[0])
+        player.setdefault("iv", []).sort(key=lambda row: row[0])
+        player.setdefault("dm", []).sort(key=lambda row: row[0])
+        player.setdefault("ni", []).sort(key=lambda row: (row[0], row[1]))
     for match_events in events.values():
         match_events.sort(key=lambda row: row[0])
     patches = Counter(r["p"] for r in rows)
@@ -1972,6 +2046,9 @@ def main() -> int:
                 "inventory_snapshot_player_games": sum(
                     bool(row.get("iv")) for row in detail_players.values()
                 ),
+                "neutral_history_matches": len(neutral_history_matches),
+                "neutral_history_player_games": neutral_history_player_games,
+                "neutral_history_records": neutral_history_records,
                 "damage_bucket_player_rows": damage_rows,
                 "damage_query_failures": damage_query_failures,
                 "timed_item_player_games": sum(
@@ -1998,6 +2075,9 @@ def main() -> int:
             "players": len(detail_players),
             "draft_matches": len(drafts),
             "event_matches": len(events),
+            "neutral_history_matches": len(neutral_history_matches),
+            "neutral_history_player_games": neutral_history_player_games,
+            "neutral_history_records": neutral_history_records,
         },
         "players": detail_players,
         "drafts": drafts,

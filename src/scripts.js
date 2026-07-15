@@ -5278,6 +5278,8 @@
   const ROUTE_CLUSTER_VERSION = 'route-cluster-v2';
   const SAVED_VIEW_KEY = 'sloppy-pro-build-views-v1';
   let selectedItem = '';
+  let matchNeutralCompanion = '';
+  let matchNeutralTier = '';
   let lastItemStats = [];
   let matchSearch = '';
   let matchResult = '';
@@ -6179,6 +6181,78 @@
     return `<span class="pb-complete-item" title="${esc(item.name)} · ${stat.games}局 · 样本胜率 ${pct(stat.wins, stat.games)}">${icon(item.icon, item.name)}<b>${esc(item.name)}</b><small>${pct(stat.games, total)} · ${Number.isFinite(median(stat.times)) ? timeText(median(stat.times)) : '终局记录'}</small></span>`;
   }
 
+  function neutralChoices(row) {
+    return (detailFor(row)?.ni || []).filter(entry => Array.isArray(entry) && entry.length >= 4);
+  }
+
+  function rowHasObservedItem(row, itemId) {
+    if (!itemId) return true;
+    if ((row.i || []).some(pair => pair[0] === itemId)) return true;
+    return neutralChoices(row).some(choice => choice[2] === itemId || choice[3] === itemId);
+  }
+
+  function rowHasNeutralSelection(row, tier, primaryId, companionId) {
+    const choice = neutralChoices(row).find(entry => Number(entry[0]) === Number(tier));
+    if (!choice || (choice[2] !== primaryId && choice[3] !== primaryId)) return false;
+    return !companionId || choice[2] === primaryId && choice[3] === companionId;
+  }
+
+  function neutralTierStats(rows, tier) {
+    const itemMap = new Map(), enchantMap = new Map(), pairMap = new Map();
+    let itemCoverage = 0, enchantCoverage = 0;
+    rows.forEach(row => {
+      const choice = neutralChoices(row).find(entry => Number(entry[0]) === Number(tier));
+      if (!choice || !choice[2]) return;
+      const seconds = Number(choice[1]), itemId = choice[2], enchantId = choice[3] || '';
+      itemCoverage++;
+      const add = (map, key, values) => {
+        const stat = map.get(key) || { ...values, games: 0, wins: 0, times: [] };
+        stat.games++; stat.wins += Number(row.w || 0);
+        if (Number.isFinite(seconds)) stat.times.push(seconds);
+        map.set(key, stat);
+      };
+      add(itemMap, itemId, { id: itemId });
+      if (enchantId) {
+        enchantCoverage++;
+        add(enchantMap, enchantId, { id: enchantId });
+        add(pairMap, `${itemId}>${enchantId}`, { itemId, enchantId });
+      }
+    });
+    const ranked = map => [...map.values()].sort((a, b) => b.games - a.games || b.wins - a.wins);
+    return {
+      itemCoverage, enchantCoverage,
+      items: ranked(itemMap), enchantments: ranked(enchantMap), pairs: ranked(pairMap),
+    };
+  }
+
+  function neutralStatChoice(stat, total, tier, kind) {
+    const item = items[stat.id] || { name: stat.id, icon: '' };
+    return `<button type="button" class="pb-neutral-choice" data-pb-neutral-filter data-pb-neutral-tier="${tier}" data-pb-neutral-${kind}="${esc(stat.id)}" title="筛选采用 ${esc(item.name)} 的真实比赛">
+      ${icon(item.icon, item.name)}<span><b>${esc(item.name)}</b><small>采用 ${pct(stat.games, total)} · ${stat.games}局</small></span><i class="${stat.wins / stat.games >= .5 ? 'pb-up' : 'pb-down'}">${pct(stat.wins, stat.games)}</i><em>${timeText(median(stat.times))}</em></button>`;
+  }
+
+  function neutralPairChoice(stat, total, tier) {
+    const neutral = items[stat.itemId] || { name: stat.itemId, icon: '' };
+    const enchant = items[stat.enchantId] || { name: stat.enchantId, icon: '' };
+    return `<button type="button" class="pb-neutral-pair" data-pb-neutral-filter data-pb-neutral-tier="${tier}" data-pb-neutral-item="${esc(stat.itemId)}" data-pb-neutral-enchant="${esc(stat.enchantId)}" title="筛选这组中立装备与附魔的真实比赛">
+      <span>${icon(neutral.icon, neutral.name)}<i>+</i>${icon(enchant.icon, enchant.name)}</span><b>${esc(neutral.name)} + ${esc(enchant.name)}</b><small>${pct(stat.games, total)} · ${stat.games}局 · 胜率 ${pct(stat.wins, stat.games)}</small></button>`;
+  }
+
+  function renderNeutralAnalysis(rows) {
+    if (!detailRowsReady(rows)) return '<div class="pb-no-data">正在读取 OpenDota 中立物品与附魔历史…</div>';
+    const anyCoverage = rows.filter(row => neutralChoices(row).length).length;
+    const tiers = [0, 1, 2, 3, 4].map(tier => {
+      const stats = neutralTierStats(rows, tier);
+      const pairTotal = stats.enchantCoverage;
+      return `<article class="pb-neutral-analysis-tier">
+        <header><div><span>Tier ${tier + 1}</span><b>${stats.itemCoverage}局有选择</b></div><small>附魔配对 ${stats.enchantCoverage}/${rows.length}局</small></header>
+        <div class="pb-neutral-columns"><section><h4>中立物品</h4>${stats.items.slice(0, 5).map(stat => neutralStatChoice(stat, stats.itemCoverage, tier, 'item')).join('') || '<p>当前范围没有该 Tier 记录</p>'}</section><section><h4>附魔</h4>${stats.enchantments.slice(0, 5).map(stat => neutralStatChoice(stat, stats.enchantCoverage, tier, 'enchant')).join('') || '<p>当前范围没有可识别附魔</p>'}</section></div>
+        <section class="pb-neutral-pairs"><h4>常见组合</h4><div>${stats.pairs.slice(0, 4).map(stat => neutralPairChoice(stat, pairTotal, tier)).join('') || '<p>当前范围没有完整组合</p>'}</div></section>
+      </article>`;
+    }).join('');
+    return `<div class="pb-neutral-coverage"><strong>OpenDota 精确历史覆盖 ${anyCoverage}/${rows.length}局</strong><span>每个选手局、每个 Tier 只统计最后一次有效组合；采用率分母是该 Tier 有记录的比赛，不把缺失算作未采用。</span></div>${tiers}`;
+  }
+
   function renderCompleteBuild(rows) {
     const host = document.getElementById('pb-complete-build');
     const status = document.getElementById('pb-complete-build-status');
@@ -6244,19 +6318,6 @@
       return `<article class="pb-build-stage"><header><span>${label}</span><small>${choices.length ? '该阶段常见购买节点' : '没有可靠购买时点'}</small></header><div>${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || '<span class="pb-no-data">—</span>'}</div></article>`;
     }).join('');
 
-    const equipmentPanel = (title, className) => {
-      const choices = observedItemBreakdown(rows, (id, _seconds, item) => item.class === className).slice(0, 5);
-      const empty = className === 'enchant' ? '当前比赛范围没有可识别的中立附魔记录' : '当前比赛范围没有可识别的中立物品选择';
-      if (className === 'neutral') {
-        const tiers = [0, 1, 2, 3, 4].map(tier => {
-          const tierChoices = observedItemBreakdown(rows, (id, _seconds, item) => item.class === 'neutral' && Number(item.tier) === tier).slice(0, 4);
-          return `<section class="pb-neutral-tier"><span>Tier ${tier + 1}</span><div>${tierChoices.map(stat => compactItemChoice(stat, rows.length)).join('') || '<small>当前范围没有记录</small>'}</div></section>`;
-        }).join('');
-        return `<article class="pb-complete-subcard is-tiered"><span>${title}</span><div class="pb-neutral-tiers">${tiers}</div></article>`;
-      }
-      return `<article class="pb-complete-subcard"><span>${title}</span><div class="pb-complete-choices">${choices.map(stat => compactItemChoice(stat, rows.length)).join('') || `<small>${empty}</small>`}</div></article>`;
-    };
-
     let skillHtml = '<div class="pb-no-data">正在按比赛月份加载逐局技能加点日志…</div>';
     let talentHtml = '<div class="pb-no-data">正在按比赛月份加载逐局天赋选择日志…</div>';
     let skillCoverage = 0, skillStarRocks = 0, skillOpenDota = 0;
@@ -6302,7 +6363,7 @@
     host.innerHTML = `<section class="pb-complete-opening" id="pb-complete-opening"><header><div><span>01 / OPENING</span><h3>精确出生装与首轮补给</h3></div><small>库存快照与购买日志分开统计</small></header><div class="pb-opening-block"><h4>出生时可观察库存</h4>${exactOpeningHtml}</div><div class="pb-opening-block"><h4>0–3分钟购买记录</h4><div class="pb-opening-routes">${openingHtml}</div></div></section>
       <section class="pb-complete-stages" id="pb-complete-stages"><header><div><span>02 / ITEM PLAN</span><h3>阶段选择与同时持有装备</h3></div><small>每个阶段独立统计，不能连读为唯一固定路线；完整背包单独呈现</small></header><div>${stageHtml}</div><div class="pb-inventory-checkpoints">${concurrentInventoryHtml}</div></section>
       <section class="pb-complete-skills" id="pb-complete-skills"><header><div><span>03 / ABILITIES</span><h3>技能与天赋</h3></div><small>${skillCoverage ? `${skillCoverage}/${rows.length}局 · StarRocks ${skillStarRocks} · OpenDota兜底 ${skillOpenDota}` : '逐局明细按需加载'}</small></header><div class="pb-complete-skill-grid"><div>${skillHtml}</div><div class="pb-talent-grid">${talentHtml}</div></div></section>
-      <section class="pb-complete-special" id="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>来自该局可观察到的最终选择；无记录时明确标注</small></header><div>${equipmentPanel('常见中立物品', 'neutral')}${equipmentPanel('常见中立附魔', 'enchant')}</div></section>
+      <section class="pb-complete-special" id="pb-complete-special"><header><div><span>04 / NEUTRALS</span><h3>中立物品与附魔</h3></div><small>OpenDota 精确选择历史 · 按 Tier 统计最终组合</small></header><div class="pb-neutral-analysis">${renderNeutralAnalysis(rows)}</div></section>
       <footer><strong>阅读边界</strong><span>这张卡描述职业样本中的常见选择；低样本胜率、阶段先后与装备效果都不能单独解释胜负。</span></footer>`;
   }
 
@@ -7162,6 +7223,16 @@
     }).join('')}</div>`;
   }
 
+  function matchNeutralTimeline(row) {
+    const choices = neutralChoices(row).slice().sort((a, b) => Number(a[0]) - Number(b[0]));
+    if (!choices.length) return '<span class="pb-match-route-empty">该局没有 OpenDota 中立物品历史；不代表选手没有选择中立物品。</span>';
+    return `<div class="pb-match-neutrals">${choices.map(choice => {
+      const neutral = items[choice[2]] || { name: choice[2], icon: '' };
+      const enchant = choice[3] ? (items[choice[3]] || { name: choice[3], icon: '' }) : null;
+      return `<article><span>Tier ${Number(choice[0]) + 1}</span><div>${icon(neutral.icon, neutral.name)}<b>${esc(neutral.name)}</b>${enchant ? `<i>+</i>${icon(enchant.icon, enchant.name)}<b>${esc(enchant.name)}</b>` : '<i>附魔未记录</i>'}</div><small>最后一次有效选择 ${timeText(Number(choice[1]))} · OpenDota</small></article>`;
+    }).join('')}</div>`;
+  }
+
   function renderMatches(rows) {
     const body = document.getElementById('pb-matches-body'), head = document.getElementById('pb-matches-head');
     const summary = document.getElementById('pb-match-summary'), itemSelect = document.getElementById('pb-match-item');
@@ -7173,11 +7244,15 @@
 
     if (itemSelect) {
       const counts = new Map();
-      rows.forEach(row => new Set((row.i || []).map(pair => pair[0])).forEach(id => { if (items[id]) counts.set(id, (counts.get(id) || 0) + 1); }));
+      rows.forEach(row => {
+        const observed = new Set((row.i || []).map(pair => pair[0]));
+        neutralChoices(row).forEach(choice => { if (choice[2]) observed.add(choice[2]); if (choice[3]) observed.add(choice[3]); });
+        observed.forEach(id => { if (items[id]) counts.set(id, (counts.get(id) || 0) + 1); });
+      });
       const choices = [...counts].sort((a, b) => b[1] - a[1] || (items[a[0]]?.name || a[0]).localeCompare(items[b[0]]?.name || b[0]));
       itemSelect.innerHTML = '<option value="">全部装备</option>' + choices.map(([id, count]) => option(id, `${items[id]?.name || id} (${count})`)).join('');
       itemSelect.value = choices.some(([id]) => id === matchItem) ? matchItem : '';
-      if (!itemSelect.value) matchItem = '';
+      if (!itemSelect.value) { matchItem = ''; matchNeutralCompanion = ''; matchNeutralTier = ''; }
     }
     if (columnOptions) columnOptions.innerHTML = Object.entries(MATCH_COLUMN_LABELS).map(([key, label]) => `<label><input type="checkbox" data-pb-match-column="${key}" ${matchColumns.has(key) ? 'checked' : ''} ${key === 'match' ? 'disabled' : ''}> ${esc(label)}</label>`).join('');
 
@@ -7187,12 +7262,14 @@
       if (matchState && situation(row) !== matchState) return false;
       if (matchSide && String(row.tm) !== matchSide) return false;
       if (matchPickPhase && draftPickPhase(row) !== matchPickPhase) return false;
-      if (matchItem && !(row.i || []).some(pair => pair[0] === matchItem)) return false;
+      if (matchNeutralTier !== '' && matchItem && !rowHasNeutralSelection(row, matchNeutralTier, matchItem, matchNeutralCompanion)) return false;
+      if (matchNeutralTier === '' && matchItem && !rowHasObservedItem(row, matchItem)) return false;
       if (matchComebackOnly && !(situation(row) === 'behind' && Number(row.w) === 1)) return false;
       if (matchRouteOnly && coreRoutePairs(row, 5).length < 2) return false;
       if (query) {
         const haystack = [row.m, row.d, row.n, row.s, row.t, row.l, heroes[row.h]?.name || row.h]
-          .concat((row.i || []).map(pair => items[pair[0]]?.name || pair[0])).join(' ').toLowerCase();
+          .concat((row.i || []).map(pair => items[pair[0]]?.name || pair[0]))
+          .concat(neutralChoices(row).flatMap(choice => [choice[2], choice[3]].filter(Boolean).map(id => items[id]?.name || id))).join(' ').toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       return true;
@@ -7222,7 +7299,8 @@
     const durations = filtered.map(row => Number(row.du)).filter(value => Number.isFinite(value) && value > 0);
     const reconstructable = filtered.filter(row => coreRoutePairs(row, 5).length >= 2).length;
     const ppiValues = filtered.map(performanceScore).filter(Number.isFinite), draftValues = filtered.map(row => draftPriorScores.get(rowKey(row))).filter(Number.isFinite);
-    summary.innerHTML = `<article><span>筛选比赛</span><strong>${filtered.length.toLocaleString()}</strong></article><article><span>样本胜率</span><strong>${pct(wins, filtered.length)}</strong></article><article><span>平均15m团队经济差</span><strong>${nw15Values.length ? `${mean(nw15Values) >= 0 ? '+' : ''}${mean(nw15Values).toLocaleString()}` : '—'}</strong></article><article><span>平均15m KDA</span><strong>${kdaValues.length ? (kdaValues.reduce((sum, value) => sum + value, 0) / kdaValues.length).toFixed(2) : '—'}</strong></article><article><span>平均职业表现指数</span><strong>${mean(ppiValues) ?? '—'}</strong></article><article><span>平均阵容先验</span><strong>${draftValues.length ? pct(draftValues.reduce((sum, value) => sum + value, 0) / draftValues.length, 1) : '—'}</strong></article><article><span>中位时长</span><strong>${timeText(median(durations))}</strong></article><article><span>路线覆盖</span><strong>${pct(reconstructable, filtered.length)}</strong></article>`;
+    const itemFilterLabel = `${matchNeutralTier !== '' ? `Tier ${Number(matchNeutralTier) + 1} · ` : ''}${[matchItem, matchNeutralCompanion].filter(Boolean).map(id => items[id]?.name || id).join(' + ')}`;
+    summary.innerHTML = `${itemFilterLabel ? `<article class="is-filter"><span>装备条件</span><strong>${esc(itemFilterLabel)}</strong></article>` : ''}<article><span>筛选比赛</span><strong>${filtered.length.toLocaleString()}</strong></article><article><span>样本胜率</span><strong>${pct(wins, filtered.length)}</strong></article><article><span>平均15m团队经济差</span><strong>${nw15Values.length ? `${mean(nw15Values) >= 0 ? '+' : ''}${mean(nw15Values).toLocaleString()}` : '—'}</strong></article><article><span>平均15m KDA</span><strong>${kdaValues.length ? (kdaValues.reduce((sum, value) => sum + value, 0) / kdaValues.length).toFixed(2) : '—'}</strong></article><article><span>平均职业表现指数</span><strong>${mean(ppiValues) ?? '—'}</strong></article><article><span>平均阵容先验</span><strong>${draftValues.length ? pct(draftValues.reduce((sum, value) => sum + value, 0) / draftValues.length, 1) : '—'}</strong></article><article><span>中位时长</span><strong>${timeText(median(durations))}</strong></article><article><span>路线覆盖</span><strong>${pct(reconstructable, filtered.length)}</strong></article>`;
 
     const columns = Object.keys(MATCH_COLUMN_LABELS).filter(key => matchColumns.has(key));
     const sortable = new Set(['match', 'player', 'team', 'league', 'hero', 'role', 'state', 'lane10', 'nw10', 'nw15', 'nw20', 'cs10', 'cs20', 'denies10', 'kda15', 'lh15', 'gpm', 'xpm', 'damage', 'towerDamage', 'tfp', 'ppi', 'draft', 'duration', 'networth', 'result']);
@@ -7304,7 +7382,7 @@
     const rates = metricRates(r), ppi = performanceScore(r), draftScore = buildDraftPrior(currentRows).get(rowKey(r));
     const inventoryHtml = (detail.iv || []).map(entry => `<article><span>${Number(entry[0]) === 0 ? '出生库存' : `${Math.round(Number(entry[0]) / 60)}分钟背包`}</span><div>${(entry[2] || []).map(id => { const item = items[id] || { name: id, icon: '' }; return `<b title="${esc(item.name)}">${icon(item.icon, item.name)}</b>`; }).join('') || '—'}</div><small>实际快照 ${timeText(Number(entry[1]))}</small></article>`).join('');
     const damageHtml = (detail.dm || []).map(entry => `<span><b>${timeText(Number(entry[0]))}–${timeText(Number(entry[0]) + 299)}</b>英雄 ${Number(entry[1] || 0).toLocaleString()} · 建筑 ${Number(entry[2] || 0).toLocaleString()}</span>`).join('');
-    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${Number(r.tm) === 2 ? '天辉' : '夜魇'} · ${r.w ? '胜利' : '失败'}</p><div class="pb-match-scorecards"><article><span>职业表现指数</span><strong>${Number.isFinite(ppi) ? ppi : '—'}</strong><small>同英雄同位置百分位</small></article><article><span>阵容先验</span><strong>${Number.isFinite(draftScore) ? pct(draftScore, 1) : '—'}</strong><small>描述性收缩估计，非ML预测</small></article><article><span>GPM / XPM</span><strong>${rates.gpm || '—'} / ${rates.xpm || '—'}</strong><small>终局累计值 / 比赛分钟</small></article><article><span>伤害 / 参战</span><strong>${Number.isFinite(rates.heroDamage) ? rates.heroDamage.toLocaleString() : '—'} / ${Number.isFinite(rates.tfp) ? pct(rates.tfp, 1) : '—'}</strong><small>新采集字段</small></article></div><h4>出装时间线</h4>${itemTimeline}<h4>控制时点完整背包</h4><div class="pb-match-inventories">${inventoryHtml || '<span>旧缓存没有出生与控制时点背包</span>'}</div><h4>双方选人 · ${({ early: '前段选出', middle: '中段选出', last: '后段 / 最后手', unknown: '阶段未知' })[draftPickPhase(r)]}</h4><div class="pb-draft"><div>${allied.map(heroChip).join('') || '<span>没有可靠阵容明细</span>'}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[3].toLocaleString()}补刀${Number.isFinite(Number(q[10])) ? ` / ${Number(q[10])}反补` : ''} · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('') || '<span>该局没有可靠经济快照</span>'}</div><h4>分时伤害</h4><div class="pb-event-list">${damageHtml || '<span>旧缓存没有分时伤害；新增量会自动写入</span>'}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('') || '<span>该局没有可靠技能加点明细</span>'}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
+    setMatchDetailHtml(`<h3>${esc(r.n)} · ${esc(heroes[r.h]?.name || r.h)}</h3><p>${r.d} · ${esc(r.l)} · ${esc(r.t)} · ${Number(r.tm) === 2 ? '天辉' : '夜魇'} · ${r.w ? '胜利' : '失败'}</p><div class="pb-match-scorecards"><article><span>职业表现指数</span><strong>${Number.isFinite(ppi) ? ppi : '—'}</strong><small>同英雄同位置百分位</small></article><article><span>阵容先验</span><strong>${Number.isFinite(draftScore) ? pct(draftScore, 1) : '—'}</strong><small>描述性收缩估计，非ML预测</small></article><article><span>GPM / XPM</span><strong>${rates.gpm || '—'} / ${rates.xpm || '—'}</strong><small>终局累计值 / 比赛分钟</small></article><article><span>伤害 / 参战</span><strong>${Number.isFinite(rates.heroDamage) ? rates.heroDamage.toLocaleString() : '—'} / ${Number.isFinite(rates.tfp) ? pct(rates.tfp, 1) : '—'}</strong><small>新采集字段</small></article></div><h4>出装时间线</h4>${itemTimeline}<h4>中立物品与附魔选择</h4>${matchNeutralTimeline(r)}<h4>控制时点完整背包</h4><div class="pb-match-inventories">${inventoryHtml || '<span>旧缓存没有出生与控制时点背包</span>'}</div><h4>双方选人 · ${({ early: '前段选出', middle: '中段选出', last: '后段 / 最后手', unknown: '阶段未知' })[draftPickPhase(r)]}</h4><div class="pb-draft"><div>${allied.map(heroChip).join('') || '<span>没有可靠阵容明细</span>'}</div><div>${enemies.map(heroChip).join('')}</div></div><h4>经济 / KDA 快照</h4><div class="pb-snapshot-list">${detail.q.map(q => `<span><b>${timeText(q[0])}</b> Lv${q[1]} · ${q[2].toLocaleString()}经济 · ${q[3].toLocaleString()}补刀${Number.isFinite(Number(q[10])) ? ` / ${Number(q[10])}反补` : ''} · ${q[4]}/${q[5]}/${q[6]} · 团队差 ${q[9] >= 0 ? '+' : ''}${q[9].toLocaleString()}</span>`).join('') || '<span>该局没有可靠经济快照</span>'}</div><h4>分时伤害</h4><div class="pb-event-list">${damageHtml || '<span>旧缓存没有分时伤害；新增量会自动写入</span>'}</div><h4>技能加点</h4><div class="pb-skill-seq">${detail.a.slice(0, 18).map((a, i) => `<b>${i + 1}. ${esc(String(a[1]).replaceAll('_', ' '))}</b>`).join('') || '<span>该局没有可靠技能加点明细</span>'}</div><h4>关键事件</h4><div class="pb-event-list">${events.slice(0, 80).map(e => `<span><b>${timeText(e[0])}</b> ${e[1] === 'd' ? '击杀/死亡' : e[1] === 'bb' ? '买活' : '建筑'} · ${esc(e[2])} → ${esc(e[3])}</span>`).join('') || '<span>没有事件</span>'}</div>`);
   }
 
   function renderHeatmap(rows) {
@@ -7493,6 +7571,19 @@
       renderMatches(currentRows);
       return;
     }
+    const neutralFilter = e.target.closest('[data-pb-neutral-filter]');
+    if (neutralFilter) {
+      const neutralItem = neutralFilter.dataset.pbNeutralItem || '';
+      const enchantment = neutralFilter.dataset.pbNeutralEnchant || '';
+      matchItem = neutralItem || enchantment;
+      matchNeutralCompanion = neutralItem && enchantment ? enchantment : '';
+      matchNeutralTier = neutralFilter.dataset.pbNeutralTier || '';
+      matchVisibleLimit = 50;
+      setActiveTab('matches', true);
+      render();
+      document.getElementById('pb-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     const row = e.target.closest('[data-pb-item]');
     if (!row) return;
     selectedItem = row.dataset.pbItem || '';
@@ -7512,7 +7603,7 @@
   document.getElementById('pb-match-state')?.addEventListener('change', event => { matchState = event.target.value || ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-side')?.addEventListener('change', event => { matchSide = event.target.value || ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-pick-phase')?.addEventListener('change', event => { matchPickPhase = event.target.value || ''; refreshMatchExplorer(); });
-  document.getElementById('pb-match-item')?.addEventListener('change', event => { matchItem = event.target.value || ''; refreshMatchExplorer(); });
+  document.getElementById('pb-match-item')?.addEventListener('change', event => { matchItem = event.target.value || ''; matchNeutralCompanion = ''; matchNeutralTier = ''; refreshMatchExplorer(); });
   document.getElementById('pb-match-comeback')?.addEventListener('change', event => { matchComebackOnly = Boolean(event.target.checked); refreshMatchExplorer(); });
   document.getElementById('pb-match-route-only')?.addEventListener('change', event => { matchRouteOnly = Boolean(event.target.checked); refreshMatchExplorer(); });
   document.getElementById('pb-match-sort')?.addEventListener('change', event => {

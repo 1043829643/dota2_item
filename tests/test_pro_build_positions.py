@@ -10,9 +10,66 @@ from scripts.fetch.fetch_pro_builds import (
     _normalize_steam64,
     _parse_opendota_lane_roles,
     _parse_opendota_ability_route,
+    _parse_opendota_neutral_choices,
     _project_consistent_roles_by_player,
     _team_lane_shapes,
 )
+
+
+def test_opendota_neutral_history_keeps_last_valid_choice_per_tier() -> None:
+    catalog = {
+        "item_ash_legion_shield": {"class": "neutral", "tier": 0},
+        "item_dormant_curio": {"class": "neutral", "tier": 0},
+        "item_medallion_of_courage": {"class": "neutral", "tier": 1},
+        "item_enhancement_quickened": {"class": "enchant"},
+        "item_enhancement_brawny": {"class": "enchant"},
+    }
+    match = {
+        "players": [{
+            "hero_id": 106,
+            "neutral_item_history": [
+                {
+                    "time": 415,
+                    "item_neutral": "ash_legion_shield",
+                    "item_neutral_enhancement": "enhancement_quickened",
+                },
+                {
+                    "time": 620,
+                    "item_neutral": "dormant_curio",
+                    "item_neutral_enhancement": "enhancement_brawny",
+                },
+                {
+                    "time": 1050,
+                    "item_neutral": "medallion_of_courage",
+                    "item_neutral_enhancement": "enhancement_quickened",
+                },
+            ],
+        }]
+    }
+    assert _parse_opendota_neutral_choices(match, 106, catalog) == [
+        [0, 620, "item_dormant_curio", "item_enhancement_brawny"],
+        [1, 1050, "item_medallion_of_courage", "item_enhancement_quickened"],
+    ]
+
+
+def test_opendota_neutral_history_rejects_unknown_item_and_bad_enchantment() -> None:
+    catalog = {"item_ash_legion_shield": {"class": "neutral", "tier": 0}}
+    match = {
+        "players": [{
+            "hero_id": 106,
+            "neutral_item_history": [
+                {"time": 400, "item_neutral": "unknown"},
+                {
+                    "time": 500,
+                    "item_neutral": "ash_legion_shield",
+                    "item_neutral_enhancement": "enhancement_unknown",
+                },
+            ],
+        }]
+    }
+    assert _parse_opendota_neutral_choices(match, 106, catalog) == [
+        [0, 500, "item_ash_legion_shield", ""]
+    ]
 
 
 def test_replay_inventory_names_use_local_versioned_aliases() -> None:
