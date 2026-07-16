@@ -193,6 +193,28 @@ interval, status, purchase, or ability scan.
 
 Open `http://localhost:8765/pro_builds.html` while the local server is running.
 
+### Final-item data: professional and public samples
+
+`item_data.html` keeps professional matches and OpenDota public matches in two
+separate cohorts. The public cohort is an explicitly labelled random sample,
+defaults to Divine-and-higher matches, stores no account IDs, and retains only
+hero/result metadata plus `item_0` through `item_5`. It does not download or
+request replay parsing and it never interprets OpenDota lane roles as Dota
+positions.
+
+Add a bounded incremental public batch and rebuild only this page:
+
+```powershell
+python scripts/fetch/fetch_opendota_public_items.py --matches 100 --min-rank 70
+python build_site.py idata
+```
+
+Exact OpenDota match responses are cached under the ignored
+`.cache/opendota_matches/` directory and are shared with the professional-data
+fallback scripts. Re-running the command deduplicates by `(match_id,
+player_slot)` and adds only new matches. Set `OPENDOTA_API_KEY` in the
+environment for an API key; never place it in the command line or output JSON.
+
 To repair purchase timings for one already-cached hero/date slice without
 replacing unrelated matches, use the bounded route backfill. It queries only
 the exact `dt` partitions and cached match IDs in the selection. The optional

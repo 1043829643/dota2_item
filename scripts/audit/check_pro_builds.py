@@ -244,8 +244,8 @@ def main() -> int:
         fail("core player_games does not match record count", errors)
     if len({row.get("m") for row in records}) != int(meta.get("matches") or -1):
         fail("core match count does not match distinct record matches", errors)
-    if compact.get("schema") != "pro-builds-core-v3":
-        fail("dist core cache is not dictionary-encoded v3", errors)
+    if compact.get("schema") != "pro-builds-core-v4":
+        fail("dist core cache is not dictionary-encoded v4", errors)
     dictionaries = compact.get("dictionaries") or {}
     compact_rows = compact.get("records") or []
     update_status = (compact.get("meta") or {}).get("update_status") or {}
@@ -279,13 +279,13 @@ def main() -> int:
                 decoded_pairs.append([item_id, flat[index + 1]])
             return valid, decoded_pairs
 
-        fields = ("m", "d", "p", "li", "l", "t", "s", "n", "h", "hi", "sl", "tm", "r", "rm", "rc", "w", "lv", "nw", "du", "i", "g", "u", "x")
+        fields = ("m", "d", "p", "li", "l", "t", "s", "n", "h", "hi", "sl", "tm", "r", "rm", "rc", "w", "lv", "nw", "du", "i", "g", "u", "x", "f", "ft")
         for source, encoded in zip(records, compact_rows):
             if not isinstance(source, dict):
                 fail("compact round-trip source record is not an object", errors)
                 break
             match_id = source.get("m")
-            if not isinstance(encoded, list) or len(encoded) < 23:
+            if not isinstance(encoded, list) or len(encoded) < 25:
                 fail(f"compact row is truncated or malformed at match {match_id}", errors)
                 break
             purchases_ok, decoded_purchases = decode_pairs(encoded[19], "purchases", match_id)
@@ -294,6 +294,16 @@ def main() -> int:
             encoded_uses = encoded[21] if len(encoded) > 21 else None
             uses_ok, decoded_uses = decode_pairs(encoded_uses, "item uses", match_id)
             if not purchases_ok or not uses_ok:
+                break
+            encoded_final = encoded[23]
+            if encoded_final is not None and not isinstance(encoded_final, list):
+                fail(f"compact final inventory is not an array at match {match_id}", errors)
+                break
+            decoded_final = None if encoded_final is None else [
+                lookup("item", item_index) for item_index in encoded_final
+            ]
+            if decoded_final is not None and any(not item_id for item_id in decoded_final):
+                fail(f"compact final inventory has an invalid item index at match {match_id}", errors)
                 break
             decoded = [
                 encoded[0], lookup("d", encoded[1]), lookup("p", encoded[2]), encoded[3],
@@ -305,6 +315,8 @@ def main() -> int:
                 encoded[20],
                 decoded_uses,
                 encoded[22],
+                decoded_final,
+                encoded[24],
             ]
             expected = [source.get(field) if source.get(field) is not None or field not in {"d", "p", "l", "t", "s", "n", "h", "rm"} else "" for field in fields]
             if decoded != expected:

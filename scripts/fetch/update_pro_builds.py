@@ -177,6 +177,9 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "inventory_snapshot_player_games": sum(
             bool((value or {}).get("iv")) for value in players.values()
         ),
+        "final_inventory_player_games": sum(
+            isinstance(row.get("f"), list) for row in records
+        ),
         "neutral_history_matches": len({
             int(str(key).split(":", 1)[0])
             for key, value in players.items() if bool((value or {}).get("ni"))

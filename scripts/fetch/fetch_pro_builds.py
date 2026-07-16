@@ -1489,7 +1489,7 @@ def main() -> int:
         ids = _id_sql(batch)
         final_windows = {
             int(match_id): (
-                max(0, int(duration_by_match.get(int(match_id), 0)) - 180),
+                int(duration_by_match.get(int(match_id), 0)) + 175,
                 int(duration_by_match.get(int(match_id), 0)) + 180,
             )
             for match_id in batch
@@ -1543,6 +1543,7 @@ def main() -> int:
                     inventory_candidates[bucket] = (seconds, mapped)
     for key, (_seconds, item_ids) in final_inventory_candidates.items():
         records[key]["f"] = item_ids
+        records[key]["ft"] = _seconds
     for (match_id, slot, target), (seconds, item_ids) in inventory_candidates.items():
         player = detail_players.setdefault(
             f"{match_id}:{slot}", {"q": [], "a": [], "iv": [], "dm": []}
@@ -2045,6 +2046,9 @@ def main() -> int:
                 "event_query_failures": event_query_failures,
                 "inventory_snapshot_player_games": sum(
                     bool(row.get("iv")) for row in detail_players.values()
+                ),
+                "final_inventory_player_games": sum(
+                    isinstance(row.get("f"), list) for row in rows
                 ),
                 "neutral_history_matches": len(neutral_history_matches),
                 "neutral_history_player_games": neutral_history_player_games,

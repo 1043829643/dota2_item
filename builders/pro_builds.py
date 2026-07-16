@@ -27,7 +27,7 @@ DATA_PATH = ROOT / "data" / "pro_builds.json"
 DETAIL_DATA_PATH = ROOT / "data" / "pro_builds_detail.json"
 UPDATE_STATUS_PATH = ROOT / "data" / "pro_builds_update_status.json"
 DIST = ROOT / "dist"
-CORE_SCHEMA = "pro-builds-core-v3"
+CORE_SCHEMA = "pro-builds-core-v4"
 
 
 def _latest_href() -> str:
@@ -241,6 +241,9 @@ def _write_compact_core() -> dict:
                 encoded_uses.extend(
                     [encode("item", pair[0]), pair[1] if len(pair) > 1 else None]
                 )
+        encoded_final = None
+        if isinstance(row.get("f"), list):
+            encoded_final = [encode("item", item_id) for item_id in row["f"]]
         records.append(
             [
                 row.get("m"), encode("d", row.get("d")), encode("p", row.get("p")),
@@ -250,7 +253,7 @@ def _write_compact_core() -> dict:
                 row.get("tm"), row.get("r"), encode("rm", row.get("rm")),
                 row.get("rc"), row.get("w"), row.get("lv"), row.get("nw"),
                 row.get("du"), encoded_items, row.get("g"), encoded_uses,
-                row.get("x"),
+                row.get("x"), encoded_final, row.get("ft"),
             ]
         )
     meta = dict(payload.get("meta") or {})

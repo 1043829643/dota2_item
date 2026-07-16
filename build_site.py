@@ -11,6 +11,7 @@ Pages are built in dependency order:
   stats   -- hero stats table
   lab     -- hero lab calculator
   pro     -- professional item-build analytics
+  idata   -- standalone professional/public item intelligence
   hdyn    -- hero dynamics matrix
   idyn    -- item dynamics matrix
   terrain -- terrain comparison
@@ -57,6 +58,7 @@ STEPS = [
     ("aoe",     "builders/aoe_increase.py", "AoE Increase table"),
     ("lab",     "builders/hero_lab.py",     "Hero Lab calculator"),
     ("pro",     "builders/pro_builds.py",    "Professional item-build analytics"),
+    ("idata",   "builders/item_data.py",     "Professional/public item-intelligence dataset"),
     ("hdyn",    "builders/heroes_dyn.py",   "Hero Dynamics matrix"),
     ("idyn",    "builders/items_dyn.py",    "Item Dynamics matrix"),
     ("terrain", "builders/terrain.py",      "Terrain comparison"),

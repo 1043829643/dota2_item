@@ -12,6 +12,7 @@ from .page import _ASSET_VERSION
 # Manual "page" entries in the What's New popup.
 # Date = when the page was added to the site (not Valve's release date).
 _WHATSNEW_PAGES = [
+    ("page",  "Item Data",      "Jul 16", "item_data.html"),
     ("page",  "AoE Increase",   "Jun 24", "aoe_increase.html"),
     ("page",  "Hero Lab",       "Jun 13", "hero_lab.html"),
     ("page",  "Item Dynamics",  "Jun 5",  "items_dyn.html"),
@@ -287,6 +288,8 @@ def save_index_html():
         + _panel_link_btn('inv-cell-dynamics', 'heroes_dyn.html', 'icon_dynamics.png', 'Dynamics')
         + _panel_link_btn('', 'heroes_stats.html', 'icon_typewriter.png', 'Stats')
         + _panel_link_btn('', 'hero_lab.html', 'icon_teapot.png', 'Hero Lab')
+        + _panel_link_btn('', 'pro_builds.html', 'icon_loupe.png', 'Pro Builds')
+        + _panel_link_btn('', 'item_data.html', 'icon_dynamics.png', 'Item Data')
         + _panel_link_btn('', 'aoe_increase.html', 'icon_abilities.png', 'AoE')
         + '</div></div>'
     )

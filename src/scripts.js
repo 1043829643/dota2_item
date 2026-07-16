@@ -5190,6 +5190,559 @@
   update();
 })();
 
+// ---- ITEM DATA: standalone hero-first equipment intelligence ----
+(function() {
+  const page = document.querySelector('.item-data-page');
+  const configEl = document.getElementById('item-data-config');
+  if (!page || !configEl) return;
+
+  let config;
+  try { config = JSON.parse(configEl.textContent || '{}'); } catch { return; }
+  const heroes = config.heroes || {}, items = config.items || {};
+  const comboMinCost = Number(config.comboMinCost || 1020);
+  const controls = {
+    hero: document.getElementById('id-hero-search'), role: document.getElementById('id-role'),
+    patch: document.getElementById('id-patch'), from: document.getElementById('id-date-from'),
+    to: document.getElementById('id-date-to'), scope: document.getElementById('id-item-scope'),
+    min: document.getElementById('id-min-sample'), search: document.getElementById('id-result-search'),
+  };
+  const status = document.getElementById('id-load-status');
+  const generate = document.getElementById('id-generate');
+  const results = document.getElementById('id-results');
+  const params = new URLSearchParams(location.search);
+  const sourceConfig = {
+    pro: {
+      label: '职业比赛', url: config.dataUrl || 'data/pro_builds.json', role: true,
+      ready: meta => `${Number(meta.matches || 0).toLocaleString()}场职业比赛`,
+    },
+    public: {
+      label: '高分公开局', url: config.publicDataUrl || 'data/opendota_public_items.json', role: false,
+      ready: meta => `${Number(meta.matches || 0).toLocaleString()}场${meta.cohort ? ` ${meta.cohort}` : ''} OpenDota 随机公开局样本`,
+    },
+  };
+  const state = {
+    rows: [], scopeRows: [], filtered: [], meta: {}, selectedHero: '', activeTab: params.get('tab') || 'overview',
+    activeSource: sourceConfig[params.get('source')] ? params.get('source') : 'pro',
+    datasets: new Map(), loadingSource: '', initialLoad: true,
+    sorts: {
+      single: ['count', 'desc'], pairs: ['count', 'desc'], trios: ['count', 'desc'],
+      fours: ['count', 'desc'], fives: ['count', 'desc'], sixes: ['count', 'desc'],
+    },
+    analysis: null,
+  };
+  const completedCategories = new Set(['Accessories', 'Support', 'Magical', 'Armor', 'Weapons', 'Armaments']);
+  const coreAllow = new Set([
+    'item_magic_wand', 'item_bracer', 'item_wraith_band', 'item_null_talisman',
+    'item_bottle', 'item_soul_ring', 'item_urn_of_shadows', 'item_orb_of_corrosion',
+    'item_falcon_blade', 'item_blink', 'item_boots', 'item_travel_boots', 'item_travel_boots_2',
+  ]);
+
+  const esc = value => String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const pct = (n, d, signed) => {
+    if (!d && d !== 1) return '—';
+    const value = n * 100 / d;
+    return `${signed && value > 0 ? '+' : ''}${value.toFixed(1)}%`;
+  };
+  const median = values => {
+    const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+    if (!sorted.length) return null;
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+  };
+  const mean = values => {
+    const valid = values.filter(Number.isFinite);
+    return valid.length ? Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length) : null;
+  };
+  const timeText = seconds => Number.isFinite(seconds)
+    ? `${Math.floor(seconds / 60)}:${String(Math.max(0, Math.round(seconds % 60))).padStart(2, '0')}` : '—';
+  const wilson = (wins, games) => {
+    if (!games) return [0, 0];
+    const z = 1.96, p = wins / games, divisor = 1 + z * z / games;
+    const center = (p + z * z / (2 * games)) / divisor;
+    const margin = z * Math.sqrt((p * (1 - p) + z * z / (4 * games)) / games) / divisor;
+    return [Math.max(0, center - margin), Math.min(1, center + margin)];
+  };
+  const normalize = value => String(value || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+  const itemName = id => items[id]?.name || String(id || '').replace(/^item_/, '').replaceAll('_', ' ');
+  const heroName = id => heroes[id]?.name || String(id || '').replaceAll('_', ' ');
+  const roleName = value => value ? `${value}号位` : '全部位置';
+  const sourceName = () => sourceConfig[state.activeSource]?.label || '当前数据源';
+  const itemIcon = (id, compact) => {
+    const item = items[id] || {}, name = itemName(id);
+    return `<span class="id-item ${compact ? 'is-compact' : ''}" title="${esc(name)}">${item.icon ? `<img src="${esc(item.icon)}" alt="${esc(name)}" loading="lazy">` : '<i>?</i>'}${compact ? '' : `<b>${esc(name)}</b>`}</span>`;
+  };
+  const emptyRow = (colspan, text) => `<tr><td colspan="${colspan}"><div class="id-empty">${esc(text)}</div></td></tr>`;
+
+  function decodeCorePayload(payload) {
+    if (!['pro-builds-core-v2', 'pro-builds-core-v3', 'pro-builds-core-v4'].includes(payload?.schema)) return payload?.records || [];
+    const dictionaries = payload.dictionaries || {};
+    const value = (field, index) => dictionaries[field]?.[index] ?? '';
+    return (payload.records || []).map(row => {
+      const purchaseValues = row[19] || [], useValues = Array.isArray(row[21]) ? row[21] : null;
+      const finalValues = Array.isArray(row[23]) ? row[23] : null;
+      const purchases = [], uses = useValues ? [] : null;
+      for (let index = 0; index < purchaseValues.length; index += 2) purchases.push([value('item', purchaseValues[index]), purchaseValues[index + 1]]);
+      if (useValues) for (let index = 0; index < useValues.length; index += 2) uses.push([value('item', useValues[index]), useValues[index + 1]]);
+      return {
+        m: row[0], d: value('d', row[1]), p: value('p', row[2]), li: row[3],
+        l: value('l', row[4]), t: value('t', row[5]), s: value('s', row[6]),
+        n: value('n', row[7]), h: value('h', row[8]), hi: row[9], sl: row[10],
+        tm: row[11], r: row[12], rm: value('rm', row[13]), rc: row[14], w: row[15],
+        lv: row[16], nw: row[17], du: row[18], i: purchases, g: row[20], u: uses, x: row[22] || null,
+        f: finalValues ? finalValues.map(index => value('item', index)).filter(Boolean) : null,
+        ft: row[24] == null ? null : row[24],
+      };
+    });
+  }
+
+  function includeItem(id, scope) {
+    const item = items[id];
+    if (!item || item.class !== 'regular' || item.consumable || id.startsWith('item_recipe')) return false;
+    if (scope === 'regular') return true;
+    if (scope === 'completed') return completedCategories.has(item.category) || coreAllow.has(id) || Number(item.cost || 0) >= 900;
+    return completedCategories.has(item.category) || coreAllow.has(id);
+  }
+
+  function finalItems(row, scope) {
+    if (!Array.isArray(row.f)) return [];
+    return [...new Set(row.f.filter(id => includeItem(id, scope)))].sort((a, b) =>
+      Number(items[b]?.cost || 0) - Number(items[a]?.cost || 0) || a.localeCompare(b));
+  }
+
+  function comboEligible(id) {
+    const item = items[id];
+    return Boolean(item && item.class === 'regular' && !item.consumable
+      && !id.startsWith('item_recipe') && Number(item.cost || 0) > comboMinCost);
+  }
+
+  function comboItems(row) {
+    if (!Array.isArray(row.f)) return [];
+    return [...new Set(row.f.filter(comboEligible))].sort((a, b) =>
+      Number(items[b]?.cost || 0) - Number(items[a]?.cost || 0) || a.localeCompare(b));
+  }
+
+  function renderCostCatalog() {
+    const eligible = Object.keys(items).filter(comboEligible).sort((a, b) =>
+      Number(items[a]?.cost || 0) - Number(items[b]?.cost || 0)
+      || itemName(a).localeCompare(itemName(b)));
+    document.getElementById('id-cost-catalog-count').textContent = `${eligible.length}件普通非消耗品`;
+    document.getElementById('id-cost-catalog-list').innerHTML = eligible.map(id =>
+      `<span>${itemIcon(id, true)}<b>${esc(itemName(id))}</b><small>${Number(items[id].cost).toLocaleString()} 金币</small></span>`
+    ).join('');
+  }
+
+  function createStat(ids) {
+    return { ids, count: 0, wins: 0, durations: [] };
+  }
+
+  function addCombo(map, ids, row) {
+    const key = [...ids].sort().join('|');
+    const stat = map.get(key) || createStat([...ids].sort());
+    stat.count += 1; stat.wins += Number(row.w || 0);
+    if (Number.isFinite(Number(row.du))) stat.durations.push(Number(row.du));
+    map.set(key, stat);
+  }
+
+  function addCombinations(map, ids, size, row) {
+    const selected = [];
+    const visit = start => {
+      if (selected.length === size) {
+        addCombo(map, selected, row);
+        return;
+      }
+      const needed = size - selected.length;
+      for (let index = start; index <= ids.length - needed; index += 1) {
+        selected.push(ids[index]);
+        visit(index + 1);
+        selected.pop();
+      }
+    };
+    visit(0);
+  }
+
+  function finalize(stat, totalRows, totalWins) {
+    const otherGames = totalRows - stat.count, otherWins = totalWins - stat.wins;
+    const winRate = stat.count ? stat.wins / stat.count : 0;
+    const otherRate = otherGames ? otherWins / otherGames : null;
+    const interval = wilson(stat.wins, stat.count);
+    return {
+      ...stat, rate: totalRows ? stat.count / totalRows : 0, winRate,
+      delta: otherRate == null ? null : winRate - otherRate,
+      duration: median(stat.durations), interval,
+    };
+  }
+
+  function analyze(rows) {
+    const singleMap = new Map();
+    const comboMaps = {
+      pairs: new Map(), trios: new Map(), fours: new Map(),
+      fives: new Map(), sixes: new Map(),
+    };
+    const comboSizes = { pairs: 2, trios: 3, fours: 4, fives: 5, sixes: 6 };
+    const totalWins = rows.reduce((sum, row) => sum + Number(row.w || 0), 0);
+    let sixEligibleRows = 0;
+    rows.forEach(row => {
+      const singleIds = finalItems(row, controls.scope.value || 'core');
+      const comboIds = comboItems(row);
+      if (comboIds.length >= 6) sixEligibleRows += 1;
+      singleIds.forEach(id => {
+        const stat = singleMap.get(id) || createStat([id]);
+        stat.count += 1; stat.wins += Number(row.w || 0);
+        if (Number.isFinite(Number(row.du))) stat.durations.push(Number(row.du));
+        singleMap.set(id, stat);
+      });
+      Object.entries(comboSizes).forEach(([kind, size]) => {
+        if (comboIds.length >= size) addCombinations(comboMaps[kind], comboIds, size, row);
+      });
+    });
+    const finish = map => [...map.values()].map(stat => finalize(stat, rows.length, totalWins));
+    return {
+      singles: finish(singleMap),
+      ...Object.fromEntries(Object.entries(comboMaps).map(([kind, map]) => [kind, finish(map)])),
+      totalWins, sixEligibleRows,
+    };
+  }
+
+  function visibleStats(values, kind) {
+    const minimum = Number(controls.min.value || 5), query = normalize(controls.search.value);
+    const filtered = values.filter(stat => stat.count >= minimum && (!query || stat.ids.some(id => normalize(itemName(id)).includes(query))));
+    const [property, direction] = state.sorts[kind] || ['count', 'desc'];
+    return filtered.sort((a, b) => {
+      const av = property === 'name' ? itemName(a.ids[0]) : a[property];
+      const bv = property === 'name' ? itemName(b.ids[0]) : b[property];
+      if (typeof av === 'string') return (direction === 'asc' ? 1 : -1) * av.localeCompare(bv);
+      const left = Number.isFinite(av) ? av : -Infinity, right = Number.isFinite(bv) ? bv : -Infinity;
+      return (direction === 'asc' ? 1 : -1) * (left - right) || b.count - a.count;
+    });
+  }
+
+  function deltaHtml(value) {
+    if (!Number.isFinite(value)) return '<span class="id-delta is-neutral">—</span>';
+    const cls = value >= .025 ? 'is-positive' : value <= -.025 ? 'is-negative' : 'is-neutral';
+    return `<span class="id-delta ${cls}">${pct(value, 1, true)}</span>`;
+  }
+
+  function renderKpis(allRows, rows, analysis) {
+    const matches = new Set(rows.map(row => row.m)).size;
+    document.getElementById('id-kpi-games').textContent = rows.length.toLocaleString();
+    document.getElementById('id-kpi-matches').textContent = matches.toLocaleString();
+    document.getElementById('id-kpi-winrate').textContent = pct(analysis.totalWins, rows.length);
+    document.getElementById('id-kpi-coverage').textContent = pct(rows.length, allRows.length);
+    document.getElementById('id-kpi-sixes').textContent = pct(analysis.sixEligibleRows, rows.length);
+  }
+
+  function renderConclusions(analysis) {
+    const minimum = Number(controls.min.value || 5);
+    const singles = analysis.singles.filter(row => row.count >= minimum).sort((a, b) => b.count - a.count);
+    const reliable = singles.filter(row => row.count >= Math.max(minimum, Math.ceil(state.filtered.length * .03)) && Number.isFinite(row.delta)).sort((a, b) => b.delta - a.delta);
+    const pair = analysis.pairs.filter(row => row.count >= minimum).sort((a, b) => b.count - a.count)[0];
+    const trio = analysis.trios.filter(row => row.count >= minimum).sort((a, b) => b.count - a.count)[0];
+    const four = analysis.fours.filter(row => row.count >= minimum).sort((a, b) => b.count - a.count)[0];
+    const five = analysis.fives.filter(row => row.count >= minimum).sort((a, b) => b.count - a.count)[0];
+    const six = analysis.sixes.filter(row => row.count >= minimum).sort((a, b) => b.count - a.count)[0];
+    const cards = [
+      { code: 'MOST HELD', title: '最常见最终单件', stat: singles[0], text: stat => `${stat.count}局 · ${pct(stat.rate, 1)}终局持有 · ${timeText(stat.duration)}中位时长` },
+      { code: 'RELATIVE SIGNAL', title: '稳定正向关联', stat: reliable[0], text: stat => `${stat.count}局 · ${pct(stat.winRate, 1)}胜率 · 相对未持有${pct(stat.delta, 1, true)}` },
+      { code: 'FINAL PAIR', title: '最常见最终两件套', stat: pair, text: stat => `${stat.count}局 · ${pct(stat.rate, 1)}终局组合率 · ${timeText(stat.duration)}中位时长` },
+      { code: 'FINAL THREE', title: '最常见最终三件套', stat: trio, text: stat => `${stat.count}局 · ${pct(stat.winRate, 1)}胜率 · ${timeText(stat.duration)}中位时长` },
+      { code: 'FINAL FOUR', title: '最常见最终四件套', stat: four, text: stat => `${stat.count}局 · ${pct(stat.rate, 1)}终局组合率 · ${timeText(stat.duration)}中位时长` },
+      { code: 'FINAL FIVE', title: '最常见最终五件套', stat: five, text: stat => `${stat.count}局 · ${pct(stat.winRate, 1)}胜率 · ${timeText(stat.duration)}中位时长` },
+      { code: 'FINAL SIX', title: '最常见最终六件套', stat: six, text: stat => `${stat.count}局 · ${pct(stat.winRate, 1)}胜率 · ${timeText(stat.duration)}中位时长` },
+    ];
+    document.getElementById('id-conclusions').innerHTML = cards.map(card => card.stat ? `<article><span>${card.code}</span><h3>${esc(card.title)}</h3><div>${card.stat.ids.map(id => itemIcon(id, card.stat.ids.length > 1)).join('')}</div><p>${esc(card.text(card.stat))}</p></article>` : `<article class="is-empty"><span>${card.code}</span><h3>${esc(card.title)}</h3><p>当前最低样本下暂无结论</p></article>`).join('');
+    const top = singles.slice(0, 10), maximum = Math.max(1, ...top.map(row => row.rate));
+    document.getElementById('id-overview-items').innerHTML = top.length ? top.map(row => `<button type="button" data-id-open-single="${esc(row.ids[0])}"><span>${itemIcon(row.ids[0], false)}</span><i><b style="width:${Math.max(3, row.rate * 100 / maximum)}%"></b></i><em>${pct(row.rate, 1)}</em>${deltaHtml(row.delta)}<small>${row.count}局</small></button>`).join('') : '<div class="id-empty">当前样本下没有达到门槛的装备</div>';
+  }
+
+  function renderSingleTable(analysis) {
+    const rows = visibleStats(analysis.singles, 'single').slice(0, 120);
+    document.getElementById('id-single-body').innerHTML = rows.length ? rows.map(row => `<tr><td>${itemIcon(row.ids[0], false)}</td><td>${pct(row.rate, 1)}</td><td>${row.count}</td><td class="${row.winRate >= .5 ? 'is-win' : 'is-loss'}">${pct(row.winRate, 1)}</td><td>${deltaHtml(row.delta)}</td><td>${pct(row.interval[0], 1)}–${pct(row.interval[1], 1)}</td><td>${timeText(row.duration)}</td></tr>`).join('') : emptyRow(7, '没有达到当前最低样本的最终装备');
+  }
+
+  function renderComboTable(analysis, kind) {
+    const bodies = {
+      pairs: 'id-pair-body', trios: 'id-trio-body', fours: 'id-four-body',
+      fives: 'id-five-body', sixes: 'id-six-body',
+    };
+    const values = analysis[kind] || [];
+    const rows = visibleStats(values, kind).slice(0, 100);
+    const target = document.getElementById(bodies[kind]);
+    target.innerHTML = rows.length ? rows.map(row => `<tr><td><span class="id-combo">${row.ids.map(id => itemIcon(id, true)).join('<i>+</i>')}</span></td><td>${pct(row.rate, 1)}</td><td>${row.count}</td><td class="${row.winRate >= .5 ? 'is-win' : 'is-loss'}">${pct(row.winRate, 1)}</td><td>${deltaHtml(row.delta)}</td><td>${pct(row.interval[0], 1)}–${pct(row.interval[1], 1)}</td><td>${timeText(row.duration)}</td></tr>`).join('') : emptyRow(7, '没有达到当前最低样本的最终装备组合');
+  }
+
+  function renderEvidence(rows) {
+    const html = [...rows].sort((a, b) => String(b.d).localeCompare(String(a.d)) || Number(b.m) - Number(a.m)).slice(0, 60).map(row => {
+      const inventory = finalItems(row, controls.scope.value || 'core');
+      const query = new URLSearchParams({ mode: 'hero', hero: row.h, from: row.d, to: row.d, tab: 'matches' });
+      const isPublic = row.src === 'opendota' || state.activeSource === 'public';
+      const identity = isPublic ? '匿名公开局玩家' : (row.n || row.s || '未知选手');
+      const team = isPublic ? (row.t || '公开匹配') : (row.t || '未知战队');
+      const action = isPublic
+        ? `<a href="https://www.opendota.com/matches/${encodeURIComponent(row.m)}" target="_blank" rel="noopener">OpenDota</a>`
+        : `<a href="pro_builds.html?${query.toString()}">继续复盘</a>`;
+      return `<tr><td><b>${esc(row.m)}</b><small>${esc(row.d)} · ${esc(row.l || (isPublic ? 'OpenDota公开局' : '未知赛事'))}</small></td><td><b>${esc(identity)}</b><small>${esc(team)}</small></td><td>${row.r ? `${row.r}号位` : '未判位'}<small>${esc(row.rm || '未知方法')}</small></td><td><span class="id-route">${inventory.length ? inventory.map(id => `<span>${itemIcon(id, true)}</span>`).join('') : '<em>终局六格内没有当前范围装备</em>'}</span><small>${Number.isFinite(Number(row.ft)) ? `终局 ${timeText(Number(row.ft))} · 比赛 ${timeText(Number(row.du))}` : `比赛 ${timeText(Number(row.du))}`}</small></td><td class="${row.w ? 'is-win' : 'is-loss'}">${row.w ? '胜利' : '失败'}</td><td>${action}</td></tr>`;
+    }).join('');
+    document.getElementById('id-evidence-body').innerHTML = html || emptyRow(6, '当前范围没有真实比赛样本');
+  }
+
+  function renderAll() {
+    if (!state.filtered.length) return;
+    state.analysis = analyze(state.filtered);
+    renderKpis(state.scopeRows, state.filtered, state.analysis);
+    renderConclusions(state.analysis);
+    renderSingleTable(state.analysis);
+    renderComboTable(state.analysis, 'pairs');
+    renderComboTable(state.analysis, 'trios');
+    renderComboTable(state.analysis, 'fours');
+    renderComboTable(state.analysis, 'fives');
+    renderComboTable(state.analysis, 'sixes');
+    renderEvidence(state.filtered);
+  }
+
+  function applyTab(name, updateUrl) {
+    const valid = ['overview', 'single', 'pairs', 'trios', 'fours', 'fives', 'sixes', 'evidence'];
+    state.activeTab = valid.includes(name) ? name : 'overview';
+    document.querySelectorAll('[data-id-tab]').forEach(button => {
+      const active = button.dataset.idTab === state.activeTab;
+      button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+    });
+    document.querySelectorAll('[data-id-panel]').forEach(panel => {
+      const active = panel.dataset.idPanel === state.activeTab;
+      panel.classList.toggle('is-active', active); panel.hidden = !active;
+    });
+    if (updateUrl && state.selectedHero) {
+      const url = new URL(location.href); url.searchParams.set('tab', state.activeTab);
+      history.replaceState(null, '', url);
+    }
+  }
+
+  function updateGenerateState() {
+    const entry = Object.entries(heroes).find(([id, hero]) => normalize(hero.name) === normalize(controls.hero.value) || normalize(id) === normalize(controls.hero.value));
+    state.selectedHero = entry?.[0] || '';
+    generate.disabled = !state.selectedHero || !state.rows.length || Boolean(state.loadingSource);
+    document.getElementById('id-generate-summary').innerHTML = state.selectedHero
+      ? `<b>${esc(heroName(state.selectedHero))}</b><span>${esc(sourceName())} · ${esc(sourceConfig[state.activeSource].role ? roleName(controls.role.value) : '不区分职责位置')} · ${esc(controls.patch.value || '全部版本')} · ${esc(controls.from.value || '最早')}至${esc(controls.to.value || '最新')}</span>`
+      : '先选择一名英雄';
+  }
+
+  function runStudy(scroll) {
+    updateGenerateState();
+    if (!state.selectedHero) { controls.hero.focus(); return; }
+    const from = controls.from.value, to = controls.to.value;
+    const rows = state.rows.filter(row => row.h === state.selectedHero
+      && (!sourceConfig[state.activeSource].role || !controls.role.value || String(row.r || '') === controls.role.value)
+      && (!controls.patch.value || row.p === controls.patch.value)
+      && (!from || row.d >= from) && (!to || row.d <= to));
+    if (!rows.length) {
+      status.className = 'id-load-status is-error';
+      status.textContent = `当前条件没有${sourceName()}样本，请扩大日期${sourceConfig[state.activeSource].role ? '或取消位置限制' : ''}。`;
+      return;
+    }
+    const inventoryRows = rows.filter(row => Array.isArray(row.f));
+    if (!inventoryRows.length) {
+      status.className = 'id-load-status is-error';
+      status.textContent = '当前条件有比赛，但没有可验证的终局背包快照；本页不会用购买日志冒充最终装备。';
+      return;
+    }
+    state.scopeRows = rows;
+    state.filtered = inventoryRows;
+    const hero = heroes[state.selectedHero] || {};
+    document.getElementById('id-context-icon').src = hero.icon || '';
+    document.getElementById('id-context-icon').alt = hero.name || state.selectedHero;
+    document.getElementById('id-context-title').textContent = hero.name || state.selectedHero;
+    const roleScope = sourceConfig[state.activeSource].role ? roleName(controls.role.value) : '不区分职责位置';
+    document.getElementById('id-context-scope').textContent = `${sourceName()} · ${roleScope} · ${controls.patch.value || '全部版本'} · ${from || state.meta.date_min} — ${to || state.meta.date_max}`;
+    document.getElementById('id-context-count').textContent = `${inventoryRows.length.toLocaleString()}个终局快照 / ${rows.length.toLocaleString()}个选手英雄局`;
+    results.hidden = false; page.classList.remove('is-unselected');
+    status.className = 'id-load-status is-ready';
+    status.textContent = `已生成 ${hero.name || state.selectedHero} 的${sourceName()}最终装备组合研究；两类数据源不会混算。`;
+    renderAll(); applyTab(state.activeTab, false);
+    const url = new URL(location.href);
+    [['source', state.activeSource], ['hero', state.selectedHero], ['role', sourceConfig[state.activeSource].role ? controls.role.value : ''], ['patch', controls.patch.value], ['from', from], ['to', to], ['tab', state.activeTab], ['run', '1']].forEach(([key, value]) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key));
+    history.replaceState(null, '', url);
+    if (scroll) results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderHotHeroes() {
+    const latest = state.meta.date_max || '', from = latest ? new Date(`${latest}T00:00:00Z`) : null;
+    if (from) from.setUTCDate(from.getUTCDate() - 29);
+    const minDate = from ? from.toISOString().slice(0, 10) : '';
+    const counts = new Map();
+    state.rows.forEach(row => { if (!minDate || row.d >= minDate) counts.set(row.h, (counts.get(row.h) || 0) + 1); });
+    const hot = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+    document.getElementById('id-hot-heroes').innerHTML = hot.map(([id, count]) => {
+      const hero = heroes[id] || {};
+      return `<button type="button" data-id-hero="${esc(id)}" title="选择 ${esc(hero.name || id)}；不会立即生成"><img src="${esc(hero.icon || '')}" alt=""><span><b>${esc(hero.name || id)}</b><small>${count}局</small></span></button>`;
+    }).join('');
+  }
+
+  function fillInitialControls(useParams) {
+    const heroEntries = Object.entries(heroes).sort((a, b) => String(a[1].name).localeCompare(String(b[1].name)));
+    document.getElementById('id-hero-list').innerHTML = heroEntries.map(([, hero]) => `<option value="${esc(hero.name)}"></option>`).join('');
+    const patches = [...new Set(state.rows.map(row => row.p).filter(Boolean))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    controls.patch.innerHTML = '<option value="">全部版本</option>' + patches.map(patch => `<option value="${esc(patch)}">${esc(patch)}</option>`).join('');
+    const maxDate = state.meta.date_max || state.rows.reduce((max, row) => row.d > max ? row.d : max, '');
+    const minDate = state.meta.date_min || state.rows.reduce((min, row) => !min || row.d < min ? row.d : min, '');
+    controls.role.disabled = !sourceConfig[state.activeSource].role;
+    document.getElementById('id-role-label').textContent = sourceConfig[state.activeSource].role ? '职责位置' : '职责位置（公开局不判位）';
+    if (!sourceConfig[state.activeSource].role) controls.role.value = '';
+    if (!maxDate || !minDate) {
+      controls.from.value = controls.to.value = '';
+      controls.from.removeAttribute('min'); controls.from.removeAttribute('max');
+      controls.to.removeAttribute('min'); controls.to.removeAttribute('max');
+      renderHotHeroes(); updateGenerateState();
+      return;
+    }
+    controls.from.min = controls.to.min = minDate; controls.from.max = controls.to.max = maxDate;
+    controls.to.value = useParams ? (params.get('to') || maxDate) : maxDate;
+    const recent = new Date(`${maxDate}T00:00:00Z`); recent.setUTCDate(recent.getUTCDate() - 29);
+    controls.from.value = useParams && params.get('from') ? params.get('from') : (recent.toISOString().slice(0, 10) < minDate ? minDate : recent.toISOString().slice(0, 10));
+    controls.role.value = sourceConfig[state.activeSource].role && useParams ? (params.get('role') || '') : '';
+    const requestedPatch = useParams ? (params.get('patch') || '') : '';
+    controls.patch.value = patches.includes(requestedPatch) ? requestedPatch : '';
+    const requestedHero = useParams ? (params.get('hero') || '') : state.selectedHero;
+    if (requestedHero && heroes[requestedHero]) controls.hero.value = heroName(requestedHero);
+    renderHotHeroes(); updateGenerateState();
+  }
+
+  function renderFreshness() {
+    const host = document.getElementById('id-freshness'), latest = state.meta.date_max || '';
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(latest) ? new Date(`${latest}T00:00:00Z`) : null;
+    const today = new Date(), age = date ? Math.max(0, Math.floor((Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - date.getTime()) / 86400000)) : null;
+    const level = age == null ? 'bad' : age <= 2 ? 'good' : age <= 7 ? 'warn' : 'bad';
+    host.className = `is-${level}`;
+    const sample = sourceConfig[state.activeSource].ready(state.meta);
+    host.innerHTML = `<span></span><div><strong>${age == null ? '数据日期未知' : age === 0 ? '数据截至今天' : `数据落后 ${age} 天`}</strong><small>${esc(sample)} · 最新 ${esc(latest || '未知')}</small></div>`;
+  }
+
+  function renderSourceChrome() {
+    document.querySelectorAll('[data-id-source]').forEach(button => {
+      const active = button.dataset.idSource === state.activeSource;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+      button.disabled = state.loadingSource === button.dataset.idSource;
+    });
+    const isPublic = state.activeSource === 'public';
+    document.getElementById('id-source-note').textContent = isPublic
+      ? '当前统计 OpenDota 高分随机公开局样本；只取终局六格，不含背包和中立物品，也不推断1–5号位。'
+      : '当前统计职业比赛，不与公开局共用分母。';
+    document.getElementById('id-hot-label').textContent = isPublic ? '近期公开局热门' : '近期职业热门';
+    document.getElementById('id-evidence-note').textContent = isPublic
+      ? '最多展示最近60个匿名公开局终局六格，可打开 OpenDota 核对比赛'
+      : '最多展示最近60个有终局快照的选手英雄局，可进入职业出装页继续复盘';
+  }
+
+  function applyDataset(name, payload, useParams) {
+    state.activeSource = name;
+    state.meta = payload.meta || {};
+    state.rows = decodeCorePayload(payload);
+    state.scopeRows = []; state.filtered = []; state.analysis = null;
+    results.hidden = true; page.classList.add('is-unselected');
+    renderSourceChrome(); fillInitialControls(useParams); renderFreshness();
+    const count = document.getElementById(`id-source-${name}-count`);
+    const readyText = sourceConfig[name].ready(state.meta);
+    if (count) count.textContent = readyText;
+    status.className = state.rows.length ? 'id-load-status is-ready' : 'id-load-status is-error';
+    status.textContent = state.rows.length
+      ? `${readyText} · ${state.rows.length.toLocaleString()}个英雄终局快照已就绪`
+      : `${sourceName()}暂时没有可用样本，请先运行公开局采集脚本。`;
+    const url = new URL(location.href);
+    if (name === 'pro') url.searchParams.delete('source'); else url.searchParams.set('source', name);
+    ['run', 'role', 'patch', 'from', 'to'].forEach(key => { if (!useParams) url.searchParams.delete(key); });
+    history.replaceState(null, '', url);
+    if (useParams && params.get('run') === '1' && state.selectedHero) runStudy(false);
+    else applyTab(state.activeTab, false);
+  }
+
+  function loadSource(name, useParams) {
+    if (!sourceConfig[name] || state.loadingSource) return;
+    const cached = state.datasets.get(name);
+    if (cached) { applyDataset(name, cached, useParams); return; }
+    state.loadingSource = name; generate.disabled = true;
+    const count = document.getElementById(`id-source-${name}-count`);
+    if (count) count.textContent = '正在载入…';
+    status.className = 'id-load-status'; status.textContent = `正在载入${sourceConfig[name].label}缓存…`;
+    renderSourceChrome();
+    fetch(sourceConfig[name].url, { cache: 'no-cache' })
+      .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+      .then(payload => {
+        state.datasets.set(name, payload); state.loadingSource = '';
+        applyDataset(name, payload, useParams);
+      })
+      .catch(error => {
+        state.loadingSource = '';
+        if (count) count.textContent = '载入失败';
+        renderSourceChrome();
+        status.className = 'id-load-status is-error';
+        status.textContent = `${sourceConfig[name].label}载入失败：${error.message}`;
+        if (!state.rows.length) document.getElementById('id-freshness').innerHTML = '<span></span><div><strong>数据不可用</strong><small>请稍后刷新页面</small></div>';
+      });
+  }
+
+  function setPreset(value) {
+    const min = state.meta.date_min || controls.from.min, max = state.meta.date_max || controls.to.max;
+    controls.to.value = max;
+    if (value === 'all') controls.from.value = min;
+    else {
+      const date = new Date(`${max}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - Number(value) + 1);
+      controls.from.value = date.toISOString().slice(0, 10) < min ? min : date.toISOString().slice(0, 10);
+    }
+    updateGenerateState();
+  }
+
+  function bindEvents() {
+    document.getElementById('id-source-switch').addEventListener('click', event => {
+      const button = event.target.closest('[data-id-source]');
+      if (!button || button.dataset.idSource === state.activeSource) return;
+      loadSource(button.dataset.idSource, false);
+    });
+    controls.hero.addEventListener('input', updateGenerateState);
+    [controls.role, controls.patch, controls.from, controls.to].forEach(control => control.addEventListener('change', updateGenerateState));
+    document.getElementById('id-hot-heroes').addEventListener('click', event => {
+      const button = event.target.closest('[data-id-hero]'); if (!button) return;
+      controls.hero.value = heroName(button.dataset.idHero); updateGenerateState();
+      controls.hero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    document.querySelectorAll('[data-id-days]').forEach(button => button.addEventListener('click', () => setPreset(button.dataset.idDays)));
+    generate.addEventListener('click', () => runStudy(true));
+    document.getElementById('id-change-study').addEventListener('click', () => {
+      document.getElementById('id-setup').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => controls.hero.focus(), 350);
+    });
+    document.getElementById('id-tabs').addEventListener('click', event => {
+      const button = event.target.closest('[data-id-tab]'); if (button) applyTab(button.dataset.idTab, true);
+    });
+    [controls.scope, controls.min].forEach(control => control.addEventListener('change', renderAll));
+    controls.search.addEventListener('input', () => {
+      if (!state.analysis) return;
+      renderSingleTable(state.analysis);
+      ['pairs', 'trios', 'fours', 'fives', 'sixes'].forEach(kind => renderComboTable(state.analysis, kind));
+    });
+    document.getElementById('id-overview-items').addEventListener('click', event => {
+      const button = event.target.closest('[data-id-open-single]'); if (!button) return;
+      controls.search.value = itemName(button.dataset.idOpenSingle); renderSingleTable(state.analysis); applyTab('single', true);
+      document.querySelector('[data-id-panel="single"]').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    const tableKinds = {
+      single: 'single', pair: 'pairs', trio: 'trios',
+      four: 'fours', five: 'fives', six: 'sixes',
+    };
+    Object.entries(tableKinds).forEach(([tableKind, stateKey]) => {
+      const table = document.getElementById(`id-${tableKind}-table`); if (!table) return;
+      table.querySelectorAll('[data-id-sort]').forEach(header => header.addEventListener('click', () => {
+        const current = state.sorts[stateKey], property = header.dataset.idSort;
+        state.sorts[stateKey] = [property, current?.[0] === property && current[1] === 'desc' ? 'asc' : 'desc'];
+        if (stateKey === 'single') renderSingleTable(state.analysis); else renderComboTable(state.analysis, stateKey);
+      }));
+    });
+  }
+
+  bindEvents(); renderCostCatalog(); renderSourceChrome();
+  loadSource(state.activeSource, true);
+})();
+
 // ---- PRO BUILDS: professional item timing + Hero Lab theory ----
 (function() {
   const page = document.querySelector('.pro-builds-page');
@@ -5350,11 +5903,12 @@
   const rowKey = r => `${r.m}:${r.sl == null ? r.s : r.sl}`;
 
   function decodeCorePayload(payload) {
-    if (!['pro-builds-core-v2', 'pro-builds-core-v3'].includes(payload?.schema)) return payload?.records || [];
+    if (!['pro-builds-core-v2', 'pro-builds-core-v3', 'pro-builds-core-v4'].includes(payload?.schema)) return payload?.records || [];
     const d = payload.dictionaries || {}, value = (field, index) => d[field]?.[index] ?? '';
     return (payload.records || []).map(row => {
       const itemValues = row[19] || [], decodedItems = [], hasUseData = Array.isArray(row[21]);
       const useValues = hasUseData ? row[21] : [], decodedUses = [];
+      const finalValues = Array.isArray(row[23]) ? row[23] : null;
       for (let index = 0; index < itemValues.length; index += 2) decodedItems.push([value('item', itemValues[index]), itemValues[index + 1]]);
       for (let index = 0; index < useValues.length; index += 2) decodedUses.push([value('item', useValues[index]), useValues[index + 1]]);
       return {
@@ -5364,6 +5918,8 @@
         tm: row[11], r: row[12], rm: value('rm', row[13]), rc: row[14],
         w: row[15], lv: row[16], nw: row[17], du: row[18], i: decodedItems,
         g: row[20], u: hasUseData ? decodedUses : null, x: row[22] || null,
+        f: finalValues ? finalValues.map(index => value('item', index)).filter(Boolean) : null,
+        ft: row[24] == null ? null : row[24],
       };
     });
   }
