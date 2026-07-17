@@ -471,6 +471,75 @@ _BOOT_ITEMS = {
     "item_phase_boots", "item_power_treads",
 }
 
+# These are components in Valve's recipe graph, but players buy them as
+# meaningful standalone tools.  Treating them as raw components would erase
+# real build decisions such as an early Blink or Ghost Scepter.
+_INDEPENDENT_FUNCTIONAL_ITEMS = {
+    "item_blink",
+    "item_ghost",
+    "item_boots",
+    "item_bottle",
+    "item_magic_stick",
+    "item_quelling_blade",
+    "item_orb_of_venom",
+    "item_blight_stone",
+    "item_infused_raindrop",
+    "item_gem",
+}
+
+
+def _route_item_classes(kv_items: dict) -> dict[str, str]:
+    """Classify shop items from Valve's recipe graph for build analytics."""
+    recipe_results: set[str] = set()
+    recipe_components: set[str] = set()
+    for _recipe_id, row in kv_items.items():
+        if not isinstance(row, dict) or str(row.get("ItemRecipe", "0")) != "1":
+            continue
+        result = str(row.get("ItemResult") or "").strip()
+        if result:
+            recipe_results.add(result)
+        requirements = row.get("ItemRequirements") or {}
+        alternatives = requirements.values() if isinstance(requirements, dict) else [requirements]
+        for alternative in alternatives:
+            for component in str(alternative or "").split(";"):
+                component = component.strip().rstrip("*")
+                if component.startswith("item_") and not component.startswith("item_recipe_"):
+                    recipe_components.add(component)
+
+    classes: dict[str, str] = {}
+    for item_id, row in kv_items.items():
+        if (
+            not item_id.startswith("item_")
+            or item_id.startswith("item_recipe_")
+            or not isinstance(row, dict)
+            or str(row.get("ItemRecipe", "0")) == "1"
+            or str(row.get("ItemPurchasable", "1")) == "0"
+            or str(row.get("ItemIsNeutralDrop", "0")) == "1"
+        ):
+            continue
+        quality = str(row.get("ItemQuality") or "").casefold()
+        if quality == "consumable":
+            continue
+        if item_id in _INDEPENDENT_FUNCTIONAL_ITEMS:
+            classes[item_id] = "independent_functional"
+        elif item_id in recipe_results:
+            classes[item_id] = (
+                "upgradeable_completed"
+                if item_id in recipe_components
+                else "terminal_completed"
+            )
+        elif item_id in recipe_components:
+            # Secret-shop components often use a non-"component" quality.
+            # Recipe topology is the stronger signal: if it is never a recipe
+            # result, it remains a raw component unless explicitly whitelisted
+            # as an independent functional item above.
+            classes[item_id] = "pure_component"
+        elif quality != "component":
+            classes[item_id] = "terminal_completed"
+        else:
+            classes[item_id] = "pure_component"
+    return classes
+
 _ENCHANT_TIER_LABELS = {
     "item_enhancement_vital":       ("", 0, [1]),
     "item_enhancement_alert":       ("", 1, [1, 2, 3, 4]),
@@ -873,6 +942,7 @@ def _load_items(version: str) -> list[dict]:
     costs = _json.loads(items_json_path.read_text(encoding="utf-8")) if items_json_path.exists() else {}
     root = parse_kv((STATS_DIR / version / "items.txt").read_text(encoding="utf-8"))
     kv_items = root.get("DOTAAbilities", {})
+    route_classes = _route_item_classes(kv_items)
     out: list[dict] = []
     for item, data in kv_items.items():
         if not item.startswith("item_") or item.startswith("item_recipe_"):
@@ -939,6 +1009,8 @@ def _load_items(version: str) -> list[dict]:
             "consumable": consumable,
             "bonus": bonus,
         }
+        if cls == "regular" and item in route_classes:
+            rec["routeClass"] = route_classes[item]
         if item in _BOOT_ITEMS:
             rec["isBoot"] = True
         if cls == "enchant":

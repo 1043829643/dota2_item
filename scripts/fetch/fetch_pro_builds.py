@@ -442,6 +442,47 @@ def _parse_opendota_ability_route(
     return route
 
 
+def _parse_opendota_purchases(
+    match: dict, hero_id: int, valid_item_ids: set[str]
+) -> list[list]:
+    """Return first real purchase time per item for one exact-match hero.
+
+    This is a last-resort route fallback only.  The caller keeps authoritative
+    ODS purchase times whenever both sources contain the same item.
+    """
+    player = next(
+        (
+            row for row in match.get("players") or []
+            if int(row.get("hero_id") or 0) == int(hero_id or 0)
+        ),
+        None,
+    )
+    if not player:
+        return []
+
+    first: dict[str, int] = {}
+    for entry in player.get("purchase_log") or []:
+        if not isinstance(entry, dict):
+            continue
+        key = str(entry.get("key") or "").strip()
+        if not key or key.startswith("recipe_"):
+            continue
+        item_id = key if key.startswith("item_") else f"item_{key}"
+        if item_id not in valid_item_ids:
+            continue
+        try:
+            seconds = max(0, int(entry.get("time") or 0))
+        except (TypeError, ValueError):
+            continue
+        previous = first.get(item_id)
+        if previous is None or seconds < previous:
+            first[item_id] = seconds
+    return [
+        [item_id, seconds]
+        for item_id, seconds in sorted(first.items(), key=lambda row: (row[1], row[0]))
+    ]
+
+
 def _parse_opendota_neutral_choices(
     match: dict, hero_id: int, item_catalog: dict[str, dict]
 ) -> list[list]:
@@ -1595,6 +1636,36 @@ def main() -> int:
     for (record_key, item_id), first_time in first_purchases.items():
         records[record_key]["i"].append([item_id, first_time])
 
+    # Some parser batches contain final inventories but no ODS purchase
+    # events.  We already loaded the exact OpenDota match above for duration,
+    # lane, skill and neutral fallbacks, so reuse its purchase_log only for
+    # player-games with fewer than two authoritative timed items.  Existing
+    # ODS times always win on an overlapping item.
+    opendota_purchase_player_games = 0
+    opendota_purchase_events = 0
+    ods_items_by_record: dict[tuple[int, int], set[str]] = defaultdict(set)
+    for (record_key, item_id), _first_time in first_purchases.items():
+        ods_items_by_record[record_key].add(item_id)
+    for record_key, rec in records.items():
+        if len(ods_items_by_record.get(record_key, set())) >= 2:
+            continue
+        fallback = _parse_opendota_purchases(
+            opendota_matches.get(record_key[0], {}),
+            int(rec.get("hi") or 0),
+            valid_item_ids,
+        )
+        added = 0
+        for item_id, seconds in fallback:
+            purchase_key = (record_key, item_id)
+            if purchase_key in first_purchases:
+                continue
+            first_purchases[purchase_key] = seconds
+            rec["i"].append([item_id, seconds])
+            added += 1
+        if added:
+            opendota_purchase_player_games += 1
+            opendota_purchase_events += added
+
     for rec in records.values():
         timed = {item_id: seconds for item_id, seconds in rec["i"]}
         for item_id in rec["f"]:
@@ -1997,7 +2068,8 @@ def main() -> int:
             ),
             "position_source_warning": (
                 "dwd_dota2 is a derived source and may be stale or inaccurate; "
-                "OpenDota is used only to recover non-2-1-2 lane aggregates"
+                "OpenDota is used only for exact-match gaps such as non-2-1-2 "
+                "lane aggregates and missing purchase timelines"
             ),
             "query_scope": {
                 "date_from": date_from,
@@ -2060,6 +2132,8 @@ def main() -> int:
                     for r in rows
                 ),
                 "combatlog_purchase_matches": len(combatlog_purchase_matches),
+                "opendota_purchase_player_games": opendota_purchase_player_games,
+                "opendota_purchase_events": opendota_purchase_events,
                 "item_use_source_matches": len(item_use_source_matches),
                 "item_use_source_player_games": sum(
                     isinstance(r.get("u"), list) for r in rows

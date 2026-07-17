@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,6 +30,7 @@ from scripts.fetch.fetch_pro_builds import (
     _deduplicate_rows,
     _load_item_ids,
     _load_opendota_match,
+    _parse_opendota_purchases,
 )
 
 
@@ -38,13 +40,27 @@ DEFAULT_CORE = ROOT / "data" / "pro_builds.json"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--core", type=Path, default=DEFAULT_CORE)
-    parser.add_argument("--hero", required=True, help="Canonical hero slug, for example sven")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--hero", help="Canonical hero slug, for example sven")
+    target.add_argument(
+        "--all-heroes",
+        action="store_true",
+        help="Repair every cached player-game in the bounded date slice",
+    )
     parser.add_argument("--date-from", required=True)
     parser.add_argument("--date-to", required=True)
     parser.add_argument(
         "--opendota-fallback",
         action="store_true",
         help="Use OpenDota only for selected matches with insufficient dota2_analysis purchase events",
+    )
+    parser.add_argument(
+        "--skip-starrocks",
+        action="store_true",
+        help=(
+            "Keep timed ODS rows already present in the core cache and only fill "
+            "remaining gaps from exact OpenDota matches"
+        ),
     )
     return parser.parse_args()
 
@@ -61,7 +77,14 @@ def atomic_write_json(path: Path, payload: dict) -> None:
             json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        for attempt in range(6):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError:
+                if attempt == 5:
+                    raise
+                time.sleep(0.2 * (attempt + 1))
     except Exception:
         try:
             os.unlink(temporary)
@@ -70,87 +93,102 @@ def atomic_write_json(path: Path, payload: dict) -> None:
         raise
 
 
-def selected_rows(payload: dict, hero: str, date_from: str, date_to: str) -> list[dict]:
+def selected_rows(
+    payload: dict, hero: str | None, date_from: str, date_to: str
+) -> list[dict]:
     return [
         row
         for row in payload.get("records") or []
-        if str(row.get("h") or "") == hero
+        if (hero is None or str(row.get("h") or "") == hero)
         and date_from <= str(row.get("d") or "") <= date_to
     ]
 
 
-def partition_predicate(rows: list[dict]) -> str:
-    matches_by_date: dict[str, list[int]] = defaultdict(list)
-    for row in rows:
-        matches_by_date[str(row["d"])].append(int(row["m"]))
-    clauses = []
-    for day, match_ids in sorted(matches_by_date.items()):
-        ids = ",".join(f"'{match_id}'" for match_id in sorted(set(match_ids)))
-        clauses.append(f"(dt = '{day}' AND match_id IN ({ids}))")
-    return " OR ".join(clauses)
-
-
-def load_starrocks_purchases(rows: list[dict], hero: str) -> tuple[dict[int, list[list]], set[int]]:
+def load_starrocks_purchases(
+    rows: list[dict], hero: str | None
+) -> tuple[dict[tuple[int, str], list[list]], set[tuple[int, str]], set[int]]:
     """Return post-fetch-deduplicated ODS purchases and match provenance."""
-    predicate = partition_predicate(rows)
-    if not predicate:
-        return {}, set()
-    target = f"npc_dota_hero_{hero}"
-    purchases: dict[int, list[list]] = defaultdict(list)
+    matches_by_date: dict[str, set[int]] = defaultdict(set)
+    selected_player_keys = {
+        (int(row["m"]), str(row.get("h") or ""))
+        for row in rows
+    }
+    for row in rows:
+        matches_by_date[str(row["d"])].add(int(row["m"]))
+    if not matches_by_date:
+        return {}, set(), set()
+    if hero is not None and not hero.replace("_", "").isalnum():
+        raise SystemExit(f"Invalid canonical hero slug: {hero!r}")
+    target_filter = (
+        f"AND targetname = 'npc_dota_hero_{hero}'" if hero is not None else ""
+    )
+    purchases: dict[tuple[int, str], list[list]] = defaultdict(list)
+    ods_player_games: set[tuple[int, str]] = set()
     ods_matches: set[int] = set()
+    first: dict[tuple[tuple[int, str], str], int] = {}
     connection = _connect()
     try:
         with connection.cursor() as cursor:
-            cursor.execute(
-                f"""
-                SELECT match_id, time, log_index, type, targetname, valuename
-                FROM dota2_analysis.combat_logs
-                WHERE ({predicate})
-                  AND type = 'DOTA_COMBATLOG_PURCHASE'
-                """
-            )
-            raw_rows = _deduplicate_rows(
-                cursor.fetchall(),
-                table="combat_logs",
-                columns=("match_id", "time", "log_index", "type", "targetname", "valuename"),
-            )
-            first: dict[tuple[int, str], int] = {}
-            for match_id, seconds, _log_index, _type, targetname, item_id in raw_rows:
-                match_id = int(match_id)
-                ods_matches.add(match_id)
-                item_id = str(item_id or "")
-                if str(targetname or "") != target or item_id.startswith("item_recipe_"):
-                    continue
-                key = (match_id, item_id)
-                seconds = max(0, int(seconds or 0))
-                if key not in first or seconds < first[key]:
-                    first[key] = seconds
-            for (match_id, item_id), seconds in first.items():
-                purchases[match_id].append([item_id, seconds])
+            for day, match_ids in sorted(matches_by_date.items()):
+                ordered = sorted(match_ids)
+                for offset in range(0, len(ordered), 200):
+                    batch = ordered[offset:offset + 200]
+                    ids = ",".join(f"'{match_id}'" for match_id in batch)
+                    print(
+                        f"[routes] StarRocks {day}: matches {offset + 1}-"
+                        f"{offset + len(batch)}/{len(ordered)}",
+                        flush=True,
+                    )
+                    cursor.execute(
+                        f"""
+                        SELECT match_id, time, log_index, type, targetname, valuename
+                        FROM dota2_analysis.combat_logs
+                        WHERE dt = '{day}' AND match_id IN ({ids})
+                          AND type = 'DOTA_COMBATLOG_PURCHASE'
+                          {target_filter}
+                        """
+                    )
+                    raw_rows = _deduplicate_rows(
+                        cursor.fetchall(),
+                        table="combat_logs",
+                        columns=("match_id", "time", "log_index", "type", "targetname", "valuename"),
+                    )
+                    for match_id, seconds, _log_index, _type, targetname, item_id in raw_rows:
+                        match_id = int(match_id)
+                        ods_matches.add(match_id)
+                        targetname = str(targetname or "")
+                        if not targetname.startswith("npc_dota_hero_"):
+                            continue
+                        player_key = (
+                            match_id,
+                            targetname.removeprefix("npc_dota_hero_"),
+                        )
+                        if player_key not in selected_player_keys:
+                            continue
+                        ods_player_games.add(player_key)
+                        item_id = str(item_id or "")
+                        if item_id.startswith("item_recipe_"):
+                            continue
+                        key = (player_key, item_id)
+                        seconds = max(0, int(seconds or 0))
+                        if key not in first or seconds < first[key]:
+                            first[key] = seconds
     finally:
         connection.close()
-    return dict(purchases), ods_matches
+    for (player_key, item_id), seconds in first.items():
+        purchases[player_key].append([item_id, seconds])
+    return dict(purchases), ods_player_games, ods_matches
 
 
-def load_opendota_purchases(match_id: int, hero_id: int, valid_items: set[str]) -> list[list]:
-    match = _load_opendota_match(match_id)
-    player = next(
-        (entry for entry in match.get("players") or [] if int(entry.get("hero_id") or 0) == hero_id),
-        None,
-    )
-    if not player:
-        return []
-    purchases: dict[str, int] = {}
-    for entry in player.get("purchase_log") or []:
-        key = str(entry.get("key") or "")
-        if not key or key.startswith("recipe_"):
-            continue
-        item_id = key if key.startswith("item_") else f"item_{key}"
-        if item_id not in valid_items:
-            continue
-        seconds = max(0, int(entry.get("time") or 0))
-        purchases.setdefault(item_id, seconds)
-    return [[item_id, seconds] for item_id, seconds in purchases.items()]
+def load_opendota_purchases(
+    match_id: int,
+    hero_id: int,
+    valid_items: set[str],
+    match_cache: dict[int, dict],
+) -> list[list]:
+    if match_id not in match_cache:
+        match_cache[match_id] = _load_opendota_match(match_id)
+    return _parse_opendota_purchases(match_cache[match_id], hero_id, valid_items)
 
 
 def merge_timed_items(row: dict, purchases: list[list], valid_items: set[str]) -> int:
@@ -172,27 +210,38 @@ def merge_timed_items(row: dict, purchases: list[list], valid_items: set[str]) -
 def main() -> int:
     args = parse_args()
     payload = json.loads(args.core.read_text(encoding="utf-8"))
-    rows = selected_rows(payload, args.hero, args.date_from, args.date_to)
+    hero = args.hero if not args.all_heroes else None
+    rows = selected_rows(payload, hero, args.date_from, args.date_to)
     if not rows:
         raise SystemExit("No cached player-games matched the bounded hero/date selection")
     valid_items = _load_item_ids()
-    starrocks, ods_matches = load_starrocks_purchases(rows, args.hero)
+    if args.skip_starrocks:
+        starrocks, ods_player_games, ods_matches = {}, set(), set()
+    else:
+        starrocks, ods_player_games, ods_matches = load_starrocks_purchases(rows, hero)
     opendota_matches: set[int] = set()
+    opendota_player_games: set[tuple[int, str]] = set()
+    opendota_match_cache: dict[int, dict] = {}
     updated_rows = 0
     added_timestamps = 0
     for row in rows:
         match_id = int(row["m"])
-        purchases = starrocks.get(match_id) or []
+        player_key = (match_id, str(row.get("h") or ""))
+        purchases = starrocks.get(player_key) or []
         timed_ids = {str(pair[0]) for pair in purchases if len(pair) > 1 and isinstance(pair[1], int)}
         if len(timed_ids) < 2 and args.opendota_fallback:
             try:
                 opendota = load_opendota_purchases(
-                    match_id, int(row.get("hi") or 0), valid_items
+                    match_id,
+                    int(row.get("hi") or 0),
+                    valid_items,
+                    opendota_match_cache,
                 )
             except (OSError, ValueError, json.JSONDecodeError):
                 opendota = []
             if opendota:
                 opendota_matches.add(match_id)
+                opendota_player_games.add(player_key)
                 by_item = {str(pair[0]): pair for pair in purchases}
                 for pair in opendota:
                     by_item.setdefault(str(pair[0]), pair)
@@ -202,33 +251,44 @@ def main() -> int:
             added_timestamps += added
             updated_rows += int(added > 0)
 
-    completed = {
-        match_id
-        for match_id in {int(row["m"]) for row in rows}
-        if sum(
-            isinstance(pair[1], int)
-            for row in rows if int(row["m"]) == match_id
-            for pair in (row.get("i") or [])
-        ) >= 2
-    }
-    missing = sorted({int(row["m"]) for row in rows} - completed)
+    completed_rows = [
+        row
+        for row in rows
+        if sum(isinstance(pair[1], int) for pair in (row.get("i") or [])) >= 2
+    ]
+    missing_rows = [row for row in rows if row not in completed_rows]
+    completed_matches = {int(row["m"]) for row in completed_rows}
+    missing_match_ids = sorted({int(row["m"]) for row in missing_rows})
     generated_at = utc_now()
     meta = payload.setdefault("meta", {})
     meta["generated_at"] = generated_at
     advanced = meta.setdefault("advanced", {})
     advanced["bounded_route_backfill"] = {
         "completed_at": generated_at,
-        "hero": args.hero,
+        "hero": hero or "all",
         "date_from": args.date_from,
         "date_to": args.date_to,
         "player_games": len(rows),
-        "complete_matches": len(completed),
+        "selected_matches": len({int(row["m"]) for row in rows}),
+        "complete_matches": len(completed_matches),
+        "complete_player_games": len(completed_rows),
+        "missing_player_games": len(missing_rows),
         "completion_rule": "at least two real purchase timestamps",
         "ods_matches": len(ods_matches),
+        "ods_player_games": len(ods_player_games),
         "opendota_matches": len(opendota_matches),
+        "opendota_player_games": len(opendota_player_games),
         "opendota_match_ids": sorted(opendota_matches),
-        "missing_match_ids": missing,
-        "query_contract": "exact dt + finite cached match IDs; application dedup (match_id,log_index); explicit external fallback",
+        "missing_match_ids": missing_match_ids,
+        "missing_player_game_samples": [
+            {"match_id": int(row["m"]), "hero": row.get("h"), "slot": row.get("sl")}
+            for row in missing_rows[:200]
+        ],
+        "query_contract": (
+            "existing cached ODS timings preserved; exact-match external fallback"
+            if args.skip_starrocks
+            else "exact dt + finite cached match IDs; application dedup (match_id,log_index); explicit external fallback"
+        ),
     }
     advanced["timed_item_player_games"] = sum(
         any(isinstance(pair[1], int) for pair in (row.get("i") or []))
@@ -237,11 +297,12 @@ def main() -> int:
     atomic_write_json(args.core, payload)
     print(
         f"Backfilled {updated_rows}/{len(rows)} player-games; "
-        f"added {added_timestamps} item timestamps; complete {len(completed)}/{len(rows)}; "
-        f"ODS {len(ods_matches)}, OpenDota {len(opendota_matches)}"
+        f"added {added_timestamps} item timestamps; complete {len(completed_rows)}/{len(rows)}; "
+        f"ODS {len(ods_player_games)} player-games, "
+        f"OpenDota {len(opendota_player_games)} player-games"
     )
-    if missing:
-        print("Missing match IDs:", ", ".join(map(str, missing)))
+    if missing_rows:
+        print("Missing match IDs:", ", ".join(map(str, missing_match_ids)))
         return 1
     return 0
 

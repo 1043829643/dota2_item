@@ -35,17 +35,46 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DATA_PATH = ROOT / "data" / "opendota_public_items.json"
+STANDALONE_COMPLETED_ITEM_IDS = frozenset({"item_blink", "item_ghost"})
+NON_INVENTORY_COMPLETED_ITEM_IDS = frozenset({"item_ultimate_scepter_2"})
+
+
+def _completed_item_ids(version: str) -> set[str]:
+    """Return current recipe outputs plus standalone items treated as complete.
+
+    Blink Dagger and Ghost Scepter are technically upgrade components in Valve's
+    recipe graph, but they are independently useful, commonly retained build
+    milestones.  The final-combination page therefore treats them as completed
+    items as well.
+    """
+    completed = set(STANDALONE_COMPLETED_ITEM_IDS)
+    path = ROOT / "data" / "stats" / version / "items.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return completed
+    for row in payload.values():
+        if not isinstance(row, dict) or str(row.get("ItemRecipe", "")) != "1":
+            continue
+        result = str(row.get("ItemResult") or "").strip()
+        if result.startswith("item_") and result not in NON_INVENTORY_COMPLETED_ITEM_IDS:
+            completed.add(result)
+    return completed
 
 
 def _config() -> dict:
     base = _pro_config()
+    completed_item_ids = _completed_item_ids(base["theoryPatch"])
     return {
         "dataUrl": base["dataUrl"],
         "publicDataUrl": "data/opendota_public_items.json",
         "theoryPatch": base["theoryPatch"],
         "comboMinCost": 1020,
         "heroes": base["heroes"],
-        "items": base["items"],
+        "items": {
+            item_id: {**item, "completed": item_id in completed_item_ids}
+            for item_id, item in base["items"].items()
+        },
     }
 
 
@@ -137,7 +166,7 @@ def render_html() -> str:
       <article><span>独立比赛</span><strong id="id-kpi-matches">—</strong><small>去重后的比赛数</small></article>
       <article><span>样本胜率</span><strong id="id-kpi-winrate">—</strong><small>仅描述当前样本</small></article>
       <article><span>终局快照覆盖</span><strong id="id-kpi-coverage">—</strong><small>有快照 / 当前筛选全部局</small></article>
-      <article><span>六件高价装备局</span><strong id="id-kpi-sixes">—</strong><small>终局至少六件且每件大于1020</small></article>
+      <article><span>六件高价成装局</span><strong id="id-kpi-sixes">—</strong><small>终局至少六件成装且每件大于1020</small></article>
     </section>
 
     <section class="id-analysis-shell">
@@ -151,25 +180,25 @@ def render_html() -> str:
       </header>
 
       <details class="id-cost-catalog">
-        <summary><span>组合候选装备</span><b>ItemCost &gt; 1020</b><small id="id-cost-catalog-count">正在整理…</small></summary>
+        <summary><span>组合候选成装</span><b>成装 · ItemCost &gt; 1020</b><small id="id-cost-catalog-count">正在整理…</small></summary>
         <div id="id-cost-catalog-list"></div>
       </details>
 
       <nav class="id-tabs" id="id-tabs" aria-label="装备大数据分析步骤">
         <button type="button" data-id-tab="overview" class="is-active" aria-pressed="true"><span>01</span><b>先看结论</b><small>终局主流与差异</small></button>
         <button type="button" data-id-tab="single" aria-pressed="false"><span>02</span><b>最终单件</b><small>终局持有率与表现</small></button>
-        <button type="button" data-id-tab="pairs" aria-pressed="false"><span>03</span><b>最终两件套</b><small>每件价格 &gt; 1020</small></button>
-        <button type="button" data-id-tab="trios" aria-pressed="false"><span>04</span><b>最终三件套</b><small>每件价格 &gt; 1020</small></button>
-        <button type="button" data-id-tab="fours" aria-pressed="false"><span>05</span><b>最终四件套</b><small>每件价格 &gt; 1020</small></button>
-        <button type="button" data-id-tab="fives" aria-pressed="false"><span>06</span><b>最终五件套</b><small>每件价格 &gt; 1020</small></button>
-        <button type="button" data-id-tab="sixes" aria-pressed="false"><span>07</span><b>最终六件套</b><small>每件价格 &gt; 1020</small></button>
+        <button type="button" data-id-tab="pairs" aria-pressed="false"><span>03</span><b>最终两件套</b><small>每件均为成装且价格 &gt; 1020</small></button>
+        <button type="button" data-id-tab="trios" aria-pressed="false"><span>04</span><b>最终三件套</b><small>每件均为成装且价格 &gt; 1020</small></button>
+        <button type="button" data-id-tab="fours" aria-pressed="false"><span>05</span><b>最终四件套</b><small>每件均为成装且价格 &gt; 1020</small></button>
+        <button type="button" data-id-tab="fives" aria-pressed="false"><span>06</span><b>最终五件套</b><small>每件均为成装且价格 &gt; 1020</small></button>
+        <button type="button" data-id-tab="sixes" aria-pressed="false"><span>07</span><b>最终六件套</b><small>每件均为成装且价格 &gt; 1020</small></button>
         <button type="button" data-id-tab="evidence" aria-pressed="false"><span>08</span><b>真实比赛</b><small>核对最终背包</small></button>
       </nav>
 
       <section class="id-panel is-active" data-id-panel="overview">
         <div class="id-conclusion-grid" id="id-conclusions"></div>
         <section class="id-card id-overview-list"><header><div><span>FINAL HOLDING × OUTCOME</span><h3>终局持有率与样本表现</h3></div><small>横条是终局持有率；颜色表示相对未持有样本的胜率差</small></header><div id="id-overview-items"></div></section>
-        <aside class="id-method-note"><b>统计口径</b><p>职业局终局六格取比赛时长附近的末次可观察状态；公开局直接取 OpenDota item_0 至 item_5，不含背包和中立物品。缺少终局快照的比赛不会用购买日志补造。最终单件按上方“最终单件范围”统计；最终二至六件套只从单价严格大于1020金币的普通非消耗品中抽取无序组合。“相对未持有”只是描述性对照，仍受经济、比赛时长与胜负局势影响。</p></aside>
+        <aside class="id-method-note"><b>统计口径</b><p>职业局终局六格取比赛时长附近的末次可观察状态；公开局直接取 OpenDota item_0 至 item_5，不含背包和中立物品。缺少终局快照的比赛不会用购买日志补造。最终单件按上方“最终单件范围”统计；最终二至六件套只从单价严格大于1020金币的成装中抽取无序组合。成装按当前版本配方产物识别，跳刀与幽魂权杖按实战用途额外视为成装；纯散件不参与组合。“相对未持有”只是描述性对照，仍受经济、比赛时长与胜负局势影响。</p></aside>
       </section>
 
       <section class="id-panel" data-id-panel="single" hidden>
@@ -177,23 +206,23 @@ def render_html() -> str:
       </section>
 
       <section class="id-panel" data-id-panel="pairs" hidden>
-        <section class="id-card"><header><div><span>FINAL TWO-ITEM SETS</span><h3>最终两件套组合</h3></div><small>两件装备均须 ItemCost &gt; 1020，并在同一终局背包中共同出现</small></header><div class="id-table-wrap"><table class="id-table" id="id-pair-table"><thead><tr><th>最终两件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-pair-body"></tbody></table></div></section>
+        <section class="id-card"><header><div><span>FINAL TWO-ITEM SETS</span><h3>最终两件套组合</h3></div><small>两件装备均须为成装且 ItemCost &gt; 1020，并在同一终局背包中共同出现</small></header><div class="id-table-wrap"><table class="id-table" id="id-pair-table"><thead><tr><th>最终两件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-pair-body"></tbody></table></div></section>
       </section>
 
       <section class="id-panel" data-id-panel="trios" hidden>
-        <section class="id-card"><header><div><span>FINAL THREE-ITEM SETS</span><h3>最终三件套组合</h3></div><small>三件装备均须 ItemCost &gt; 1020；高胜率仍可能来自优势局完成偏差</small></header><div class="id-table-wrap"><table class="id-table" id="id-trio-table"><thead><tr><th>最终三件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-trio-body"></tbody></table></div></section>
+        <section class="id-card"><header><div><span>FINAL THREE-ITEM SETS</span><h3>最终三件套组合</h3></div><small>三件装备均须为成装且 ItemCost &gt; 1020；高胜率仍可能来自优势局完成偏差</small></header><div class="id-table-wrap"><table class="id-table" id="id-trio-table"><thead><tr><th>最终三件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-trio-body"></tbody></table></div></section>
       </section>
 
       <section class="id-panel" data-id-panel="fours" hidden>
-        <section class="id-card"><header><div><span>FINAL FOUR-ITEM SETS</span><h3>最终四件套组合</h3></div><small>四件装备均须 ItemCost &gt; 1020；组合不表示购买顺序</small></header><div class="id-table-wrap"><table class="id-table" id="id-four-table"><thead><tr><th>最终四件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-four-body"></tbody></table></div></section>
+        <section class="id-card"><header><div><span>FINAL FOUR-ITEM SETS</span><h3>最终四件套组合</h3></div><small>四件装备均须为成装且 ItemCost &gt; 1020；组合不表示购买顺序</small></header><div class="id-table-wrap"><table class="id-table" id="id-four-table"><thead><tr><th>最终四件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-four-body"></tbody></table></div></section>
       </section>
 
       <section class="id-panel" data-id-panel="fives" hidden>
-        <section class="id-card"><header><div><span>FINAL FIVE-ITEM SETS</span><h3>最终五件套组合</h3></div><small>五件装备均须 ItemCost &gt; 1020；低样本组合请结合95%区间阅读</small></header><div class="id-table-wrap"><table class="id-table" id="id-five-table"><thead><tr><th>最终五件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-five-body"></tbody></table></div></section>
+        <section class="id-card"><header><div><span>FINAL FIVE-ITEM SETS</span><h3>最终五件套组合</h3></div><small>五件装备均须为成装且 ItemCost &gt; 1020；低样本组合请结合95%区间阅读</small></header><div class="id-table-wrap"><table class="id-table" id="id-five-table"><thead><tr><th>最终五件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-five-body"></tbody></table></div></section>
       </section>
 
       <section class="id-panel" data-id-panel="sixes" hidden>
-        <section class="id-card"><header><div><span>FINAL SIX-ITEM SETS</span><h3>最终六件套组合</h3></div><small>六件装备均须 ItemCost &gt; 1020；六件套受比赛时长与经济偏差影响最大</small></header><div class="id-table-wrap"><table class="id-table" id="id-six-table"><thead><tr><th>最终六件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-six-body"></tbody></table></div></section>
+        <section class="id-card"><header><div><span>FINAL SIX-ITEM SETS</span><h3>最终六件套组合</h3></div><small>六件装备均须为成装且 ItemCost &gt; 1020；六件套受比赛时长与经济偏差影响最大</small></header><div class="id-table-wrap"><table class="id-table" id="id-six-table"><thead><tr><th>最终六件套</th><th data-id-sort="rate">终局组合率</th><th data-id-sort="count">样本</th><th data-id-sort="winRate">胜率</th><th data-id-sort="delta">相对未持有</th><th>95%区间</th><th data-id-sort="duration">中位比赛时长</th></tr></thead><tbody id="id-six-body"></tbody></table></div></section>
       </section>
 
       <section class="id-panel" data-id-panel="evidence" hidden>

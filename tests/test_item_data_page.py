@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -58,13 +59,32 @@ def test_item_data_keeps_pro_and_public_sources_separate() -> None:
     assert "row.src === 'opendota'" in script
 
 
-def test_final_combinations_use_strict_item_cost_threshold() -> None:
+def test_final_combinations_use_completed_items_and_strict_cost_threshold() -> None:
     html = render_html()
     script = (ROOT / "src" / "scripts.js").read_text(encoding="utf-8")
+    config_text = re.search(
+        r'<script id="item-data-config" type="application/json">(.*?)</script>', html
+    )
+    assert config_text is not None
+    items = json.loads(config_text.group(1))["items"]
     assert '"comboMinCost":1020' in html
     assert 'id="id-cost-catalog-list"' in html
     assert "ItemCost &gt; 1020" in html
+    assert items["item_black_king_bar"]["completed"] is True
+    assert items["item_blink"]["completed"] is True
+    assert items["item_ghost"]["completed"] is True
+    assert items["item_claymore"]["completed"] is False
+    assert items["item_platemail"]["completed"] is False
+    assert items["item_mystic_staff"]["completed"] is False
+    assert items["item_reaver"]["completed"] is False
+    assert items["item_aghanims_shard"]["completed"] is False
+    assert items["item_ultimate_scepter_2"]["completed"] is False
+    assert "item.completed === true" in script
     assert "Number(item.cost || 0) > comboMinCost" in script
+    assert "row.f.map(canonicalFinalItemId).filter(comboEligible)" in script
+    assert "['item_dagon_5', 'item_dagon']" in script
+    assert "['item_travel_boots_2', 'item_travel_boots']" in script
+    assert "['item_caster_rapier', 'item_rapier']" in script
     assert "const comboIds = comboItems(row)" in script
     assert "function addCombinations" in script
     assert "sixes: 6" in script

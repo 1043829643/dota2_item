@@ -221,6 +221,12 @@ def _rebuild_meta(existing: dict, incoming: dict, records: list[dict], detail: d
         "combatlog_purchase_matches_latest_increment": int(
             (incoming_meta.get("advanced") or {}).get("combatlog_purchase_matches") or 0
         ),
+        "opendota_purchase_player_games_latest_increment": int(
+            (incoming_meta.get("advanced") or {}).get("opendota_purchase_player_games") or 0
+        ),
+        "opendota_purchase_events_latest_increment": int(
+            (incoming_meta.get("advanced") or {}).get("opendota_purchase_events") or 0
+        ),
         "snapshot_times": (incoming_meta.get("advanced") or {}).get("snapshot_times")
         or (meta.get("advanced") or {}).get("snapshot_times") or [],
     }

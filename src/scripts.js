@@ -5231,6 +5231,13 @@
     analysis: null,
   };
   const completedCategories = new Set(['Accessories', 'Support', 'Magical', 'Armor', 'Weapons', 'Armaments']);
+  const routeNodeClasses = new Set(['upgradeable_completed', 'terminal_completed', 'independent_functional']);
+  const finalItemAliases = new Map([
+    ['item_dagon_2', 'item_dagon'], ['item_dagon_3', 'item_dagon'],
+    ['item_dagon_4', 'item_dagon'], ['item_dagon_5', 'item_dagon'],
+    ['item_travel_boots_2', 'item_travel_boots'],
+    ['item_caster_rapier', 'item_rapier'],
+  ]);
   const coreAllow = new Set([
     'item_magic_wand', 'item_bracer', 'item_wraith_band', 'item_null_talisman',
     'item_bottle', 'item_soul_ring', 'item_urn_of_shadows', 'item_orb_of_corrosion',
@@ -5266,6 +5273,7 @@
   };
   const normalize = value => String(value || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
   const itemName = id => items[id]?.name || String(id || '').replace(/^item_/, '').replaceAll('_', ' ');
+  const canonicalFinalItemId = id => finalItemAliases.get(id) || id;
   const heroName = id => heroes[id]?.name || String(id || '').replaceAll('_', ' ');
   const roleName = value => value ? `${value}号位` : '全部位置';
   const sourceName = () => sourceConfig[state.activeSource]?.label || '当前数据源';
@@ -5302,24 +5310,25 @@
     if (!item || item.class !== 'regular' || item.consumable || id.startsWith('item_recipe')) return false;
     if (scope === 'regular') return true;
     if (scope === 'completed') return completedCategories.has(item.category) || coreAllow.has(id) || Number(item.cost || 0) >= 900;
-    return completedCategories.has(item.category) || coreAllow.has(id);
+    return routeNodeClasses.has(item.routeClass)
+      || (!item.routeClass && (completedCategories.has(item.category) || coreAllow.has(id)));
   }
 
   function finalItems(row, scope) {
     if (!Array.isArray(row.f)) return [];
-    return [...new Set(row.f.filter(id => includeItem(id, scope)))].sort((a, b) =>
+    return [...new Set(row.f.map(canonicalFinalItemId).filter(id => includeItem(id, scope)))].sort((a, b) =>
       Number(items[b]?.cost || 0) - Number(items[a]?.cost || 0) || a.localeCompare(b));
   }
 
   function comboEligible(id) {
     const item = items[id];
-    return Boolean(item && item.class === 'regular' && !item.consumable
+    return Boolean(item && item.completed === true && item.class === 'regular' && !item.consumable
       && !id.startsWith('item_recipe') && Number(item.cost || 0) > comboMinCost);
   }
 
   function comboItems(row) {
     if (!Array.isArray(row.f)) return [];
-    return [...new Set(row.f.filter(comboEligible))].sort((a, b) =>
+    return [...new Set(row.f.map(canonicalFinalItemId).filter(comboEligible))].sort((a, b) =>
       Number(items[b]?.cost || 0) - Number(items[a]?.cost || 0) || a.localeCompare(b));
   }
 
@@ -5327,7 +5336,7 @@
     const eligible = Object.keys(items).filter(comboEligible).sort((a, b) =>
       Number(items[a]?.cost || 0) - Number(items[b]?.cost || 0)
       || itemName(a).localeCompare(itemName(b)));
-    document.getElementById('id-cost-catalog-count').textContent = `${eligible.length}件普通非消耗品`;
+    document.getElementById('id-cost-catalog-count').textContent = `${eligible.length}件成装`;
     document.getElementById('id-cost-catalog-list').innerHTML = eligible.map(id =>
       `<span>${itemIcon(id, true)}<b>${esc(itemName(id))}</b><small>${Number(items[id].cost).toLocaleString()} 金币</small></span>`
     ).join('');
@@ -6005,6 +6014,10 @@
     'item_magic_wand', 'item_bracer', 'item_wraith_band', 'item_null_talisman',
     'item_bottle', 'item_soul_ring', 'item_urn_of_shadows', 'item_orb_of_corrosion',
     'item_falcon_blade', 'item_blink',
+  ]);
+  const routeFallbackAllow = new Set([
+    ...coreAllow, 'item_magic_stick', 'item_boots', 'item_wind_lace',
+    'item_ring_of_basilius',
   ]);
   const teamStyleItems = new Set(['item_pipe','item_crimson_guard','item_guardian_greaves','item_lotus_orb','item_vladmir','item_spirit_vessel','item_force_staff','item_glimmer_cape','item_pavise','item_solar_crest','item_mekansm','item_boots_of_bearing']);
   const aggressionStyleItems = new Set(['item_blink','item_black_king_bar','item_desolator','item_bloodthorn','item_daedalus','item_monkey_king_bar','item_nullifier','item_sheepstick','item_orchid','item_diffusal_blade','item_basher','item_abyssal_blade']);
@@ -6717,9 +6730,13 @@
     const shortGame = (r.i || []).filter(([id, seconds]) => {
       const item = items[id];
       return Number.isFinite(seconds) && item?.class === 'regular' && !item.consumable
-        && (coreAllow.has(id) || /boots|spirit_vessel|urn_of_shadows/.test(id));
+        && routeFallbackAllow.has(id);
     }).sort((a, b) => a[1] - b[1]);
-    return (shortGame.length >= 2 ? shortGame : timed).slice(0, limit || 5);
+    const seen = new Set();
+    return [...timed, ...shortGame]
+      .sort((a, b) => a[1] - b[1])
+      .filter(([id]) => !seen.has(id) && seen.add(id))
+      .slice(0, limit || 5);
   }
 
   function observedItemBreakdown(rows, predicate) {
@@ -7003,7 +7020,7 @@
     const confidenceLevel = timedRows.length >= 20 && routeCoverage >= .35 ? '较强'
       : timedRows.length >= 8 && routeCoverage >= .15 ? '中等'
         : timedRows.length ? '有限' : '不可判定';
-    confidence.innerHTML = `<span>路线可信度</span><strong>${confidenceLevel}</strong><small>${timedRows.length}/${rows.length} 局可还原 · ${pct(timedRows.length, rows.length)} 覆盖</small>`;
+    confidence.innerHTML = `<span>路线可信度</span><strong>${confidenceLevel}</strong><small title="可还原=至少两件核心装备有真实购买时点">${timedRows.length}/${rows.length} 局带时点路线 · ${pct(timedRows.length, rows.length)} 覆盖</small>`;
 
     if (!heroId) {
       routeHost.innerHTML = '<div class="pb-empty">先选择一个英雄，简报才会比较同一英雄的职业路线。</div>';
@@ -7706,10 +7723,10 @@
       return `<tr><td><strong>${month}</strong></td><td>${m.matches.size}</td><td>${m.games}</td><td>${pct(m.roles, m.games)}</td><td>${pct(m.snapshots, m.games)}</td><td>${shard ? `${(Number(shard.bytes || 0) / 1048576).toFixed(1)}MB` : '索引加载中'}</td><td>${shard ? `${shard.draft_matches}/${shard.matches}` : '—'}</td><td>${shard ? `${shard.event_matches}/${shard.matches}` : '—'}</td></tr>`;
     }).join('')}</tbody></table>`;
     const scope = dataMeta.query_scope || {}, sourceStats = positions.source_stats || {}, dwdPosition = sourceStats.dwd || {}, positionFallback = sourceStats.fallback || {}, openDotaPosition = sourceStats.opendota || {}, update = dataMeta.update_status || dataMeta.update || {};
-    const odsPurchases = Number(advanced.combatlog_purchase_matches_latest_increment ?? advanced.combatlog_purchase_matches ?? advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0), backfill = advanced.bounded_route_backfill || {}, useBackfill = advanced.item_use_backfill || {};
-    const backfillHtml = backfill.completed_at ? `<div><span>限定路线回填</span><strong>${esc(backfill.hero || '—')} ${Number(backfill.complete_matches || 0)}/${Number(backfill.player_games || 0)} · ODS ${Number(backfill.ods_matches || 0)}场 · OpenDota ${Number(backfill.opendota_matches || 0)}场</strong></div>` : '';
+    const odsPurchases = Number(advanced.combatlog_purchase_matches_latest_increment ?? advanced.combatlog_purchase_matches ?? advanced.combatlog_purchase_fallback_matches_latest_increment ?? advanced.combatlog_purchase_fallback_matches ?? 0), openDotaPurchases = Number(advanced.opendota_purchase_player_games_latest_increment ?? advanced.opendota_purchase_player_games ?? 0), backfill = advanced.bounded_route_backfill || {}, useBackfill = advanced.item_use_backfill || {};
+    const backfillHtml = backfill.completed_at ? `<div><span>限定路线回填</span><strong>${esc(backfill.hero || '—')} ${Number(backfill.complete_player_games ?? backfill.complete_matches ?? 0)}/${Number(backfill.player_games || 0)}个选手局 · ODS ${Number(backfill.ods_player_games ?? backfill.ods_matches ?? 0)} · OpenDota ${Number(backfill.opendota_player_games ?? backfill.opendota_matches ?? 0)}</strong></div>` : '';
     const useBackfillHtml = useBackfill.completed_at ? `<div><span>首次使用回填</span><strong>ODS ${Number(useBackfill.source_matches || 0)}/${Number(useBackfill.selected_matches || 0)}场 · ${Number(useBackfill.item_use_records || 0).toLocaleString()}条</strong></div>` : '';
-    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>DWD判位主源</span><strong>${Number(dwdPosition.player_rows || 0)}条逐场选手 · 5分钟补刀 ${Number(dwdPosition.hits_5m_rows || 0)}条</strong></div><div><span>10分钟补刀兜底</span><strong>${Number(positionFallback.ten_minute_hits_recovered || 0)}条</strong></div><div><span>OpenDota补分路</span><strong>${Number(openDotaPosition.matched_matches || 0)}场 · 恢复212阵型 ${Number(openDotaPosition.recovered_212_teams || 0)}队</strong></div><div><span>OpenDota补技能</span><strong>${Number(advanced.opendota_ability_player_games || 0)}个选手局</strong></div><div><span>本次购买时点</span><strong>ODS ${odsPurchases}场</strong></div>${backfillHtml}${useBackfillHtml}<p><b>来源披露：</b>比赛、选手和局内明细以 <code>dota2_analysis</code> 为权威执行来源；职责判位按本次明确授权使用派生表 <code>dwd_dota2.dwd_match_player_positions</code> 的逐场 <code>lane_role</code> 与5分钟 <code>hits_5m</code>。DWD可能存在滞后或误差；只有缺少选手或补刀时才读取有限比赛ID下的 <code>players</code>/<code>player_intervals2</code> 十分钟补刀，只有DWD分路不能组成严格2-1-2且OpenDota能够恢复2-1-2时才采用精确比赛的 <code>lane_role</code>。所有Dota表均显式选择最小字段，取回后按各自语义键独立去重，再连接与汇总；<code>slot</code> 只作局内连接键，从不参与1–5号位判定。技能加点以 <code>hero_ability_level</code> 为主，选手局完全缺失时读取 OpenDota <code>ability_upgrades_arr</code>，保留真实顺序但不伪造升级秒数。购买与首次使用均来自 <code>combat_logs</code> 的 <code>DOTA_COMBATLOG_PURCHASE</code>/<code>DOTA_COMBATLOG_ITEM</code>；OpenDota 没有使用时点时不伪造首用间隔。出生装取0–90秒内最早可观察库存，20/35/55分钟背包取目标前120秒内最后快照，终局背包在解析时长附近的有界窗口内选择。伤害事件先去重，再在应用层按5分钟聚合并排除幻象。</p>`;
+    source.innerHTML = `<div><span>缓存生成</span><strong>${esc(dataMeta.generated_at || '未知')}</strong></div><div><span>最近更新</span><strong>${esc(update.status || 'baseline')} · ${esc(update.completed_at || update.failed_at || '未知')}</strong></div><div><span>查询范围</span><strong>${esc(scope.date_from || '?')} — ${esc(scope.date_to || '?')}</strong></div><div><span>分区策略</span><strong>${esc(scope.partition_filter || '未知')}</strong></div><div><span>去重策略</span><strong>${esc(scope.dedup || '未知')}</strong></div><div><span>增量结果</span><strong>新增 ${Number(update.new_matches || 0)} · 刷新 ${Number(update.refreshed_matches || 0)}</strong></div><div><span>DWD判位主源</span><strong>${Number(dwdPosition.player_rows || 0)}条逐场选手 · 5分钟补刀 ${Number(dwdPosition.hits_5m_rows || 0)}条</strong></div><div><span>10分钟补刀兜底</span><strong>${Number(positionFallback.ten_minute_hits_recovered || 0)}条</strong></div><div><span>OpenDota补分路</span><strong>${Number(openDotaPosition.matched_matches || 0)}场 · 恢复212阵型 ${Number(openDotaPosition.recovered_212_teams || 0)}队</strong></div><div><span>OpenDota补技能</span><strong>${Number(advanced.opendota_ability_player_games || 0)}个选手局</strong></div><div><span>本次购买时点</span><strong>ODS ${odsPurchases}场 · OpenDota兜底 ${openDotaPurchases}个选手局</strong></div>${backfillHtml}${useBackfillHtml}<p><b>来源披露：</b>比赛、选手和局内明细以 <code>dota2_analysis</code> 为权威执行来源；职责判位按本次明确授权使用派生表 <code>dwd_dota2.dwd_match_player_positions</code> 的逐场 <code>lane_role</code> 与5分钟 <code>hits_5m</code>。DWD可能存在滞后或误差；只有缺少选手或补刀时才读取有限比赛ID下的 <code>players</code>/<code>player_intervals2</code> 十分钟补刀，只有DWD分路不能组成严格2-1-2且OpenDota能够恢复2-1-2时才采用精确比赛的 <code>lane_role</code>。所有Dota表均显式选择最小字段，取回后按各自语义键独立去重，再连接与汇总；<code>slot</code> 只作局内连接键，从不参与1–5号位判定。技能加点以 <code>hero_ability_level</code> 为主，选手局完全缺失时读取 OpenDota <code>ability_upgrades_arr</code>，保留真实顺序但不伪造升级秒数。购买时点以 <code>combat_logs.DOTA_COMBATLOG_PURCHASE</code> 为主，单个选手局不足两件时才用同一 <code>match_id</code> 的 OpenDota <code>purchase_log</code> 兜底，重叠物品仍保留 ODS 时点。首次使用只来自 <code>combat_logs.DOTA_COMBATLOG_ITEM</code>；OpenDota 没有使用时点时不伪造首用间隔。出生装取0–90秒内最早可观察库存，20/35/55分钟背包取目标前120秒内最后快照，终局背包在解析时长附近的有界窗口内选择。伤害事件先去重，再在应用层按5分钟聚合并排除幻象。</p>`;
     if (!/post-fetch|应用层/.test(String(scope.dedup || ''))) source.insertAdjacentHTML('afterbegin', `<p class="pb-data-warning"><b>缓存迁移提示：</b>当前完整历史缓存仍包含旧查询规范生成的区间；新抓取器和后续增量已切换到应用层语义去重。完成全历史重建前，请以这里显示的“去重策略”判断当前筛选区间的契约版本。</p>`);
     source.innerHTML += `<p><b>统计边界：</b>职业表现指数是同英雄同位置的样本内百分位；阵容先验是经15局收缩的描述性估计，两者都不是因果或机器学习胜率。</p>`;
   }

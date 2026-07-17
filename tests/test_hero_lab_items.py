@@ -36,6 +36,35 @@ def test_passive_and_aura_mana_regen_remain_available(items):
     assert items["item_arcane_boots"]["bonus"]["mpr"] == pytest.approx(1.25)
 
 
+@pytest.mark.parametrize(
+    "item_id",
+    ["item_broadsword", "item_platemail", "item_mystic_staff", "item_reaver"],
+)
+def test_route_taxonomy_marks_true_components(items, item_id):
+    assert items[item_id]["routeClass"] == "pure_component"
+
+
+@pytest.mark.parametrize(
+    "item_id",
+    ["item_maelstrom", "item_yasha", "item_force_staff", "item_arcane_boots"],
+)
+def test_route_taxonomy_marks_upgradeable_completed_items(items, item_id):
+    assert items[item_id]["routeClass"] == "upgradeable_completed"
+
+
+@pytest.mark.parametrize(
+    "item_id",
+    ["item_black_king_bar", "item_butterfly", "item_heart", "item_satanic"],
+)
+def test_route_taxonomy_marks_terminal_completed_items(items, item_id):
+    assert items[item_id]["routeClass"] == "terminal_completed"
+
+
+@pytest.mark.parametrize("item_id", ["item_blink", "item_ghost"])
+def test_route_taxonomy_preserves_independent_functional_items(items, item_id):
+    assert items[item_id]["routeClass"] == "independent_functional"
+
+
 def test_neutral_headline_bonuses_are_extracted(items):
     bonuses = items["item_harmonizer"]["tip"]["neutralBonuses"]
     assert bonuses == [

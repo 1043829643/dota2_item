@@ -202,6 +202,13 @@ hero/result metadata plus `item_0` through `item_5`. It does not download or
 request replay parsing and it never interprets OpenDota lane roles as Dota
 positions.
 
+Final two- through six-item combinations only use current-patch recipe outputs
+whose `ItemCost` is strictly greater than 1020. Blink Dagger and Ghost Scepter
+are treated as standalone completed items; raw components, recipes,
+consumables, neutral items, and enchantments are excluded from combinations.
+Consumed Aghanim upgrades are also excluded because they do not occupy one of
+the final six inventory slots.
+
 Add a bounded incremental public batch and rebuild only this page:
 
 ```powershell
@@ -231,6 +238,18 @@ python scripts/fetch/backfill_pro_build_routes.py `
 python build_site.py pro
 python scripts/audit/check_pro_builds.py
 ```
+
+Use `--all-heroes` instead of `--hero ...` to audit and repair every cached
+player-game in the bounded date range. The tool queries StarRocks one exact
+`dt` partition and a finite match-ID batch at a time; existing ODS timestamps
+win, and OpenDota `purchase_log` is used only when that player-game has fewer
+than two ODS purchase timestamps.
+
+Professional route nodes use the current `items.txt`/`items.json` recipe graph:
+raw components are excluded, while upgradeable completed items, terminal
+completed items, and explicitly independent functional items are retained.
+This keeps items such as Plate Mail and Mystic Staff out of the main route but
+preserves Blink Dagger and Ghost Scepter as real build decisions.
 
 First recognizable item-use timestamps are stored in the core cache as
 `u: [[item_id, absolute_replay_seconds]]`. The UI subtracts the matching first

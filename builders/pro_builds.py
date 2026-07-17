@@ -129,6 +129,7 @@ def _config() -> dict:
                 "tier": item.get("tier"),
                 "category": item.get("category"),
                 "consumable": bool(item.get("consumable")),
+                "routeClass": item.get("routeClass"),
                 "bonus": {
                     key: value
                     for key, value in (item.get("bonus") or {}).items()

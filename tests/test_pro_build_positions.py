@@ -11,9 +11,35 @@ from scripts.fetch.fetch_pro_builds import (
     _parse_opendota_lane_roles,
     _parse_opendota_ability_route,
     _parse_opendota_neutral_choices,
+    _parse_opendota_purchases,
     _project_consistent_roles_by_player,
     _team_lane_shapes,
 )
+
+
+def test_opendota_purchases_keep_first_valid_non_recipe_time() -> None:
+    match = {
+        "players": [
+            {
+                "hero_id": 25,
+                "purchase_log": [
+                    {"time": 420, "key": "blink"},
+                    {"time": 300, "key": "blink"},
+                    {"time": 500, "key": "recipe_black_king_bar"},
+                    {"time": 610, "key": "black_king_bar"},
+                    {"time": "bad", "key": "boots"},
+                    {"time": 20, "key": "unknown_item"},
+                ],
+            },
+            {"hero_id": 106, "purchase_log": [{"time": 100, "key": "boots"}]},
+        ]
+    }
+    assert _parse_opendota_purchases(
+        match, 25, {"item_blink", "item_black_king_bar", "item_boots"}
+    ) == [
+        ["item_blink", 300],
+        ["item_black_king_bar", 610],
+    ]
 
 
 def test_opendota_neutral_history_keeps_last_valid_choice_per_tier() -> None:

@@ -184,4 +184,6 @@ def test_skill_routes_disclose_opendota_fallback() -> None:
 def test_short_matches_keep_observed_small_item_route() -> None:
     source = SCRIPTS.read_text(encoding="utf-8")
     assert "Very short matches can end before a second expensive node" in source
-    assert "shortGame.length >= 2 ? shortGame : timed" in source
+    assert "routeFallbackAllow.has(id)" in source
+    assert "[...timed, ...shortGame]" in source
+    assert ".filter(([id]) => !seen.has(id) && seen.add(id))" in source
