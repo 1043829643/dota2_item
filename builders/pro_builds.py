@@ -386,6 +386,22 @@ def render_html() -> str:
         <div id="pb-brief-matches" class="pb-brief-matches"><div class="pb-empty">等待比赛样本</div></div>
       </article>
     </div>
+    <section class="pb-brief-route-map" aria-labelledby="pb-brief-route-map-title">
+      <header>
+        <div><span>BUILD DECISION MAP</span><h3 id="pb-brief-route-map-title">一眼看懂主线怎么走、下一件怎么变</h3></div>
+        <p>从左到右先看职业样本的真实购买流向，再沿分支树确认每个节点之后的常见选择。</p>
+      </header>
+      <div class="pb-brief-route-map-grid">
+        <article class="pb-brief-visual-card pb-flow-card">
+          <header><div><span>05 / ROUTE FLOW</span><h4>路线流向图</h4></div><small>线越宽，采用这条转移的比赛越多</small></header>
+          <div id="pb-route-flow" class="pb-route-flow"></div>
+        </article>
+        <article class="pb-brief-visual-card pb-branch-card">
+          <header><div><span>06 / DECISION BRANCHES</span><h4>分支出装树</h4></div><small>顺着节点向下，查看每件装备后的常见选择</small></header>
+          <div id="pb-branch-tree" class="pb-branch-tree"></div>
+        </article>
+      </div>
+    </section>
   </section>
 
   <details class="pb-research-drawer" id="pb-research-drawer">
@@ -487,22 +503,12 @@ def render_html() -> str:
     </section>
 
     <details class="pb-advanced-route-suite" data-pb-panel="routes">
-      <summary><div><span>ADVANCED ROUTE ANALYSIS</span><strong>展开路线趋势、流向图与分支树</strong></div><small>用于教练组和深度复盘，不占用默认阅读动线</small></summary>
+      <summary><div><span>ADVANCED ROUTE ANALYSIS</span><strong>展开路线时效与版本演化</strong></div><small>比较完整路线在不同时间窗口中的采用变化</small></summary>
       <div class="pb-advanced-route-grid">
     <section class="pb-card pb-route-trend-card">
       <header><div><span class="pb-card-kicker">ROUTE LIFECYCLE</span><h2>路线时效与版本演化</h2></div><small id="pb-route-trend-context">完整路线采用率，不拆成单件</small></header>
       <div class="pb-route-trend-controls"><label><span>观察粒度</span><select id="pb-route-trend-grain"><option value="week">按周</option><option value="month">按月</option><option value="patch">按版本</option></select></label><p>路线簇先在当前筛选范围内统一聚类，再比较各时间桶的采用率，避免每个时间桶重新聚类导致路线身份漂移。</p></div>
       <div id="pb-route-trends" class="pb-table-wrap"></div>
-    </section>
-
-    <section class="pb-card pb-flow-card">
-      <header><div><span class="pb-card-kicker">ROUTE FLOW</span><h2>路线流向图</h2></div><small>按购买顺序聚合，线宽代表样本量</small></header>
-      <div id="pb-route-flow" class="pb-route-flow"></div>
-    </section>
-
-    <section class="pb-card pb-branch-card">
-      <header><div><span class="pb-card-kicker">DECISION BRANCHES</span><h2>分支出装树</h2></div><small>同类小件差异已合并；展开节点查看后续选择</small></header>
-      <div id="pb-branch-tree" class="pb-branch-tree"></div>
     </section>
       </div>
     </details>

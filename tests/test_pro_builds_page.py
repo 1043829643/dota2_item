@@ -25,6 +25,9 @@ def test_hero_profile_shell_has_unique_dynamic_targets(page_html: str) -> None:
         "pb-brief-timings",
         "pb-brief-pivots",
         "pb-brief-matches",
+        "pb-brief-route-map-title",
+        "pb-route-flow",
+        "pb-branch-tree",
         "pb-research-drawer",
         "pb-research-step",
         "pb-research-summary",
@@ -82,6 +85,22 @@ def test_only_routes_tab_is_initially_selected(page_html: str) -> None:
         page_html,
     )
     assert selected == ["routes"]
+
+
+def test_route_decision_visuals_live_inside_prematch_brief(page_html: str) -> None:
+    brief_start = page_html.index('<section class="pb-pro-brief"')
+    brief_end = page_html.index('<details class="pb-research-drawer"', brief_start)
+    brief_html = page_html[brief_start:brief_end]
+    advanced_start = page_html.index('<details class="pb-advanced-route-suite"')
+    advanced_end = page_html.index('</details>', advanced_start)
+    advanced_html = page_html[advanced_start:advanced_end]
+
+    assert 'id="pb-route-flow"' in brief_html
+    assert 'id="pb-branch-tree"' in brief_html
+    assert "一眼看懂主线怎么走、下一件怎么变" in brief_html
+    assert 'id="pb-route-flow"' not in advanced_html
+    assert 'id="pb-branch-tree"' not in advanced_html
+    assert "展开路线时效与版本演化" in advanced_html
 
 
 def test_new_decision_modules_explain_their_data_boundaries(page_html: str) -> None:
