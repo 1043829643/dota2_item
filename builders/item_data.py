@@ -7,9 +7,19 @@ hero-first research flow. Professional and public samples remain separate.
 
 from __future__ import annotations
 
+import datetime as _dt
+import functools
 import json
+import re
 import shutil
+import sys
 from pathlib import Path
+
+try:
+    from patch.meta import RELEASE_HISTORY
+except ModuleNotFoundError:  # Support ``python builders/item_data.py``.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from patch.meta import RELEASE_HISTORY
 
 try:
     from . import site_common as _site
@@ -35,11 +45,12 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DATA_PATH = ROOT / "data" / "opendota_public_items.json"
+PUBLIC_SHARD_ROOT = ROOT / "data" / "opendota_public_items"
 STANDALONE_COMPLETED_ITEM_IDS = frozenset({"item_blink", "item_ghost"})
 NON_INVENTORY_COMPLETED_ITEM_IDS = frozenset({"item_ultimate_scepter_2"})
 
 
-def _completed_item_ids(version: str) -> set[str]:
+def _completed_item_ids(version: str, payload: dict | None = None) -> set[str]:
     """Return current recipe outputs plus standalone items treated as complete.
 
     Blink Dagger and Ghost Scepter are technically upgrade components in Valve's
@@ -49,10 +60,11 @@ def _completed_item_ids(version: str) -> set[str]:
     """
     completed = set(STANDALONE_COMPLETED_ITEM_IDS)
     path = ROOT / "data" / "stats" / version / "items.json"
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, TypeError):
-        return completed
+    if payload is None:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            return completed
     for row in payload.values():
         if not isinstance(row, dict) or str(row.get("ItemRecipe", "")) != "1":
             continue
@@ -62,14 +74,115 @@ def _completed_item_ids(version: str) -> set[str]:
     return completed
 
 
+def _base_patch(version: object) -> str:
+    match = re.match(r"^(\d+\.\d+)", str(version or "").strip())
+    return match.group(1) if match else ""
+
+
+def _release_date_iso(value: str) -> str:
+    return _dt.datetime.strptime(value, "%d.%m.%Y").date().isoformat()
+
+
+def _read_top_level_meta(path: Path) -> dict:
+    """Read the leading ``meta`` object without loading a multi-MB records array."""
+    if not path.exists():
+        return {}
+    decoder = json.JSONDecoder()
+    text = ""
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            while len(text) < 2_000_000:
+                chunk = handle.read(65536)
+                if not chunk:
+                    break
+                text += chunk
+                marker = text.find('"meta"')
+                if marker < 0:
+                    continue
+                colon = text.find(":", marker)
+                if colon < 0:
+                    continue
+                try:
+                    value, _ = decoder.raw_decode(text, colon + 1)
+                except json.JSONDecodeError:
+                    continue
+                return value if isinstance(value, dict) else {}
+    except (OSError, UnicodeError):
+        return {}
+    return {}
+
+
+def _patch_values(meta: dict) -> list[str]:
+    patches = meta.get("patches") or []
+    if isinstance(patches, dict):
+        return [str(value) for value in patches]
+    if isinstance(patches, list):
+        return [str(value) for value in patches]
+    return []
+
+
+@functools.lru_cache(maxsize=4)
+def _versioned_item_rules(theory_patch: str) -> tuple[dict, dict]:
+    """Build compact, serializable rules for every patch cycle in page data.
+
+    ``itemRulesByPatch[patch][item]`` is ``[ItemCost, completedFlag]``.  The
+    separate timeline lets the browser resolve base OpenDota labels such as
+    ``7.41`` to the sub-patch active on the match date (for example 7.41d).
+    """
+    bases = {_base_patch(theory_patch)}
+    bases.update(_base_patch(value) for value in _patch_values(_read_top_level_meta(DATA_PATH)))
+    bases.update(
+        _base_patch(value)
+        for value in _patch_values(_read_top_level_meta(PUBLIC_DATA_PATH))
+    )
+    bases.discard("")
+
+    timeline: dict[str, list[list[str]]] = {base: [] for base in sorted(bases)}
+    for release in RELEASE_HISTORY:
+        version = str(release.get("version") or "")
+        base = _base_patch(version)
+        if base not in timeline:
+            continue
+        path = ROOT / "data" / "stats" / version / "items.json"
+        if not path.exists():
+            continue
+        timeline[base].append([_release_date_iso(str(release["date"])), version])
+    for entries in timeline.values():
+        entries.sort(key=lambda entry: (entry[0], entry[1]))
+
+    rules_by_patch: dict[str, dict[str, list[int]]] = {}
+    versions = [entry[1] for entries in timeline.values() for entry in entries]
+    for version in versions:
+        path = ROOT / "data" / "stats" / version / "items.json"
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            continue
+        completed = _completed_item_ids(version, payload)
+        rules: dict[str, list[int]] = {}
+        for item_id, row in payload.items():
+            if not isinstance(row, dict) or str(item_id).startswith("item_recipe_"):
+                continue
+            try:
+                cost = int(float(row.get("ItemCost") or 0))
+            except (TypeError, ValueError):
+                cost = 0
+            rules[str(item_id)] = [cost, int(item_id in completed)]
+        rules_by_patch[version] = rules
+    return rules_by_patch, timeline
+
+
 def _config() -> dict:
     base = _pro_config()
     completed_item_ids = _completed_item_ids(base["theoryPatch"])
+    item_rules_by_patch, patch_timeline = _versioned_item_rules(base["theoryPatch"])
     return {
         "dataUrl": base["dataUrl"],
         "publicDataUrl": "data/opendota_public_items.json",
         "theoryPatch": base["theoryPatch"],
         "comboMinCost": 1020,
+        "itemRulesByPatch": item_rules_by_patch,
+        "patchTimeline": patch_timeline,
         "heroes": base["heroes"],
         "items": {
             item_id: {**item, "completed": item_id in completed_item_ids}
@@ -106,7 +219,7 @@ def render_html() -> str:
     <div>
       <span class="id-eyebrow">FINAL ITEM INTELLIGENCE</span>
       <h1>装备大数据</h1>
-      <p>职业比赛与 OpenDota 高分公开局分开统计，只研究比赛结束时的最终六格装备组合。</p>
+      <p>职业比赛与 OpenDota 高端天梯分开统计；公开局可切换纯冠绝或冠绝＋超凡，并研究比赛结束时主栏六格与背包三格组成的九格装备池。</p>
     </div>
     <aside id="id-freshness" aria-live="polite"><span></span><div><strong>正在读取职业比赛</strong><small>准备英雄与装备样本</small></div></aside>
   </header>
@@ -114,11 +227,11 @@ def render_html() -> str:
   <section class="id-setup" id="id-setup" aria-label="装备研究设置">
     <header>
       <div><span>START A STUDY</span><h2>先选择数据源，再生成装备结论</h2></div>
-      <p>选择不会触发跳转；两类比赛不会混算。公开局是 OpenDota 随机公开样本，不代表全部玩家比赛。</p>
+      <p>选择不会触发跳转；职业局与公开局不混算，公开局的两个段位组也使用各自独立分母。</p>
     </header>
     <div class="id-source-picker" id="id-source-switch" aria-label="数据源">
       <button type="button" data-id-source="pro" class="is-active" aria-pressed="true"><span>PRO MATCHES</span><b>职业比赛</b><small>支持职责位置、选手与战队证据</small><em id="id-source-pro-count">正在读取…</em></button>
-      <button type="button" data-id-source="public" aria-pressed="false"><span>PUBLIC SAMPLE</span><b>高分公开局</b><small>OpenDota 超凡及以上随机样本 · 仅终局装备</small><em id="id-source-public-count">按需载入</em></button>
+      <button type="button" data-id-source="public" aria-pressed="false"><span>HIGH-RANK SAMPLE</span><b>高端公开局</b><small>纯冠绝 / 冠绝＋超凡 · 终局主栏6＋背包3</small><em id="id-source-public-count">按需载入</em></button>
       <aside><b>口径隔离</b><p id="id-source-note">当前统计职业比赛，不与公开局共用分母。</p></aside>
     </div>
     <div class="id-runway">
@@ -135,9 +248,10 @@ def render_html() -> str:
 
       <article class="id-step">
         <div class="id-step-index"><span>02</span><i></i></div>
-        <div class="id-step-copy"><b>限定样本</b><small>位置、版本与比赛日期</small></div>
+        <div class="id-step-copy"><b>限定样本</b><small>职责或段位组、版本与比赛日期</small></div>
         <div class="id-scope-grid">
-          <label><span id="id-role-label">职责位置</span><select id="id-role"><option value="">全部位置</option><option value="1">一号位</option><option value="2">二号位</option><option value="3">三号位</option><option value="4">四号位</option><option value="5">五号位</option></select></label>
+          <label id="id-role-wrap"><span id="id-role-label">职责位置</span><select id="id-role"><option value="">全部位置</option><option value="1">一号位</option><option value="2">二号位</option><option value="3">三号位</option><option value="4">四号位</option><option value="5">五号位</option></select></label>
+          <label id="id-public-cohort-wrap" hidden><span>公开局段位组</span><select id="id-public-cohort"><option value="pure_immortal">纯冠绝（10人均为冠绝）</option><option value="immortal_divine">冠绝＋超凡（混合局）</option></select></label>
           <label><span>版本</span><select id="id-patch"><option value="">全部版本</option></select></label>
           <label><span>开始日期</span><input id="id-date-from" type="date"></label>
           <label><span>结束日期</span><input id="id-date-to" type="date"></label>
@@ -162,16 +276,16 @@ def render_html() -> str:
     </header>
 
     <section class="id-kpis" aria-label="装备研究关键指标">
-      <article><span>终局快照样本</span><strong id="id-kpi-games">—</strong><small>组合统计的真实分母</small></article>
+      <article><span>终局装备样本</span><strong id="id-kpi-games">—</strong><small>组合统计的真实分母</small></article>
       <article><span>独立比赛</span><strong id="id-kpi-matches">—</strong><small>去重后的比赛数</small></article>
       <article><span>样本胜率</span><strong id="id-kpi-winrate">—</strong><small>仅描述当前样本</small></article>
-      <article><span>终局快照覆盖</span><strong id="id-kpi-coverage">—</strong><small>有快照 / 当前筛选全部局</small></article>
-      <article><span>六件高价成装局</span><strong id="id-kpi-sixes">—</strong><small>终局至少六件成装且每件大于1020</small></article>
+      <article><span>终局装备覆盖</span><strong id="id-kpi-coverage">—</strong><small>有装备槽位 / 当前筛选全部局</small></article>
+      <article><span>六件高价成装局</span><strong id="id-kpi-sixes">—</strong><small>公开局按主栏与背包九格合计</small></article>
     </section>
 
     <section class="id-analysis-shell">
       <header class="id-analysis-head">
-        <div><span>FINAL INVENTORY DATASET</span><h2>从终局组合逐层下钻</h2><p>单件与二至六件套都来自同一局的最终背包，不使用购买路线替代。</p></div>
+        <div><span>FINAL INVENTORY DATASET</span><h2>从终局组合逐层下钻</h2><p>公开局的单件与二至六件套来自同一局主栏6＋背包3的九格装备池，不使用购买路线替代。</p></div>
         <div class="id-analysis-tools">
           <label><span>最终单件范围</span><select id="id-item-scope"><option value="core">核心成装</option><option value="completed">扩展装备（含高价组件）</option><option value="regular">全部非消耗品</option></select></label>
           <label><span>最低样本</span><select id="id-min-sample"><option value="1">1局</option><option value="3" selected>3局</option><option value="5">5局</option><option value="10">10局</option><option value="20">20局</option><option value="50">50局</option></select></label>
@@ -180,7 +294,7 @@ def render_html() -> str:
       </header>
 
       <details class="id-cost-catalog">
-        <summary><span>组合候选成装</span><b>成装 · ItemCost &gt; 1020</b><small id="id-cost-catalog-count">正在整理…</small></summary>
+        <summary><span>组合候选成装</span><b>按比赛版本 · 成装且 ItemCost &gt; 1020</b><small id="id-cost-catalog-count">正在整理…</small></summary>
         <div id="id-cost-catalog-list"></div>
       </details>
 
@@ -198,7 +312,7 @@ def render_html() -> str:
       <section class="id-panel is-active" data-id-panel="overview">
         <div class="id-conclusion-grid" id="id-conclusions"></div>
         <section class="id-card id-overview-list"><header><div><span>FINAL HOLDING × OUTCOME</span><h3>终局持有率与样本表现</h3></div><small>横条是终局持有率；颜色表示相对未持有样本的胜率差</small></header><div id="id-overview-items"></div></section>
-        <aside class="id-method-note"><b>统计口径</b><p>职业局终局六格取比赛时长附近的末次可观察状态；公开局直接取 OpenDota item_0 至 item_5，不含背包和中立物品。缺少终局快照的比赛不会用购买日志补造。最终单件按上方“最终单件范围”统计；最终二至六件套只从单价严格大于1020金币的成装中抽取无序组合。成装按当前版本配方产物识别，跳刀与幽魂权杖按实战用途额外视为成装；纯散件不参与组合。“相对未持有”只是描述性对照，仍受经济、比赛时长与胜负局势影响。</p></aside>
+        <aside class="id-method-note"><b>统计口径</b><p>职业局终局六格取比赛时长附近的末次可观察状态；公开局候选限定为 OpenDota 最高平均奖章桶、标准天梯全英雄选择，并要求至少5名玩家有公开段位。由于 OpenDota 会把冠绝平均奖章归入内部最高75桶，采集器会继续请求比赛详情并复核十人段位：纯冠绝组要求10人均为 rank_tier=80；冠绝＋超凡组要求同时存在冠绝与超凡，其他人只能是 rank_tier=70–75。两组互斥，全超凡、万古及以下或段位缺失的比赛不进入任何组。公开局终局装备池由 item_0 至 item_5 与 backpack_0 至 backpack_2 共九个原始槽位组成，不含中立物品；单件每局最多计一次，二至六件套允许重复装备但同一局同一种无序组合只计一次。装备价格和是否成装按比赛日期解析到实际子版本，并读取对应 data/stats/&lt;version&gt;/items.json；例如7.41大版本在7.41d发布后按7.41d规则计算。组合只纳入当时单价严格大于1020金币的成装，跳刀与幽魂权杖按实战用途额外视为成装；纯散件不参与组合。缺少终局槽位的比赛不会用购买日志补造。“相对未持有”只是描述性对照，仍受经济、比赛时长与胜负局势影响。</p></aside>
       </section>
 
       <section class="id-panel" data-id-panel="single" hidden>
@@ -226,7 +340,7 @@ def render_html() -> str:
       </section>
 
       <section class="id-panel" data-id-panel="evidence" hidden>
-        <section class="id-card"><header><div><span>REAL MATCH EVIDENCE</span><h3>逐局终局六格</h3></div><small id="id-evidence-note">最多展示最近60个有终局快照的选手英雄局</small></header><div class="id-table-wrap"><table class="id-table id-evidence-table"><thead><tr><th>比赛 / 日期</th><th>选手 / 战队</th><th>位置</th><th>最终装备</th><th>结果</th><th></th></tr></thead><tbody id="id-evidence-body"></tbody></table></div></section>
+        <section class="id-card"><header><div><span>REAL MATCH EVIDENCE</span><h3>逐局终局九格</h3></div><small id="id-evidence-note">最多展示最近60个有终局装备的选手英雄局</small></header><div class="id-table-wrap"><table class="id-table id-evidence-table"><thead><tr><th>比赛 / 日期</th><th>选手 / 战队</th><th id="id-evidence-role-head">位置</th><th id="id-evidence-inventory-head">主栏6＋背包3</th><th>结果</th><th></th></tr></thead><tbody id="id-evidence-body"></tbody></table></div></section>
       </section>
     </section>
   </section>
@@ -250,26 +364,62 @@ def _ensure_compact_core() -> None:
 
 
 def _ensure_public_data() -> None:
-    """Publish the credential-free OpenDota sample beside the pro cache."""
+    """Publish the OpenDota manifest and its on-demand hero shards."""
     target = DIST / "data" / PUBLIC_DATA_PATH.name
     if PUBLIC_DATA_PATH.exists():
         if not target.exists() or target.stat().st_mtime < PUBLIC_DATA_PATH.stat().st_mtime:
             shutil.copy2(PUBLIC_DATA_PATH, target)
+        if PUBLIC_SHARD_ROOT.exists():
+            shutil.copytree(
+                PUBLIC_SHARD_ROOT,
+                DIST / "data" / PUBLIC_SHARD_ROOT.name,
+                dirs_exist_ok=True,
+            )
         return
     target.write_text(
         json.dumps(
             {
-                "schema": "opendota-public-items-v1",
+                "schema": "opendota-public-items-manifest-v4",
                 "meta": {
-                    "source": "OpenDota public sample",
+                    "source": "OpenDota highest-rank ranked sample",
+                    "source_kind": "highest_rank_ranked_sample",
                     "sampled": True,
+                    "cohort": "纯冠绝 / 冠绝＋超凡（互斥分组）",
+                    "cohorts": {
+                        "pure_immortal": {"label": "纯冠绝", "matches": 0, "records": 0},
+                        "immortal_divine": {"label": "冠绝＋超凡", "matches": 0, "records": 0},
+                    },
+                    "requested_rank": 80,
+                    "opendota_avg_rank_tier": 75,
+                    "required_visible_rank_players": 10,
+                    "target_matches": 100000,
                     "matches": 0,
                     "records": 0,
+                    "complete": False,
                     "date_min": "",
                     "date_max": "",
+                    "patches": [],
                     "position_available": False,
+                    "cohort_codes": {"0": "pure_immortal", "1": "immortal_divine"},
+                    "inventory_schema_version": 2,
+                    "record_fields": [
+                        "match_id", "date", "patch", "player_slot", "win", "level",
+                        "net_worth", "duration", "rank_tier", "main_inventory",
+                        "backpack", "cohort",
+                    ],
+                    "final_inventory_fields": [
+                        "item_0", "item_1", "item_2", "item_3", "item_4", "item_5",
+                        "backpack_0", "backpack_1", "backpack_2",
+                    ],
+                    "main_inventory_fields": [
+                        "item_0", "item_1", "item_2", "item_3", "item_4", "item_5",
+                    ],
+                    "backpack_fields": ["backpack_0", "backpack_1", "backpack_2"],
+                    "includes_backpack": True,
+                    "backpack_complete": False,
+                    "empty_item_index": -1,
                 },
-                "records": [],
+                "heroes": {},
             },
             ensure_ascii=False,
             separators=(",", ":"),

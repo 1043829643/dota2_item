@@ -5200,8 +5200,11 @@
   try { config = JSON.parse(configEl.textContent || '{}'); } catch { return; }
   const heroes = config.heroes || {}, items = config.items || {};
   const comboMinCost = Number(config.comboMinCost || 1020);
+  const itemRulesByPatch = config.itemRulesByPatch || {};
+  const patchTimeline = config.patchTimeline || {};
   const controls = {
     hero: document.getElementById('id-hero-search'), role: document.getElementById('id-role'),
+    cohort: document.getElementById('id-public-cohort'),
     patch: document.getElementById('id-patch'), from: document.getElementById('id-date-from'),
     to: document.getElementById('id-date-to'), scope: document.getElementById('id-item-scope'),
     min: document.getElementById('id-min-sample'), search: document.getElementById('id-result-search'),
@@ -5210,20 +5213,37 @@
   const generate = document.getElementById('id-generate');
   const results = document.getElementById('id-results');
   const params = new URLSearchParams(location.search);
+  const PUBLIC_COHORTS = {
+    pure_immortal: {
+      label: '纯冠绝',
+      detail: '10人均为冠绝',
+    },
+    immortal_divine: {
+      label: '冠绝＋超凡',
+      detail: '同时含冠绝与超凡',
+    },
+  };
   const sourceConfig = {
     pro: {
       label: '职业比赛', url: config.dataUrl || 'data/pro_builds.json', role: true,
       ready: meta => `${Number(meta.matches || 0).toLocaleString()}场职业比赛`,
     },
     public: {
-      label: '高分公开局', url: config.publicDataUrl || 'data/opendota_public_items.json', role: false,
-      ready: meta => `${Number(meta.matches || 0).toLocaleString()}场${meta.cohort ? ` ${meta.cohort}` : ''} OpenDota 随机公开局样本`,
+      label: '高端公开局', url: config.publicDataUrl || 'data/opendota_public_items.json', role: false,
+      ready: meta => {
+        const matches = Number(meta.matches || 0), target = Number(meta.target_matches || 0);
+        const pure = Number(meta.cohorts?.pure_immortal?.matches || 0);
+        const mixed = Number(meta.cohorts?.immortal_divine?.matches || 0);
+        const progress = target ? ` / 目标${target.toLocaleString()}场` : '';
+        return `${matches.toLocaleString()}场高端公开局（纯冠绝${pure.toLocaleString()} / 混合${mixed.toLocaleString()}）${progress}`;
+      },
     },
   };
   const state = {
     rows: [], scopeRows: [], filtered: [], meta: {}, selectedHero: '', activeTab: params.get('tab') || 'overview',
     activeSource: sourceConfig[params.get('source')] ? params.get('source') : 'pro',
     datasets: new Map(), loadingSource: '', initialLoad: true,
+    publicManifest: null, publicHeroRows: new Map(), loadedPublicHero: '', loadingHero: '',
     sorts: {
       single: ['count', 'desc'], pairs: ['count', 'desc'], trios: ['count', 'desc'],
       fours: ['count', 'desc'], fives: ['count', 'desc'], sixes: ['count', 'desc'],
@@ -5277,6 +5297,67 @@
   const heroName = id => heroes[id]?.name || String(id || '').replaceAll('_', ' ');
   const roleName = value => value ? `${value}号位` : '全部位置';
   const sourceName = () => sourceConfig[state.activeSource]?.label || '当前数据源';
+  const publicCohortName = cohort => PUBLIC_COHORTS[cohort]?.label || '未知段位组';
+  const selectedPublicCohortName = () => publicCohortName(controls.cohort.value);
+  const publicCohortSummary = summary => {
+    const cohort = controls.cohort.value;
+    const current = summary?.cohorts?.[cohort];
+    if (current) return current;
+    // Backward compatibility for the previous pure-only v2 manifest.
+    if (cohort === 'pure_immortal' && summary && !summary.cohorts) return summary;
+    return { matches: 0, records: 0 };
+  };
+  const basePatch = value => String(value || '').match(/^\d+\.\d+/)?.[0] || '';
+  const hasPatchSuffix = value => /^\d+\.\d+[a-z]$/i.test(String(value || ''));
+  function effectivePatch(row) {
+    const raw = String(row?.p || '');
+    if (hasPatchSuffix(raw) && itemRulesByPatch[raw]) return raw;
+    const timeline = patchTimeline[basePatch(raw)] || [];
+    if (timeline.length) {
+      const date = String(row?.d || '');
+      const active = date
+        ? timeline.filter(entry => String(entry?.[0] || '') <= date).at(-1)
+        : timeline.at(-1);
+      const version = active?.[1] || timeline[0]?.[1];
+      if (version && itemRulesByPatch[version]) return version;
+    }
+    if (itemRulesByPatch[raw]) return raw;
+    return itemRulesByPatch[config.theoryPatch] ? config.theoryPatch : (Object.keys(itemRulesByPatch).at(-1) || raw);
+  }
+  function itemRuleForPatch(id, patch) {
+    const canonical = canonicalFinalItemId(id);
+    const rawRule = itemRulesByPatch[patch]?.[id];
+    const canonicalRule = itemRulesByPatch[patch]?.[canonical];
+    const fallback = items[id] || items[canonical] || {};
+    return rawRule || canonicalRule
+      ? {
+          cost: Number(rawRule?.[0] ?? canonicalRule?.[0] ?? 0),
+          completed: Boolean(rawRule?.[1] || canonicalRule?.[1]),
+        }
+      : { cost: Number(fallback.cost || 0), completed: Boolean(fallback.completed) };
+  }
+  const itemRule = (id, row) => itemRuleForPatch(id, effectivePatch(row));
+  function effectivePatchesForMeta(meta) {
+    const rawPatches = Array.isArray(meta?.patches)
+      ? meta.patches
+      : Object.keys(meta?.patches || {});
+    const minimum = String(meta?.date_min || ''), maximum = String(meta?.date_max || '');
+    const found = new Set();
+    rawPatches.forEach(rawValue => {
+      const raw = String(rawValue || '');
+      if (hasPatchSuffix(raw) && itemRulesByPatch[raw]) {
+        found.add(raw);
+        return;
+      }
+      const timeline = patchTimeline[basePatch(raw)] || [];
+      timeline.forEach((entry, index) => {
+        const start = String(entry?.[0] || ''), end = String(timeline[index + 1]?.[0] || '');
+        if ((!maximum || start <= maximum) && (!minimum || !end || end > minimum)) found.add(entry[1]);
+      });
+      if (!timeline.length && itemRulesByPatch[raw]) found.add(raw);
+    });
+    return [...found];
+  }
   const itemIcon = (id, compact) => {
     const item = items[id] || {}, name = itemName(id);
     return `<span class="id-item ${compact ? 'is-compact' : ''}" title="${esc(name)}">${item.icon ? `<img src="${esc(item.icon)}" alt="${esc(name)}" loading="lazy">` : '<i>?</i>'}${compact ? '' : `<b>${esc(name)}</b>`}</span>`;
@@ -5293,53 +5374,114 @@
       const purchases = [], uses = useValues ? [] : null;
       for (let index = 0; index < purchaseValues.length; index += 2) purchases.push([value('item', purchaseValues[index]), purchaseValues[index + 1]]);
       if (useValues) for (let index = 0; index < useValues.length; index += 2) uses.push([value('item', useValues[index]), useValues[index + 1]]);
+      const finalInventory = finalValues ? finalValues.map(index => value('item', index)).filter(Boolean) : null;
       return {
         m: row[0], d: value('d', row[1]), p: value('p', row[2]), li: row[3],
         l: value('l', row[4]), t: value('t', row[5]), s: value('s', row[6]),
         n: value('n', row[7]), h: value('h', row[8]), hi: row[9], sl: row[10],
         tm: row[11], r: row[12], rm: value('rm', row[13]), rc: row[14], w: row[15],
         lv: row[16], nw: row[17], du: row[18], i: purchases, g: row[20], u: uses, x: row[22] || null,
-        f: finalValues ? finalValues.map(index => value('item', index)).filter(Boolean) : null,
+        f: finalInventory, b: [], fi: finalInventory,
+        rawMain: finalInventory ? [...finalInventory.slice(0, 6), ...Array(6).fill('')].slice(0, 6) : null,
+        rawBackpack: finalInventory ? Array(3).fill('') : null,
         ft: row[24] == null ? null : row[24],
       };
     });
   }
 
-  function includeItem(id, scope) {
-    const item = items[id];
-    if (!item || item.class !== 'regular' || item.consumable || id.startsWith('item_recipe')) return false;
+  function isPublicManifest(payload) {
+    return ['opendota-public-items-manifest-v2', 'opendota-public-items-manifest-v3', 'opendota-public-items-manifest-v4'].includes(payload?.schema);
+  }
+
+  function decodePublicHeroPayload(payload) {
+    if (!['opendota-public-hero-v2', 'opendota-public-hero-v3', 'opendota-public-hero-v4'].includes(payload?.schema)) return decodeCorePayload(payload);
+    const dictionaries = payload.dictionaries || {}, hero = payload.hero || '';
+    const value = (field, index) => index == null || index < 0 ? '' : (dictionaries[field]?.[index] ?? '');
+    return (payload.records || []).map(row => {
+      const slot = Number(row[3]), radiant = slot < 128;
+      const v4 = payload.schema === 'opendota-public-hero-v4';
+      const decodeSlots = (encoded, size) => Array.from(
+        { length: size },
+        (_, index) => value('item', Array.isArray(encoded) ? encoded[index] : -1),
+      );
+      const rawMain = v4
+        ? decodeSlots(row[9], 6)
+        : [...(Array.isArray(row[9]) ? row[9].map(index => value('item', index)).filter(Boolean) : []), ...Array(6).fill('')].slice(0, 6);
+      const rawBackpack = v4 ? decodeSlots(row[10], 3) : Array(3).fill('');
+      const cohortCode = v4 ? row[11] : row[10];
+      const cohort = cohortCode === 0
+        ? 'pure_immortal'
+        : cohortCode === 1 ? 'immortal_divine' : (row.length < 11 ? 'pure_immortal' : '');
+      const main = rawMain.filter(Boolean), backpack = rawBackpack.filter(Boolean);
+      return {
+        m: row[0], d: value('d', row[1]), p: value('p', row[2]),
+        l: `OpenDota ${publicCohortName(cohort)}天梯`, t: radiant ? '天辉' : '夜魇',
+        s: '', n: '匿名公开局玩家', h: hero, hi: payload.hero_id,
+        sl: slot, tm: radiant ? 2 : 3, r: null, rm: '公开局未判位',
+        w: row[4], lv: row[5], nw: row[6], du: row[7], i: [], u: null,
+        x: { rank: row[8] },
+        f: main, b: backpack, fi: [...main, ...backpack], rawMain, rawBackpack,
+        ft: row[7], src: 'opendota', c: cohort, inventoryVersion: v4 ? 2 : 1,
+      };
+    });
+  }
+
+  const finalInventory = row => Array.isArray(row?.fi) ? row.fi : (Array.isArray(row?.f) ? row.f : null);
+
+  function includeItem(id, scope, row) {
+    const canonical = canonicalFinalItemId(id), item = items[id] || items[canonical] || {};
+    const rule = itemRule(id, row);
+    if ((item.class && item.class !== 'regular') || item.consumable || id.startsWith('item_recipe')) return false;
     if (scope === 'regular') return true;
-    if (scope === 'completed') return completedCategories.has(item.category) || coreAllow.has(id) || Number(item.cost || 0) >= 900;
-    return routeNodeClasses.has(item.routeClass)
-      || (!item.routeClass && (completedCategories.has(item.category) || coreAllow.has(id)));
+    if (scope === 'completed') return rule.completed || coreAllow.has(canonical) || rule.cost >= 900;
+    return rule.completed || routeNodeClasses.has(item.routeClass) || coreAllow.has(canonical)
+      || (!item.routeClass && completedCategories.has(item.category));
   }
 
   function finalItems(row, scope) {
-    if (!Array.isArray(row.f)) return [];
-    return [...new Set(row.f.map(canonicalFinalItemId).filter(id => includeItem(id, scope)))].sort((a, b) =>
-      Number(items[b]?.cost || 0) - Number(items[a]?.cost || 0) || a.localeCompare(b));
+    const inventory = finalInventory(row);
+    if (!Array.isArray(inventory)) return [];
+    const ids = inventory.filter(id => includeItem(id, scope, row)).map(canonicalFinalItemId);
+    return [...new Set(ids)].sort((a, b) =>
+      itemRule(b, row).cost - itemRule(a, row).cost || a.localeCompare(b));
   }
 
-  function comboEligible(id) {
-    const item = items[id];
-    return Boolean(item && item.completed === true && item.class === 'regular' && !item.consumable
-      && !id.startsWith('item_recipe') && Number(item.cost || 0) > comboMinCost);
+  function comboEligible(id, row) {
+    const canonical = canonicalFinalItemId(id), item = items[id] || items[canonical] || {};
+    const rule = itemRule(id, row);
+    return Boolean(rule.completed && (!item.class || item.class === 'regular') && !item.consumable
+      && !id.startsWith('item_recipe') && rule.cost > comboMinCost);
   }
 
   function comboItems(row) {
-    if (!Array.isArray(row.f)) return [];
-    return [...new Set(row.f.map(canonicalFinalItemId).filter(comboEligible))].sort((a, b) =>
-      Number(items[b]?.cost || 0) - Number(items[a]?.cost || 0) || a.localeCompare(b));
+    const inventory = finalInventory(row);
+    if (!Array.isArray(inventory)) return [];
+    return inventory.filter(id => comboEligible(id, row)).map(canonicalFinalItemId).sort((a, b) =>
+      itemRule(b, row).cost - itemRule(a, row).cost || a.localeCompare(b));
   }
 
   function renderCostCatalog() {
-    const eligible = Object.keys(items).filter(comboEligible).sort((a, b) =>
-      Number(items[a]?.cost || 0) - Number(items[b]?.cost || 0)
-      || itemName(a).localeCompare(itemName(b)));
-    document.getElementById('id-cost-catalog-count').textContent = `${eligible.length}件成装`;
-    document.getElementById('id-cost-catalog-list').innerHTML = eligible.map(id =>
-      `<span>${itemIcon(id, true)}<b>${esc(itemName(id))}</b><small>${Number(items[id].cost).toLocaleString()} 金币</small></span>`
-    ).join('');
+    const selectedPatch = controls.patch.value;
+    const optionPatches = [...controls.patch.options].map(option => option.value).filter(Boolean);
+    const patches = selectedPatch ? [selectedPatch] : (optionPatches.length ? optionPatches : Object.keys(itemRulesByPatch));
+    const candidates = new Set(Object.keys(items));
+    patches.forEach(patch => Object.keys(itemRulesByPatch[patch] || {}).forEach(id => candidates.add(id)));
+    const eligible = [...candidates].map(id => {
+      const canonical = canonicalFinalItemId(id), item = items[id] || items[canonical] || {};
+      const costs = patches.map(patch => itemRuleForPatch(id, patch))
+        .filter(rule => rule.completed && rule.cost > comboMinCost && (!item.class || item.class === 'regular') && !item.consumable)
+        .map(rule => rule.cost);
+      return costs.length ? { id: canonical, costs } : null;
+    }).filter(Boolean);
+    const unique = [...new Map(eligible.map(entry => [entry.id, entry])).values()].sort((a, b) =>
+      Math.min(...a.costs) - Math.min(...b.costs) || itemName(a.id).localeCompare(itemName(b.id)));
+    const patchText = selectedPatch || (patches.length === 1 ? patches[0] : `跨${patches.length}个版本`);
+    document.getElementById('id-cost-catalog-count').textContent = `${unique.length}件成装 · ${patchText}`;
+    document.getElementById('id-cost-catalog-list').innerHTML = unique.map(entry => {
+      const minimum = Math.min(...entry.costs), maximum = Math.max(...entry.costs);
+      const costText = minimum === maximum ? minimum.toLocaleString() : `${minimum.toLocaleString()}–${maximum.toLocaleString()}`;
+      return `<span>${itemIcon(entry.id, true)}<b>${esc(itemName(entry.id))}</b><small>${costText} 金币</small></span>`;
+    }).join('');
   }
 
   function createStat(ids) {
@@ -5355,10 +5497,14 @@
   }
 
   function addCombinations(map, ids, size, row) {
-    const selected = [];
+    const selected = [], seen = new Set();
     const visit = start => {
       if (selected.length === size) {
-        addCombo(map, selected, row);
+        const key = [...selected].sort().join('|');
+        if (!seen.has(key)) {
+          seen.add(key);
+          addCombo(map, selected, row);
+        }
         return;
       }
       const needed = size - selected.length;
@@ -5483,15 +5629,28 @@
 
   function renderEvidence(rows) {
     const html = [...rows].sort((a, b) => String(b.d).localeCompare(String(a.d)) || Number(b.m) - Number(a.m)).slice(0, 60).map(row => {
-      const inventory = finalItems(row, controls.scope.value || 'core');
       const query = new URLSearchParams({ mode: 'hero', hero: row.h, from: row.d, to: row.d, tab: 'matches' });
       const isPublic = row.src === 'opendota' || state.activeSource === 'public';
       const identity = isPublic ? '匿名公开局玩家' : (row.n || row.s || '未知选手');
       const team = isPublic ? (row.t || '公开匹配') : (row.t || '未知战队');
+      const scopeCell = isPublic
+        ? `${publicCohortName(row.c)}<small>十人段位复核</small>`
+        : `${row.r ? `${row.r}号位` : '未判位'}<small>${esc(row.rm || '未知方法')}</small>`;
       const action = isPublic
         ? `<a href="https://www.opendota.com/matches/${encodeURIComponent(row.m)}" target="_blank" rel="noopener">OpenDota</a>`
         : `<a href="pro_builds.html?${query.toString()}">继续复盘</a>`;
-      return `<tr><td><b>${esc(row.m)}</b><small>${esc(row.d)} · ${esc(row.l || (isPublic ? 'OpenDota公开局' : '未知赛事'))}</small></td><td><b>${esc(identity)}</b><small>${esc(team)}</small></td><td>${row.r ? `${row.r}号位` : '未判位'}<small>${esc(row.rm || '未知方法')}</small></td><td><span class="id-route">${inventory.length ? inventory.map(id => `<span>${itemIcon(id, true)}</span>`).join('') : '<em>终局六格内没有当前范围装备</em>'}</span><small>${Number.isFinite(Number(row.ft)) ? `终局 ${timeText(Number(row.ft))} · 比赛 ${timeText(Number(row.du))}` : `比赛 ${timeText(Number(row.du))}`}</small></td><td class="${row.w ? 'is-win' : 'is-loss'}">${row.w ? '胜利' : '失败'}</td><td>${action}</td></tr>`;
+      const slot = (id, index) => id
+        ? `<span class="id-inventory-slot" data-slot="${index + 1}">${itemIcon(id, true)}</span>`
+        : `<span class="id-inventory-slot is-empty" data-slot="${index + 1}" aria-label="空槽"><i>—</i></span>`;
+      const publicInventory = `<div class="id-inventory-slots"><div class="id-inventory-main"><b>主栏6</b><span>${(row.rawMain || Array(6).fill('')).map(slot).join('')}</span></div><div class="id-inventory-backpack"><b>背包3${row.inventoryVersion === 1 ? '（旧缓存未采集）' : ''}</b><span>${(row.rawBackpack || Array(3).fill('')).map(slot).join('')}</span></div></div>`;
+      const proInventory = finalItems(row, controls.scope.value || 'core');
+      const inventoryHtml = isPublic
+        ? publicInventory
+        : `<span class="id-route">${proInventory.length ? proInventory.map(id => `<span>${itemIcon(id, true)}</span>`).join('') : '<em>终局六格内没有当前范围装备</em>'}</span>`;
+      const timing = isPublic
+        ? `九格终局快照 · 比赛 ${timeText(Number(row.du))}`
+        : (Number.isFinite(Number(row.ft)) ? `终局 ${timeText(Number(row.ft))} · 比赛 ${timeText(Number(row.du))}` : `比赛 ${timeText(Number(row.du))}`);
+      return `<tr><td><b>${esc(row.m)}</b><small>${esc(row.d)} · ${esc(effectivePatch(row))} · ${esc(row.l || (isPublic ? 'OpenDota公开局' : '未知赛事'))}</small></td><td><b>${esc(identity)}</b><small>${esc(team)}</small></td><td>${scopeCell}</td><td>${inventoryHtml}<small>${timing}</small></td><td class="${row.w ? 'is-win' : 'is-loss'}">${row.w ? '胜利' : '失败'}</td><td>${action}</td></tr>`;
     }).join('');
     document.getElementById('id-evidence-body').innerHTML = html || emptyRow(6, '当前范围没有真实比赛样本');
   }
@@ -5530,26 +5689,78 @@
   function updateGenerateState() {
     const entry = Object.entries(heroes).find(([id, hero]) => normalize(hero.name) === normalize(controls.hero.value) || normalize(id) === normalize(controls.hero.value));
     state.selectedHero = entry?.[0] || '';
-    generate.disabled = !state.selectedHero || !state.rows.length || Boolean(state.loadingSource);
+    const heroSummary = state.publicManifest?.heroes?.[state.selectedHero];
+    const sourceReady = state.publicManifest
+      ? Number(publicCohortSummary(heroSummary).records || 0) > 0
+      : Boolean(state.rows.length);
+    const scopeName = state.activeSource === 'public'
+      ? selectedPublicCohortName()
+      : roleName(controls.role.value);
+    const unavailable = state.selectedHero && !sourceReady ? ' · 当前段位组暂无样本' : '';
+    generate.disabled = !state.selectedHero || !sourceReady || Boolean(state.loadingSource) || Boolean(state.loadingHero);
     document.getElementById('id-generate-summary').innerHTML = state.selectedHero
-      ? `<b>${esc(heroName(state.selectedHero))}</b><span>${esc(sourceName())} · ${esc(sourceConfig[state.activeSource].role ? roleName(controls.role.value) : '不区分职责位置')} · ${esc(controls.patch.value || '全部版本')} · ${esc(controls.from.value || '最早')}至${esc(controls.to.value || '最新')}</span>`
+      ? `<b>${esc(heroName(state.selectedHero))}</b><span>${esc(sourceName())} · ${esc(scopeName)} · ${esc(controls.patch.value || '全部版本')} · ${esc(controls.from.value || '最早')}至${esc(controls.to.value || '最新')}${esc(unavailable)}</span>`
       : '先选择一名英雄';
+  }
+
+  function loadPublicHero(hero, scroll) {
+    if (!state.publicManifest || state.loadingHero) return;
+    const cached = state.publicHeroRows.get(hero);
+    if (cached) {
+      state.rows = cached; state.loadedPublicHero = hero;
+      runStudy(scroll);
+      return;
+    }
+    const summary = state.publicManifest.heroes?.[hero];
+    if (!summary?.url) {
+      status.className = 'id-load-status is-error';
+      status.textContent = `当前高端公开局缓存没有 ${heroName(hero)} 的分片。`;
+      return;
+    }
+    state.loadingHero = hero; generate.disabled = true;
+    status.className = 'id-load-status';
+    status.textContent = `正在按需载入 ${heroName(hero)} 的高端公开局终局九格…`;
+    fetch(summary.url, { cache: 'no-cache' })
+      .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+      .then(payload => {
+        const rows = decodePublicHeroPayload(payload);
+        if (state.publicHeroRows.size >= 3) state.publicHeroRows.delete(state.publicHeroRows.keys().next().value);
+        state.publicHeroRows.set(hero, rows);
+        state.loadingHero = '';
+        if (state.activeSource !== 'public' || state.selectedHero !== hero) {
+          updateGenerateState();
+          return;
+        }
+        state.rows = rows; state.loadedPublicHero = hero;
+        updateGenerateState(); runStudy(scroll);
+      })
+      .catch(error => {
+        state.loadingHero = ''; updateGenerateState();
+        status.className = 'id-load-status is-error';
+        status.textContent = `${heroName(hero)} 高端公开局分片载入失败：${error.message}`;
+      });
   }
 
   function runStudy(scroll) {
     updateGenerateState();
     if (!state.selectedHero) { controls.hero.focus(); return; }
+    if (state.publicManifest && state.loadedPublicHero !== state.selectedHero) {
+      loadPublicHero(state.selectedHero, scroll);
+      return;
+    }
     const from = controls.from.value, to = controls.to.value;
     const rows = state.rows.filter(row => row.h === state.selectedHero
       && (!sourceConfig[state.activeSource].role || !controls.role.value || String(row.r || '') === controls.role.value)
-      && (!controls.patch.value || row.p === controls.patch.value)
+      && (state.activeSource !== 'public' || row.c === controls.cohort.value)
+      && (!controls.patch.value || effectivePatch(row) === controls.patch.value)
       && (!from || row.d >= from) && (!to || row.d <= to));
     if (!rows.length) {
       status.className = 'id-load-status is-error';
-      status.textContent = `当前条件没有${sourceName()}样本，请扩大日期${sourceConfig[state.activeSource].role ? '或取消位置限制' : ''}。`;
+      const rankHint = state.activeSource === 'public' ? `的${selectedPublicCohortName()}` : '';
+      status.textContent = `当前条件没有${sourceName()}${rankHint}样本，请扩大日期${sourceConfig[state.activeSource].role ? '或取消位置限制' : ''}。`;
       return;
     }
-    const inventoryRows = rows.filter(row => Array.isArray(row.f));
+    const inventoryRows = rows.filter(row => Array.isArray(finalInventory(row)));
     if (!inventoryRows.length) {
       status.className = 'id-load-status is-error';
       status.textContent = '当前条件有比赛，但没有可验证的终局背包快照；本页不会用购买日志冒充最终装备。';
@@ -5561,47 +5772,67 @@
     document.getElementById('id-context-icon').src = hero.icon || '';
     document.getElementById('id-context-icon').alt = hero.name || state.selectedHero;
     document.getElementById('id-context-title').textContent = hero.name || state.selectedHero;
-    const roleScope = sourceConfig[state.activeSource].role ? roleName(controls.role.value) : '不区分职责位置';
+    const roleScope = state.activeSource === 'public' ? selectedPublicCohortName() : roleName(controls.role.value);
     document.getElementById('id-context-scope').textContent = `${sourceName()} · ${roleScope} · ${controls.patch.value || '全部版本'} · ${from || state.meta.date_min} — ${to || state.meta.date_max}`;
-    document.getElementById('id-context-count').textContent = `${inventoryRows.length.toLocaleString()}个终局快照 / ${rows.length.toLocaleString()}个选手英雄局`;
+    document.getElementById('id-context-count').textContent = `${inventoryRows.length.toLocaleString()}个终局装备快照 / ${rows.length.toLocaleString()}个选手英雄局`;
     results.hidden = false; page.classList.remove('is-unselected');
     status.className = 'id-load-status is-ready';
-    status.textContent = `已生成 ${hero.name || state.selectedHero} 的${sourceName()}最终装备组合研究；两类数据源不会混算。`;
+    status.textContent = `已生成 ${hero.name || state.selectedHero} 的${sourceName()}${state.activeSource === 'public' ? `（${selectedPublicCohortName()}）` : ''}最终装备组合研究；所有口径使用独立分母。`;
     renderAll(); applyTab(state.activeTab, false);
     const url = new URL(location.href);
-    [['source', state.activeSource], ['hero', state.selectedHero], ['role', sourceConfig[state.activeSource].role ? controls.role.value : ''], ['patch', controls.patch.value], ['from', from], ['to', to], ['tab', state.activeTab], ['run', '1']].forEach(([key, value]) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key));
+    [['source', state.activeSource], ['hero', state.selectedHero], ['role', sourceConfig[state.activeSource].role ? controls.role.value : ''], ['cohort', state.activeSource === 'public' ? controls.cohort.value : ''], ['patch', controls.patch.value], ['from', from], ['to', to], ['tab', state.activeTab], ['run', '1']].forEach(([key, value]) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key));
     history.replaceState(null, '', url);
     if (scroll) results.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function renderHotHeroes() {
-    const latest = state.meta.date_max || '', from = latest ? new Date(`${latest}T00:00:00Z`) : null;
-    if (from) from.setUTCDate(from.getUTCDate() - 29);
-    const minDate = from ? from.toISOString().slice(0, 10) : '';
-    const counts = new Map();
-    state.rows.forEach(row => { if (!minDate || row.d >= minDate) counts.set(row.h, (counts.get(row.h) || 0) + 1); });
-    const hot = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-    document.getElementById('id-hot-heroes').innerHTML = hot.map(([id, count]) => {
+    let hot;
+    if (state.publicManifest) {
+      hot = Object.entries(state.publicManifest.heroes || {})
+        .map(([id, summary]) => [id, Number(publicCohortSummary(summary).records || 0)])
+        .filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]).slice(0, 10);
+    } else {
+      const latest = state.meta.date_max || '', from = latest ? new Date(`${latest}T00:00:00Z`) : null;
+      if (from) from.setUTCDate(from.getUTCDate() - 29);
+      const minDate = from ? from.toISOString().slice(0, 10) : '';
+      const counts = new Map();
+      state.rows.forEach(row => { if (!minDate || row.d >= minDate) counts.set(row.h, (counts.get(row.h) || 0) + 1); });
+      hot = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+    }
+    document.getElementById('id-hot-label').textContent = state.publicManifest
+      ? `${selectedPublicCohortName()}热门`
+      : '近期职业热门';
+    document.getElementById('id-hot-heroes').innerHTML = hot.length ? hot.map(([id, count]) => {
       const hero = heroes[id] || {};
       return `<button type="button" data-id-hero="${esc(id)}" title="选择 ${esc(hero.name || id)}；不会立即生成"><img src="${esc(hero.icon || '')}" alt=""><span><b>${esc(hero.name || id)}</b><small>${count}局</small></span></button>`;
-    }).join('');
+    }).join('') : '<i>当前段位组暂无英雄样本</i>';
   }
 
   function fillInitialControls(useParams) {
     const heroEntries = Object.entries(heroes).sort((a, b) => String(a[1].name).localeCompare(String(b[1].name)));
     document.getElementById('id-hero-list').innerHTML = heroEntries.map(([, hero]) => `<option value="${esc(hero.name)}"></option>`).join('');
-    const patches = [...new Set(state.rows.map(row => row.p).filter(Boolean))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    const patchSource = state.publicManifest
+      ? effectivePatchesForMeta(state.meta)
+      : state.rows.map(effectivePatch);
+    const patches = [...new Set(patchSource.filter(Boolean))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
     controls.patch.innerHTML = '<option value="">全部版本</option>' + patches.map(patch => `<option value="${esc(patch)}">${esc(patch)}</option>`).join('');
     const maxDate = state.meta.date_max || state.rows.reduce((max, row) => row.d > max ? row.d : max, '');
     const minDate = state.meta.date_min || state.rows.reduce((min, row) => !min || row.d < min ? row.d : min, '');
-    controls.role.disabled = !sourceConfig[state.activeSource].role;
-    document.getElementById('id-role-label').textContent = sourceConfig[state.activeSource].role ? '职责位置' : '职责位置（公开局不判位）';
-    if (!sourceConfig[state.activeSource].role) controls.role.value = '';
+    const isPublic = state.activeSource === 'public';
+    document.getElementById('id-role-wrap').hidden = isPublic;
+    document.getElementById('id-public-cohort-wrap').hidden = !isPublic;
+    controls.role.disabled = isPublic;
+    controls.cohort.disabled = !isPublic;
+    document.getElementById('id-role-label').textContent = '职责位置';
+    if (isPublic) controls.role.value = '';
+    const requestedCohort = useParams ? (params.get('cohort') || '') : '';
+    controls.cohort.value = PUBLIC_COHORTS[requestedCohort] ? requestedCohort : 'pure_immortal';
     if (!maxDate || !minDate) {
       controls.from.value = controls.to.value = '';
       controls.from.removeAttribute('min'); controls.from.removeAttribute('max');
       controls.to.removeAttribute('min'); controls.to.removeAttribute('max');
-      renderHotHeroes(); updateGenerateState();
+      renderSourceChrome(); renderHotHeroes(); renderCostCatalog(); updateGenerateState();
       return;
     }
     controls.from.min = controls.to.min = minDate; controls.from.max = controls.to.max = maxDate;
@@ -5613,7 +5844,7 @@
     controls.patch.value = patches.includes(requestedPatch) ? requestedPatch : '';
     const requestedHero = useParams ? (params.get('hero') || '') : state.selectedHero;
     if (requestedHero && heroes[requestedHero]) controls.hero.value = heroName(requestedHero);
-    renderHotHeroes(); updateGenerateState();
+    renderSourceChrome(); renderHotHeroes(); renderCostCatalog(); updateGenerateState();
   }
 
   function renderFreshness() {
@@ -5635,30 +5866,42 @@
     });
     const isPublic = state.activeSource === 'public';
     document.getElementById('id-source-note').textContent = isPublic
-      ? '当前统计 OpenDota 高分随机公开局样本；只取终局六格，不含背包和中立物品，也不推断1–5号位。'
+      ? `当前选择“${selectedPublicCohortName()}”：${PUBLIC_COHORTS[controls.cohort.value]?.detail || ''}。两组互斥并分别统计，主栏6格与背包3格合并为九格装备池。`
       : '当前统计职业比赛，不与公开局共用分母。';
-    document.getElementById('id-hot-label').textContent = isPublic ? '近期公开局热门' : '近期职业热门';
     document.getElementById('id-evidence-note').textContent = isPublic
-      ? '最多展示最近60个匿名公开局终局六格，可打开 OpenDota 核对比赛'
+      ? `最多展示最近60个${selectedPublicCohortName()}匿名公开局；按原槽位分开显示主栏6格与背包3格`
       : '最多展示最近60个有终局快照的选手英雄局，可进入职业出装页继续复盘';
+    document.getElementById('id-evidence-role-head').textContent = isPublic ? '段位组' : '位置';
+    document.getElementById('id-evidence-inventory-head').textContent = isPublic ? '主栏6＋背包3' : '最终装备';
   }
 
   function applyDataset(name, payload, useParams) {
     state.activeSource = name;
     state.meta = payload.meta || {};
-    state.rows = decodeCorePayload(payload);
+    state.publicManifest = name === 'public' && isPublicManifest(payload) ? payload : null;
+    state.rows = state.publicManifest ? [] : decodeCorePayload(payload);
+    state.loadedPublicHero = '';
     state.scopeRows = []; state.filtered = []; state.analysis = null;
     results.hidden = true; page.classList.add('is-unselected');
-    renderSourceChrome(); fillInitialControls(useParams); renderFreshness();
+    fillInitialControls(useParams); renderFreshness();
     const count = document.getElementById(`id-source-${name}-count`);
     const readyText = sourceConfig[name].ready(state.meta);
     if (count) count.textContent = readyText;
-    status.className = state.rows.length ? 'id-load-status is-ready' : 'id-load-status is-error';
-    status.textContent = state.rows.length
-      ? `${readyText} · ${state.rows.length.toLocaleString()}个英雄终局快照已就绪`
+    const available = state.publicManifest
+      ? Number(state.meta.cohorts?.[controls.cohort.value]?.matches
+          ?? (controls.cohort.value === 'pure_immortal' ? state.meta.matches : 0)) > 0
+        && Object.keys(state.publicManifest.heroes || {}).length > 0
+      : state.rows.length > 0;
+    status.className = available ? 'id-load-status is-ready' : 'id-load-status is-error';
+    status.textContent = available
+      ? (state.publicManifest
+        ? `${readyText} · 清单已就绪，选择英雄后按需载入分片`
+        : `${readyText} · ${state.rows.length.toLocaleString()}个英雄终局快照已就绪`)
       : `${sourceName()}暂时没有可用样本，请先运行公开局采集脚本。`;
     const url = new URL(location.href);
     if (name === 'pro') url.searchParams.delete('source'); else url.searchParams.set('source', name);
+    if (name === 'public') url.searchParams.set('cohort', controls.cohort.value);
+    else url.searchParams.delete('cohort');
     ['run', 'role', 'patch', 'from', 'to'].forEach(key => { if (!useParams) url.searchParams.delete(key); });
     history.replaceState(null, '', url);
     if (useParams && params.get('run') === '1' && state.selectedHero) runStudy(false);
@@ -5708,7 +5951,23 @@
       loadSource(button.dataset.idSource, false);
     });
     controls.hero.addEventListener('input', updateGenerateState);
-    [controls.role, controls.patch, controls.from, controls.to].forEach(control => control.addEventListener('change', updateGenerateState));
+    [controls.role, controls.from, controls.to].forEach(control => control.addEventListener('change', updateGenerateState));
+    controls.patch.addEventListener('change', () => { renderCostCatalog(); updateGenerateState(); });
+    controls.cohort.addEventListener('change', () => {
+      if (state.activeSource !== 'public') return;
+      state.scopeRows = []; state.filtered = []; state.analysis = null;
+      results.hidden = true; page.classList.add('is-unselected');
+      renderSourceChrome(); renderHotHeroes(); updateGenerateState(); renderFreshness();
+      const cohortMatches = Number(state.meta.cohorts?.[controls.cohort.value]?.matches || 0);
+      status.className = cohortMatches ? 'id-load-status is-ready' : 'id-load-status is-error';
+      status.textContent = cohortMatches
+        ? `已切换到${selectedPublicCohortName()}：${cohortMatches.toLocaleString()}场比赛；请选择英雄并重新生成。`
+        : `${selectedPublicCohortName()}样本仍在回填，当前还没有可分析比赛。`;
+      const url = new URL(location.href);
+      url.searchParams.set('cohort', controls.cohort.value);
+      url.searchParams.delete('run');
+      history.replaceState(null, '', url);
+    });
     document.getElementById('id-hot-heroes').addEventListener('click', event => {
       const button = event.target.closest('[data-id-hero]'); if (!button) return;
       controls.hero.value = heroName(button.dataset.idHero); updateGenerateState();
