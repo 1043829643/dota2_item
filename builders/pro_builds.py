@@ -65,7 +65,7 @@ def _config() -> dict:
             for hero in heroes:
                 row = hero_rows.get(f"npc_dota_hero_{hero['id']}") or {}
                 draft = row.get("AbilityDraftAbilities") or {}
-                values = [
+                raw_values = [
                     value
                     for key, value in sorted(
                         draft.items(),
@@ -73,13 +73,19 @@ def _config() -> dict:
                     )
                     if key.startswith("Ability") and value
                 ]
-                if not values:
-                    values = [
+                if not raw_values:
+                    raw_values = [
                         row.get(f"Ability{index}")
                         for index in range(1, 10)
                         if row.get(f"Ability{index}")
                         and not str(row.get(f"Ability{index}")).startswith("special_bonus_")
                     ]
+                values = [
+                    slug.strip()
+                    for value in raw_values
+                    for slug in str(value).split(",")
+                    if slug.strip()
+                ]
                 if values:
                     hero_abilities[hero["id"]] = values
                 talents = [
@@ -101,11 +107,21 @@ def _config() -> dict:
         except (OSError, ValueError, TypeError):
             hero_abilities = {}
             hero_talents = {}
-    ability_icons = {
-        slug: f"icons/abilities/{slug}.png"
-        for slug in sorted({slug for values in hero_abilities.values() for slug in values})
-        if (ROOT / "icons" / "abilities" / f"{slug}.png").exists()
-    }
+    ability_icons = {}
+    for slug in sorted({slug for values in hero_abilities.values() for slug in values}):
+        candidates = [slug]
+        if slug.endswith("_ad"):
+            candidates.append(slug.removesuffix("_ad"))
+        icon_slug = next(
+            (
+                candidate
+                for candidate in candidates
+                if (ROOT / "icons" / "abilities" / f"{candidate}.png").exists()
+            ),
+            None,
+        )
+        if icon_slug:
+            ability_icons[slug] = f"icons/abilities/{icon_slug}.png"
     return {
         "dataUrl": "data/pro_builds.json",
         "dataGzipUrl": "data/pro_builds.json.gz",

@@ -119,5 +119,7 @@ def test_skill_config_contains_icons_and_current_talent_slots(page_html: str) ->
     assert '"abilityIcons"' in page_html
     assert '"heroTalents"' in page_html
     assert '"ember_spirit_flame_guard":"icons/abilities/ember_spirit_flame_guard.png"' in page_html
+    assert '"rubick_arcane_supremacy":"icons/abilities/rubick_arcane_supremacy.png"' in page_html
+    assert '"kez_falcon_rush_ad":"icons/abilities/kez_falcon_rush.png"' in page_html
     assert '"ember_spirit"' in page_html
     assert '"special_bonus_attack_damage_12"' in page_html

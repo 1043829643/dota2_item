@@ -51,6 +51,19 @@ if DIST.is_dir():
         for m in re.finditer(r'icons/abilities/([^"\']+)\.png', html_file.read_text(encoding="utf-8", errors="ignore")):
             slugs.append(m.group(1))
 
+# Pro Builds renders current hero skill routes dynamically from JSON, so a
+# missing local file produces no HTML image reference for the scanner above.
+# Include the current hero roster explicitly to avoid that discovery loop.
+try:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from builders.pro_builds import _config as _pro_build_config
+
+    for hero_slugs in _pro_build_config().get("heroAbilities", {}).values():
+        slugs.extend(hero_slugs)
+except (ImportError, OSError, TypeError, ValueError) as exc:
+    print(f"Warning: could not load Pro Builds hero abilities: {exc}")
+
 slugs = sorted(set(slugs))
 missing_local = [s for s in slugs if not (ICONS_DIR / f"{s}.png").exists()]
 
