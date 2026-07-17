@@ -4,10 +4,15 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
+
+import scripts.fetch.fetch_opendota_public_items as collector
 from scripts.fetch.fetch_opendota_public_items import (
     ALL_DRAFT_GAME_MODE,
+    ANONYMOUS_REQUEST_GAP,
     COHORT_IMMORTAL_DIVINE,
     COHORT_PURE_IMMORTAL,
+    DEFAULT_ANONYMOUS_WORKERS,
     BACKPACK_ITEM_FIELDS,
     FINAL_ITEM_FIELDS,
     MAIN_ITEM_FIELDS,
@@ -16,13 +21,66 @@ from scripts.fetch.fetch_opendota_public_items import (
     REQUESTED_IMMORTAL_RANK,
     _candidate_sql,
     _connect,
+    _load_match,
     _normalise_match,
+    _pending_rows,
     _rank_cohort,
     parse_args,
 )
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_anonymous_collector_defaults_stay_below_opendota_minute_limit() -> None:
+    assert ANONYMOUS_REQUEST_GAP > 60 / 59
+    assert DEFAULT_ANONYMOUS_WORKERS == 4
+
+
+def test_anonymous_request_gap_cannot_be_lowered(monkeypatch) -> None:
+    monkeypatch.delenv("OPENDOTA_API_KEY", raising=False)
+    with pytest.raises(SystemExit, match="request-gap"):
+        collector.main(["--export-only", "--request-gap", "1.0"])
+
+
+def test_match_detail_uses_one_transport_attempt(monkeypatch, tmp_path: Path) -> None:
+    seen: dict[str, object] = {}
+
+    def fake_api_json(path, query, request_gap, **kwargs):
+        seen.update(
+            path=path,
+            query=query,
+            request_gap=request_gap,
+            max_http_attempts=kwargs.get("max_http_attempts"),
+        )
+        return {"match_id": 123}
+
+    monkeypatch.setattr(collector, "LEGACY_MATCH_CACHE", tmp_path)
+    monkeypatch.setattr(collector, "_api_json", fake_api_json)
+    payload, cached = _load_match(123, ANONYMOUS_REQUEST_GAP)
+    assert payload == {"match_id": 123}
+    assert cached is False
+    assert seen["max_http_attempts"] == 1
+
+
+def test_pending_rows_prefers_fresh_candidates_to_retries(tmp_path: Path) -> None:
+    connection = _connect(tmp_path / "pending-order.sqlite3")
+    base = (1_750_000_000, 1800, 7, 22, 75, 10)
+    connection.execute(
+        "INSERT INTO matches(match_id,start_time,duration,lobby_type,game_mode,"
+        "avg_rank_tier,num_rank_tier,status,attempts) "
+        "VALUES(200,?,?,?,?,?,?,'retry',1)",
+        base,
+    )
+    connection.execute(
+        "INSERT INTO matches(match_id,start_time,duration,lobby_type,game_mode,"
+        "avg_rank_tier,num_rank_tier,status,attempts) "
+        "VALUES(100,?,?,?,?,?,?,'pending',0)",
+        base,
+    )
+    rows = _pending_rows(connection, limit=1, max_attempts=5)
+    assert [row["match_id"] for row in rows] == [100]
+    connection.close()
 
 
 def test_public_item_normalizer_preserves_fixed_main_and_backpack_slots() -> None:

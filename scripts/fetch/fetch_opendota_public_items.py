@@ -79,6 +79,10 @@ DEFAULT_MIN_DURATION = 600
 DEFAULT_EXPLORER_PAGE_SIZE = 10_000
 DEFAULT_BATCH_SIZE = 250
 DEFAULT_DAILY_RESERVE = 50
+ANONYMOUS_REQUEST_GAP = 1.05
+DEFAULT_ANONYMOUS_WORKERS = 4
+DEFAULT_HTTP_ATTEMPTS = 6
+DETAIL_HTTP_ATTEMPTS = 1
 MAIN_ITEM_FIELDS = tuple(f"item_{index}" for index in range(6))
 BACKPACK_ITEM_FIELDS = tuple(f"backpack_{index}" for index in range(3))
 # Backward-compatible name retained for callers that mean the six main slots.
@@ -215,7 +219,11 @@ def _api_json(
     path: str,
     query: dict | None,
     request_gap: float,
+    *,
+    max_http_attempts: int = DEFAULT_HTTP_ATTEMPTS,
 ) -> object:
+    if max_http_attempts < 1:
+        raise ValueError("max_http_attempts must be >= 1")
     params = dict(query or {})
     api_key = os.environ.get("OPENDOTA_API_KEY")
     suffix = f"?{urllib.parse.urlencode(params)}" if params else ""
@@ -226,7 +234,7 @@ def _api_json(
         f"{API_ROOT}{path}{suffix}",
         headers=headers,
     )
-    for attempt in range(6):
+    for attempt in range(max_http_attempts):
         _rate_limit(request_gap)
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
@@ -246,11 +254,11 @@ def _api_json(
                 delay = float(retry_after) if retry_after and retry_after.isdigit() else 2**attempt
             else:
                 raise
-            if attempt == 5:
+            if attempt == max_http_attempts - 1:
                 raise
             time.sleep(min(90.0, max(1.0, delay)) + random.random() * 0.25)
         except (urllib.error.URLError, TimeoutError):
-            if attempt == 5:
+            if attempt == max_http_attempts - 1:
                 raise
             time.sleep(min(20.0, 1.5 * (attempt + 1)))
     raise RuntimeError(f"OpenDota request failed: {path}")
@@ -782,7 +790,17 @@ def _load_match(match_id: int, request_gap: float) -> tuple[dict, bool]:
                 return payload, True
         except (OSError, json.JSONDecodeError):
             pass
-    payload = _api_json(f"/matches/{match_id}", None, request_gap)
+    # Match details already have durable, bounded retries in SQLite.  Retrying
+    # six times inside one worker can hold an otherwise-complete batch for more
+    # than six minutes and hides the real API request count.  Try once here;
+    # transient failures become ``retry`` rows and are revisited in a later
+    # batch without blocking fresh candidates.
+    payload = _api_json(
+        f"/matches/{match_id}",
+        None,
+        request_gap,
+        max_http_attempts=DETAIL_HTTP_ATTEMPTS,
+    )
     if not isinstance(payload, dict):
         raise ValueError(f"OpenDota match {match_id} returned non-object JSON")
     return payload, False
@@ -882,7 +900,9 @@ def _pending_rows(
               status IN ('pending','retry')
               OR (status='accepted' AND inventory_version < ?)
             ) AND attempts < ?
-            ORDER BY CASE WHEN inventory_version < ? THEN 0 ELSE 1 END, match_id DESC
+            ORDER BY CASE WHEN inventory_version < ? THEN 0 ELSE 1 END,
+                     attempts ASC,
+                     match_id DESC
             LIMIT ?
             """,
             (
@@ -1317,10 +1337,17 @@ def main(argv: list[str] | None = None) -> int:
     api_key = os.environ.get("OPENDOTA_API_KEY")
     request_gap = args.request_gap
     if request_gap is None:
-        request_gap = 0.03 if api_key else 1.05
-    workers = args.workers if args.workers is not None else (24 if api_key else 1)
+        request_gap = 0.03 if api_key else ANONYMOUS_REQUEST_GAP
+    workers = args.workers if args.workers is not None else (
+        24 if api_key else DEFAULT_ANONYMOUS_WORKERS
+    )
     if workers < 1 or request_gap < 0:
         raise SystemExit("--workers must be >= 1 and --request-gap must be >= 0")
+    if not api_key and request_gap < ANONYMOUS_REQUEST_GAP:
+        raise SystemExit(
+            f"--request-gap must be >= {ANONYMOUS_REQUEST_GAP} without "
+            "OPENDOTA_API_KEY"
+        )
     connection = _connect(args.db)
     run_stats: dict[str, int] = {}
     try:
